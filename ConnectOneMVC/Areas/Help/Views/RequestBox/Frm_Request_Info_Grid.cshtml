@@ -1,0 +1,472 @@
+﻿@{ 
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    bool ReqBox_AddRight = (bool)ViewData["ReqBox_AddRight"];
+    bool ReqBox_UpdateRight = (bool)ViewData["ReqBox_UpdateRight"];
+    bool ReqBox_DeleteRight = (bool)ViewData["ReqBox_DeleteRight"];
+    bool ReqBox_ViewRight = (bool)ViewData["ReqBox_ViewRight"];
+    bool ReqBox_ExportRight = (bool)ViewData["ReqBox_ExportRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "Request_InfoListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "RequestBox",
+            Action = "Frm_Request_Info_Grid",
+            FilterVisible = false,
+            SearchVisible = false,
+            ShowGroupedColumns = false,
+            SessionGUID = SessionGUID
+        };
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        settings.Settings.ShowPreview = true;
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            if (VouchingMode == true)
+            {
+                Html.RenderAction("AuditButtons", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            }
+        });
+        settings.HtmlDataCellPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            string colIdx = e.DataColumn.Index.ToString();
+            string rowIdx = e.VisibleIndex.ToString();
+            if (VouchingMode == true)
+            {
+                if (e.DataColumn.FieldName.Length > 0)
+                {
+                    e.Cell.Attributes.Add("ondblclick", "OnGridCellClick(event,this,'" + colIdx + "', '" + rowIdx + "','" + settings.Name + "','" + e.KeyValue + "','" + e.DataColumn.FieldName + "');");
+                }
+                if (e.DataColumn.Name == "iIcon")
+                {
+                    e.Cell.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                    e.Cell.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                }
+            }
+            e.Cell.CssClass += " col_" + e.DataColumn.FieldName + " row_" + e.KeyValue;
+            e.Cell.ID = "Cell_" + e.KeyValue + "|" + e.DataColumn.FieldName;
+        };
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (e.RowType == GridViewRowType.Data)
+            {
+                // e.Row.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                //  e.Row.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                e.Row.CssClass += " " + settings.Name + "_DataRow_" + e.KeyValue;
+            }
+            else if (e.RowType == GridViewRowType.Preview)
+            {
+                e.Row.BackColor = System.Drawing.Color.White;
+                if (VouchingMode == true)
+                {
+                    e.Row.Attributes.Add("onmouseover", "OnGridPrevRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                    e.Row.Attributes.Add("onmouseout", "OnGridPrevRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                }
+                e.Row.CssClass += " " + settings.Name + "_PreviewRow" + " " + settings.Name + "_PreviewRow_" + e.KeyValue;
+                //e.Row.ID = "PreviewRow_" + e.KeyValue;
+            }
+        };
+        //nested Grid
+
+        settings.SettingsDetail.ShowDetailRow = true;
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            Html.RenderAction("Frm_Request_Info_DetailGrid", new { RecID = DataBinder.Eval(c.DataItem, "ID"), VouchingMode = VouchingMode });
+        });
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+        {
+            string RecID = (string)DataBinder.Eval(e.DataItem, "ID");
+            GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Help.Controllers.RequestBoxController.NestedGridExportSettings(RecID));
+            grid.Bind(ConnectOneMVC.Areas.Help.Controllers.RequestBoxController.NestedGridExportData(RecID));
+            e.DetailGridViews.Add(grid);
+        };
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        //settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        // settings.SettingsCookies.Enabled = true;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+
+        }
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        //settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "Request Listing";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        //Pager Settings
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.AllButton.Visible = true;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        //settings.ClientSideEvents.FocusedRowChanged = "OnRequest_InfoGridFocusedRowChanged";
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        //settings.BeforeGetCallbackResult = (s, e) =>
+        //{
+        //    var gridView = s as MVCxGridView;
+        //    gridView.FocusedRowIndex = gridView.FindVisibleIndexByKeyValue(ViewData["newKey"]);
+        //};
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if (ReqBox_ExportRight) e.Items.Insert(0, PrintViewitem);
+
+                //e.Items.Insert(PrintViewitem, "PDF", "PDF", @"Images/ExportToPdf.png", true);
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(2, CloseItem);
+            }
+        };
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+
+            e.Properties["cpClientLayout"] = gridView.SaveClientLayout();
+        };
+        // DXCOMMENT: Specify the grid's key field name and define grid columns in accordance with data model fields
+
+        //------------------------------------------------//------------------------------------------------//------------------------------------------------//------------------------------------------------
+        settings.KeyFieldName = "ID";
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            //if (gridView != null)
+            //    gridView.FilterExpression = "[LB_PRO_NAME] Is Not Null";
+            if (ViewData["Layout"] != null)
+            {
+                gridView.LoadClientLayout(ViewData["Layout"].ToString());
+            }
+        };
+        settings.HeaderFilterFillItems = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (e.Column.FieldName != "iIcon")
+            {
+                return;
+            }
+            e.Values.Clear();
+            e.AddShowAll();
+            e.AddValue("<img src='../../../../Content/Images/attach_red_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RedShield')");//red
+            e.AddValue("<img src='../../../../Content/Images/attach_yellow_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'YellowShield')");//Yellow
+            e.AddValue("<img src='../../../../Content/Images/attach_green_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'GreenShield')");//green
+            e.AddValue("<img src='../../../../Content/Images/Completed_With_Remarks.png' width='20' height='20'</img>", "", "Contains([iIcon], 'BlueShield')");//blue
+            e.AddValue("<img src='../../../../Content/Images/Rejected_Attachment.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RedFlag')");//reject
+            e.AddValue("<img src='../../../../Content/Images/attach_normal.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RequiredAttachment')");//other
+            e.AddValue("<img src='../../../../Content/Images/attach_other_plus.png' width='20' height='20'</img>", "", "Contains([iIcon], 'AdditionalAttachment')");//other plus
+        };
+        settings.Columns.Add(column =>
+        {
+            column.Name = "iIcon";
+            column.Caption = "";
+            column.MinWidth = 30;
+            column.MaxWidth = 30;
+            column.Width = 30;
+            column.FieldName = "iIcon";
+            column.HeaderStyle.CssClass = "hide-header_iIcon";
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.SetDataItemTemplateContent(c =>
+            {
+                Int32? REQ_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REQ_ATTACH_COUNT");
+                Int32? COMPLETE_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "COMPLETE_ATTACH_COUNT");
+                Int32? RESPONDED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "RESPONDED_COUNT");
+                Int32? REJECTED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REJECTED_COUNT");
+                Int32? OTHER_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "OTHER_ATTACH_CNT");
+                Int32? ALL_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "ALL_ATTACH_CNT");
+
+                var RedAttach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "attachRed" + ID;
+                    ImageSettings.ImageUrl = "~/Content/Images/attach_red_2.png";
+                    ImageSettings.Properties.ToolTip = "Attachment Status : Pending";
+                });
+                var BlueAttach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "attachBlue" + ID;
+                    ImageSettings.ImageUrl = "~/Content/Images/attach_yellow_2.png";
+                    ImageSettings.Properties.ToolTip = "Attachment Status : Partial";
+                });
+                var GreenAttach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "attachGreen" + ID;
+                    ImageSettings.ImageUrl = "~/Content/Images/attach_green_2.png";
+                    ImageSettings.Properties.ToolTip = "Attachment Status : Complete";
+                });
+                var RemarksAttach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "attachExcla" + ID;
+                    ImageSettings.ImageUrl = "~/Content/Images/Completed_With_Remarks.png";
+                    ImageSettings.Height = 20;
+                    ImageSettings.Properties.ToolTip = "Attachment Status : Complete but With Remarks";
+                });
+                var RejectedAttach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "attachReject" + ID;
+                    ImageSettings.Height = 20;
+                    ImageSettings.ImageUrl = "~/Content/Images/Rejected_Attachment.png";
+                    ImageSettings.Properties.ToolTip = "Entry has " + REJECTED_COUNT.ToString() + " Rejected Attachments";
+                });
+
+                var attach_image = Html.DevExpress().Image(ImageSettings =>
+                {
+                    string ID = DataBinder.Eval(c.DataItem, "ID").ToString();
+                    ImageSettings.Name = "blueStar" + ID;
+                    if (OTHER_ATTACH_CNT == 0)
+                        ImageSettings.ImageUrl = "~/Content/Images/attach_normal.png";
+                    else
+                        ImageSettings.ImageUrl = "~/Content/Images/attach_other_plus.png";
+                    ImageSettings.Height = 20;
+                    ImageSettings.Properties.ToolTip = "Total Attachments:" + ALL_ATTACH_CNT.ToString() + "\r Non-Recommended Attachments:" + OTHER_ATTACH_CNT.ToString();
+                });
+                if ((COMPLETE_ATTACH_COUNT + RESPONDED_COUNT == 0) && REQ_ATTACH_COUNT > 0) { RedAttach.Render(); }
+                if (((COMPLETE_ATTACH_COUNT + RESPONDED_COUNT) > 0) && (COMPLETE_ATTACH_COUNT + RESPONDED_COUNT) < REQ_ATTACH_COUNT) { BlueAttach.Render(); }
+                if ((COMPLETE_ATTACH_COUNT + RESPONDED_COUNT >= REQ_ATTACH_COUNT) && REQ_ATTACH_COUNT > 0 && RESPONDED_COUNT == 0) { GreenAttach.Render(); }
+                if ((COMPLETE_ATTACH_COUNT + RESPONDED_COUNT >= REQ_ATTACH_COUNT) && REQ_ATTACH_COUNT > 0 && RESPONDED_COUNT > 0) { RemarksAttach.Render(); }
+                if (REJECTED_COUNT > 0) { RejectedAttach.Render(); }
+                if (ALL_ATTACH_CNT > 0) { attach_image.Render(); }
+                Html.RenderAction("AuditIconAfterClick", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            });
+            //column.SetHeaderTemplateContent(c =>
+            //{
+            //    var Attach = Html.DevExpress().Image(ImageSettings =>
+            //    {
+            //        ImageSettings.ImageUrl = "~/Content/FloatingActionButton/Images/pin.png";
+            //      ImageSettings.Height = 15;
+            //    });
+            //    Attach.Render();
+            //});
+            column.AdaptivePriority = 0;
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Sr";
+                column.Caption = "Sr.";
+                column.Visible = true;
+                column.MinWidth = 65;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Request_Detail";
+                column.Caption = "Request Detail";
+                column.Visible = true;
+                column.MinWidth = 538;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Administrator_Remarks";
+                column.Caption = "Administrator Remarks";
+                column.Visible = true;
+                column.MinWidth = 417;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Status";
+                column.Caption = "Status";
+                column.Visible = true;
+                column.MinWidth = 165;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Read";
+                column.Caption = "Read";
+                column.Visible = true;
+                column.MinWidth = 100;
+            }
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Send_From",
+            Caption = "Send From",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Action_By",
+            Caption = "Action By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Action_Date",
+            Caption = "Action Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Add_By",
+            Caption = "Add By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Add_Date",
+            Caption = "Add Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edit_By",
+            Caption = "Edit By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edit_Date",
+            Caption = "Edit Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ID",
+            Caption = "ID",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REJECTED_COUNT",
+            Caption = "iREJECTED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "RESPONDED_COUNT",
+            Caption = "iRESPONDED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "COMPLETE_ATTACH_COUNT",
+            Caption = "iCOMPLETE_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REQ_ATTACH_COUNT",
+            Caption = "iREQ_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "OTHER_ATTACH_CNT",
+            Caption = "OTHER_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ALL_ATTACH_CNT",
+            Caption = "ALL_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.Settings.ShowGroupedColumns = false;
+        settings.Settings.ShowFooter = false;
+        settings.ClientSideEvents.Init = "Request_InfoOnInit";
+        //settings.ClientSideEvents.CustomizationWindowCloseUp = "CloseColumnChooser";
+        settings.ClientSideEvents.EndCallback = "OnGridRequest_InfoListGrid_EndCallback";
+        settings.ClientSideEvents.BeginCallback = "RequestGrid_BeginCallBack";
+        settings.ClientSideEvents.FocusedRowChanged = "OnRequestGridFocusedRowChanged";
+        settings.ClientSideEvents.ContextMenuItemClick = "Request_InfoContextMenuFunction";
+        settings.ClientSideEvents.ContextMenu = "Request_InfoContextMenuInit";
+        settings.ClientSideEvents.DetailRowCollapsing = "Request_InfoGrid_DetailRowCollapsing";
+        settings.ClientSideEvents.DetailRowExpanding = "Request_InfoGrid_DetailRowExpanding";
+
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

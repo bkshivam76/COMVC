@@ -1,0 +1,206 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using System.Data
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta name="description" content="" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link href="@Url.Content("~/Content/dx.common.css")" rel="Stylesheet" />
+    <link href="@Url.Content("~/Content/dx.light.css")" rel="Stylesheet" />
+    <link rel="stylesheet" href="~/Content/Android/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" />
+    <link rel="stylesheet" href="~/Content/Android/css/app.css?v=1" />
+    <script src="@Url.Content("~/Scripts/jquery-3.6.0.min.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/dx.all.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/aspnet/dx.aspnet.data.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/aspnet/dx.aspnet.mvc.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Content/Android/js/common.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/CommonFn.js?v=1")" type="text/javascript"></script>
+</head>
+
+@{
+    Layout = "";
+    string androidID = Convert.ToString(ViewBag.androidID);
+    string deviceToken = Convert.ToString(ViewBag.deviceToken);
+    string Cone_Domain = (string)ViewBag.Domain;
+    string ServiceMOduleDmain = (string)ViewBag.Service_Module_Domain;
+    string theme = ViewBag.theme;
+    string ReportType = ViewBag.type;
+
+}
+<body>
+    <!-- Right Side Menu -->
+    @Html.Partial("Android_Theme", androidID)
+
+    <!-- Page Contents -->
+    <div class="pusher pt-0">
+        <h4>Please select your @ReportType</h4>
+        <div class="ui large secondary menu">
+            <a class="ric item">
+                <i class="paint brush icon"></i>
+            </a>
+        </div>
+        <div class="app-control middle">
+            <div class="ui dropdown btn-block mb-2">
+                @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Centre_DD").ID("Centre_DD").Placeholder("Choose Centre..").DisplayExpr("cen_name").ValueExpr("cen_id")
+                                   .DataSource(d => d.Mvc().Controller("Android").LoadAction("LookUp_Get_Centres").Key("cen_id").LoadMode(DataSourceLoadMode.Raw))
+                            .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Centre_DD_datagrid")
+                        .Columns(columns =>
+                        {
+                            columns.Add().DataField("cen_name").Caption("Name");
+                            columns.Add().DataField("cen_uid").Caption("UID").Visible(false);
+                            columns.Add().DataField("cen_id").Caption("cen_id").Visible(false);
+                        })
+                        .Selection(s => s.Mode(SelectionMode.Single))
+                        .FilterRow(s=>s.Visible(false))
+                        .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                            </text>).OnValueChanged("Centre_DD_ValueChange").Visible(ReportType == "Centre"))
+                @*Wing DD*@
+                @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Wing_DD").ID("Wing_DD").Placeholder("Choose Wing..").DisplayExpr("Name").ValueExpr("REC_ID")
+                                   .DataSource(d => d.Mvc().Controller("Android").LoadAction("LookUp_Get_Wings").Key("REC_ID").LoadMode(DataSourceLoadMode.Raw))
+                            .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Wing_DD_datagrid")
+                        .Columns(columns =>
+                        {
+                            columns.Add().DataField("Name").Caption("Wing");                          
+                            columns.Add().DataField("ID").Caption("ID").Visible(false);
+                            columns.Add().DataField("REC_ID").Caption("REC_ID").Visible(false);
+                        })
+                        .Selection(s => s.Mode(SelectionMode.Single))
+                        .FilterRow(s=>s.Visible(false))
+                        .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                            </text>).OnValueChanged("Wing_DD_ValueChange").Visible(ReportType == "Wing"))
+            </div>
+            <div class="ui form">
+                <div class="two fields">
+                    <div class="field">
+                        <label>Start date</label>
+                        <div class="ui calendar" id="rangestart">
+                            @*<div class="ui input left icon">*@
+                                @*<i class="calendar icon"></i>*@
+                                @(Html.DevExtreme().DateBox().CustomDateBox().Name("StartDate").ID("StartDate").Min(new DateTime(1990,01,01)))
+                            @*</div>*@
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>End date</label>
+                        <div class="ui calendar" id="rangeend">
+                            @*<div class="ui input left icon">
+                                <i class="calendar icon"></i>*@
+                                @(Html.DevExtreme().DateBox().CustomDateBox().Name("EndDate").ID("EndDate").Min(new DateTime(1990,01,01)))
+                            @*</div>*@
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <a class="ui labeled icon button huge fluid active text-center" onclick="ShowReportClick()">
+                <span>Show Report</span>
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script>
+        $(document).ready(function ()
+            {
+                setAppliedTheme("@theme")
+                // fix menu when passed
+                $('.masthead')
+                    .visibility({
+                        once: false,
+                        onBottomPassed: function () {
+                            $('.fixed.menu').transition('fade in');
+                        },
+                        onBottomPassedReverse: function () {
+                            $('.fixed.menu').transition('fade out');
+                        }
+                    });
+
+                // create sidebar and attach to menu open
+                $('.ui.sidebar.right')
+                    .sidebar('attach events', '.ric.item');
+
+        });
+        async function Centre_DD_ValueChange(e,FirstCall=false)
+        {
+            var value;
+            var DG = $("#Centre_DD_datagrid").dxDataGrid("instance");
+            if (e)
+            {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+                {
+                    DG.clearSelection();
+                    return;
+                }
+            }
+            else
+            {
+                value = $("#Centre_DD").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);
+        }
+        async function Wing_DD_ValueChange(e, FirstCall = false) {
+            var value;
+            var DG = $("#Wing_DD_datagrid").dxDataGrid("instance");
+            if (e) {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    DG.clearSelection();
+                    return;
+                }
+            }
+            else {
+                value = $("#Wing_DD").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);
+        }
+        function ShowReportClick()
+        {
+            var url = "@ServiceMOduleDmain" + "/Events/EventsReport/SewanjaliReportEmailer";
+            if ("@ReportType" == "Centre")
+            {
+                var cenID = $("#Centre_DD").dxDropDownBox("option", "value");
+                if (cenID == null || cenID.length == 0)
+                {
+                    DevExpress.ui.dialog.alert("Please Select Centre", "Information");
+                    return;
+                }
+                url = url+"?centerid=" + cenID;
+            }
+            if ("@ReportType" == "Wing")
+            {
+                var wingid = $("#Wing_DD").dxDropDownBox("option", "value");
+                if (wingid == null || wingid.length == 0)
+                {
+                    DevExpress.ui.dialog.alert("Please Select Wing", "Information");
+                    return;
+                }
+                url = url + "?wingid=" + wingid;
+            }
+            var fromDate = $("#StartDate").dxDateBox("option", "value");
+            var toDate = $("#EndDate").dxDateBox("option", "value");
+            if (toDate != null && fromDate != null)
+            {
+                if (toDate < fromDate)
+                {
+                    DevExpress.ui.dialog.alert("End Date Should be More Than Or Equal To Start Date", "Information");
+                    return;
+                }
+            }
+            if (fromDate != null)
+            {
+                url = url + "&startdate=" + FormatDateToddMMyyyy(fromDate)
+            }
+            if (toDate != null) {
+                url = url + "&enddate=" + FormatDateToddMMyyyy(toDate)
+            }
+            window.open(url,"_self")
+        }
+    </script>  
+</body>
+</html>

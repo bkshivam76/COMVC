@@ -1,0 +1,214 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+    @{ 
+        int jobid = ViewBag.ExpJobID;
+
+        bool Job_AccVouPayNewRight = (bool)ViewData["Job_AccVouPayNewRight"];
+    }
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    [type="radio"]:checked,
+    [type="radio"]:not(:checked) {
+        position: absolute;
+        left: -9999px;
+    }
+
+        [type="radio"]:checked + label,
+        [type="radio"]:not(:checked) + label {
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+            line-height: 15px;
+            display: inline-block;
+            color: #666;
+        }
+
+            [type="radio"]:checked + label:before,
+            [type="radio"]:not(:checked) + label:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #ddd;
+                border-radius: 100%;
+                background: #fff;
+            }
+
+            [type="radio"]:checked + label:after,
+            [type="radio"]:not(:checked) + label:after {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: #337ab7;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 100%;
+                -webkit-transition: all 0.2s ease;
+                transition: all 0.2s ease;
+            }
+
+            [type="radio"]:not(:checked) + label:after {
+                opacity: 0;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            [type="radio"]:checked + label:after {
+                opacity: 1;
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .margT4 {
+        margin-top: 4px !important;
+    }
+
+    .buttonMrgTB {
+        margin-bottom: 15px;
+        margin-top: 15px;
+    }
+
+    .popuphead {
+        margin: 0 0 5px 12px !important;
+    }
+
+    #jobId_postnewexpense > div {
+        padding: 3px 8px !important;
+        margin:0;
+    }
+</style>
+
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="id_Estimation_Grid" class="edit_form">
+    <!-- <div class="full-width-header-bg3">
+         <div class="row">
+
+             <div class="col-sm-8">
+                 <h3 class="popuphead"><i class="far fa-edit"></i> Expense Details</h3>
+             </div>
+             <div class="col-sm-4 prm">
+                 <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+             </div>
+         </div>
+
+     </div> [Header]-->
+    @Html.Partial("Job_Actual_Estimation_Grid", Model)
+    <div class="row margT4">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="col-md-12 styleActionBtn">
+                        @(Html.DevExtreme().Button().ID("jobId_postnewexpense").Text("Post New Expense").OnClick(@<text> function(){ Job_Postnewexpense(); } </text>))
+                        @if (ViewBag.ExpCallingPage == "InnerGrid")
+                        {
+                                @(Html.DevExtreme().Button().CustomSaveButton().ID("jobId_Actuall_Exp_Inc").Text("Ok").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen").OnClick(@<text> function(){ Job_PostingActEstExp(); } </text>))
+                        }
+                        else
+                        {
+                                @(Html.DevExtreme().Button().CustomSaveButton().ID("jobId_Actuall_Exp_Inc").Text("Ok").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen").OnClick(@<text> function(){ Job_PostExpense(); } </text>))
+                        }
+                                @(Html.DevExtreme().Button().CustomCloseButton().ID("jobId_Actuall_Exp_close").Text("Cancel").Icon("fa fa-times-circle fa-w-16 btn-icons crossgrey").OnClick(@<text> function(){$("#Jobinnergrid").dxPopup("hide");}</text> ))
+                </div>
+
+            </div>
+        </div>
+    </div><!--[button]-->
+</div>
+<script>
+    var Job_selectedrowsarray = [];
+    var Job_AccVouPaymentNewRight = "@Job_AccVouPayNewRight" == "True" ? true : false;
+    $(document).ready(function () {
+        if (!Job_AccVouPaymentNewRight)
+        {
+            $("#jobId_postnewexpense").hide();
+        }       
+    });
+    function jobonexpensemapgridinit(s, e) {
+        $.ajax({
+            type: "Get",
+            url: "/Stock/JobRequestRegister/FindGridKeyValue",
+            success: function (value)
+            {
+                if (value.result == true)
+                {
+                    JobActuallExpensesGrid.SelectRowsByKey(value.data);
+                }
+            }
+        });
+    }
+    function job_expenses_grid_selectionchanged(s, e)
+    {
+        s.SortBy("Txn_ID");
+    }
+    function Job_PostingActEstExp()
+    {
+        Job_selectedrowsarray = JobActuallExpensesGrid.GetSelectedKeysOnPage();
+       
+        $.ajax({
+            type: "POST",
+            url: "/Stock/JobRequestRegister/Addingnewexpenses",
+            data: {
+                selectedrowarr: Job_selectedrowsarray
+            },
+            success: function (data) {
+
+                $("#Jobinnergrid").dxPopup("hide");
+                JobExpensesGrid.SetFocusedRowIndex(-1);
+                JobExpensesGrid.Refresh();
+            },
+            error: function (e) {
+
+            }
+        });
+    }         
+    function Job_PostExpense()
+    {
+        Job_selectedrowsarray = JobActuallExpensesGrid.GetSelectedKeysOnPage();
+
+        $.ajax({
+            type: "POST",
+            url: "/Stock/JobRequestRegister/Addingnewexpenses",
+            data: {
+                selectedrowarr: Job_selectedrowsarray,
+                callingscreen: "Info",
+                jobid:"@jobid"
+            },
+            success: function (data) {
+                if (data.result == true) {
+                    $("#Jobinnergrid").dxPopup("hide");
+                    DevExpress.ui.dialog.alert(data.Message, "Inform");//Mantis bug 0000604 fixed
+                    JobRequestRegisterListGrid.Refresh();
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.Message, "Error");//Mantis bug 0000604 fixed
+                }
+            },
+          
+        });
+    }
+    function Job_Postnewexpense()
+    {
+        if (!Job_AccVouPaymentNewRight) {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights")
+            return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+</script>
+

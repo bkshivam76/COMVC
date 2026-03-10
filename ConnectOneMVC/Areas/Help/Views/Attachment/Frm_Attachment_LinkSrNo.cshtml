@@ -1,0 +1,164 @@
+﻿<div class="AttachmentLinkbySrno_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+    }
+    <style>
+    </style>
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+    <div id="Frm_Attachment_LinkSrNo">
+        <form>
+            <div class="form-field">
+                <div class="col-sm-12 phl">
+                    <label class="control-label text-red" for="user" id="lbl_AttachmentLinkSrNo_TextArea">Enter Attachment Serial No:</label>
+                    @(Html.DevExtreme().TextArea().ID("AttachmentLinkSrNo_TextArea").Name("AttachmentLinkSrNo_TextArea").Height(250).Placeholder("Enter Attachment Serial No.").Hint("Use , or / To Seperate Different Serial No.").OnInput("AttachmentLinkSrNo_TextArea_Oninput") )
+
+                </div>
+            </div>
+            <div class="form-field">
+                <div class="col-sm-12 styleActionBtn phm">
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("Link").ID("AttachmentLinkSrNo_Ok").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("AttachmentLinkSrNo_SaveClick"))
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("AttachmentLinkSrNo_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { AttachmentLinkSrNo_CancelClick();} </Text>))
+
+                </div>
+            </div><!--[Buttons]-->
+        </form>
+    </div><!--[Form Div]-->
+    <script>
+    var Referece_Screen = "@ViewBag.Referece_Screen";
+    var Referece_ID = "@ViewBag.Referece_ID";
+    var MainGridName = "@ViewBag.MainGridName";
+    var NestedGridName = "@ViewBag.NestedGridName";
+    var FocusedRowIndex = "@ViewBag.FocusedRowIndex";
+    var LinkBySerialNo = "@ViewBag.LinkBySerialNo";
+    $(document).ready(function ()
+    {
+        ShowLoader_Ready();
+        if (LinkBySerialNo == "False")
+        {
+            $("#lbl_AttachmentLinkSrNo_TextArea").text("Enter Attachment File Name:");
+            $("#AttachmentLinkSrNo_TextArea").dxTextArea("instance").option("placeholder", "Enter Attachment File Name.");
+            $("#AttachmentLinkSrNo_TextArea").dxTextArea("instance").option("hint", "Use , or / To Seperate Different File Name");
+            if (MainGridName == "LedgerReportListGrid")
+            {
+                $("#AttachmentLinkSrNo_TextArea").dxTextArea("instance").option("value", $("#Ledger_TextForFileNameLink").dxTextBox("instance").option("value"));
+            }
+        }
+        setTimeout(function ()
+        {
+            HideLoader_Ready();
+            $("#AttachmentLinkSrNo_TextArea").dxTextArea("instance").focus();
+        }, Timeout500);
+    })
+    document.getElementById("Frm_Attachment_LinkSrNo").addEventListener('keydown', function (evt)
+    {
+        if (evt.repeat) { return };
+        if (evt.keyCode == 13)
+        {
+            evt.preventDefault();
+            //$("#AttachmentLinkSrNo_Ok").trigger(jQuery.Event("click"));
+            AttachmentLinkSrNo_SaveClick();
+        }
+    });
+
+    function AttachmentLinkSrNo_CancelClick()
+    {
+        HidePopup('LinkAttachmentPopupFromSrNo');
+    }
+    function AttachmentLinkSrNo_SaveClick(e)
+    {
+        var Attachments = $("#AttachmentLinkSrNo_TextArea").dxTextArea("instance").option("text");
+        if (Attachments == null || Attachments.trim().length < 1)
+        {
+            DevExpress.ui.dialog.alert("Attachment Serial Number/File Name Not Entered", 'Error');
+            return;
+        }
+        ShowLoader();
+        Attachments = Attachments.replace(/\//gi, ",");
+        var _AttachmentSrno = "";
+        var _AttachmentFileName = "";
+        if (LinkBySerialNo == "False") {
+            _AttachmentFileName = Attachments;
+        }
+        else
+        {
+            _AttachmentSrno = Attachments;
+        }
+            $.ajax({
+            type: 'Get',
+            url: "/Help/Attachment/LinkAttachment",
+            data:
+            {
+                AttachmentSrNo: _AttachmentSrno,
+                Referece_Screen: Referece_Screen,
+                Referece_ID: Referece_ID,
+                AttachmentFileName: _AttachmentFileName
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.result == true)
+                {
+                    //DevExpress.ui.dialog.alert(data.message, "Success");
+                    DevExpress.ui.notify({ message: data.message, width: 350, shading: true, position: 'center' }, "success", 1500);
+                    var GridInstance = $("div[id = '" + MainGridName + "']").data("dxDataGrid")
+                    if (NestedGridName && NestedGridName.length > 0)
+                    {
+                        if (ASPxClientControl.GetControlCollection().GetByName(NestedGridName) != null)
+                        {
+                            if (typeof ASPxClientControl.GetControlCollection().GetByName(NestedGridName) !== 'undefined')
+                            {
+                                ASPxClientControl.GetControlCollection().GetByName(NestedGridName).Refresh();
+                            }
+                        }
+                    }
+                    if (MainGridName && MainGridName.length > 0)
+                    {
+                        RefreshGridView(MainGridName)              
+                        if (GridInstance == void 0)
+                        {
+                            GridViewDoCallback(ASPxClientControl.GetControlCollection().GetByName(MainGridName), function () { ASPxClientControl.GetControlCollection().GetByName(MainGridName).ExpandDetailRow(parseInt(FocusedRowIndex)); });
+                        }
+                        else
+                        {
+                            var GridData = GetDataSourceItems(MainGridName, "dxDataGrid")
+                            var detailEnabled = GridInstance.option("masterDetail.enabled")
+                            if (GridData != null && GridData.length > 0 && detailEnabled==true)
+                            {
+                                var key = GridData[FocusedRowIndex][GetKeyFieldOfDataSource(MainGridName,"dxDataGrid")]
+                                if (key)
+                                {
+                                    GridInstance.expandRow(key)
+                                }
+                            }
+                        }
+                    }
+                    if (typeof AttachmentListGrid !== 'undefined') {
+                        AttachmentListGrid.Refresh();
+                    }
+                    HidePopup('LinkAttachmentPopupFromSrNo');
+                }
+                else if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+            }
+        });
+        }
+        function AttachmentLinkSrNo_TextArea_Oninput(evt)
+        {
+            if (LinkBySerialNo == "True") {
+                evt.event.target.value = evt.event.target.value.replace(/[^0-9,/]/gi, '');
+            }
+            else
+            {
+                evt.event.target.value = evt.event.target.value.replace(/[^a-zA-Z0-9,._/]/gi, '');
+            }
+        }
+    </script>
+</div>

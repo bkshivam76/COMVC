@@ -1,0 +1,354 @@
+﻿<div class="IncomeExpenditure_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool IncomeExpenditure_ExportRight = (bool)ViewData["IncomeExpenditure_ExportRight"];
+        bool IncomeExpenditure_Auto_Vouching_Mode = (bool)ViewData["IncomeExpenditure_Auto_Vouching_Mode"];
+    }
+
+    <style>
+        .parent_table .col-xs-6 { padding: 0 }
+        .parent_table .col-xs-6 .dxgvHSDC { padding-right: 0 !important }
+        #IncomeReportreloadPartialView { padding-left: 5px }
+        @@media (max-width:768px) {
+            .parent_table .col-xs-6 { overflow: auto }
+            .dxgvADR td { display: block }
+            .dxgvDetailRow_MetropolisBlue.dxgvADR .dxgvADT > tbody > tr > td.dxgvADDC{padding-top:0}
+        }
+    </style>
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="report_header_div">
+            <label class="report_header_label">Income & Expenditure Report</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("IncExpVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("IncExp_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                                                .ID("IncomeExpReportsShowLedger")
+                                                .Text("Show Ledger")
+                                                .Icon("doc")
+                                                .Visible(false)
+                                                .Disabled(true)
+                                                .OnClick(@<text>
+                                                    function () {
+                                                    OnIncomeExpReportShowLedgerClick();
+                                                    }
+                                                </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                .ID("IncomeExpReportToggleScrollBar")
+                                                .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                .Icon("toolbox")
+                                                .OnClick(@<text>
+                                                    function () {
+                                                    IncomeExpReportchangeMode();
+                                                    }
+                                                </text>)
+        )
+            @*@(Html.DevExtreme().Button()
+                                                .ID("IncomeExpReportsModelListPreview")
+                                                .Text("Export")
+                                                .Icon("save")
+                                                 .Width(80)
+                                                .OnClick(@<text>
+                        function () {
+                        OnIncomeExpReportListPreviewClick();
+                        }
+                                                </text>)
+                )*@
+            @(Html.DevExtreme().Button()
+                                                .ID("IncomeExpReportModelCLOSE")
+                                                .Text("Close")
+                                                .Icon("clear")
+                                                .OnClick(@<text>
+                                                    function (){
+                                                    $(".TabPanalMenu-tabs .active span").click()
+                                                    }
+                                                </text>)
+
+        )
+        </div>
+    </div>
+    <form>
+        <div class="parent_table">
+            <div id="ExpReportreloadPartialView" class="col-xs-6">
+                @Html.Partial("Frm_Expenditure_Report_Grid", Model)
+            </div>
+            <div id="IncomeReportreloadPartialView" class="col-xs-6">
+                @Html.Partial("Frm_Income_Report_Grid", Model)
+            </div>
+        </div>
+    </form>
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @*@(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("IncomeExpReport_report_modal")
+                         .OnShowing("PopupOnShowing")
+                        .Title("Income & Expenditure Report Preview")
+                        .FullScreen(false)
+                        .MaxWidth(125)
+                       .Height("auto")
+                        .ShowCloseButton(true)
+                        .ContentTemplate(@<text>
+                            <div id='IncomeExpReport_report_modal_result'>
+                            </div>
+                        </text>)
+            )*@
+
+    </div>
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+    var IsIncomeExpReportSucessPopup = false;
+    var IsIncomeExpReportViewPopup = false;
+    var IncomeExpReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var IncExp_IsVouchingMode = false;
+    var IncomeExpenditure_SetVouchingModeOn = "@IncomeExpenditure_Auto_Vouching_Mode" == "True" ? true : false;
+    function IncExp_VouchingSwitch_ValueChange(e) {
+        IncExp_IsVouchingMode = e.value;
+        IncomeReportListGrid_PerformCallBack();
+        ExpReportListGrid_PerformCallBack();
+    }
+    function IncomeReportListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.IncomeReportListGrid !== 'undefined')
+            {
+                if (typeof window.IncomeReportListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof IncomeReportListGrid.PerformCallback == 'function')
+                    {
+                        IncomeReportListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        IncomeReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function ExpReportListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.ExpReportListGrid !== 'undefined')
+            {
+                if (typeof window.ExpReportListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof ExpReportListGrid.PerformCallback == 'function')
+                    {
+                        ExpReportListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        ExpReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    $(document).ready(function () {
+        @*if ("@IncomeExpenditure_ExportRight" == "False")
+        {
+	        $("#IncomeExpReportsModelListPreview").hide();
+        }*@
+        IsIncomeExpReportSucessPopup = false;
+        IsIncomeExpReportViewPopup = false;
+
+        $(".ExpReportListGrid_PreviewRow").hide();
+        GetSessionStorage("ExpReportListGrid");
+
+        $(".IncomeReportListGrid_PreviewRow").hide();
+        GetSessionStorage("IncomeReportListGrid");
+
+       // SetIncomeExpReportGroupPanelFooterVisible();
+        $("#ExpReportListGrid").hover(function () {
+            ExpReportListGrid.Focus()
+        })
+
+        $("#IncomeReportListGrid").hover(function () {
+            IncomeReportListGrid.Focus()
+        })
+        if (IncomeExpenditure_SetVouchingModeOn == true)
+        {
+            $("#IncExpVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/IncomeExpenditure/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_IncomeExpenditure();
+    });
+    function ClearAllReferences_IncomeExpenditure()
+    {
+        IsIncomeExpReportSucessPopup = null;
+        IsIncomeExpReportViewPopup = null;
+        IncomeExpReport_ShowHorizontalBar = null;
+        IncExp_IsVouchingMode = null;
+        IncomeExpenditure_SetVouchingModeOn = null;
+
+        ClearAllReferences("IncomeExpenditure_ClearReferences");
+    }
+    function OnIncomeReportListGrid_EndCallback(s, e)
+    {
+        $(".IncomeReportListGrid_PreviewRow").hide();
+        GetSessionStorage("IncomeReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function OnExpReportListGrid_EndCallback(s, e) {
+        $(".ExpReportListGrid_PreviewRow").hide();
+        GetSessionStorage("ExpReportListGrid");
+    }
+
+
+    function ExpReportOnInit(s, e) {
+        IncomeExpReportAdjustSize();
+        $(".ExpReportListGrid_PreviewRow").hide();
+        GetSessionStorage("ExpReportListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            IncomeExpReportAdjustSize();
+        });
+    }
+
+    function IncomeReportOnInit(s, e) {
+        IncomeExpReportAdjustSize();
+        $(".IncomeReportListGrid_PreviewRow").hide();
+        GetSessionStorage("IncomeReportListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            IncomeExpReportAdjustSize();
+        });
+    }
+
+    //function OnGridIncomeExpReportListGrid_EndCallback(s, e) {
+    //    IncomeExpReportAdjustSize();
+    //}
+
+    function IncomeExpReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try { ExpReportListGrid.SetHeight(height); } catch (err) { }
+        try { IncomeReportListGrid.SetHeight(height); } catch (err) { }
+    }
+    function IncomeExpReportchangeMode() {
+        ShowLoader();
+        if (IncomeExpReport_ShowHorizontalBar == 0) {
+            IncomeExpReport_ShowHorizontalBar = 1;
+            $("#IncomeExpReportToggleScrollBar").find("span").text("Default Data");
+            $("#IncomeExpReportToggleScrollBar").width(110);
+        }
+        else {
+            IncomeExpReport_ShowHorizontalBar = 0;
+            $("#IncomeExpReportToggleScrollBar").find("span").text("Full Data");
+            $("#IncomeExpReportToggleScrollBar").width(110);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Expenditure_Report_Grid", "IncomeExpenditure")',
+            type: "GET",
+            data: { ShowHorizontalBar: IncomeExpReport_ShowHorizontalBar, VouchingMode: IncExp_IsVouchingMode },
+            success: function (res) {
+
+                $("#ExpReportreloadPartialView").html(res);
+                $(".ExpReportListGrid_PreviewRow").hide();
+                GetSessionStorage("ExpReportListGrid");
+            }
+        });
+           $.ajax({
+            url: '@Url.Action("Frm_Income_Report_Grid", "IncomeExpenditure")',
+            type: "GET",
+               data: { ShowHorizontalBar: IncomeExpReport_ShowHorizontalBar, VouchingMode: IncExp_IsVouchingMode },
+               success: function (res) {
+
+                   $("#IncomeReportreloadPartialView").html(res);
+                   $(".IncomeReportListGrid_PreviewRow").hide();
+                   GetSessionStorage("IncomeReportListGrid");
+            }
+        });
+        HideLoader();
+    }
+    @*function OnIncomeExpReportListPreviewClick() {
+        if ("@IncomeExpenditure_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("IncomeExpReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "IncomeExpenditure", new { @area = "Reports" })", "auto", "auto", false, null);
+    }*@
+
+    function OnIncomeExpReportShowLedgerClick() {
+        ShowLoader();
+        OpenDynamicPopup('Ledger Report', '@Url.Action("Frm_Ledger_Report", "LedgerReport",new { @area = "Reports", @id="" })', 460, 680);
+        HideLoader();
+    }
+    function IncomeReport_BeginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = IncomeExpReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = IncExp_IsVouchingMode;
+    }
+    function ExpReport_BeginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = IncomeExpReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = IncExp_IsVouchingMode;
+    }
+    function IncomeExpReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        //else if (e.item.name == 'ListPreview') {
+        //    OnIncomeExpReportListPreviewClick();
+        //}
+        else if (e.item.name == 'Refresh') {
+            ExpReportListGrid.Refresh();
+            IncomeReportListGrid.Refresh();
+        }
+    }
+    </script>
+
+</div>

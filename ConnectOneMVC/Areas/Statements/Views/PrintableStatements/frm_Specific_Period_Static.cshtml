@@ -1,0 +1,138 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@{ 
+    string Statement_Glob = (string)ViewBag.Statement_Glob;
+    string StatementPath = (string)ViewBag.StatementPath;
+    string xFr_Date_Formatting = (string)ViewBag.xFr_Date_Formatting;
+    string xTo_Date_Formatting = (string)ViewBag.xTo_Date_Formatting;
+}
+<div class="form-horizontal">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    <input type="hidden" id="hdfxFr_Date" value="@xFr_Date_Formatting" />
+    <input type="hidden" id="hdfxTo_Date" value="@xTo_Date_Formatting" />
+    <div id="content" class="col-md-12" style="background:#8bbef7 url(../../Content/image/popup-headerbg.jpg) left top repeat-x">
+        <div class="col-md-12" style="padding-left:0px;">
+            <h3 style="margin-top:6px;color:#000080"> <img src="~/Icons/Audit Actions6.png" style="float:left;" align="middle" /> &nbsp;Change Period</h3>
+        </div>
+    </div>
+    <div class="form-group" style="padding-top:10px;padding-left:5px">
+       
+      @Html.Label("From", "From", htmlAttributes: new { @class = "control-label col-md-1" })
+        <div class="col-md-5">
+            @(Html.DevExtreme().DateBox()
+                        .Name("From_Date")
+                        .ID("From_Date")
+                        .Type(DateBoxType.Date)
+                        .PickerType(DateBoxPickerType.Native)
+                        .DisplayFormat(ViewBag.Base_Date_Format_Current)
+                        .InvalidDateMessage("Value must be a Date!!")
+                        .Disabled(true)
+                        .Max(new DateTime(2051, 3, 31))
+                        .Min(new DateTime(2011, 4, 1))
+            )
+
+           @* @Html.ValidationMessageFor(model => model.BA_ClOSE_DATE, "", new { @class = "text-danger" })*@
+        </div>
+        @Html.Label("To", "To", htmlAttributes: new { @class = "control-label col-md-1" })
+        <div class="col-md-5">
+            @(Html.DevExtreme().DateBox().DisplayFormat(ViewBag.Base_Date_Format_Current)
+                        .Name("To_Date")          
+                        .ID("To_Date")
+                        .Type(DateBoxType.Date)
+                        .PickerType(DateBoxPickerType.Native)
+                        .Max(new DateTime(2051, 3, 31))
+                        .Min(new DateTime(2011, 4, 1))
+            )
+
+            @*@Html.ValidationMessageFor(model => model.BA_ClOSE_DATE, "", new { @class = "text-danger" })*@
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-top:5px;padding-bottom:10px;background-color:#ffffff">
+        <div class="col-md-offset-2 col-md-10" style="display:block">
+            @(Html.DevExtreme().Button()
+                    .ID("Cancel")
+                    .Width(90)
+                    .Icon("fa fa-times-circle fa-w-16 btn-icons crossgrey")
+                    .Text("Cancel")
+                    .ElementAttr("style", "float:right;margin-left:5px;margin-top:10px")
+                    .OnClick(@<text>
+                        function () {
+                         $("#Dynamic_Content_popup").dxPopup("hide");
+                        }
+                    </text>)
+            )
+
+            @(Html.DevExtreme().Button()
+                .ID("ok_SpecificPeriod")
+                .Text("OK")
+                .Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen")
+                .ElementAttr("style", "float:right;margin-top:10px")
+                .Type(DevExtreme.AspNet.Mvc.ButtonType.Normal)
+                //.Icon("add")
+                .UseSubmitBehavior(false)
+                 .OnClick(@<text>
+                    function () {                    
+                        OKForSpecificPeriod();
+                    }
+                </text>)
+            )
+        </div>
+    </div>
+</div>
+<div class="col-md-12">
+    @*Specific period popup*@
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_Statement").OnShowing("PopupOnShowing").Title(Statement_Glob).ElementAttr("style", "overflow:auto").ContentTemplate(
+    @<text>
+        <div id='popup_Statement_result' style="overflow:auto">
+            @Html.Partial(StatementPath)
+        </div>
+    </text>)
+    )
+</div>
+<script>
+    var specific_period_fromDate;
+    var specific_period_toDate;
+    var specific_period_return_period;
+    $(document).ready(function () {
+        $("#From_Date").dxDateBox({
+            applyValueMode: "useButtons",
+            value: $("#hdfxFr_Date").val()
+
+        });
+        $("#To_Date").dxDateBox({
+            applyValueMode: "useButtons",
+            value: $("#hdfxTo_Date").val()
+        });
+    });
+    function GetFormattedDate_mm_dd_yyyy(inputdate) {
+        var todayTime = new Date(inputdate);
+        var month = todayTime.getMonth() + 1;
+        var day = todayTime.getDate();
+        var year = todayTime.getFullYear();
+        return month + "-" + day + "-" + year;
+    }
+    function OKForSpecificPeriod()
+    {
+        _fromDate = $("input[name=From_Date]").val();
+        _toDate = $("input[name=To_Date]").val();
+        $.ajax({
+            type: 'GET',
+            url: "/Statements/PeriodSelection/Check_Period_Selection",
+            data: { _FrDate: _fromDate, _ToDate: _toDate },
+            cache: false,
+            success: function (data) {
+                if (data.result == true) {
+                    _fromDate = GetFormattedDate_mm_dd_yyyy($("input[name=From_Date]").val());
+                    _toDate = GetFormattedDate_mm_dd_yyyy($("input[name=To_Date]").val());
+                    $("#popup_Statement").dxPopup("show");
+                    $("#popup_Statement").dxPopup("instance").option("title", "@Statement_Glob");
+                    $("#popup_Statement_result").html('');
+                    ShowLoader();
+                    _OK = true;
+                    $("#Dynamic_Content_popup").dxPopup("hide");
+                }
+                else { DevExpress.ui.dialog.alert(data.message, "Message..."); }
+            }
+        });
+    }
+</script>

@@ -1,0 +1,249 @@
+﻿<div class="PartyMerge_ClearReferences">
+@model ConnectOneMVC.Areas.Facility.Models.PartyMerge
+@using DevExtreme.AspNet.Mvc;
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+    var next_Unaudited_YearID = (int)ViewBag.next_Unaudited_YearID;
+}
+
+<style>
+    .control-label {
+        text-align: left !important;
+    }
+</style>
+<div id="PartyMerge_AB_Content">
+    @using (Ajax.BeginForm("Frm_Party_Merge_Window", "AddressBook",
+                      new AjaxOptions
+                      {
+                          HttpMethod = "POST",
+                          UpdateTargetId = "PartyMerge_AB_Content",
+                          InsertionMode = InsertionMode.InsertAfter,
+                          OnBegin = "AjaxBeginFormPost",
+                          OnSuccess = "Frm_Party_Merge_AjaxSuccessForm"
+                      },
+                      new
+                      {
+                          id = "Frm_Party_Merge_Form",
+                          @class = "edit_form"
+                      }))
+    {
+        @Html.AntiForgeryToken()
+    @Html.HiddenFor(x=>x.Merged_Party_ID_AB)// redmine 133524 bug fixed
+    @Html.HiddenFor(x=>x.ReplicateParty_PartyMerge)
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header">
+                <div class="row">
+
+                    <div class="col-sm-8 pll">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>Merge Party </h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+            </div><!--[row]-->
+            <div class="row">
+                <div class="">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid ">
+                                <div class="row">
+                                    <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                        @Html.Label("Party Merged:", htmlAttributes: new { @class = "control-label text-red" })
+                                    </div>
+
+                                    <div class="col-sm-8 col-md-8 col-lg-8 prm ">
+                                        @(Html.DevExtreme().TextBoxFor(x => x.Merged_Party_AB).CustomTextBox().ID("Merged_Party_AB").Name("Merged_Party_AB").MaxLength(255).ReadOnly(true).Disabled(false) )
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[]-->
+            <div class="row">
+                <div class="">
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            <div class="container-fluid ">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        @Html.Label("Target Party:", htmlAttributes: new { @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-8 prm">
+
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                               .ID("GLookUp_Party_AB")
+                                                                                               .Name("GLookUp_Party_AB")
+                                                                                               .DataSource(d => d.Mvc().Controller("AddressBook").LoadAction("Get_Party_List").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                                                                                               .DisplayExpr("Name").OnValueChanged("GLookUp_Party_AB_ValueChange")
+                                                                                               .Placeholder("Select Target Party...")
+                                                                                               .ValueExpr("ID").ContentTemplate(@<text> @Html.Partial("LookUp_PartyList") </text>) )
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12" style="text-align:center">
+                    <label id="lbl_Party_Msg">Current Year Dependencies of @Model.Merged_Party_AB shall be merged in Selected Target Party </label>
+                    </div>
+                        </div>
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 col-lg-12">
+                            <div class="styleActionBtn">
+                                @(Html.DevExtreme().Button().CustomSaveButton().ID("PartyMergeSave").Text("Save").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("PartyMergeSaveClick") )
+                                @(Html.DevExtreme().Button().CustomCloseButton().ID("PartyMergeCancel").Text("Cancel").FocusStateEnabled(true).OnClick(@<text> function () { party_mergeclose(); } </text>) )
+                            </div>
+                        </div>
+                    </div><!--[Buttons]-->
+                    }
+                    }
+                </div>
+<script>
+                    var Party_merge_AB_TakepopUpcloseConfirmation = true;
+    function PartyMergeSaveClick(e)
+    {
+        var GLookUp_Party_AB = $("#GLookUp_Party_AB").dxDropDownBox("instance").option("value");
+        if (GLookUp_Party_AB == null || GLookUp_Party_AB == "")
+        {
+            DevExpress.ui.dialog.alert("Please Select Party To Which " + "@Model.Merged_Party_AB" + " Is To Be Merged...!", "Incomplete Information..");//Redmine Bug #133526 fix
+            return;
+        }  
+        var confirm = DevExpress.ui.dialog.confirm("Sure you want to Merge and Delete " + "@Model.Merged_Party_AB" + "...?", "Confirm");
+        confirm.done(function (result)
+        {
+            if (result)
+            {               
+                $("#Frm_Party_Merge_Form").submit();
+            }
+        });        
+    }
+    var Party_DG_AB;
+    $(document).ready(function ()
+    {
+        ShowLoader();
+        if ("@Model.ReplicateParty_PartyMerge" == "True")
+        {
+            $("#lbl_Party_Msg").text("Current/Next Year Dependencies of " +"@Model.Merged_Party_AB"+" shall be merged in Selected Target Party ");
+        }
+        $("#PartyMergePopup").dxPopup("instance").option("title", "Merge ~ "+"@Model.Merged_Party_AB");
+        Party_DG_AB = $("#MergeParty_datagrid").dxDataGrid("instance");
+        var TotalCount = Party_DG_AB.totalCount();
+        if (TotalCount < 0) //dd has not been loaded so total count will return -1 in this case
+        {
+            var ds = $("#GLookUp_Party_AB").dxDropDownBox("getDataSource");
+            var store = ds.store();
+            store.totalCount().done(function (total)
+            {
+                TotalCount = total;
+                if (TotalCount == 1)
+                {
+                    Party_DG_AB.selectRowsByIndexes(0);
+                    $("#GLookUp_Party_AB").dxDropDownBox("instance").option("readOnly", true);
+                }
+                HideLoader();
+            });
+        }
+        else
+        {
+            if (TotalCount == 1)
+            {
+                Party_DG_AB.selectRowsByIndexes(0);
+                $("#GLookUp_Party_AB").dxDropDownBox("instance").option("readOnly", true);
+            }
+            HideLoader();
+        }
+
+    });
+    function party_mergeclose()
+    {
+        $("#PartyMergePopup").dxPopup("hide");
+    }
+
+                    function Frm_Party_Merge_AjaxSuccessForm(data)
+                    {
+                        HideLoader();
+                        if (data.jsonParam.result == false) {
+                            var alert = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alert.done(function (dialogResult) {
+                                if (dialogResult) {
+                                    if (data.jsonParam.focusid != null) {
+                                        var id = "#" + data.jsonParam.focusid;
+                                        setTimeout(function () {
+                                            $(id).find('input').focus();
+                                        }, Timeout100);
+                                    }
+                                }
+                            });
+                        }
+                        else
+                        {
+                            Party_merge_AB_TakepopUpcloseConfirmation = false;                          
+                            var result = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            result.done(function ()
+                            {
+                                var GridInstance = $('#AddressListGrid_dx').data("dxDataGrid")
+                                if (GridInstance !== void 0)
+                                {
+                                    AddressListGrid_dx_Refresh();
+                                }
+                                else
+                                { 
+                                    RefreshGridView("AddressListGrid");
+                                }                                
+                                party_mergeclose();
+                            });
+                        }
+                    }
+    $(function () {
+        $("#PartyMergePopup").dxPopup({
+            onHiding: function (e) 
+            {
+                if (Party_merge_AB_TakepopUpcloseConfirmation == false)
+                {
+                    Party_merge_AB_TakepopUpcloseConfirmation = null;
+                    Party_DG_AB = null;
+                    ClearAllReferences("PartyMerge_ClearReferences");
+                }
+                else
+                {
+                    e.cancel = true;
+                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                    result.done(function (dialogResult) 
+                    {
+                        Party_merge_AB_TakepopUpcloseConfirmation = !dialogResult;
+                        if (dialogResult) 
+                        {
+                            $("#PartyMergePopup").dxPopup("hide");
+                        }                   
+                    });
+                }             
+            }
+        });
+    });
+    function GLookUp_Party_AB_ValueChange(e)
+    {
+        e.component.close();
+        if (e.value == null && e.previousValue != null)
+        {
+            Party_DG_AB.clearSelection();//redmine Bug #133525 fixed
+        }
+    }
+</script>
+    </div>

@@ -1,0 +1,1044 @@
+﻿<div class="UserRegisterOptions_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+
+        bool UserReg_AddRight = (bool)ViewData["UserReg_AddRight"];
+        bool UserReg_UpdateRight = (bool)ViewData["UserReg_UpdateRight"];
+        bool UserReg_ViewRight = (bool)ViewData["UserReg_ViewRight"];
+        bool UserReg_DeleteRight = (bool)ViewData["UserReg_DeleteRight"];
+        bool UserReg_ExportRight = (bool)ViewData["UserReg_ExportRight"];
+        bool UserReg_AddPersonnelRight = (bool)ViewData["UserReg_AddPersonnelRight"];
+        bool UserReg_AddGroupRight = (bool)ViewData["UserReg_AddGroupRight"];
+        bool UserReg_AddPrivilegeRight = (bool)ViewData["UserReg_AddPrivilegeRight"];
+        bool UserReg_MngPrivilegeRight = (bool)ViewData["UserReg_MngPrivilegeRight"];
+        var userid = ViewBag.UserRegisterInfo_RecID;
+    }
+    <style>
+        /*#UserRegisterChangepw > div,
+        #UserRegisterAdUsrGrp > div,
+        #UserRegisterManagPrivileges > div {
+            height: 26px;
+        }
+
+        #UserRegisterChangepw > div > span,
+        #UserRegisterAdUsrGrp > div > span,
+        #UserRegisterManagPrivileges > div > span {
+            margin-left: 0 !important;
+        }*/
+
+        .UserRegister_Title {
+            /*padding-left: 10px;*/
+            margin-bottom: 0px;
+            padding: 5px 10px 10px 25px !important;
+            color: #180064;
+            font-size: 24px;
+        }
+    </style>
+    <div id="UserReg_ParentDiv">
+        <div id="contentUserReg" class="report_header_div_main clearfix">
+
+            <div class="report_header_div">
+                <label class="report_header_label">User Register Screen <!--<i title="Screen Intro" class="fa fa-question-circle" id="userRegIntro"></i>--></label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Button().ID("UserRegisterChangepw").Text("Change Password")
+        .Visible(true).Disabled(false).OnClick(@<Text> function () {UserRegister_ChangePassword(); } </Text>)
+        )
+                @(Html.DevExtreme().Button().ID("UserRegisterResetpw").Text("Reset Password")
+        .Visible(true).Disabled(false)
+        .OnClick(@<Text> function () {UserRegister_ResetPassword(); } </Text>)
+        )
+                @(Html.DevExtreme().Button()
+            .ID("UserRegisterAddPrivileges")
+            .Text("Add Privileges")
+            .Visible(true).Disabled(false)
+            //.AccessKey("M")22
+            .OnClick("ManagPrivileges_AddPriv")
+        )
+                @(Html.DevExtreme().Button().ID("UserRegisterManagPrivileges").Text("Manage Privileges").Visible(true).Disabled(false).OnClick(@<Text> function () { UserRegister_ManagPrivileges(); } </Text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterAdUsrGrp").Text("Add to Group").Visible(true).Disabled(false).OnClick(@<Text> function () { UserRegister_AdUsrtoGrp(); } </Text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<Text> function () { UserRegister_NEW(); } </Text>))
+                @(Html.DevExtreme().Button()
+            .ID("UserRegisterEdit")
+            .Text("Edit")
+            .Icon("edit").Visible(true)
+            .Disabled(false)
+            //.AccessKey("X")
+            .OnClick("OnUserRegisterEditClick")
+        )
+                @(Html.DevExtreme().Button().ID("UserRegisterDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { OnUserRegisterDeleteClick(); } </text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () {OnUserRegisterViewClick(); } </text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text> function () { UserRegisterchangeMode(); } </text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterListPreview").Text("List Export").Icon("save").OnClick(@<text> function () { UserRegister_Preview(); } </text>))
+                @(Html.DevExtreme().Button().ID("UserRegisterCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+            </div><!--[Buttons]-->
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="UserRegisterreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_UserRegister_Info_Grid_dx")
+                </div>
+            </form>
+        </div><!--[Grid]-->
+
+        <div class="footer-MainBoxdiv full-width-footer margin4-0">
+            <div class="col-md-10">
+                <p id="UserRegisterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                <p id="UserRegisterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+            </div><!--[Footer]-->
+        </div>
+    </div>
+    @(Html.DevExtreme().Popup().CustomPopup().ID("UserRegister_report_modal").Title("UserRegister List Preview").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='UserRegister_report_modal_result'> </div> </text>))@*Mantis bug 0001023 fixed*@
+    @(Html.DevExtreme().Popup().CustomPopup().ID("UserRegister_AddPersonnel_report_modal").Title("UserRegister List Preview").FullScreen(false).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='UserRegister_AddPersonnel_report_modal_result'> </div> </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("UserRegister_AddGroup_report_modal").Title("UserRegister List Preview").FullScreen(false).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='UserRegister_AddGroup_report_modal_result'> </div> </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("UsrReg_ManagPrivileg_report_modal").Title("UserRegister List Preview").FullScreen(false).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='UserRegister_ManagPrivileg_report_modal_result'> </div> </text>))
+    @*Javascript Events*@
+<script type="text/javascript">
+    var UserRegister_ShowHorizontalBar = 0;
+    var UserRegisterEditright;
+    var UserRegisterNewright;
+    var UserRegisterDeleteright;
+    var UserRegisterViewright;
+    var UserRegisterExportright;
+    var Groupsusagecountcheck;
+    var PersonnelNewright;
+    var GroupRegisterNewright;
+    var UserGridFocusedIndex;
+    var isUserregisterGridRefresh = false;
+
+    $(document).ready(function () {
+
+        IsSucessPopup = false;
+        IsViewPopup = false;
+        IsSucesscPopup = false;
+        IsViewcPopup = false;
+
+        UserRegisterNewright = "@UserReg_AddRight" == "True" ? true : false;
+        UserRegisterEditright = "@UserReg_UpdateRight" == "True" ? true : false;
+        UserRegisterViewright = "@UserReg_ViewRight" == "True" ? true : false;
+        UserRegisterDeleteright = "@UserReg_DeleteRight" == "True" ? true : false;
+        UserRegisterExportright = "@UserReg_ExportRight" == "True" ? true : false;
+        PersonnelNewright = "@UserReg_AddPersonnelRight" == "True" ? true : false;
+        GroupRegisterNewright = "@UserReg_AddGroupRight" == "True" ? true : false;
+
+        if (UserRegisterNewright != true)
+        {
+            $("#UserRegisterNew").hide();
+        }
+        if (UserRegisterEditright != true)
+        {
+            $("#UserRegisterEdit").hide();
+            $("#UserRegisterChangepw").hide();
+            $("#UserRegisterAdUsrGrp").hide();
+
+        }
+        if ("@UserReg_MngPrivilegeRight" == "False") {
+            $("#UserRegisterManagPrivileges").hide();
+        }
+        if ("@UserReg_AddPrivilegeRight" == "False") {
+            $("#UserRegisterAddPrivileges").hide();
+        }
+
+        if (UserRegisterViewright != true)
+        {
+            $("#UserRegisterView").hide();
+        }
+        if (UserRegisterDeleteright != true)
+        {
+            $("#UserRegisterDelete").hide();
+        }
+        if (UserRegisterExportright != true)
+        {
+            $("#UserRegisterListPreview").hide();
+        }
+    });
+
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Options/UserRegister/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_UserRegisterOptions();
+
+    });
+        function ClearAllReferences_UserRegisterOptions() {
+            Groupsusagecountcheck = null;
+            PersonnelNewright = null;
+            GroupRegisterNewright = null;
+            UserGridFocusedIndex = null;
+            isUserregisterGridRefresh = null;
+            UserName = null;
+            PersonnelName = null;
+            SewaDept = null;
+            ContactNo = null;
+            EmailID = null;
+            Groups = null;
+            Is_Admin = null;
+            AddedBy = null;
+            AddedOn = null;
+            EditedBy = null;
+            EditedOn = null;
+            UserID = null;
+            UserRegister_Privileg_GroupID = null;
+
+            ClearAllReferences("UserRegisterOptions_ClearReferences");
+        }
+
+    function UserRegister_ChangePassword() {
+        if (!UserRegisterEditright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert'); return; }
+        if ($("#ChangePasswordvalidationForm").length > 0) {
+            $("#ChangePasswordvalidationForm").remove();
+        }
+        ShowLoader();
+        OpenDynamicPopup("Change Password", "@Url.Action("Frm_Chg_Password", "ChangePassword", new { @area = "Options" })?User_Name=" + encodeURI(UserName), "auto", "500", false, null);
+        HideLoader();
+    }//Change Password button
+
+    function UserRegister_ResetPassword() {
+
+        if (!UserRegisterEditright) {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+            return;
+        }
+        ShowLoader();
+        if (!UserID) {
+            DevExpress.ui.dialog.alert('Please Select any user', 'Alert');
+            HideLoader();
+            return;
+        }
+        else {
+            var result;
+            result = DevExpress.ui.dialog.confirm('Are you sure you want to Reset Password of this User?', "Confirm");
+           result.done(function (dialogResult) {
+               if (dialogResult) {
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Options/UserRegister/ResetPassword",
+                        data: { userid: UserID, user_name: UserName},
+                        cache: false,
+                        success: function (PasswordReset_result)
+                        {
+                            /*$('#UserRegisterResetpw').hide();*/
+                            DevExpress.ui.dialog.alert(PasswordReset_result.message, 'Reset Password');
+                            HideLoader();
+                        }
+                    });
+                }
+                else {
+
+                }
+            });
+        }
+
+        HideLoader();
+    }//Reset Password button
+
+    function UserRegisterOnInit(s, e) {
+        UserRegister_MasterAdjustSize(s, e);
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            UserRegister_MasterAdjustSize(s, e);
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+
+    function UserRegisterGrid_EndCallback(s, e) {
+        //UserRegister_MasterAdjustSize(s, e);
+        SendCustomArgs_FilterControl(s, e);
+        if (isUserregisterGridRefresh)
+        {
+            isUserregisterGridRefresh = false;
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(UserGridFocusedIndex);
+        }
+    }
+
+    function UserRegister_MasterAdjustSize(s, e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        s.SetHeight(height);
+    }
+
+    function UserRegisterGridFocusedRowChanged(s, e) {
+
+        if (s.GetFocusedRowIndex() == -1) {
+            UserID = null;
+
+        }
+        else {
+            var key = s.GetRowKey(s.GetFocusedRowIndex());
+               s.GetValuesOnCustomCallback({ key: key }, UserRegisterOnGetRowValues);
+
+        }
+
+    }
+
+   var UserName;
+   var PersonnelName;
+   var SewaDept;
+   var ContactNo;
+   var EmailID;
+   var Groups;
+   var Is_Admin;
+   var AddedBy;
+   var AddedOn;
+   var EditedBy;
+   var EditedOn;
+   var UserID ;
+    function UserRegisterOnGetRowValues(FDData) {
+
+        FullData = FDData;
+
+        var values = FDData.split("![");
+        UserName = values[0];
+        PersonnelName = values[1];
+        SewaDept = values[2];
+        ContactNo = values[3];
+        EmailID = values[4];
+        Groups = values[5];
+        Is_Admin = values[6];
+        AddedBy = values[7];
+        AddedOn = values[8];
+        EditedBy = values[9];
+        EditedOn = values[10];
+        UserID = values[11];
+        UserRegister_UpdateFooterDetail(AddedBy, AddedOn, UserID, EditedOn, EditedBy);
+    }
+
+
+    function UserRegister_UpdateFooterDetail(AddedBy, AddedOn, ID, EditedOn, EditedBy) {
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+
+        if (AddedOn) {
+            Lbl_Create = "Add On: " + AddedOn + ", Add By: " + AddedBy;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, Add By: " + AddedBy;
+        }
+
+        if (EditedOn) {
+            Lbl_Modify = "Edit On: " + EditedOn + ", Edit By: " + EditedBy;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, Edit By: " + EditedBy;
+        }
+
+        $('#UserRegisterLbl_Create').text(Lbl_Create);
+        $('#UserRegisterLbl_Modify').text(Lbl_Modify);
+    }
+
+
+    function UserRegisterdblclickEdit(s, e) {
+        if (UserID) {
+            OnUserRegisterEditClick();
+        }
+        else {
+            DevExpress.ui.dialog.alert('Please Select any user', 'Alert');
+        }
+    }
+    function UserRegisterContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            UserRegister_NEW()
+        }
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit') {
+            OnUserRegisterEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnUserRegisterDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnUserRegisterViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            UserRegister_Preview();
+        }
+        else if (e.item.name == 'Refresh') {
+            UserRegisterListGrid.Refresh();
+        }
+        else if (e.item.name == 'resetpwd') {
+            UserRegister_ResetPassword();
+        }
+        else if (e.item.name == 'changepwd') {
+            UserRegister_ChangePassword();
+        }
+        else if (e.item.name == 'adusrtogrup') {
+            UserRegister_AdUsrtoGrp();
+        }
+        else if (e.item.name == 'AddPrivileg') {
+            ManagPrivileges_AddPriv();
+        }
+        else if (e.item.name == 'ManagPrivileg') {
+            UserRegister_ManagPrivileges();
+        }
+    }
+    function UserRegisterGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isUserregisterGridRefresh = true;
+            UserGridFocusedIndex = s.GetFocusedRowIndex();
+        }
+        e.customArgs["ShowHorizontalBar"] = UserRegister_ShowHorizontalBar;
+    }
+
+
+    //Nested Grid related Function
+    function OnUserRegisterListGridNestedFocusedRowChange(s,e) {
+        s.SetFocusedRowIndex(-1);
+    }
+
+    //Nested Grid Related Function
+    function UserRegister_Grid_Nested_BeginCallBack(s, e) {
+
+        //e.customArgs["ShowHorizontalBar"] = MembershipWow_ShowHorizontalBar;
+        //e.customArgs["VouchingMode"] = MembershipWow_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+        /*e.customArgs["RecID"] = UserID; */
+       @*e.customArgs["RecID"] = "@ViewBag.UserRegisterInfo_RecID";*@
+    }
+
+    function onInitialized_LookUp_GetPersonnelName(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").option.load.done(function (d) {
+
+                if (d.length == 1)
+                    e.component.option("value", d[0].PersonnelName);
+            });
+        }
+    }
+
+
+    function UserRegisterAjaxSuccessForm(data) {
+        HideLoader();
+        //dontaskpopupcloseconfirmation = true;
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            UserRegisterListGrid.SetFocusedRowIndex(-1);
+            UserRegisterListGrid.Refresh();
+            HideLoader();
+        }
+    }
+
+    function UserRegister_NEW()
+    {
+        $("UserRegistervalidationForm").remove();
+        if (!UserRegisterNewright){ DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        ShowLoader();
+        OpenDynamicPopup("New ~ Create User","@Url.Action("Frm_UserRegister_Window", "UserRegister",new { @area = "Options" })?ActionMethod=New", "auto", 900, false, null);
+        HideLoader();
+    } //new click
+
+    function OnUserRegisterEditClick()
+    {
+
+        $("UserRegistervalidationForm").remove();
+        if (!UserRegisterEditright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert'); return; }
+        ShowLoader();
+        OpenDynamicPopup("Edit ~ Create User", "@Url.Action("Frm_UserRegister_Window", "UserRegister", new { @area = "Options" })?ActionMethod=Edit&ID=" + encodeURI(UserID), "auto", 900, false, null);
+        HideLoader();
+    }//edit click
+
+    function OnUserRegisterViewClick()
+    {
+        $("UserRegistervalidationForm").remove();
+        if (!UserRegisterViewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert '); return; }
+        ShowLoader();
+        OpenDynamicPopup("View ~ Create User", "@Url.Action("Frm_UserRegister_Window", "UserRegister", new { @area = "Options" })?ActionMethod=View&ID=" + encodeURI(UserID), "auto", 900, false, null);
+        HideLoader();
+    }//view click
+
+        function OnUserRegisterDeleteClick()
+        {
+            $("UserRegistervalidationForm").remove();
+            if (!UserRegisterDeleteright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+            if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert '); return; }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Options/UserRegister/DataNavigation",
+                data: { ActionMethod: "Delete", UserID: UserName },
+                cache: false,
+                success: function (UserRegisterDelete_ButtonClick_result)
+                {
+                    if (UserRegisterDelete_ButtonClick_result.result == true)
+                    {
+                        HideLoader();
+                        ShowLoader();
+                        OpenDynamicPopup("Delete ~ Create User", "@Url.Action("Frm_UserRegister_Window", "UserRegister", new { @area = "Options" })?ActionMethod=Delete&ID=" + encodeURI(UserID), "auto", 900, false, null);
+                        HideLoader();
+                    }
+                    else if (UserRegisterDelete_ButtonClick_result.result == "NoDeleteRights")
+                    {
+                        $('#UserRegisterDelete').hide();
+                        DevExpress.ui.dialog.alert(UserRegisterDelete_ButtonClick_result.message, 'Warning!');
+                        HideLoader();
+                    }
+                    else
+                    {
+                        HideLoader();
+                        DevExpress.ui.dialog.alert(UserRegisterDelete_ButtonClick_result.message, 'Warning!');
+                    }
+                }
+            });
+     }//delete click //0000177 bug fixed
+
+
+    function UserRegister_Preview()
+    {
+        if (!UserRegisterExportright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        @*$("#UserRegister_report_modal").dxPopup("show");
+        $("#UserRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#UserRegister_report_modal").html('');
+        ShowLoader();
+        $("#UserRegister_report_modal_result").load("@Url.Action("Frm_Export_Options", "UserRegister", new { @area = "Options" })", function () {
+            HideLoader();
+        });
+        HideLoader();*@
+        OpenPopup("UserRegister_report_modal","Export Option","@Url.Action("Frm_Export_Options_dx", "UserRegister", new { @area = "Options" })","auto",125);
+    }//list preview
+
+    function UserRegister_ManagPrivileges()
+    {
+        if ("@UserReg_MngPrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights'); return; }
+        if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert '); return; }
+        $("#ManagePrivileges_Form").remove();
+        ShowLoader();
+        var PopupID;
+        PopupID = "MngPrvlgUsrAndGrpPopup_rpt_modal";
+        OpenPopup(PopupID, "User Privileges Screen", "@Url.Action("Frm_GroupRegister_ManagPrivileges_dx", "GroupRegister", new { @area = "Options" })?UGFlag=User&UserID=" + encodeURI(UserID) + "&PopupID=" + PopupID, "auto", "89%", false, null);
+        HideLoader();
+    }//0000244 bug fixed.
+
+    function UserRegister_AdUsrtoGrp()
+    {
+        if (!UserRegisterEditright) { DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights'); return;}
+        if (!UserID) { DevExpress.ui.dialog.alert('Please Select any user', 'Alert '); return; }
+        OpenDynamicPopup("User Group Mapping", "@Url.Action("Frm_GroupRegister_UserGroupMapping", "GroupRegister", new { @area = "Options" })?UgFLAG=User&UserID=" + encodeURI(UserID), "auto", "60%", false, null);//Mantis bug 0001104 fixed
+        HideLoader();
+    }
+
+    //This code is added as part of new task of "Add Priviliges" button in the User Registration Screen to open add user priviliges screen.
+     var UserRegister_Privileg_GroupID;
+    function ManagPrivileges_AddPriv()
+    {
+
+        if ("@UserReg_AddPrivilegeRight" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        ShowLoader();
+        $("#AdUserPrivilegesvalidationForm").remove();
+
+        //if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value"))
+        //{
+        //    Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        //}
+        //else
+        //{
+        UserRegister_Privileg_GroupID = null;
+        var UserRegister_un = UserName;
+        if (UserRegister_un == null || UserRegister_un.length<=0) { UserRegister_un = "";}
+        //}
+        //if ($("#ManPri_UserID").dxDropDownBox("instance").option("value"))
+        //{
+        //    Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+        //    ManPrivilegUserName = (ManPrivilegUserName == null || ManPrivilegUserName == "" || ManPrivilegUserName == "undefined" || ManPrivilegUserName == undefined) ? ManPrivilegUserName = UserName : ManPrivilegUserName;
+        //}
+        //else
+        //{
+        //    Manag_Privileg_UserID = "";
+        //}
+
+
+        if (!UserID) {
+            DevExpress.ui.dialog.alert('Please Select any user', 'Alert ');
+            HideLoader();
+            return;
+        }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+            data: {
+                ActionMethod: "New",
+                GroupID: Number(UserRegister_Privileg_GroupID),
+                UserID: String(UserID),
+                UserName: UserRegister_un,
+                PopupID: "Dynamic_Content_popup"
+            },
+            cache: false,
+            success: function (data) {
+                ShowLoader();
+                OpenDynamicPopup("Add User Privileges", null, "auto", "900", true, data);
+                HideLoader();
+                //OpenDynamicPopup("New ~ Service Places", null, "auto", 900, true, data);
+            }
+        });
+        HideLoader();
+    } //new click
+
+    $(function () {
+
+        const intro = introJs();
+        // Define the steps of the introduction
+        intro.setOptions({
+            steps: [
+                {
+                    intro: "<big>" + "&#128161;" + "<b> User Register Screen Info</b></big><hr>" +
+                        "<p>You can add edit user details and manage their previleges from this screen.</p><hr>" +
+                        "<p>आप इस स्क्रीन में यूजर की सारी जानकारी रख सकते हैं और उनके विशेषाधिकारों का प्रबंधन कर सकते हैं।</p>",
+                    tooltipClass: 'twid-400'
+                },
+                {
+                    element: "#UserRegisterListGrid .dxgvHSDC",
+                    intro: "<p>User details would be visible in this table</p> <hr> <p>इस तालिका में यूजर की पूरी जानकारी दिखाई देंगी।</p>",
+                },
+                {
+                    element: "#UserRegisterChangepw",
+                    intro: "<p>You can change any user's password by clicking here</p> <hr> <p>आप यहां क्लिक करके किसी भी यूजर का पासवर्ड बदल सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterResetpw",
+                    intro: "<p>You can reset any user's password by clicking here, if you reset a password, you will get an auto generated password.</p> <hr> <p>आप यहां क्लिक करके किसी भी यूजर का पासवर्ड रीसेट कर सकते हैं, अगर आप पासवर्ड रीसेट करते हैं तो आपको एक स्वतः बना हुआ पासवर्ड मिलेगा।</p>",
+                },
+                {
+                    element: "#UserRegisterAddPrivileges",
+                    intro: "<p>You can provide previleges to any user from here.</p> <hr> <p>आप यहां से किसी भी यूजर को विशेषाधिकार प्रदान कर सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterManagPrivileges",
+                    intro: "<p>You can manage any user's previleges from here.</p> <hr> <p>आप यहां से किसी भी यूजर के विशेषाधिकारों को मैनेज कर सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterNew",
+                    intro: "<p>You can create a new user from here</p> <hr> <p>आप यहां से एक नया यूजर बना सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterEdit",
+                    intro: "<p>You can edit a user's details from here.</p> <hr> <p>आप यहां से किसी यूजर की जानकारी को बदल सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterDelete",
+                    intro: "<p>You can delete a user from here.</p> <hr> <p>आप यहां से किसी यूजर को मिटा सकते हैं।</p>",
+                },
+                {
+                    element: "#UserRegisterView",
+                    intro: "<p>Click here to view complete information of any user.</p> <hr> <p>किसी भी यूजर की सम्पूर्ण जानकारी देखने के लिए यहां क्लिक करें।</p>",
+                },
+                {
+                    element: "#UserRegisterToggleScrollBar",
+                    intro: "<p>You will be able to switch between compact and extended view of user data table by clicking here.</p> <hr> <p>यूजर डेटा तालिका के संकीर्ण और विस्तृत दृश्य के बीच स्विच करने के लिए यहां क्लिक करें।।</p>",
+                },
+                {
+                    element: "#UserRegisterListPreview",
+                    intro: "<p>ou can export the data table into different file formats by clicking here.</p> <hr> <p>आप यहां क्लिक करके डेटा तालिका को विभिन्न फाइलों में निर्यात कर सकते हैं।</p>",
+                },
+            ],
+            doneLabel: 'Finish Intro'
+        });
+
+        // Start the introduction
+        $("#userRegIntro").click(function () { intro.start(); })
+    })
+</script>
+    @*DevEXtreme*@
+    @*variable*@
+    <script>
+        var UserRegisterListGrid_dx = null;
+        var UserRegister_IsDetailRowExpanded_dx = false;
+        var Expanded_Row_Key_UserRegister = null;
+    </script>
+    @*Buttons Fns*@
+    <script>
+    function UserRegisterchangeMode()
+    {
+        UserRegisterListGrid_dx.beginUpdate();
+        if (UserRegister_ShowHorizontalBar == 0) {
+            UserRegister_ShowHorizontalBar = 1;
+            $("#UserRegisterToggleScrollBar").find("span").text("Default Data");
+            $("#UserRegisterToggleScrollBar").width(110);
+            UserRegisterListGrid_dx.option("columnHidingEnabled", false);
+            UserRegisterListGrid_dx.option("allowColumnResizing", true)
+        }
+        else {
+            UserRegister_ShowHorizontalBar = 0;
+            $("#UserRegisterToggleScrollBar").find("span").text("Full Data");
+            $("#UserRegisterToggleScrollBar").width(90);
+            UserRegisterListGrid_dx.option("columnHidingEnabled", true)
+            UserRegisterListGrid_dx.option("allowColumnResizing", false)
+        }
+        UserRegisterListGrid_dx.endUpdate();
+    }// full data button click
+    </script>
+    @*Grid fns*@
+<script>
+    function UserRegisterListGrid_dx_OnInitialized(e) {
+            DxGrid_AdjustSize(e.component, $("#UserReg_ParentDiv .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#UserReg_ParentDiv .report_button_div"), "", evt)
+            });
+            UserRegisterListGrid_dx = e.component;
+        }
+    function UserRegisterListGrid_dx_OnContentReady(e) {
+            DxGrid_OnContentReady(e, UserRegister_ShowHorizontalBar);
+        }
+    function UserRegisterListGrid_dx_OnSelectionChanged(e) {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+               UserRegisterListGrid_dx_SelectedRowData(e.selectedRowsData);
+            }
+            else {
+                UserID = null;
+                UserRegister_UpdateFooterDetail(AddedBy, AddedOn, UserID, EditedOn, EditedBy);
+            }
+
+        }
+    function UserRegisterListGrid_dx_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = UserRegisterListGrid_dx.getSelectedRowsData();
+            }
+            if (selectedData != null && selectedData.length > 0) {
+                var values = selectedData[0]
+                UserName = values["UserName"]
+                PersonnelName = values["PersonnelName"];
+                SewaDept = values["SewaDept"];
+                ContactNo = values["ContactNo"];
+                EmailID = values["EmailID"];
+                Groups = values["Groups"];
+                Is_Admin = values["Is_Admin"];
+                AddedBy = values["AddedBy"];
+                AddedOn = values["AddedOn"];
+                EditedBy = values["EditedBy"];
+                EditedOn = values["EditedOn"];
+                UserID = values["ID"];
+                UserRegister_UpdateFooterDetail(AddedBy, AddedOn, UserID, EditedOn, EditedBy);
+            }
+            else {
+                UserID = null;
+            }
+        }
+    function UserRegisterListGrid_dx_OnCellDblClick(e) {      
+                if (e.rowType == "data")
+                    OnUserRegisterEditClick();
+
+    }
+    function UserRegisterListGrid_dx_OnRowExpanding(e) {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            e.component.collapseRow(Expanded_Row_Key_UserRegister)
+            e.component.selectRows(e.key);
+            Expanded_Row_Key_UserRegister = e.key;
+            UserRegister_IsDetailRowExpanded_dx = true;
+            var DetailGridID = e.element[0].id + e.key;
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+            }
+            //e.component.collapseAll(-1);           
+        }
+        else {
+            e.component.option("CustomProp.groupRowExpanded", true);
+        }
+    }
+    function UserRegisterListGrid_dx_OnRowCollapsing(e) {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            var DetailGridID = e.element[0].id + e.key;
+            sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+            UserRegister_IsDetailRowExpanded_dx = false;
+            e.component.selectRows(e.key);
+            
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.clearSelection();
+            }
+        }
+        else {
+            e.component.option("CustomProp.groupRowCollapsed", true);
+        }
+    }
+
+    function UserRegisterListGrid_dx_OnContextMenuPreparing(e) {
+        if (!e.items) e.items = [];
+        if (e.target == "header") {
+
+            DxGrid_HeaderContextMenu(e)
+        }
+        else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+
+                DxGrid_FooterContextMenu(e);
+        }
+        else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+            var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+            e.component.selectRows(key);
+            var expanded = e.component.isRowExpanded(key);
+            e.items = [
+                {
+                    text: "Expand Detail",
+                    icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                    disabled: expanded,
+                    visible: true,
+                    onItemClick: function () {
+                        if (expanded) {
+                        }
+                        else {
+                            e.component.expandRow(key);
+                        }
+                    }
+                }, {
+                    text: "Collapse Detail",
+                    icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                    disabled: !expanded,
+                    visible: true,
+                    onItemClick: function () {
+                        if (expanded) {
+                            e.component.collapseRow(key);
+                        }
+                        else {
+                        }
+                    }
+                },
+                {
+                    text: "New",
+                    icon: "fa-solid fa-plus text-success",
+                    beginGroup: true,
+                    visible: "@UserReg_AddRight" == "True",
+                    onItemClick: function () {
+                        UserRegister_NEW();
+                    }
+                },
+                {
+                    text: "Edit",
+                    icon: "fa-solid fa-pen text-info",
+                    visible: "@UserReg_UpdateRight" == "True",
+                    onItemClick: function () {
+                        OnUserRegisterEditClick();
+                    }
+                },
+                {
+                    text: "Delete",
+                    icon: "fa-solid fa-trash",
+                    visible: "@UserReg_DeleteRight" == "True",
+                    onItemClick: function () {
+                        OnUserRegisterDeleteClick();
+                    }
+                },
+                {
+                    text: "View",
+                    icon: "fa-regular fa-eye",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        OnUserRegisterViewClick();
+                    }
+                },
+
+                {
+                    text: "Change Password",
+                    icon: "fa-regular fa-key",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        UserRegister_ChangePassword();
+                    }
+                },
+                {
+                    text: "Reset Password",
+                    icon: "fa-regular fa-unlock",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        UserRegister_ResetPassword();
+                    }
+                },
+                {
+                    text: "Add Selected Users to Group",
+                    icon: "fa-regular fa-users",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        UserRegister_AdUsrtoGrp();
+                    }
+                },
+                {
+                    text: "Add Privileges",
+                    icon: "fa-regular fa-plus",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        UserRegisteManagPrivileges_AddPrivr_AdUsrtoGrp();
+                    }
+                },
+
+                {
+                    text: "Manage Privileges",
+                    icon: "fa-regular fa-bars",
+                    visible: "@UserReg_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        UserRegister_ManagPrivileges();
+                    }
+                },
+                {
+                    text: "Export",
+                    icon: "fa-solid fa-file-export text-warning",
+                    visible: "@UserReg_ExportRight" == "True",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        UserRegister_Preview();
+                    }
+                },
+
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        btnCloseActiveTab();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        UserRegisterListGrid_dx_Refresh();
+                    }
+                }]
+        }
+    }
+
+
+    function UserRegisterListGrid_dx_DetailTemplate(container, templateData) {
+        var GridName = templateData.component.element()[0].id
+        var RecID = templateData.data.ID;
+        UserRegisterListGrid_dx_Detail(container, GridName, RecID,UserRegister_ShowHorizontalBar);
+    }
+    function UserRegisterListGrid_dx_Detail(container, GridName, RecID, AllColumns) {
+        var DetailGridID = GridName + RecID;
+        $(container).append("<div id='" + DetailGridID + "' class='DG_DetailGrid DataGridListing'></div>");
+        $("div[id='" + DetailGridID + "']").dxDataGrid({
+            dataSource:
+                new DevExpress.data.CustomStore({//DevExpress.data.AspNet.createStore({
+                    key: "UserID",
+                    loadMode: "raw",
+                    load: function () {
+                        return $.getJSON("/Options/UserRegister/Frm_UserRegister_Info_DetailGrid_dx?RecID=" + RecID );
+                    }
+                }),
+            width: "100%",
+            sorting: {
+                mode: 'multiple',
+            },
+            wordWrapEnabled: true,
+            columns:
+                [
+                    {
+                        dataField: "AddedOn", caption: "Added On", width: 90, format: "dd-MM-yyyy", dataType: "date", visible: false
+                    },
+                    {
+                        dataField: "AddedBy", caption: "Added By", width: 70, visible: false
+                    },
+                    {
+                        dataField: "EditedBy", caption: "Edited By", width: 70, visible: false
+                    },
+                    {
+                        dataField: "EditedOn", caption: "Edited On", width: 90, format: "dd-MM-yyyy", dataType: "date", visible: false
+                    },
+                    {
+                        dataField: "GroupName", caption: "Group Name", width: 200, sortOrder: 'asc'
+                    },
+                    {
+                        dataField: "EntityName", caption: "Entity/Screen", width: 250
+                    },
+                    {
+                        dataField: "GroupNameV", caption: "Group NameV", width: 100, visible: false
+                    },
+                    {
+                        dataField: "GrpID", caption: "Grp ID", width: 100, visible: false
+                    },
+                    {
+                        dataField: "PrivilegeID", caption: "Privilege ID", width: 100, visible: false
+                    },
+                    {
+                        dataField: "ScreenID", caption: "Screen ID", width: 100, visible: false
+                    },
+                    {
+                        dataField: "PrivilegesGiven", caption: "PrivilegesD"
+                    },
+                    {
+                        dataField: "UserID", caption: "User ID", width: 70, visible: false
+                    },
+                    {
+                        dataField: "UserName", caption: "User Name", width: 70, visible: false
+                    }
+      ],
+           // onRowPrepared: function (e) { UserRegisterListGrid_dx_Detail_onRowPrepared(e) },
+            onContentReady: function (e) { UserRegisterListGrid_dx_Detail_onContentReady(e) },
+           // onSelectionChanged: function (e) { UserRegisterListGrid_dx_Detail_onSelectionChanged(e) },
+            onContextMenuPreparing: function (e) { UserRegisterListGrid_dx_Detail_onContextMenuPreparing(e) }
+        });
+        var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance");
+        DxGrid_CustomDataGridListing(DetailGridID, AllColumns, instance)
+
+       
+        instance.option("filterRow.visible", false);
+        instance.option("paging.enabled", false);
+    }
+    function UserRegisterListGrid_dx_Detail_onContentReady(e) {
+        DxGrid_SetGridUIinColHiding(e.element[0].id, UserRegister_ShowHorizontalBar, true)
+        DxGrid_GetFIlterBuilderDataSource(e)
+    }
+    function UserRegisterListGrid_dx_Detail_onContextMenuPreparing(e) {
+        if (!e.items) e.items = [];
+        if (e.target == "header") {
+            DxGrid_HeaderContextMenu(e)
+        }
+        else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+           
+                DxGrid_FooterContextMenu(e);
+        }
+        else if (e.target == "content" && e.row && e.row.rowType == "data") {
+            e.items = [{
+                text: "Refresh",
+                icon: "fa-solid fa-arrow-rotate-right text-success",
+                onItemClick: function () {
+                    e.component.refresh();
+                }
+            }]
+        }
+    }
+
+
+</script>
+    @*Grid Related Fns*@
+    <script>
+        function UserRegisterListGrid_dx_Refresh() {
+            UserRegisterListGrid_dx.refresh().done(function () { ActionAfterDataGridRefresh_UserRegisterListGrid() })
+        }
+        async function ActionAfterDataGridRefresh_UserRegisterListGrid() {
+            var selectedRowKeys = UserRegisterListGrid_dx.getSelectedRowKeys()
+                if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                    UserRegisterListGrid_dx.clearSelection()
+                    UserRegisterListGrid_dx.selectRows(selectedRowKeys)
+                }
+            
+        }
+
+    </script>
+</div>

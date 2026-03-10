@@ -1,0 +1,204 @@
+﻿<div class="GroupReg_UsrGrpMappingOptions_ClearReferences">
+
+    @model ConnectOneMVC.Areas.Options.Models.Model_GroupMapping_Window
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Layout = null;
+    }
+
+    @{
+        Html.EnableClientValidation();
+        Html.AntiForgeryToken();
+        Html.EnableUnobtrusiveJavaScript();
+    }
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+    <style>
+        .control-label {
+            text-align: left !important;
+        }
+
+        .dx-button-has-text .dx-button-content {
+            margin-right: 15px;
+            padding: 2px 1px;
+            min-width: 40px;
+            padding-left: 19px;
+        }
+
+        .dx-texteditor-container {
+            overflow: visible
+        }
+    </style>
+    <div id="Frm_GroupRegisterGrupMapping_Window_Content">
+        @using (Ajax.BeginForm("Frm_GroupRegister_UserGroupMapping", "GroupRegister",
+                                                  new AjaxOptions
+                                                  {
+                                                      HttpMethod = "POST",
+                                                      UpdateTargetId = "Frm_GroupRegister_UserGroupMapping",
+                                                      InsertionMode = InsertionMode.InsertAfter,
+                                                      OnBegin = "AjaxBeginFormPost",
+                                                      OnSuccess = "GroupMappingAjaxSuccessForm"
+                                                  },
+                                                  new
+                                                  {
+                                                      id = "GroupMappingvalidationForm",
+                                                      @class = "edit_form"
+                                                  }))
+        {
+            @Html.HiddenFor(x => x.MappedUser)
+            @*@Html.HiddenFor(x =>x.GrupMapping_GrupName)*@
+
+            var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+            using (Html.DevExtreme().ValidationGroup())
+            {
+                <div class="full-width-header">
+                    <div class="row">
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i>User Group Mapping</h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                    </div>
+                </div><!--[row]-->
+
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            <div class="container-fluid pll prm">
+                                <div class="row">
+                                    <div class="col-sm-2 text-right">
+                                        @Html.LabelFor(model => model.GrupMapping_GrupName, htmlAttributes: new { @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-10 plm">
+                                        <div class="dx-texteditor dx-widget dx-textbox">
+                                            <div class="dx-texteditor-container">
+                                                @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GrupMapping_GrupName").Name("GrupMapping_GrupName").HoverStateEnabled(true).DisplayExpr("Group_Name").ValueExpr("ID")
+                                                                                  .DataSource(d => d.Mvc().Controller("GroupRegister").LoadAction("UserGroupMapping_Dropdown").Key("ID")).Placeholder("Please select Group Name").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                  .OnValueChanged("GroupName_Dropdownvaluechange").ContentTemplate(@<text> @Html.Partial("LookUp_GetGroupNameList") </text>))
+                                                @Html.ValidationMessageFor(model => model.GrupMapping_GrupName, "", new { @class = "text-red " })@*Mantis bug 0001087 fixed*@
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Group Name]-->
+
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            <div class="container-fluid pll prm">
+                                <div class="row">
+                                    <div class="col-sm-2 text-right">
+                                        <label class="text-red control-label">Mapped Users:</label>
+                                    </div>
+                                    <div class="col-sm-10 plm">
+                                        <div class="dx-texteditor dx-widget dx-textbox">
+                                            <div class="dx-texteditor-container">
+                                                <div id="GroupMappedUserreloadPartialView" class="parent_table">
+                                                    @Html.Action("GroupMapping_MappedUserGrid", "GroupRegister")
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Mapped User Grid]-->
+
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().ID("GroupRegisterGrupMap_Save").Text("Save").FocusStateEnabled(true).UseSubmitBehavior(true))
+                            @(Html.DevExtreme().Button().CustomCloseButton().ID("GroupRegisterGrupMapCancel").Text("Close").FocusStateEnabled(true).OnClick(@<text> function () { close_GroupMapping(); } </text>) )
+                        </div>
+                    </div>
+                </div><!--[Buttons]-->
+            }
+        }
+    </div>
+    <script>
+
+    var FLAG = "@Model.UgFLAG"
+
+
+    $(document).ready(function ()
+    {
+        try
+        {
+            var username = "@ViewData["MappedUserID"]";
+            if (username == null || username == "")
+            {
+                $("#GrupMapping_GrupName").dxDropDownBox("instance").option("value", "@Model.GrupMapping_GrupName");
+            }
+            else
+            {
+                GroupMappedGrid.SelectRowsByKey(username);
+            }
+        }
+        catch (error)
+        {
+        }
+
+        if ("@Model.GrupMapping_GrupName".length > 0) $("#GrupMapping_GrupName").dxDropDownBox("instance").option("value", parseInt("@Model.GrupMapping_GrupName"));
+    });
+
+    function close_GroupMapping() {
+        dontaskpopupcloseconfirmation = false;
+        $("#Dynamic_Content_popup").dxPopup("hide");
+    }
+
+    function GroupName_Dropdownvaluechange(e) {
+        e.component.close();
+        var v = e.previousValue;
+        var groupid = e.value;
+
+
+        if (groupid == null || groupid == "") {
+            $("#GrupMapping_GrupName").dxDropDownBox("instance").reset();
+            GroupMappedGrid.UnselectAllRowsOnPage();
+            return;
+        }
+        else  {
+        $.ajax({
+            url: "/Options/GroupRegister/Find_MappedUser/",
+            type: "POST",
+            cache: false,
+            data: { DropdownID: groupid },
+            success: function Find_Mapped_User(Result) {
+                GroupMappedGrid.SelectRowsByKey(Result);
+            }
+        });
+        }
+    }
+
+
+    function GroupMappingAjaxSuccessForm(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, 'Error');
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.message, 'Success');
+            if (FLAG == "User") {
+                UserRegisterListGrid.Refresh();
+            }
+            else {
+                GroupRegisterListGrid.Refresh();
+            }
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            HideLoader();
+        }
+    } //0000184 bug fixed.
+
+    function MappedUserGridSelectionChange(s, e) {
+        var Selectedkey = GroupMappedGrid.GetSelectedKeysOnPage();
+        $("#MappedUser").val(Selectedkey);
+        s.SortBy("UserName");
+    }
+    </script>
+</div>

@@ -1,0 +1,257 @@
+﻿<div class="ServiceProjectNotification_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.ProjectNotification
+    @{    
+
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        var title = "Send/Schedule Push Notifications To Subjects Of " + Model.ProjName;
+        var Screen = (string)ViewBag.Screen;
+    }
+    <style>
+        #ServiceProjectNotification_ParentDiv {
+            padding-right: 0px;
+            padding-left: 0px;
+        }
+    </style>
+    <div id="ServiceProjectNotification_ParentDiv" class="container-fluid">       
+        <form id="ServiceProjectNotificationForm" class="edit_form form-horizontal">
+            @Html.HiddenFor(x => x.ProjID)
+            @Html.HiddenFor(x => x.ProjName)
+            @Html.HiddenFor(x => x.SelectedUserRecID)
+            @Html.HiddenFor(x => x.schedule_ID)
+            @Html.HiddenFor(x => x.FromDate_ScheduleInstance)
+            @Html.HiddenFor(x => x.ToDate_ScheduleInstance)
+            <div class="full-width-header-bg2">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h3 class="popuphead"><i class="far fa-edit"></i> @title</h3>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 prm">
+                            <h5 class="mand-txt-align">
+                                <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                            </h5>
+                        </div>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            </div><!--[Header]-->
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        @Html.Label("Title:", htmlAttributes: new { @class = "control-label text-red" })
+                        @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Title_ProjectNotification").Name("Title_ProjectNotification")
+                                  .Value(Model.Title_ProjectNotification).Placeholder("Type Title").MaxLength(65))
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        @Html.Label("Sub Title:", htmlAttributes: new { @class = "control-label text-red" })
+                        @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("SubTitle_ProjectNotification").Name("SubTitle_ProjectNotification")
+                                  .Value(Model.SubTitle_ProjectNotification).Placeholder("Type Sub Title").MaxLength(240))
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        @Html.Label("URL:", htmlAttributes: new { @class = "control-label" })
+                        @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("URL_ProjectNotification").Name("URL_ProjectNotification")
+                                  .Value(Model.URL_ProjectNotification).Placeholder("Type Public URL"))
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        @Html.Label("Image URl:", htmlAttributes: new { @class = "control-label" })
+
+                        @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("ImageURL_ProjectNotification").Name("ImageURL_ProjectNotification").Placeholder("Type Image URL")
+                                      .Value(Model.ImageURL_ProjectNotification))
+
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="styleActionBtn">
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("SendBtn_ProjectNotification").Text("Send").OnClick("SendBtn_ProjectNotification_Click"))
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("ScheduleBtn_ProjectNotification").Text("Schedule").OnClick("ScheduleBtn_ProjectNotification_Click"))
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("ScheduleNotifiBtn_ProjectNotification").Text("Scheduled Notification").OnClick("ScheduleNotifiBtn_ProjectNotification_Click"))
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("CancelBtn_ProjectNotification").Text("Cancel").OnClick("CancelBtn_ProjectNotification"))
+
+                    </div>
+                </div>
+            </div>
+        </form>               
+    </div>
+    <script>
+
+        $(document).ready(function ()
+        {
+            ShowLoader_Ready()
+            TransformTextForDB("ServiceProjectNotificationForm");
+            HideLoader_Ready();
+            let sendStatus = "@ViewBag.Screen"
+            if (sendStatus =="Sparc_SendNow") {//Global Variable from Frm_Sparc_Project_Info. Inferred as Boolean dataType
+                $("#ScheduleBtn_ProjectNotification").hide();
+                $("#ScheduleNotifiBtn_ProjectNotification").hide();
+                $("#SendBtn_ProjectNotification").show();
+            }
+            else if (sendStatus == "Sparc_SendLater") {//Global Variable from Frm_Sparc_Project_Info. Inferred as Boolean dataType
+                $("#SendBtn_ProjectNotification").hide();
+                $("#ScheduleNotifiBtn_ProjectNotification").hide();
+                $("#ScheduleBtn_ProjectNotification > div > span").text('Later').show();
+            }
+        })
+        function SendBtn_ProjectNotification_Click(e)
+        {
+            var Title = $("#Title_ProjectNotification").dxTextBox("option","value")
+            var SubTitle = $("#SubTitle_ProjectNotification").dxTextBox("option", "value")
+            if (Title == null || Title.length == 0)
+            {
+                DevExpress.ui.dialog.alert('Title Is Required', "Information...").done(function () { $("#Title_ProjectNotification").dxTextBox("instance").focus() });
+                return;
+            }
+            if (SubTitle == null || SubTitle.length == 0)
+            {
+                DevExpress.ui.dialog.alert('SubTitle Is Required', "Information...").done(function () { $("#SubTitle_ProjectNotification").dxTextBox("instance").focus() });
+                return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ServiceProject/Frm_ServiceProject_MappedSubjects",
+                cache: false,
+                data:
+                {
+                    ProjectID: "@Model.ProjID",
+                    ProjName: "@Model.ProjName",
+                    Screen:"SEND_NOTIFICATION"
+                },
+                success: function (data)
+                {
+                    HideLoader();
+                    OpenDynamicPopup("Mapped Subjects", null, "100%", "100%", true, data);
+                },
+                error: function (jqXHR, textStatus, errorThrown)
+                {
+                    HideLoader();
+                    console.log(jqXHR);
+                    console.log(textStatus);
+                    console.log(errorThrown);
+                    DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                }
+            });
+        }
+        function ScheduleBtn_ProjectNotification_Click(e)
+        {
+            var Title = $("#Title_ProjectNotification").dxTextBox("option","value")
+            var SubTitle = $("#SubTitle_ProjectNotification").dxTextBox("option", "value")
+            if (Title == null || Title.length == 0)
+            {
+                DevExpress.ui.dialog.alert('Title Is Required', "Information...").done(function () { $("#Title_ProjectNotification").dxTextBox("instance").focus() });
+                return;
+            }
+            if (SubTitle == null || SubTitle.length == 0)
+            {
+                DevExpress.ui.dialog.alert('SubTitle Is Required', "Information...").done(function () { $("#SubTitle_ProjectNotification").dxTextBox("instance").focus() });
+                return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ServiceProject/Frm_ServiceProject_MappedSubjects",
+                cache: false,
+                data:
+                {
+                    ProjectID: "@Model.ProjID",
+                    ProjName: "@Model.ProjName",
+                    Screen:"SCHEDULE_NOTIFICATION"
+                },
+                success: function (data)
+                {
+                    HideLoader();
+                    OpenDynamicPopup("Mapped Subjects", null, "100%", "100%", true, data);
+                },
+                error: function (jqXHR, textStatus, errorThrown)
+                {
+                    HideLoader();
+                    console.log(jqXHR);
+                    console.log(textStatus);
+                    console.log(errorThrown);
+                    DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                }
+            });
+        }
+        function ScheduleNotifiBtn_ProjectNotification_Click(e) { DevExpress.ui.dialog.alert("Coming Soon", "Information"); }
+        function CancelBtn_ProjectNotification(e) { $("#Project_Notification_popup").dxPopup("hide");}
+        function ServiceProjectNotificationFormSubmit(SelectedUserRecID)
+        {
+            $("#SelectedUserRecID").val(SelectedUserRecID)
+            var formdata = new FormData($('#ServiceProjectNotificationForm').get(0));
+            ShowLoader();
+            $.ajax({
+                type: 'POST',
+                url: "/Facility/ServiceProject/Send_Notification",
+                cache: false,
+                data: formdata,
+                processData: false,
+                contentType: false,
+                success: function (data)
+                {
+                    HideLoader();
+                    var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertclick.done(function (alertResult)
+                    {
+                        if (data.jsonParam.result == false)
+                        {
+
+                        }
+                        else
+                        {
+                            $("#Dynamic_Content_popup").dxPopup("hide");
+                            CancelBtn_ProjectNotification();
+                        }
+                    });
+                }
+            });
+        }
+        function ServiceProjectNotificationFormSubmit_MapSchedule(SelectedUserRecID, Schedule_ID, FromDate_ScheduleInstance, ToDate_ScheduleInstance) {
+            $("#SelectedUserRecID").val(SelectedUserRecID)
+            $("#schedule_ID").val(Schedule_ID)
+            if (FromDate_ScheduleInstance != null)  $("#FromDate_ScheduleInstance").val(JS_Json_Date_To_ddMMyyyy(FromDate_ScheduleInstance))
+            else  $("#FromDate_ScheduleInstance").val(null);
+            if (ToDate_ScheduleInstance != null) $("#ToDate_ScheduleInstance").val(JS_Json_Date_To_ddMMyyyy(ToDate_ScheduleInstance));
+            else $("#ToDate_ScheduleInstance").val(null);
+            var formdata = new FormData($('#ServiceProjectNotificationForm').get(0));
+            ShowLoader();
+            $.ajax({
+                type: 'POST',
+                url: "/Facility/ServiceProject/Save_Map_Notification",
+                cache: false,
+                data: formdata,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    HideLoader();
+                    var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertclick.done(function (alertResult) {
+                        if (data.jsonParam.result == false) {
+
+                        }
+                        else {
+                            $("#Dynamic_Content_popup").dxPopup("hide");
+                            CancelBtn_ProjectNotification();
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+    </div>
+
+

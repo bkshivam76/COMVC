@@ -1,0 +1,196 @@
+﻿<div class="SchedulerQueueHelp_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string UserType = (string)ViewBag.UserType;
+        @*bool SchedulerQueue_AddRight = (bool)ViewData["SchedulerQueue_AddRight"];
+            bool SchedulerQueue_UpdateRight = (bool)ViewData["SchedulerQueue_UpdateRight"];
+            bool SchedulerQueue_DeleteRight = (bool)ViewData["SchedulerQueue_DeleteRight"];
+            bool SchedulerQueue_ReportRight = (bool)ViewData["SchedulerQueue_ReportRight"];
+            bool SchedulerQueue_ListRight = (bool)ViewData["SchedulerQueue_ListRight"];
+            bool SchedulerQueue_ExportRight = (bool)ViewData["SchedulerQueue_ExportRight"];
+            bool Help_Attachment_AddRight = ViewData["Help_Attachment_AddRight"] == null ? false : (bool)ViewData["Help_Attachment_AddRight"];//attachment
+            bool Help_Attachment_EditRight = ViewData["Help_Attachment_EditRight"] == null ? false : (bool)ViewData["Help_Attachment_EditRight"];//attachment
+            bool Help_Attachment_ViewRight = ViewData["Help_Attachment_ViewRight"] == null ? false : (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+            bool Help_Attachment_DeleteRight = ViewData["Help_Attachment_DeleteRight"] == null ? false : (bool)ViewData["Help_Attachment_DeleteRight"];//attachment*@
+    }
+    <div id="SchedulerQueue_ParentDiv">
+        <div id="SchedulerQueue_content" class="report_header_div_main">
+            <div>
+                <div class="report_header_div_main">
+                    <label class="report_header_label">Scheduled Jobs Queue</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="report_button_div">
+                        @(Html.DevExtreme().Button().ID("SchedulerQueueModelListPreview").Text("List Preview").Icon("save").OnClick("OnSchedulerQueueListPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("SchedulerQueueModelCLOSE").Text("Close").Icon("clear").OnClick("closeSchedulerQueue") )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="SchedulerQueue_gridDiv">
+            <form>
+                <div id="SchedulerQueueGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Scheduler_Queue_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="SchedulerQueue_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SchedulerQueue_Create" class="right_footertext_top"></p>
+                            <p id="SchedulerQueue_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var SchedulerQueueInfo_IsDetailRowExpanded = false;
+    var SchedulerQueue_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var SchedulerQueue_ID = null;
+    var SchedulerQueue_ViewMode = null;
+    var REC_ID = null;
+    var SchedulerQueue_Select_xid = null;
+    var SchedulerQueueFocusedRowIndexBeforeRefresh;
+    var SchedulerQueue_ColumnToBeShownIndex = "";
+    var SchedulerQueue_ColumnToBeHidddenIndex = "";
+    var SchedulerQueueGridLayout = null;
+    var SchedulerQueueInfo_NestedRecord_FocusedRowIndex = -1;
+    var SchedulerQueueInfo_NestedGrid_AccessID;
+</script>
+<script>
+    function OnSchedulerQueueListPreviewClick()
+    {
+        @*if (!"@SchedulerQueue_ExportRight")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }*@
+        ShowLoader();
+        OpenPopup("SchedulerQueueExport_modal", "Export Option", "@Url.Action("Frm_QueueExport_Options", "Scheduler", new { @area = "Help" })", "auto", 130);
+    }
+    function closeSchedulerQueue() {
+        $("#SchedulerQueue_modal").dxPopup("hide");
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Scheduler/QueueSessionClear",
+            cache: false
+        });
+        ClearAllReferences_SchedulerQueue();
+    }
+    function Get_SchedulerQueue_Row_Data(RowIndex = null) {
+        var focusedrow = RowIndex == null ? SchedulerQueueListGrid.GetFocusedRowIndex() : RowIndex;
+        var topindex = SchedulerQueueListGrid.GetTopVisibleIndex();
+        var Index = focusedrow - topindex;
+        SchedulerQueue_PageData = SchedulerQueueListGrid.cpPagedata;
+        if (SchedulerQueue_PageData != null && SchedulerQueue_PageData.length > 0 && Index < SchedulerQueue_PageData.length) {
+            SchedulerQueue_Type = SchedulerQueue_PageData[Index][0];
+            SchedulerQueue_Title = SchedulerQueue_PageData[Index][1];
+            SchedulerQueue_ExecutionTime = SchedulerQueue_PageData[Index][2];
+            SchedulerQueue_SchedulerName = SchedulerQueue_PageData[Index][3];
+        }
+    }
+    function OnSchedulerQueueGridFocusedRowChanged(s, e) {
+        var focusIndex = s.GetFocusedRowIndex();
+        if (focusIndex > -1) {
+            SchedulerQueue_ID = s.GetRowKey(focusIndex);
+            Get_SchedulerQueue_Row_Data(focusIndex);
+        }
+        else {
+            SchedulerQueue_ID = null;
+        }
+    }
+    function SchedulerQueueListGrid_BeginCallback(s, e) {
+        SchedulerQueueFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = SchedulerQueue_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = SchedulerQueue_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = SchedulerQueue_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = SchedulerQueue_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = SchedulerQueue_Select_xid;
+    }
+    function SchedulerQueueOnInit(s, e) {
+        SchedulerQueueAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            SchedulerQueueAdjustSize();
+        });
+    }
+    function SchedulerQueueAdjustSize() {
+
+        var height = (document.documentElement.clientHeight * 80) / 100;
+        try {
+            SchedulerQueueListGrid.SetHeight(height);
+        }
+        catch (err) {
+        }
+    }
+    function SchedulerQueueListGrid_BeginCallback(s, e) {
+        SchedulerQueueFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = SchedulerQueue_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = SchedulerQueue_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = SchedulerQueue_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = SchedulerQueue_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = SchedulerQueue_Select_xid;
+    }
+    function OnGridSchedulerQueueListGrid_EndCallback(s, e)
+    {
+        SchedulerQueue_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        SchedulerQueue_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        SchedulerQueueGridLayout = s.cpClientLayout;
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH")
+        {
+            if (SchedulerQueueFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex())
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(SchedulerQueueFocusedRowIndexBeforeRefresh);
+            }
+            SchedulerQueue_Select_xid = "";
+        }
+    }
+    function ClearAllReferences_SchedulerQueue() {
+        SchedulerQueue_ShowHorizontalBar = null;
+        SchedulerQueue_ID = null;
+        SchedulerQueue_AddRight = null;
+        SchedulerQueue_EditRight = null;
+        SchedulerQueue_DeleteRight = null;
+        SchedulerQueue_ExportRight = null;
+        SchedulerQueue_ListRight = null;
+        SchedulerQueue_ViewMode = null;
+        SchedulerQueue_ColumnToBeShownIndex = null;
+        SchedulerQueue_ColumnToBeHidddenIndex = null;
+        SchedulerQueueGridLayout = null;
+        SchedulerQueueInfo_IsDetailRowExpanded = null;
+        SchedulerQueueInfo_NestedRecord_FocusedRowIndex = null;
+        SchedulerQueueInfo_NestedGrid_AccessID = null;
+        SchedulerQueue_Select_xid = null;
+        SchedulerQueueFocusedRowIndexBeforeRefresh = null;
+        ClearAllReferences("SchedulerQueueHelp_ClearReferences")
+    }
+    function SchedulerQueuedblclickEdit(s, e) {
+        DataNavigation_Scheduler("QUEUE");
+    }
+    function SchedulerQueueContextMenuFunction(s, e) {
+        if (e.item.name == 'ListPreview') {
+            OnSchedulerQueueListPreviewClick();
+        }
+        else if (e.item.name == 'Close') {
+            closeSchedulerQueue();
+        }
+        else if (e.item.name == 'Refresh') {
+            SchedulerQueueListGrid.Refresh();
+        }
+    }
+</script>

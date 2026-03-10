@@ -1,0 +1,411 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model System.Data.DataTable
+
+@{
+    Layout = null;
+    bool Report_AddressSearch_ListRight = (bool)ViewData["Report_AddressSearch_ListRight"];
+    bool Report_AddressSearch_ExportRight = (bool)ViewData["Report_AddressSearch_ExportRight"];
+}
+
+<div id="GlobalAddressReport_ParentDiv">
+    <div id="GlobalAddress_content" class="report_header_div_main">
+        <div class="row">
+            <div class="col-md-6 report_header_div pll10">
+                <label class="report_header_label">Address Book Search Report</label>
+            </div>
+            @*Buttons*@
+
+            <div class="col-md-6 text-right">
+                @(Html.DevExtreme().Button()
+                    .ID("GlobalAddressReportToggleScrollBar")
+                    .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                    .Icon("toolbox")
+                    .OnClick(@<text>
+                        function () {
+                        GlobalAddressReport_changeMode();
+                        }
+                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                    .ID("GlobalAddressReportModelListPreview")
+                    .Text("Export")
+                    .Icon("save")
+                    .Width(90)
+                    .OnClick(@<text>
+                        function () {
+                        OnGlobalAddressReportListPreviewClick();
+                        }
+                    </text>)
+                )
+                @(Html.DevExtreme().Button()
+                    .ID("GlobalAddressReportModelCLOSE")
+                    .Text("Close")
+                    .Icon("clear")
+                    .Width(90)
+                    .OnClick(@<text>
+                        function (){closeGlobalAddressReport();}
+                    </text>)
+
+                )
+            </div>
+        </div>
+
+
+    </div>
+    <form class="edit_form form-horizontal" style="">
+        <div class="row" @*style="padding-top: 20px; padding-bottom: 10px;"*@ id="GlobalAddress_FilterID">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-1 col-md-1 col-lg-1 text-right" style="padding-top:2px;">
+                                <label class="control-label text-red"style="padding-right:5px;">Search Mode:</label>
+                            </div>
+                            <div class="col-sm-3 col-md-3 col-lg-3">
+                                @(Html.DevExtreme().RadioGroup().ID("SearchMode_GlobalAddress")
+                                .DisplayExpr("text").ValueExpr("value")
+                                .DataSource(new object[] { new { text = "All UIDs", value = "GLOBAL" }, new { text = "Current BK PAD UIDs", value = "BKPAD_UID" } })
+                                .Width("auto").OnValueChanged("OnChange_SearchMode_GlobalAddress")
+                                .ReadOnly(ViewBag.UserType == "SUPERUSER"? false : true).Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal)
+                            )
+                            </div>
+                            <div class="col-sm-1 col-md-1 col-lg-1 text-right"style="padding-top:2px">
+                                <label class="control-label text-red"style="padding-right:5px;">Search By:</label>
+                            </div>
+                            <div class="col-sm-3 col-md-3 col-lg-3">
+                                @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("SearchBy_GlobalAddress")
+                                        .DisplayExpr("text").ValueExpr("value").OnValueChanged("OnChange_SearchBy_GlobalAddress")
+                                        .DataSource(new object[] {
+                                            new { text = "Name", value = "NAME" },
+                                            new { text = "Passport No.", value = "PASSPORT_NO" },
+                                            new { text = "TAN No.", value = "TAN_NO" },
+                                            new { text = "VAT TIN No.", value = "VAT_TIN_NO" },
+                                            new { text = "CST TIN No.", value = "CST_TIN_NO" },
+                                            new { text = "Service Tax Reg No", value = "STR_NO" },
+                                            new { text = "Tax Payer ID", value = "TAX_ID_NO" },
+                                            new { text = "Aadhar no.", value = "UID_NO" },
+                                            new { text = "GSTIN No.", value = "GST_TIN_NO" },
+                                            new { text = "PAN No.", value = "PAN_NO" },
+                                            new { text = "Voter ID", value = "VOTER_ID_NO" },
+                                            new { text = "Ration Card No.", value = "RATION_NO" },
+                                            new { text = "Driving License No.", value = "DL_NO" },
+                                            new { text = "Primary/Secondary email", value = "EMAIL" },
+                                            new { text = "Primary/Secondary Res. Mob/tel/fax", value = "RES_MOB_TEL_FAX" },
+                                            new { text = "Primary/Secondary Off. Mob/tel/fax", value = "OFF_MOB_TEL_FAX" }})
+                                    )
+                            </div>
+                            <div class="col-sm-1 col-md-1 col-lg-1 text-right"style="padding-top:2px">
+                                <label class="control-label text-red" style="padding-right:5px;">Search Text:</label>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                .ID("SearchText_GlobalAddress")
+                                .Name("SearchText_GlobalAddress")
+                                .Placeholder("Enter Search Text...")
+                                .MaxLength(225)
+                                .OnValueChanged("OnChange_SearchText_GlobalAddress")
+                            )
+                            </div>
+                            <div class="col-sm-1 col-md-1 col-lg-1" style="padding-right:5px;">
+                                @(Html.DevExtreme().Button()
+                                .ID("But_Search_GlobalAddressReport")
+                                //.Type(DevExtreme.AspNet.Mvc.ButtonType.Default)
+                                .Text("Search")
+                                //.Height(30).Width(150)
+                                .OnClick("Search_GlobalAddressReport")
+                            )
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!--[]-->
+        </form>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="GlobalAddressReportGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Global_Address_Report_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+
+</div>
+<script>
+    var SearchMode_GlobalAddress = "";
+    var SearchBy_GlobalAddress = "";
+    var SearchText_GlobalAddress = "";
+
+    $(document).ready(async function () {
+        //dontaskpopupcloseconfirmation = false;
+        //sessionclearpath = "/Reports/GlobalAddressReport/SessionClear_Window";
+        if ("@Report_AddressSearch_ListRight" == "False")
+        {
+            NoRightsPrevention(true);
+        }
+        $("#SearchMode_GlobalAddress").dxRadioGroup("instance").option("value", "BKPAD_UID");
+        TransformTextForDB(GlobalAddress_FilterID);
+    });
+
+    function OnChange_SearchMode_GlobalAddress(e) {
+        
+        //SearchMode_GlobalAddress = $("#SearchMode_GlobalAddress").dxRadioGroup("instance").option("value");
+        SearchMode_GlobalAddress = e.value
+
+    }
+
+    function OnChange_SearchBy_GlobalAddress(e) {
+        
+        SearchBy_GlobalAddress = e.value
+        //SearchBy_GlobalAddress = $("#SearchBy_GlobalAddress").dxSelectBox("instance").option("value");
+    }
+
+    function OnChange_SearchText_GlobalAddress(e) {
+       
+        SearchText_GlobalAddress = $("#SearchText_GlobalAddress").dxTextBox("instance").option("value");
+    }
+    function OnGlobalAddressReportListPreviewClick(e) {
+        if ("@Report_AddressSearch_ExportRight" == "False")
+        {
+            NoRightsPrevention(false, "");
+            return;
+        }
+         OpenDynamicPopup("Export Option", "/Reports/GlobalAddressReport/Frm_Export_Options/", "auto", 125, false, false);
+    }
+
+    function Search_GlobalAddressReport() {
+        
+        if (IsNullOrWhitespace(null, null, SearchMode_GlobalAddress)) {
+            DevExpress.ui.dialog.alert("Search Mode Not Selected!!", "Incomplete Information");
+            return;
+        }
+        if (IsNullOrWhitespace(null, null, SearchBy_GlobalAddress)) {
+            DevExpress.ui.dialog.alert("Search By Not Selected!!", "Incomplete Information");
+            return;
+        }
+        if (IsNullOrWhitespace(null, null, SearchText_GlobalAddress)) {
+            DevExpress.ui.dialog.alert("Search Text Not Entered!!", "Incomplete Information");
+            return;
+        }      
+        GlobalAddressReportListGrid.Refresh();
+    }
+
+
+</script>@* Ready *@
+
+<script>
+    //All these are grid functions
+    var GlobalAddress_FocusedRowBeforeRefresh;
+    var GlobalAddress_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    @*var GlobalAddress_IsVouchingMode = "@PropertyLB_Auto_Vouching_Mode" == "True" ? true : false;*@
+    //var GlobalAddress_ViewMode = false;
+    //var GlobalAddress_ColumnToBeShownIndex = "";
+    //var GlobalAddress_ColumnToBeHidddenIndex = "";
+    var GlobalAddressGridLayout = null;
+
+    function GlobalAddressOnInit() { // This function is to set height of the grid
+        GlobalAddressAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            GlobalAddressAdjustSize();
+        });
+        $("#GlobalAddressReportListGrid").hover(function () {
+            GlobalAddressReportListGrid.Focus()
+        });
+    }
+    function GlobalAddressAdjustSize() {
+
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try {
+            GlobalAddressReportListGrid.SetHeight(height);
+        }
+        catch (err) {
+
+        }
+    }
+
+
+    //This is Begin Call back function of the grid to send the Parameters
+    function GlobalAddress_BeginCallBack(s, e) { //s sender and e - event
+        //GlobalAddress_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = GlobalAddress_ShowHorizontalBar;
+        e.customArgs["SearchMode"] = SearchMode_GlobalAddress;
+        e.customArgs["SearchBy"] = SearchBy_GlobalAddress;
+        e.customArgs["SearchText"] = SearchText_GlobalAddress;
+
+        //e.customArgs["VouchingMode"] = GlobalAddress_IsVouchingMode;
+        //e.customArgs["ViewMode"] = GlobalAddress_ViewMode;
+        //e.customArgs["ColumnToBeShownIndex"] = GlobalAddress_ColumnToBeShownIndex;
+        //e.customArgs["ColumnToBeHidddenIndex"] = GlobalAddress_ColumnToBeHidddenIndex;
+        //e.customArgs["RowKeyToFocus"] = Property_Select_xid;
+
+    }
+
+    function OnGridGlobalAddress_EndCallback(s, e) {
+        //Prop_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        //Prop_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        GlobalAddressGridLayout = s.cpClientLayout;
+        //$(".PropertyListGrid_PreviewRow").hide();
+        //GetSessionStorage("PropertyListGrid");
+        //if (e.command == "REFRESH") {
+        //    if (Property_FocusedRowBeforeRefresh == s.GetFocusedRowIndex()) {
+        //        s.SetFocusedRowIndex(-1);
+        //        s.SetFocusedRowIndex(Property_FocusedRowBeforeRefresh);
+        //    }
+        //    Property_Select_xid = "";
+        //}
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function GlobalAddressContextMenuFunction(s, e) { //This code is to handle context menu filled user defined buttons functionality.
+        if (e.item.name == 'Close') {
+            closeGlobalAddressReport();
+        }
+        else if (e.item.name == 'ListPreview')
+        {
+            OnGlobalAddressReportListPreviewClick();
+        }
+    }
+
+    //Full Data
+    function GlobalAddressReport_changeMode() {
+        ShowLoader();
+        if (GlobalAddress_ShowHorizontalBar == 0) {
+            GlobalAddress_ShowHorizontalBar = 1;
+            $("#GlobalAddressReportToggleScrollBar").find("span").text("Default Data");
+            $("#GlobalAddressReportToggleScrollBar").width(130);
+        }
+        else {
+            GlobalAddress_ShowHorizontalBar = 0;
+            $("#GlobalAddressReportToggleScrollBar").find("span").text("Full Data");
+            $("#GlobalAddressReportToggleScrollBar").width(130);
+        }
+        $.ajax({
+            url: "/reports/GlobalAddressReport/Frm_Global_Address_Report_Info_Grid",
+            type: "get",
+            data: { showhorizontalbar: GlobalAddress_ShowHorizontalBar, Layout: GlobalAddressGridLayout},
+            success: function (res) {
+                $("#GlobalAddressReportGridPartialView").html(res);
+
+                HideLoader();
+            }
+        });
+
+    }
+</script>@* Main Grid *@
+
+<script>
+    //All this code is for nested grid i.e. Detail grid.
+    var GlobalAddressInfo_IsDetailRowExpanded = false;
+    var GlobalAddressInfo_NestedRecord_FocusedRowIndex = -1;
+    var GlobalAddressInfo_NestedGrid_AccessID;
+    var GlobalAddressInfo_Nested_Doc_Status;
+
+    var GlobalAddressInfo_ParamMandatory;
+    var GlobalAddressInfo_FromDateLabel;
+    var GlobalAddressInfo_ToDateLabel;
+    var GlobalAddressInfo_DescriptionLabel;
+    var GlobalAddressInfo_Doc_Category;
+    var GlobalAddressInfo_Doc_ID;
+    var GlobalAddressInfo_AtachmentID;
+
+    var GlobalAddressInfo_MasterRowRecID;
+    var GlobalAddressInfo_MasterRowMID;
+    var GlobalAddressInfo_NestedRowMapID;
+    var GlobalAddressInfo_reason;
+    var GlobalAddressInfo_FileName;
+    var GlobalAddressInfo_Attachment_RecStatus;
+    var GlobalAddressInfo_NestedRowKeyValue;
+    var GlobalAddressInfo_NestedRowReasonID;
+
+    function OnGlobalAddressAddressListGridNestedFocusedRowChange(s, e)
+    {
+        //if (GlobalAddressInfo_IsDetailRowExpanded == true) {
+        //    GlobalAddressInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+        //    if (GlobalAddressInfo_NestedRecord_FocusedRowIndex >= 0) {
+        //        ShowLoader();
+        //        //GlobalAddress_FAB.SetVisible(true);
+        //        GlobalAddressInfo_NestedGrid_AccessID = s.uniqueID;
+        //        s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnGlobalAddressInfo_GetGridRowValues);
+        //    }
+        //    //else {
+        //    //    GlobalAddress_FAB.SetVisible(false);
+        //    //}
+        //}
+    }
+
+    function GlobalAddressAddressGrid_Nested_BeginCallBack(s, e) {
+        e.customArgs["ShowHorizontalBar"] = GlobalAddress_ShowHorizontalBar;
+        /* e.customArgs["VouchingMode"] = GlobalAddress_IsVouchingMode;*/
+        e.customArgs["command"] = e.command;
+    }
+
+    function OnGlobalAddressInfo_GetGridRowValues(values) {
+        
+        //HideLoader();
+        //if (values[14] != null) {
+        //    GlobalAddressInfo_Nested_Doc_Status = values[0];
+        //    //GlobalAddress_FAB.SetVisible(true);
+        //    //if (GlobalAddress_IsVouchingMode == true) {
+        //    //    GlobalAddress_FAB.SetActionContext("AuditActionContext", true);
+        //    //}
+        //    //else {
+        //    if (GlobalAddressInfo_Nested_Doc_Status == "") {
+        //        GlobalAddress_FAB.SetActionContext("AutoItemContext", true);
+        //    }
+        //    else if (GlobalAddressInfo_Nested_Doc_Status == "NO") {
+        //        GlobalAddress_FAB.SetActionContext("EditItemContext", true);
+        //    }
+        //    else if (GlobalAddressInfo_Nested_Doc_Status == "YES") {
+        //        GlobalAddress_FAB.SetActionContext("actionItemContext", true);
+        //    }
+        //    //}
+        //    // GlobalAddress_FAB.SetActionContext("actionItemContext", true);
+        //    GlobalAddressInfo_ParamMandatory = values[1];
+        //    GlobalAddressInfo_FromDateLabel = values[2];
+        //    GlobalAddressInfo_ToDateLabel = values[3];
+        //    GlobalAddressInfo_DescriptionLabel = values[4];
+        //    GlobalAddressInfo_Doc_Category = values[5];
+        //    GlobalAddressInfo_Doc_ID = values[6];
+        //    GlobalAddressInfo_AtachmentID = values[7];
+        //    IndexAttachmentID = GlobalAddressInfo_AtachmentID;
+        //    GlobalAddressInfo_MasterRowRecID = values[8];
+        //    GlobalAddressInfo_MasterRowMID = values[9];
+        //    GlobalAddressInfo_NestedRowMapID = values[10];
+        //    GlobalAddressInfo_reason = values[11];
+        //    GlobalAddressInfo_FileName = values[12];
+        //    GlobalAddressInfo_Attachment_RecStatus = values[13];
+        //    GlobalAddressInfo_NestedRowKeyValue = values[14];
+
+        //    //if (GlobalAddress_IsVouchingMode == true) {
+        //    //    if (GlobalAddressInfo_FileName != null && GlobalAddressInfo_FileName.length > 0) {
+        //    //        ViewDocument(GlobalAddressInfo_AtachmentID, GlobalAddressInfo_FileName, "GlobalAddress_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        //    //    }
+        //    //    else {
+        //    //        CloseRightPane();
+        //    //        ClearRightPane();
+        //    //    }
+        //    //}
+        //}
+        //GlobalAddressInfo_NestedRowReasonID = values[15];
+        //IndexAttachmentReasonID = GlobalAddressInfo_NestedRowReasonID;
+    }
+</script>@* Nested Grid *@
+
+<script>
+    // This is for close button code of the screen
+    function closeGlobalAddressReport() {
+        $(".TabPanalMenu-tabs .active span").click();
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/GlobalAddressReport/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+    });
+</script>@* Close Button *@

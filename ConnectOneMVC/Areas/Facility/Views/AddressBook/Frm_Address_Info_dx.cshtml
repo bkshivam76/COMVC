@@ -1,0 +1,3411 @@
+﻿<div class="AddressBookdx_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+
+    @{
+        ViewBag.Title = "Index";
+        string UserType = (string)ViewBag.UserType;
+        var CalledFromOtherScreen = ViewBag.PopUpId;
+        var PartyRefreshFunction = (string)ViewBag.PartyRefreshFunction;
+        bool AdresBook_AddRight = (bool)ViewData["AdresBook_AddRight"];
+        bool AdresBook_UpdateRight = (bool)ViewData["AdresBook_UpdateRight"];
+        bool AdresBook_DeleteRight = (bool)ViewData["AdresBook_DeleteRight"];
+        bool AdresBook_ExportRight = (bool)ViewData["AdresBook_ExportRight"];
+        bool AdresBook_ListRight = (bool)ViewData["AdresBook_ListRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool AddressBook_Auto_Vouching_Mode = ViewData["AddressBook_Auto_Vouching_Mode"] == null ? false : (bool)ViewData["AddressBook_Auto_Vouching_Mode"];
+        var next_Unaudited_YearID = (int)ViewBag.next_Unaudited_YearID;
+    }
+    <style>
+        #uploadExcel_Address {
+            display: block;
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            float: left;
+        }
+    </style>
+    <div id="AddressBook_ParentDiv_dx">
+        <div id="content_AB_dx" class="col-md-12 report_header_div_main">
+            <div class="col-md-3 report_header_div">
+                <label class="report_header_label">Address Book</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("AddressBookIndicatorVisibilitySwitch_dx").SwitchedOnText("Indicators On").SwitchedOffText("Indicators Off")
+            .OnValueChanged("AddressBook_IndicatorSwitch_ValueChange_dx").Width(100).Value(AddressBook_Auto_Vouching_Mode))
+                @(Html.DevExtreme().Switch().ID("AddressBookVouchingModeSwitch_dx").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off")
+                .OnValueChanged("AddressBook_VouchingSwitch_ValueChange_dx").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("AdresBookViewModeSwitch_dx").SwitchedOnText("Compact").SwitchedOffText("Default")
+                .OnValueChanged("AdresBook_ViewSwitch_ValueChange_dx").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("AddressModelNew_dx").Text("New").Icon("add")
+                .OnClick(@<text> function () { OnAddressNewClick_dx();} </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelEdit_dx").Text("Edit").Icon("edit")
+                .OnClick(@<text> function () { OnAddressEditClick_dx();} </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelDelete_dx").Text("Delete").Icon("trash")
+                .OnClick(@<text> function () { OnAddressDeleteClick_dx(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressToggleScrollBar_dx").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox")
+                .OnClick(@<text> function () { AddressBookchangeMode_dx(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelListPreview_dx").Text("List Preview").Icon("save")
+                .OnClick(@<text> function () { OnAddressListPreviewClick_dx(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelCLOSE_dx").Text("Close").Icon("clear").OnClick(@<text> function (){closeAddressBook_dx();} </text>))
+                <!--@(Html.DevExtreme().Button().ID("AddressSampleFormat_dx").Text("Import Excel Format").OnClick(@<text> function (){ImportSampleFormat();} </text>))
+                <form id="uploadExcel_Address">
+                    @(Html.DevExtreme().FileUploader().SelectButtonText("Choose File").ID("ExcelUpload_Address_dx")
+                        .Name("ExcelUpload_Address_dx").Multiple(false).Accept("xls/*").UploadMode(FileUploadMode.UseForm)
+                        .ShowFileList(true).Visible(false).OnValueChanged("ExcelUpload_valueChange_dx"))-->
+                @*<input type="file" id="ExcelUpload" />*@
+                <!--</form>
+                @(Html.DevExtreme().Button().ID("UploadData_Address_dx").Text("Upload by Excel")
+                    .OnClick(@<text> function (){UploadExcelData();} </text>))-->
+                @*onclick="uploadingProcess()*@
+
+
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="AddressreloadPartialView_dx" class="parent_table">
+                    @Html.Partial("Frm_Address_Info_Grid_dx")
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="AB_LockICON_dx" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="ActionItem_Status_dx" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="AB_Lbl_ActionOn_dx" class="left_footertext_top"></div>
+                            <div id="AB_Lbl_ActionBy_dx" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="AB_Create_dx" class="right_footertext_top"></p>
+                            <p id="AB_Modify_dx" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "AddressBook_FAB_dx,AddressBook_ParentDiv_dx,Type4,AddressBookFacility_dx," + UserType)@*fab buttons*@
+
+    </div>
+    <script>
+        $(function ()
+        {
+
+            if ("@CalledFromOtherScreen".length > 0)
+            {
+
+                if ("@CalledFromOtherScreen" != "Dynamic_Content_popup")
+                {
+                    $("#" + "@CalledFromOtherScreen").dxPopup({
+                        onHiding: function (e)
+                        {
+                            e.cancel = !Close_AddressBookInfo;
+                            if (Close_AddressBookInfo)
+                            {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Facility/AddressBook/SessionClear",
+                                    cache: false
+                                });
+                                if ("@PartyRefreshFunction".length > 0)
+                                {
+                                    var fn = window["@PartyRefreshFunction"];
+                                    if (typeof fn == "function")
+                                    {
+                                        fn();
+                                    }
+                                }
+                                if (AddressBook_IsVouchingMode_dx == true)
+                                {
+                                    ClearLeftPane();
+                                    CloseLeftPane();
+                                    ClearRightPane();
+                                    CloseRightPane();
+                                }
+                            }
+                            else
+                            {
+                                setTimeout(function ()
+                                {
+                                    closeAddressBook_dx();
+                                })
+                            }
+                        }
+                    });
+                }
+            }
+            $(".TabPanalMenu-tabs .active span").on("click", function (e)
+            {
+                if (Close_AddressBookInfo == false)
+
+                {
+                    e.stopImmediatePropagation();
+                    closeAddressBook_dx()
+                }
+                else
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/AddressBook/SessionClear",
+                        cache: false
+                    });
+                    CloseRightPane();
+                    ClearLeftPane();
+                    CloseLeftPane();
+                    DxGrid_EventsOnScreenClose(AddressListGrid_dx);
+                    ClearAllReferences_AddressBook_dx();
+                }
+            });
+        });
+
+        function closeAddressBook_dx()
+        {
+            Close_AddressBookInfo = true;
+            if (AddressListGrid_dx.hasEditData())
+            {
+                var confirm = DevExpress.ui.dialog.confirm("Are you sure you wish to close window? <b>Unsaved changes will be lost</b>.", "Alert");
+                confirm.done(function (dialogResult)
+                {
+                    Close_AddressBookInfo = dialogResult;
+                    if (dialogResult)
+                    {
+                        close_AB_Info();
+                    }
+                });
+            }
+            else
+            {
+                close_AB_Info();
+            }
+        }
+        function close_AB_Info()
+        {
+               DxGrid_EventsOnScreenClose(AddressListGrid_dx);
+            if ("@CalledFromOtherScreen".length > 0)
+            {
+                var popupid = "#" + "@CalledFromOtherScreen";
+                $(popupid).dxPopup("hide");
+            }
+            else
+            {
+                btnCloseActiveTab();
+            }
+        }
+        function ClearAllReferences_AddressBook_dx() {
+            AddressBookInfo_IsDetailRowExpanded_dx = null;
+            AddressBookInfo_NestedRecord_FocusedRowIndex_dx = null;
+            AddressBookInfo_NestedGrid_AccessID_dx = null;
+            AddressBookInfo_AtachmentID_dx = null;
+            AddressBookInfo_FileName_dx = null;
+            AddressBookInfo_ParamMandatory_dx = null;
+            AddressBookInfo_FromDateLabel_dx = null;
+            AddressBookInfo_ToDateLabel_dx = null;
+            AddressBookInfo_DescriptionLabel_dx = null;
+            AddressBookInfo_Doc_ID_dx = null;
+            AddressBookInfo_Doc_Category_dx = null;
+            AddressBookInfo_MasterRowRecID_dx = null;
+            AddressBookInfo_MasterRowMID_dx = null;
+            AddressBookInfo_NestedRowMapID_dx = null;
+            AddressBookInfo_reason_dx = null;
+            AddressBookInfo_Attachment_RecStatus_dx = null;
+            AddressBookInfo_Nested_Doc_Status_dx = null;
+            AddressBookInfo_NestedRowReasonID_dx = null;
+            AddressBookInfo_NestedRowKeyValue_dx = null;
+            AB_ColumnToBeShownIndex_dx = null;
+            AB_ColumnToBeHidddenIndex_dx = null;
+            AddressBookGridLayou_dx = null;
+            AB_Select_xid_dx = null;
+            ABFocusedRowIndexBeforeRefresh_dx = null;
+            IsAddressbookSucessPopup_dx = null;
+            IsAddressbookViewPopup_dx = null;
+            IsAddressbookNewPopup_dx = null;
+            AB_ShowHorizontalBar_dx = null;
+            Addressbook_I_dx = null;
+            tP_NOField_dx = null;
+            telMiscIdField_dx = null;
+            categoryField_dx = null;
+            Address_typeField_dx = null;
+            Addressbook_Edit_Date_dx = null;
+            Addressbook_Add_Date_dx = null;
+            Addressbook_Add_By_dx = null;
+            Addressbook_Edit_By_dx = null;
+            Addressbook_Action_Status_dx = null;
+            Addressbook_Action_By_dx = null;
+            Addressbook_Action_Date_dx = null;
+            Addressbook_AddRight_dx = null;
+            Addressbook_EditRight_dx = null;
+            Addressbook_DeleteRight_dx = null;
+            Addressbook_ExportRight_dx = null;
+            Addressbook_ListRight_dx = null;
+            UserType_AddressPrf_dx = null;
+            _actionName_dx = null;
+            _IsContextMenu_dx = null;
+            AddressBook_IsVouchingMode_dx = null;
+            AddressBook_SetVouchingModeOn_dx = null;
+            AdresBook_ViewMode_dx = null;
+            Expanded_Row_Key_AddressBook_dx = null;
+            VisibleColumns_AddressBook_dx = null;
+            flagDxSwitch_AddressBookInfo = null;
+            Close_AddressBookInfo = null;
+            occupation_AddressInfo_dx = null;
+            education_AddressInfo_dx = null;
+            overseas_Centre_AddressInfo_dx = null;
+            centre_AddressInfo_dx = null
+            city_AddressInfo_dx = null
+            state_AddressInfo_dx = null
+            country_AddressInfo_dx = null
+            CountryInit_AB = null;
+            StateInit_AB = null;
+            ClearAllReferences("AddressBookdx_ClearReferences");
+        }
+    </script>
+    <script type="text/javascript">
+        var IsAddressbookSucessPopup_dx = false;
+        var IsAddressbookViewPopup_dx = false;
+        var IsAddressbookNewPopup_dx = false;
+        var AB_ShowHorizontalBar_dx = parseInt("@ViewBag.ShowHorizontalBar");
+        var Addressbook_ID_dx=null;
+        var Addressbook_Name_dx=null;
+        var tP_NOField_dx;
+        var telMiscIdField_dx;
+        var categoryField_dx;
+        var Address_typeField_dx;
+        var Addressbook_Edit_Date_dx;
+        var Addressbook_Add_Date_dx;
+        var Addressbook_Add_By_dx;
+        var Addressbook_Edit_By_dx;
+        var Addressbook_Action_Status_dx;
+        var Addressbook_Action_By_dx;
+        var Addressbook_Action_Date_dx;
+        var Addressbook_AddRight_dx;
+        var Addressbook_EditRight_dx;
+        var Addressbook_DeleteRight_dx;
+        var Addressbook_ExportRight_dx;
+        var Addressbook_ListRight_dx;
+        var UserType_AddressPrf_dx = "@UserType".toUpperCase();
+        var _actionName_dx = "";
+        var _IsContextMenu_dx = false;
+        var AddressBook_IsVouchingMode_dx = false;
+        var AddressBook_SetVouchingModeOn_dx = "@AddressBook_Auto_Vouching_Mode" == "True" ? true : false;
+        var AddressBook_ShowAttachmentIndicator_dx = AddressBook_SetVouchingModeOn_dx;
+        var AddressBook_ShowVouchingIndicator_dx = AddressBook_SetVouchingModeOn_dx;
+        var AdresBook_ViewMode_dx = "Default";
+        var flagDxSwitch_AddressBookInfo = false;
+        var flagDxSwitchVouching_AddressBookInfo = false;
+        var Close_AddressBookInfo = false;
+        var AddressListGrid_dx = null;
+        var VisibleColumns_AddressBook_dx = [];
+        var Expanded_Row_Key_AddressBook_dx = null;
+        var AB_Select_xid_dx = "";
+
+        var AddressBookInfo_IsDetailRowExpanded_dx = false;
+        var AddressBookInfo_NestedRecord_FocusedRowIndex_dx = -1;
+        var AddressBookInfo_NestedGrid_AccessID_dx;
+        var AddressBookInfo_AtachmentID_dx;
+        var AddressBookInfo_FileName_dx;
+        var AddressBookInfo_ParamMandatory_dx;
+        var AddressBookInfo_FromDateLabel_dx;
+        var AddressBookInfo_ToDateLabel_dx;
+        var AddressBookInfo_DescriptionLabel_dx;
+        var AddressBookInfo_Doc_ID_dx;
+        var AddressBookInfo_Doc_Category_dx;
+        var AddressBookInfo_MasterRowRecID_dx;
+        var AddressBookInfo_MasterRowMID_dx;
+        var AddressBookInfo_NestedRowMapID_dx;
+        var AddressBookInfo_reason_dx;
+        var AddressBookInfo_Attachment_RecStatus_dx;
+        var AddressBookInfo_Nested_Doc_Status_dx;
+        var AddressBookInfo_NestedRowReasonID_dx;
+        var AddressBookInfo_NestedRowKeyValue_dx;
+
+        function AddressBook_IndicatorSwitch_ValueChange_dx(e)
+        {
+            AddressBook_ShowAttachmentIndicator_dx = e.value;
+            AddressBook_ShowVouchingIndicator_dx = e.value;
+            AddressListGrid_dx.refresh();
+        }
+        async function AddressBook_VouchingSwitch_ValueChange_dx(e)
+        {
+            AddressBook_IsVouchingMode_dx = e.value;
+            if (AddressBook_SetVouchingModeOn_dx == true)
+            {
+                AddressBook_SetVouchingModeOn_dx = false;
+            }
+            else
+            {
+               AddressBook_FAB_dx.SetVisible(false);
+            }
+            if (flagDxSwitchVouching_AddressBookInfo) {
+                flagDxSwitchVouching_AddressBookInfo = false;
+                return;
+            }
+            if (AddressBook_IsVouchingMode_dx == true) {
+                if (AddressListGrid_dx.hasEditData()) {
+                    var Confirmation_1 = await DevExpress.ui.dialog.confirm("Are you sure you wish to switch to Vocuhing ON mode? <b>Unsaved changes will be lost</b>.", "Alert");
+                    if (Confirmation_1) {
+                        OpenRightPane();
+                        ClearLeftPane();
+                        OpenLeftPane();
+                    }
+                    else {
+                        flagDxSwitchVouching_AddressBookInfo = true;// Set it for second time value chage call
+                        e.component.option("value", e.previousValue);
+                        return;
+                    }
+                }
+                else {
+                    OpenRightPane();
+                    ClearLeftPane();
+                    OpenLeftPane();
+                }
+            }
+            else
+            {
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+            AddressListGrid_dx.clearSelection();
+            AddressListGrid_dx.option("masterDetail.enabled", !AddressBook_IsVouchingMode_dx)
+            AddressListGrid_dx.repaint();
+            displayHideEditColumn_AB(AB_ShowHorizontalBar_dx, AdresBook_ViewMode_dx, AddressBookInfo_IsDetailRowExpanded_dx, AddressBook_IsVouchingMode_dx);
+
+        }
+
+        function displayHideEditColumn_AB(AB_ShowHorizontalBar, AdresBook_ViewMode, AddressBookInfo_IsDetailRowExpanded, AddressBook_IsVouchingMode) {
+            if (AdresBook_ViewMode == "Default" && AB_ShowHorizontalBar == 1 && AddressBook_IsVouchingMode == false) {//DEfault View && Full Data && VouchingMode == OFF
+                AddressListGrid_dx.option("editing",
+                    {
+                        mode: "row",  // Row-wise editing
+                        allowUpdating: true,  // Enable updating rows
+                        allowAdding: false,    // Disable adding rows
+                        allowDeleting: false   // Disable deleting rows
+                    });
+                AddressListGrid_dx.columnOption("type:buttons", "visible", true);
+                if (AddressBookInfo_IsDetailRowExpanded == false) {
+                    AddressBook_FAB_dx.SetActionContext("EditContext", true);
+                    AddressBook_FAB_dx.SetVisible(true);
+                }
+            }
+            else {
+                AddressListGrid_dx.option("editing",
+                    {
+                        mode: "row",  // Row-wise editing
+                        allowUpdating: false,
+                        allowAdding: false,
+                        allowDeleting: false
+                    });
+                AddressListGrid_dx.columnOption("type:buttons", "visible", false);
+                if (AddressBookInfo_IsDetailRowExpanded_dx == false) {
+                    AddressBook_FAB_dx.SetActionContext("EditContext", false);
+                    AddressBook_FAB_dx.SetVisible(false);
+                }
+            }
+        }
+        async function AdresBook_ViewSwitch_ValueChange_dx(e)
+        {
+            if (e.value)
+            {
+                if (AddressListGrid_dx.hasEditData())
+                {
+                    var Confirmation_1 = await DevExpress.ui.dialog.confirm("Are you sure you wish to switch to compact mode? <b>Unsaved changes will be lost</b>.", "Alert");
+                    if (Confirmation_1)
+                    {
+                        AdresBook_ViewMode_dx = e.value == false ? "Default" : "Compact";
+                        AddressBookGrid_dx_Load_Columns(AdresBook_ViewMode_dx)
+                        return;
+                    }
+                    else
+                    {
+                        flagDxSwitch_AddressBookInfo = true;
+                        e.component.option("value", e.previousValue);
+                        return
+                    }
+                }
+            }
+            AdresBook_ViewMode_dx = e.value == false ? "Default" : "Compact";
+            if (flagDxSwitch_AddressBookInfo == false) {
+                AddressBookGrid_dx_Load_Columns(AdresBook_ViewMode_dx)
+            }
+            else {
+                flagDxSwitch_AddressBookInfo = false;
+            }
+        }
+
+        function AddressBookGrid_dx_Load_Columns(AB_ViewMode)
+        {
+            if (AddressBook_SetVouchingModeOn_dx == true)
+            {
+                $("#AddressBookVouchingModeSwitch_dx").dxSwitch("instance").option("value", true);
+            }
+            AddressListGrid_dx.beginUpdate();
+            var columns = AddressListGrid_dx.option("columns");
+            if (AB_ViewMode == "Compact")
+            {
+                VisibleColumns_AddressBook_dx = [];
+                for (var i = 0; i < columns.length; i++)
+                {
+                    var name = columns[i].dataField;
+                    var ColumnVisible = AddressListGrid_dx.columnOption(name, "visible");
+                    if (name == "AddressListGrid_dx_Compact_Column")
+                    {
+                        AddressListGrid_dx.columnOption(name, "visible", true);
+                    }
+                    else if (ColumnVisible == true && name != "iIcon")
+                    {
+                        VisibleColumns_AddressBook_dx.push(name);
+                        AddressListGrid_dx.columnOption(name, "visible", false);
+                    }
+                }
+            }
+            else
+            {
+                AddressListGrid_dx.columnOption("AddressListGrid_dx_Compact_Column", "visible", false);
+                for (var i = 0; i < VisibleColumns_AddressBook_dx.length; i++)
+                {
+                    AddressListGrid_dx.columnOption(VisibleColumns_AddressBook_dx[i], "visible", true);
+                }
+                //AddressListGrid_dx.columnOption("type:buttons", "visible", true);
+            }
+            displayHideEditColumn_AB(AB_ShowHorizontalBar_dx, AdresBook_ViewMode_dx, AddressBookInfo_IsDetailRowExpanded_dx, AddressBook_IsVouchingMode_dx);
+            AddressListGrid_dx.repaint();
+            AddressListGrid_dx.endUpdate();
+        }
+        function AddressBookchangeMode_dx()
+        {
+            AddressListGrid_dx.beginUpdate();
+            if (AB_ShowHorizontalBar_dx == 0)
+            {
+                AB_ShowHorizontalBar_dx = 1;
+                $("#AddressToggleScrollBar_dx").find("span").text("Default Data");
+                $("#AddressToggleScrollBar_dx").width(110);
+                AddressListGrid_dx.option("columnHidingEnabled", false);
+                AddressListGrid_dx.option("allowColumnResizing", true)
+                AddressListGrid_dx.option("columnResizingMode", "widget")
+            }
+            else
+            {
+                AB_ShowHorizontalBar_dx = 0;
+                $("#AddressToggleScrollBar_dx").find("span").text("Full Data");
+                $("#AddressToggleScrollBar_dx").width(90);
+                AddressListGrid_dx.option("columnHidingEnabled", true)
+                AddressListGrid_dx.option("allowColumnResizing", false)
+                AddressListGrid_dx.option("columnResizingMode", "nextColumn")
+            }
+            displayHideEditColumn_AB(AB_ShowHorizontalBar_dx, AdresBook_ViewMode_dx, AddressBookInfo_IsDetailRowExpanded_dx, AddressBook_IsVouchingMode_dx);
+            AddressListGrid_dx.endUpdate();
+        }
+
+        function OnAddressListPreviewClick_dx()
+        {
+            if (!Addressbook_ExportRight_dx)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }
+            OpenPopup("AddressBook_report_modal", "Export Option", "@Url.Action("Frm_Export_Options_dx", "AddressBook", new { @area = "Facility" })", "auto", 125);
+        }
+        function Addressbook_UpdateFooterDetail_dx(Addressbook_ID, Addressbook_Action_Status, Addressbook_Add_Date, Addressbook_Add_By, Addressbook_Action_Date, Addressbook_Action_By, Addressbook_Edit_Date, Addressbook_Edit_By) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (Addressbook_ID != null)
+            {
+                //Addressbook_Add_Date = (moment(Addressbook_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                //Addressbook_Edit_Date = (moment(Addressbook_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                //Addressbook_Action_Date = (moment(Addressbook_Action_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                Status = Addressbook_Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+                if (Addressbook_Action_Date) {
+                    Lbl_ActionOn = StatusStr + " On: " + Addressbook_Action_Date;
+                    Lbl_ActionBy = StatusStr + " By: " + Addressbook_Action_By;
+                }
+                else {
+                    Lbl_ActionOn = "";
+                    Lbl_ActionBy = "";
+                }
+                if (Addressbook_Add_Date) {
+                    Lbl_Create = "Add On: " + Addressbook_Add_Date + ", By: " + Addressbook_Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+                if (Addressbook_Edit_Date) {
+                    Lbl_Modify = "Edit On: " + Addressbook_Edit_Date + ", By: " + Addressbook_Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#AB_Status_dx').text(Lbl_Status);
+            $('#AB_Lbl_ActionOn_dx').text(Lbl_ActionOn)
+            $('#AB_Lbl_ActionBy_dx').text(Lbl_ActionBy);
+            $('#AB_Create_dx').text(Lbl_Create);
+            $('#AB_Modify_dx').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#ActionItem_Status_dx').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ActionItem_LockICON_dx').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ActionItem_LockICON_dx').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ActionItem_LockICON_dx').removeClass("fa");
+                $('#ActionItem_LockICON_dx').removeClass("fa-lock");
+                $('#ActionItem_LockICON_dx').removeClass("fa-unlock");
+            }
+        }
+
+        function AddressListGrid_dx_OnInitialized(e)
+        {
+            DxGrid_AdjustSize(e.component, $("#AddressBook_ParentDiv_dx .report_button_div"), "@CalledFromOtherScreen")
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+            {
+                DxGrid_AdjustSize(e.component, $("#AddressBook_ParentDiv_dx .report_button_div"), "@CalledFromOtherScreen", evt)
+            });
+            //Observer_Helper.subscribe(e.component, document.documentElement, e.component.updateDimensions, 100, 0, $("#AddressBook_ParentDiv_dx .report_button_div"));
+            AddressListGrid_dx = e.component;
+        }
+        function AddressListGrid_dx_OnCellPrepared(e)
+        {
+            if (e.rowType == "data")
+            {
+                var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                if (AddressBook_IsVouchingMode_dx == true)
+                {
+                    if (e.column.dataField === "iIcon")
+                    {
+                        $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + keyvalue + "')");
+                        $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + keyvalue + "')");
+                    }
+                }
+                $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + keyvalue + "|" + e.column.dataField);
+                /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + keyvalue);*/
+            }
+        }
+        function AddressListGrid_dx_OnRowPrepared(e)
+        {
+            if (e.rowType == "data")
+            {
+                var GridName = e.element[0].id;
+                var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                $(e.rowElement).addClass(GridName + "_DataRow_" + keyvalue)
+                DxGrid_CreatePreviewRow(e, AddressBook_IsVouchingMode_dx, "Master", null, keyvalue)
+            } else if (e.rowType == "detailAdaptive") {
+                DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+            }
+        }
+        function AddressListGrid_dx_OnContentReady(e)
+        {
+            DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_AddressBook_dx, AB_Select_xid_dx)
+            AB_Select_xid_dx = null;
+            DxGrid_OnContentReady(e, AB_ShowHorizontalBar_dx);//It should always be in last. Grid layout may get disturbed if position is changed.
+        }
+        function AddressListGrid_dx_OnCellDblClick(e) {
+            if (e.rowType == "data") {
+                if (AddressBook_IsVouchingMode_dx == true && AdresBook_ViewMode_dx == "Default") {
+                    var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                    OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, keyvalue, e.column.dataField)
+                }
+                else if (AddressBook_IsVouchingMode_dx == false) { OnAddressEditClick_dx(); }
+            }
+        }
+        function AddressListGrid_dx_OnSelectionChanged(e)
+        {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0)
+            {
+                if (AddressBook_IsVouchingMode_dx)
+                {
+                    AddressBook_FAB_dx.SetVisible(true);
+                    AddressBook_FAB_dx.SetActionContext("AddAttachmentContext", false);
+                }
+                AddressListGrid_dx_SelectedRowData(e.selectedRowsData);
+            }
+            else
+            {
+                Addressbook_ID_dx = null;
+                Addressbook_UpdateFooterDetail_dx(Addressbook_ID_dx, Addressbook_Action_Status_dx, Addressbook_Add_Date_dx, Addressbook_Add_By_dx,
+                    Addressbook_Action_Date_dx, Addressbook_Action_By_dx, Addressbook_Edit_Date_dx, Addressbook_Edit_By_dx);
+            }
+        }
+        function AddressListGrid_dx_SelectedRowData(selectedData = null)
+        {
+            if (selectedData == null)
+            {
+                selectedData = AddressListGrid_dx.getSelectedRowsData();
+            }
+            if (selectedData != null && selectedData.length > 0) {
+                var values = selectedData[0]
+                Addressbook_ID_dx = values["ID"];
+                Addressbook_Add_By_dx = values["Add_By"];
+                Addressbook_Add_Date_dx = values["Add_Date"];
+                Addressbook_Edit_By_dx = values["Edit_By"];
+                Addressbook_Edit_Date_dx = values["Edit_Date"];
+                Addressbook_Action_By_dx = values["Action_By"];
+                Addressbook_Action_Date_dx = values["Action_Date"];
+                Addressbook_Action_Status_dx = values["Action_Status"];
+                Addressbook_Name_dx = values["Name"];
+                Addressbook_UpdateFooterDetail_dx(Addressbook_ID_dx, Addressbook_Action_Status_dx, Addressbook_Add_Date_dx, Addressbook_Add_By_dx,
+                    Addressbook_Action_Date_dx, Addressbook_Action_By_dx, Addressbook_Edit_Date_dx, Addressbook_Edit_By_dx);
+                if (AddressBook_IsVouchingMode_dx == true) {
+                    OpenLeftPane();
+                    LeftPaneContent_AddressBook_dx("AddressListGrid_dx", Addressbook_ID_dx, AddressBook_IsVouchingMode_dx)
+                }
+            }
+            else
+            {
+                Addressbook_ID_dx = null;
+            }
+        }
+        async function AddressListGrid_dx_OnRowExpanding(e) {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                e.component.collapseRow(Expanded_Row_Key_AddressBook_dx)
+                e.component.selectRows(e.key);
+                Expanded_Row_Key_AddressBook_dx = e.key;
+                AddressBookInfo_IsDetailRowExpanded_dx = true;
+                var DetailGridID = e.element[0].id + e.key;
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+                }
+                if (AddressListGrid_dx.hasEditData()) await DevExpress.ui.dialog.alert("Editing cannot be performed when row is Expanded", "Alert");
+                AddressListGrid_dx.cancelEditData();
+                DisplayFABEditOrSave_AB();
+                //e.component.collapseAll(-1);
+            }
+            else {
+                e.component.option("CustomProp.groupRowExpanded", true);
+            }
+        }
+        function AddressListGrid_dx_OnRowCollapsing(e) {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                var DetailGridID = e.element[0].id + e.key;
+                sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+
+                AddressBookInfo_IsDetailRowExpanded_dx = false;
+                e.component.selectRows(e.key);
+                if (AddressBook_IsVouchingMode_dx == false) {
+                   AddressBook_FAB_dx.SetVisible(false);
+                }
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.clearSelection();
+                }
+                DisplayFABEditOrSave_AB();
+            }
+            else {
+                e.component.option("CustomProp.groupRowCollapsed", true);
+            }
+        }
+        function DisplayFABEditOrSave_AB() {
+            if (AddressBookInfo_IsDetailRowExpanded_dx == false) {
+                if (AddressListGrid_dx.hasEditData()) {
+                    AddressBook_FAB_dx.SetActionContext("SaveCancelContext", true);
+                }
+                else {
+                    AddressBook_FAB_dx.SetActionContext("EditContext", true);
+                }
+                AddressBook_FAB_dx.SetVisible(true);
+            }
+            else {
+                if (AddressListGrid_dx.hasEditData()) {
+                    AddressBook_FAB_dx.SetActionContext("SaveCancelContext", false);
+                }
+                else {
+                    AddressBook_FAB_dx.SetActionContext("EditContext", false);
+                }
+                AddressBook_FAB_dx.SetVisible(false);
+            }
+        }
+        function AddressListGrid_dx_OnContextMenuPreparing(e)
+        {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                if (AdresBook_ViewMode_dx == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && e.row.rowType == "data")
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+                    {
+                        text: "Expand Detail",
+                        icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                        disabled: expanded,
+                        visible: !AddressBook_IsVouchingMode_dx,
+                        onItemClick: function () {
+                            if (expanded) {
+                                //e.component.collapseRow(key);
+                            }
+                            else {
+                                e.component.expandRow(key);
+                            }
+                        }
+                    }, {
+                        text: "Collapse Detail",
+                        icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                        disabled: !expanded,
+                        visible: !AddressBook_IsVouchingMode_dx,
+                        onItemClick: function () {
+                            if (expanded) {
+                                e.component.collapseRow(key);
+                            }
+                            else {
+                                // e.component.expandRow(key);
+                            }
+                        }
+                    },
+                    {
+                        text: "New",
+                        icon: "fa-solid fa-plus text-success",
+                        beginGroup: true,
+                        visible: "@AdresBook_AddRight"=="True",
+                        onItemClick: function ()
+                        {
+                            OnAddressNewClick_dx();
+                        }
+                    },
+                    {
+                        text: "Edit",
+                        icon: "fa-solid fa-pen text-info",
+                        visible: "@AdresBook_UpdateRight"=="True",
+                        onItemClick: function ()
+                        {
+                            OnAddressEditClick_dx();
+                        }
+                    },
+                    {
+                        text: "Delete",
+                        icon: "fa-solid fa-trash",
+                        visible: "@AdresBook_DeleteRight" == "True",
+                        onItemClick: function () {
+                            OnAddressDeleteClick_dx();
+                        }
+                    },
+                    {
+                        text: "Merge Party",
+                        icon: "fa-solid fa-code-merge",
+                        visible: true,
+                        onItemClick: function () {
+                            OnAddressMergeClick_dx();
+                        }
+                    },
+                    {
+                        text: "List Preview",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@AdresBook_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnAddressListPreviewClick_dx();
+                        }
+                    },
+                    {
+                        text: "Utilities",
+                        icon:"fa-regular fa-folder text-primary",
+                        items: [
+                            {
+                                text: "Label Printing",
+                                icon: "fa-solid fa-print",
+                                visible: true,
+                                onItemClick: function ()
+                                {
+                                    DevExpress.ui.dialog.alert("Coming Soon", "Information");
+                                }
+                            },
+                            {
+                                text: "Envelop Printing",
+                                icon:"fa-solid fa-print text-warning",
+                                visible: true,
+                                onItemClick: function ()
+                                {
+                                    DevExpress.ui.dialog.alert("Coming Soon", "Information");
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text: "Import",
+                        icon: "fa-solid fa-upload",
+                        visible: true,
+                        onItemClick: function ()
+                        {
+                            DevExpress.ui.dialog.alert("Coming Soon", "Information");
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-download",
+                        visible: true,
+                        onItemClick: function () {
+                            DevExpress.ui.dialog.alert("Coming Soon", "Information");
+                        }
+                    },
+                    {
+
+                        text: "Refresh",
+                        beginGroup: true,//redmine Bug #137374 fix
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        onItemClick: function () { AddressListGrid_dx_Refresh() }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeAddressBook_dx();
+                        }
+                    }
+                ]
+            }
+            else if (e.target == "content" && e.row == void 0) {
+                e.items = [
+                    {
+
+                        text: "Refresh",
+                        beginGroup: true,//redmine Bug #137374 fix
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        onItemClick: function () { AddressListGrid_dx_Refresh() }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeAddressBook_dx();
+                        }
+                    }
+                ]
+            }
+        }
+
+        function AddressListGrid_dx_PreviewRow_Template(e)
+        {
+            if (AddressBook_IsVouchingMode_dx == true)
+            {
+                var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                return DxGrid_AuditButtons(e.element[0].id, keyvalue, e.rowIndex);
+            }
+            else
+            {
+                return ""
+            }
+        }
+        function AddressListGrid_dx_Compact_Column_Template(container, templateData)
+        {
+            var Name = templateData.component.element()[0].id;
+            var KeyValue = templateData.data.ID != null ? templateData.data.ID.replace(/^0-9A-Za-z/gi, "_") : "Null" + templateData.rowIndex;
+            var VouchingMode = AddressBook_IsVouchingMode_dx == true ? "True" : "False";
+            var htmlString = "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Title:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Title' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Title ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Name:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Name ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Organization:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Organization' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Organization ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Designation:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Designation' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Designation ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Education:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Education' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Education ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Passport No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Passport_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Passport_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>PAN No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|PAN_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.PAN_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>VAT TIN No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|VAT_TIN_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.VAT_TIN_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>GST TIN No.:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|GST_TIN_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.GST_TIN_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>CST TIN No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|CST_TIN_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.CST_TIN_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>TAN No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|TAN_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.TAN_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Aadhar No.:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|UID_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.UID_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Service Tax Reg No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Service_Tax_Reg_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Service_Tax_Reg_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Voter ID No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Voter_ID' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Voter_ID ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>RATION No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Ration_Card_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Ration_Card_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>DL No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|DL_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.DL_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Tax ID No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Taxpayer_ID' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Taxpayer_ID ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Address Line1:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Address_Line1' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Address_Line1 ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Address Line2:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Address_Line2' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Address_Line2 ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Address Line3:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Address_Line3' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Address_Line3 ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Address Line4:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Address_Line4' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Address_Line4 ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>PinCode:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|PinCode' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.PinCode ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>City:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|City' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.City ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>State:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|State' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.State ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>District:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|District' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.District ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Country:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Country' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Country ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Resi Tel No(s):</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Resi_Tel_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Resi_Tel_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Office Tel No(s):</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Office_Tel_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Office_Tel_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Office Fax No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Office_Fax_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Office_Fax_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Resi_Fax_No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Resi_Fax_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Resi_Fax_No ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Mobile_No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Mobile_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Mobile_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Email:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Email' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Email ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Website:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Website' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Website ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Date of Birth(Lokik):</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Date_of_Birth_Lokik' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Date_of_Birth_Lokik??""), "DD-MM-YYYY") ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Blood Group:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Blood_Group' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Blood_Group ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Status:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Status' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Status + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Date of Birth(Alokik):</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Date_of_Birth_Alokik' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Date_of_Birth_Alokik??""), "DD-MM-YYYY") ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>BK_Title:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BK_Title' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.BK_Title ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>BK PAD No:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BK_PAD_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.BK_PAD_No ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Class At:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Class_At' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Class_At ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Centre Category:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Centre_Category' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Centre_Category ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Centre Name:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Centre_Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Centre_Name ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Category:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Category' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Category ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Referene:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Referene' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Referene ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Remarks:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Remarks' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Remarks ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Events:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Events' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Events ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Occupation:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Occupation' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Occupation ?? "") + "</div></div></div></div></div>";
+            $(container).html(htmlString)
+        }
+        function AddressListGrid_dx_Compact_Column_CellValue(rowData)
+        {
+            var data = [rowData.Title, rowData.Name, rowData.Organization, rowData.Designation, rowData.Education, rowData.Passport_No, rowData.PAN_No,
+                rowData.VAT_TIN_No, rowData.GST_TIN_No, rowData.CST_TIN_No, rowData.TAN_No, rowData.UID_No, rowData.Service_Tax_Reg_No, rowData.Voter_ID, rowData.Ration_Card_No,
+                rowData.DL_No, rowData.Taxpayer_ID, rowData.Address_Line1, rowData.Address_Line2, rowData.Address_Line3, rowData.Address_Line4, rowData.PinCode,
+                rowData.City, rowData.State, rowData.District, rowData.Country, rowData.Resi_Tel_No, rowData.Office_Tel_No, rowData.Office_Fax_No, rowData.Resi_Fax_No, rowData.Mobile_No,
+                rowData.Email, rowData.Website, rowData.Date_of_Birth_Lokik, rowData.Blood_Group, rowData.Status, rowData.Date_of_Birth_Alokik, rowData.BK_Title,
+                rowData.BK_PAD_No, rowData.Class_At, rowData.Centre_Category, rowData.Centre_Name, rowData.Category, rowData.Referene, rowData.Remarks, rowData.Events]
+            return data.join(" ")
+           // return this.defaultCalculateCellValue(rowData);
+        }
+        function AddressListGrid_dx_iIconTemplate(container, templateData) {
+            var iREQ_ATTACH_COUNT = templateData.data.REQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.COMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.RESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.REJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.OTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.ALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var UniqueID = templateData.component.element()[0].id
+            var key = templateData.data.ID != null ? templateData.data.ID.replace(/^0-9A-Za-z/gi, "_") : "";
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        function AddressListGrid_dx_DetailTemplate(container, templateData)
+        {
+            var GridName = templateData.component.element()[0].id
+            var RecID = templateData.data.ID;
+            AddressListGrid_dx_Detail(container, GridName, RecID, AddressBook_IsVouchingMode_dx, AB_ShowHorizontalBar_dx);
+        }
+
+        function AddressListGrid_dx_Detail(container, GridName, RecID, vouchingMode, AllColumns)
+        {
+            var url = "/Facility/AddressBook/Frm_Address_Info_GridData_detail_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+            instance.option("onSelectionChanged", AddressListGrid_dx_Detail_onSelectionChanged);           
+        } 
+        function AddressListGrid_dx_Detail_onSelectionChanged(e)
+        {
+            if (AddressBookInfo_IsDetailRowExpanded_dx || AddressBook_IsVouchingMode_dx)
+            {
+                if (e.selectedRowsData != null && e.selectedRowsData.length > 0)
+                {
+                    AddressBookInfo_NestedGrid_AccessID_dx = e.element[0].id;
+                    AddressListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+                   //AddressBook_FAB_dx.SetVisible(true);
+                }
+                else
+                {
+                    AddressBook_FAB_dx.SetActionContext("AddAttachmentContext", false);
+                }
+            }
+        }
+        function AddressListGrid_dx_Detail_SelectedRowData(selectedData = null)
+        {
+            if (selectedData == null)
+            {
+                selectedData = $("div[id='" + AddressBookInfo_NestedGrid_AccessID_dx + "']").dxDataGrid("getSeletedRowsData");
+            }
+            var values = selectedData[0];
+            if (values["UniqueID"] != null)
+            {
+                AddressBook_FAB_dx.SetVisible(true);
+                AddressBookInfo_Nested_Doc_Status_dx = values["Doc_Status"];
+                if (AddressBook_IsVouchingMode_dx == true) {
+                    AddressBook_FAB_dx.SetActionContext("AuditActionContext", true);
+                }
+                else {
+                    if (AddressBookInfo_Nested_Doc_Status_dx == "") {
+                        AddressBook_FAB_dx.SetActionContext("AutoItemContext", true);
+                    }
+                    else if (AddressBookInfo_Nested_Doc_Status_dx == "NO") {
+                        AddressBook_FAB_dx.SetActionContext("EditItemContext", true);
+                    }
+                    else if (AddressBookInfo_Nested_Doc_Status_dx == "YES") {
+                        AddressBook_FAB_dx.SetActionContext("actionItemContext", true);
+                    }
+                }
+                AddressBookInfo_ParamMandatory_dx = values["Params_Mandatory"];
+                AddressBookInfo_FromDateLabel_dx = values["LABEL_FROM_DATE"];
+                AddressBookInfo_ToDateLabel_dx = values["LABEL_TO_DATE"];
+                AddressBookInfo_DescriptionLabel_dx = values["LABEL_DESCRIPTION"];
+                AddressBookInfo_Doc_Category_dx = values["Document_Category"];
+                AddressBookInfo_Doc_ID_dx = values["Document_ID"];
+                AddressBookInfo_AtachmentID_dx = values["ATTACH_ID"];
+                IndexAttachmentID = AddressBookInfo_AtachmentID_dx;
+                AddressBookInfo_MasterRowRecID_dx = values["TxnID"];
+                AddressBookInfo_MasterRowMID_dx = values["TxnMID"];
+                AddressBookInfo_NestedRowMapID_dx = values["MAP_ID"];
+                AddressBookInfo_reason_dx = values["Reason"];
+                AddressBookInfo_FileName_dx = values["ATTACH_FILE_NAME"];
+                AddressBookInfo_Attachment_RecStatus_dx = values["Attachment_Action_Status"];
+                AddressBookInfo_NestedRowKeyValue_dx = values["UniqueID"];
+                if (AddressBook_IsVouchingMode_dx == true) {
+                    if (AddressBookInfo_FileName_dx != null && AddressBookInfo_FileName_dx.length > 0) {
+                        ViewDocument(AddressBookInfo_AtachmentID_dx, AddressBookInfo_FileName_dx, "AddressBook_FAB_dx", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            AddressBookInfo_NestedRowReasonID_dx = values["ReasonID"];
+            IndexAttachmentReasonID = AddressBookInfo_NestedRowReasonID_dx;
+        }
+            
+        function LeftPaneContent_AddressBook_dx(GridName, RecID, vouchingMode, AllColumns = 0)
+        {
+            $("#LeftPane_Div_Content").html(null);
+            $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+            AddressListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            setTimeout(function () {
+                AdditionalInfoGrid_AddressBook_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            })
+        }
+        function AdditionalInfoGrid_AddressBook_dx(container, GridName, RecID, vouchingMode, AllColumns)
+        {
+            var url = "/Facility/AddressBook/Frm_Address_Info_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url) 
+        }
+    </script>
+    <script>
+        async function On_AddressBookFacility_dx_FABActionItemClick(s, e)
+        {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            //DxFAB_Expand("AddressBook_FAB_dx")
+            if (e.actionName === "add_attach")
+            {
+                if ("@Help_Attachment_AddRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (AddressBookInfo_ParamMandatory_dx == 1)
+                {
+                    AddAttachment(AddressBookInfo_MasterRowRecID_dx, "Facility_AddressBook", AddressBookInfo_Doc_ID_dx, AddressBookInfo_Doc_Category_dx, AddressBookInfo_ParamMandatory_dx, AddressBookInfo_FromDateLabel_dx, AddressBookInfo_ToDateLabel_dx, AddressBookInfo_DescriptionLabel_dx, "AddressBookFacilityAttachment_dx", null, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+                }
+                else
+                {
+                    Attachment_DirectBrowse(AddressBookInfo_MasterRowRecID_dx, "Facility_AddressBook", AddressBookInfo_Doc_ID_dx, "AddressBookFacilityAttachment_dx", "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+                }
+            }
+            else if (e.actionName === "edit_attach")
+            {
+                if ("@Help_Attachment_EditRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (AddressBookInfo_Nested_Doc_Status_dx == "NO" || AddressBookInfo_Nested_Doc_Status_dx == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                if (AddressBookInfo_Attachment_RecStatus_dx.toUpperCase() == "LOCKED")
+                {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(AddressBookInfo_MasterRowRecID_dx, "Facility_AddressBook", AddressBookInfo_AtachmentID_dx, AddressBookInfo_ParamMandatory_dx, AddressBookInfo_FromDateLabel_dx, AddressBookInfo_ToDateLabel_dx, AddressBookInfo_DescriptionLabel_dx, "AddressBookFacilityAttachment_dx", null, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+            }
+            else if (e.actionName === "delete_attach")
+            {
+                if ("@Help_Attachment_DeleteRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (AddressBookInfo_Nested_Doc_Status_dx == "NO" || AddressBookInfo_Nested_Doc_Status_dx == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                DeleteAttachment(AddressBookInfo_MasterRowRecID_dx, "Facility_AddressBook", AddressBookInfo_AtachmentID_dx, AddressBookInfo_ParamMandatory_dx, AddressBookInfo_FromDateLabel_dx, AddressBookInfo_ToDateLabel_dx, AddressBookInfo_DescriptionLabel_dx, null, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx, AddressBookInfo_Attachment_RecStatus_dx);
+            }
+            else if (e.actionName === "view_attach")
+            {
+                if ("@Help_Attachment_ViewRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (AddressBookInfo_Nested_Doc_Status_dx == "NO" || AddressBookInfo_Nested_Doc_Status_dx == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                ViewDocument(AddressBookInfo_AtachmentID_dx, AddressBookInfo_FileName_dx, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach")
+            {
+                LinkAttachment(AddressBookInfo_MasterRowRecID_dx, "Facility_AddressBook", "Address Book", "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+            }
+            else if (e.actionName === "Add_Reason")
+            {
+                if (AddressBookInfo_Doc_Category_dx.toLowerCase() == "others")
+                {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else
+                {
+                    AttachmentAddReason(AddressBookInfo_MasterRowRecID_dx, AddressBookInfo_NestedRowMapID_dx, "Facility_AddressBook", "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+                }
+            }
+            else if (e.actionName === "Edit_Reason")
+            {
+                    AttachmentEditReason(AddressBookInfo_MasterRowRecID_dx, AddressBookInfo_NestedRowMapID_dx, "Facility_AddressBook", "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx, AddressBookInfo_reason_dx);
+            }
+            else if (e.actionName === "Delete_Reason")
+            {
+                    AttachmentDeleteReason(AddressBookInfo_MasterRowRecID_dx, AddressBookInfo_NestedRowMapID_dx, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+            }
+            else if (e.actionName === "Rotate")
+            {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut")
+            {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn")
+            {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit")
+            {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back")
+            {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "AuditAction")
+            {
+               AddressBook_FAB_dx.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit")
+            {
+                if (AddressBookInfo_Nested_Doc_Status_dx == "")
+                {
+                  AddressBook_FAB_dx.SetActionContext("AutoItemContext", true);
+                }
+                if (AddressBookInfo_Nested_Doc_Status_dx == "NO")
+                {
+                   AddressBook_FAB_dx.SetActionContext("EditItemContext", true);
+                }
+                if (AddressBookInfo_Nested_Doc_Status_dx == "YES")
+                {
+                    AddressBook_FAB_dx.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName == "Accept") {
+                AddressBookInfo_AcceptwithoutRemarks_dx();
+            }
+            else if (e.actionName == "Reject") {
+                AddressBookInfo_AcceptRejectVoucher_dx("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks")
+            {
+                AddressBookInfo_AcceptRejectVoucher_dx("Accept");
+            }
+            else if (e.actionName == "AcceptDoc")
+            {
+                OnAddressBookInfo_AcceptDoc_dx();
+            }
+            else if (e.actionName == "RejectDoc")
+            {
+                OnAddressBookInfo_RejectDoc_dx();
+            }
+            else if (e.actionName == "Edit_GridRow")
+            {
+                if (!RightAndRowSelectionCheckforEdit_AB()) return;
+                $("#AddressListGrid_dx_Cell_" + Addressbook_ID_dx + "\\|EditColumn").find("a.dx-link-edit").trigger("click");
+            }
+            else if (e.actionName == "Save_GridRow")
+            {
+                if (!RightAndRowSelectionCheckforEdit_AB()) return;
+                document.activeElement.blur();
+                $("#AddressListGrid_dx_Cell_" + Addressbook_ID_dx + "\\|EditColumn").find("a.dx-link-save").trigger("click");
+            }
+            else if (e.actionName == "Cancel_GridRow")
+            {
+                if (!RightAndRowSelectionCheckforEdit_AB()) return;
+                AddressListGrid_dx.cancelEditData();
+                DisplayFABEditOrSave_AB();
+            }
+        }
+        function RightAndRowSelectionCheckforEdit_AB() {
+            if (!Addressbook_EditRight_dx) {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+                return false;
+            }
+            AddressListGrid_dx_SelectedRowData();
+            if (Addressbook_ID_dx == null) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return false;
+            }
+            return true;
+        }
+        function OnAddressBookInfo_RejectDoc_dx()
+        {
+            if (AddressBookInfo_AtachmentID_dx == null || AddressBookInfo_AtachmentID_dx.length == 0)
+            {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+            }
+            RejectAttachment(AddressBookInfo_AtachmentID_dx, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+        }
+        function OnAddressBookInfo_AcceptDoc_dx()
+        {
+            if (AddressBookInfo_AtachmentID_dx == null || AddressBookInfo_AtachmentID_dx.length == 0) {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+            }
+            AcceptAttachment(AddressBookInfo_AtachmentID_dx, "AddressListGrid_dx", AddressBookInfo_NestedGrid_AccessID_dx);
+        }
+        function AddressBookInfo_AcceptwithoutRemarks_dx()
+        {
+            var Recid;
+            if (AddressBookInfo_IsDetailRowExpanded_dx == true || AddressBook_IsVouchingMode_dx == true)
+            {
+                if (AddressBookInfo_MasterRowRecID_dx == null || AddressBookInfo_MasterRowRecID_dx == "")
+                {
+                    Recid = Addressbook_ID_dx;
+                }
+                else
+                {
+                    Recid = AddressBookInfo_MasterRowRecID_dx;
+                }
+            }
+            else
+            {
+                Recid = Addressbook_ID_dx;
+            }
+            Entry_AcceptwithoutRemarks(Recid, "Facility_AddressBook", "AddressListGrid_dx", AddressBookInfo_AtachmentID_dx, AddressBookInfo_NestedRowReasonID_dx, AddressBookInfo_NestedRowKeyValue_dx);
+        }
+        function AddressBookInfo_AcceptRejectVoucher_dx(_actionMethod)
+        {
+            var Recid;
+            if (AddressBookInfo_IsDetailRowExpanded_dx == true || AddressBook_IsVouchingMode_dx == true)
+            {
+                if (AddressBookInfo_MasterRowRecID_dx == null || AddressBookInfo_MasterRowRecID_dx == "")
+                {
+                    Recid = Addressbook_ID_dx;
+                }
+                else
+                {
+                    Recid = AddressBookInfo_MasterRowRecID_dx;
+                }
+            }
+            else
+            {
+                Recid = Addressbook_ID_dx;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Facility_AddressBook", "AddressListGrid_dx", AddressBookInfo_AtachmentID_dx, AddressBookInfo_NestedRowReasonID_dx, AddressBookInfo_NestedRowKeyValue_dx);
+        }
+    </script>
+    <script>
+        $(document).ready(function ()
+        {
+            AddressListGrid_dx = $("#AddressListGrid_dx").dxDataGrid("instance");
+            Addressbook_AddRight_dx = ("@AdresBook_AddRight" == "True") ? true : false;
+            Addressbook_EditRight_dx = ("@AdresBook_UpdateRight" == "True") ? true : false;
+            Addressbook_DeleteRight_dx = ("@AdresBook_DeleteRight" == "True") ? true : false;
+            Addressbook_ExportRight_dx = ("@AdresBook_ExportRight" == "True") ? true : false;
+            Addressbook_ListRight_dx = ("@AdresBook_ListRight" == "True") ? true : false;
+            if (Addressbook_AddRight_dx != true)
+            {
+                $("#AddressModelNew_dx").hide();
+            }
+            if (Addressbook_EditRight_dx != true)
+            {
+                $("#AddressModelEdit_dx").hide();
+            }
+            if (Addressbook_DeleteRight_dx != true)
+            {
+                $("#AddressModelDelete_dx").hide();
+            }
+            if (Addressbook_ExportRight_dx != true)
+            {
+                $("#AddressModelListPreview_dx").hide();
+            }
+            HideUnreleasedFunctionality('Frm_Address_Info');
+            if (AddressBook_SetVouchingModeOn_dx == true)
+            {
+                $("#AdresBookViewModeSwitch_dx").dxSwitch("instance").option("value", true);
+            }
+        });
+        function AddressListGrid_dx_Refresh() {
+            AddressListGrid_dx.refresh().done(function () {
+                ActionAfterDataGridRefresh_AddressBook_dx()
+                DisplayFABEditOrSave_AB();
+            })
+        }
+        async function ActionAfterDataGridRefresh_AddressBook_dx()
+        {
+            //if (AB_Select_xid_dx != null && AB_Select_xid_dx.length > 0)
+           // {
+              //  var key = AB_Select_xid_dx;
+               // AB_Select_xid_dx = "";
+               // AddressListGrid_dx.clearSelection()
+               // await AddressListGrid_dx.selectRows(key)
+               // await AddressListGrid_dx.navigateToRow(key)
+                //var scrollable = AddressListGrid_dx.getScrollable();
+                //var selectedRowElements = AddressListGrid_dx.getRowElement(AddressListGrid_dx.getRowIndexByKey(AB_Select_xid_dx));
+                //setTimeout(function ()
+                //{
+                //    if (selectedRowElements != null && selectedRowElements.length > 0)
+                //    {
+                //       // $(scrollable).animate({
+                //       //     scrollTop: $(selectedRowElements).offset().top
+                //      //  },2000)
+                //        scrollable.scrollToElement(selectedRowElements[0]);
+                //    }
+                //})
+           // }
+           // else
+           // {
+                var selectedRowKeys = AddressListGrid_dx.getSelectedRowKeys()
+                if (selectedRowKeys != null && selectedRowKeys.length > 0)
+                {
+                    AddressListGrid_dx.clearSelection()
+                    AddressListGrid_dx.selectRows(selectedRowKeys)
+                }
+           // }
+        }
+        function OnAddressNewClick_dx()
+        {
+            if (!Addressbook_AddRight_dx)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }
+            ShowLoader();
+            OpenPopup("popup_frm_Address_Window", "New ~ Contact","@Url.Action("Frm_Address_Info_Window", "AddressBook", new { @area = "Facility" })?ActionMethod=New&NewFunctionName=OnAddressNewClick_dx&DropDownFunctionName=" + "@PartyRefreshFunction", "auto", 1150, false, null);    }
+        async function OnAddressEditClick_dx()
+        {
+            var data = await CommonCallDatanavigation_AB();
+            if (data)
+            {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "@Url.Action("Frm_Address_Info_Window", "AddressBook", new { @area = "Facility" })",
+                    data: { ActionMethod: "Edit", ID: Addressbook_ID_dx, EditedOn: Addressbook_Edit_Date_dx, DropDownFunctionName: "@PartyRefreshFunction" },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (typeof (data) == "string")
+                        {
+                            OpenPopup("popup_frm_Address_Window", "Edit ~ Contact", null, "auto", 1150, true, data);
+                        }
+                        else
+                        {
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, 'Warning!');
+                            HideLoader();
+                        }
+                    }
+                });
+            }
+        }
+        function OnAddressDeleteClick_dx()
+        {
+            if (!Addressbook_DeleteRight_dx)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }
+            AddressListGrid_dx_SelectedRowData();
+            if (Addressbook_ID_dx == null)
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+            result.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/AddressBook/DataNavigation",
+                        data:
+                        {
+                            ActionMethod: "Delete",
+                            id: Addressbook_ID_dx,
+                            Edit_Date: encodeURIComponent(Addressbook_Edit_Date_dx)
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            if (data.result == true)
+                            {
+                                DevExpress.ui.dialog.alert(data.Message, "Address(s) Book");
+                                @*if ("@PartyRefreshFunction".length > 0)
+                                {
+                                    var fn = window["@PartyRefreshFunction"];
+                                    if (typeof fn == "function")
+                                    {
+                                        fn();
+                                    }
+                                }*@
+                                //AddressListGrid_dx.Refresh();
+                                AddressListGrid_dx_Refresh();
+                            }
+                            else if (data.result == "NoDeleteRights")
+                            {
+                                $("#AddressModelDelete_dx").hide();
+                                DevExpress.ui.dialog.alert(data.Message, "No Rights");
+                            }
+                            else
+                            {
+                                DevExpress.ui.dialog.alert(data.Message, "Address(s) Book");
+                                //AddressListGrid.Refresh();
+                            }
+                            HideLoader();
+                        }
+                    });
+                }
+            });
+        }
+        async function OnAddressMergeClick_dx()
+            {
+                var MergeInNextYearToo = false;
+                AddressListGrid_dx_SelectedRowData();
+                if (Addressbook_ID_dx == null)
+                {
+                    DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                    return;
+                }
+                if (parseInt("@next_Unaudited_YearID") != 0)
+                {
+                    MergeInNextYearToo  =await DevExpress.ui.dialog.confirm("Do you Want to make Merge Same Contact in year " + "@next_Unaudited_YearID".substring(0, 2) + "-" + "@next_Unaudited_YearID".substring(2) + " too?", "Confirm");
+
+                }
+               ShowLoader();
+               $.ajax({
+                   type: 'GET',
+                   url: "/Facility/AddressBook/Frm_Party_Merge_Window",
+                   data:
+                   {
+                       NextYearMerge: MergeInNextYearToo,
+                       ID: Addressbook_ID_dx,
+                       Name: Addressbook_Name_dx,
+                       Edit_Date: Addressbook_Edit_Date_dx
+                   },
+                   cache: false,
+                   success: function (data) {
+                       OpenPopup("PartyMergePopup", "Merge ~ ", null, "auto", 550, true, data);
+                   }
+               });
+        }
+
+    </script>
+    <script>
+        function ImportSampleFormat() {
+       file_name = "Address_Book";
+        window.location.href = '@Url.Action("ImportTableAsExcelFile", "Base", new {area = "", table_name = "ADDRESS_BOOK" })';
+
+        }
+        var dialog = document.getElementById('ExcelUpload_Address');
+        var file_path = "";
+        var file_name = "";
+        //function uploadingProcess() {
+
+        //    let files = Array.from(dialog.files);
+        //    file_name = files[0];
+
+        //}
+
+        //dialog.addEventListener("click", (e) => {
+        //    //alert("eventlistner");
+        //    uploadingProcess();
+        //    //UploadProcessAfterBrowse();
+        //});
+        function UploadExcelData() {
+            //$('#AddressUploadData').click(function () {
+            //debugger;
+            //$('#ExcelUpload_Address').trigger("click");
+
+            var fileUploader = $("#ExcelUpload_Address").dxFileUploader("instance");
+            fileUploader.reset();
+            fileUploader._isCustomClickEvent = true;
+            fileUploader._$fileInput.click();
+        }
+        //dialog.addEventListener("change",
+        //    function (changeEvent) {
+        //        var selectedFile = changeEvent.target.files[0];
+        //        console.log(selectedFile);
+        //        if (selectedFile) {
+        //            console.log('user select file : ', selectedFile.name);
+        //            file_name = changeEvent.target.files[0];
+        //            file_path = document.getElementById("ExcelUpload").value;
+        //            //debugger;
+        //            UploadProcessAfterBrowse();
+        //        } else {
+        //            console.log('no file selected');
+        //            DevExpress.ui.dialog.alert("No File Selected", "Uploading File..");
+        //        }
+        //    }
+        //);
+        function ExcelUpload_valueChange(e) {
+            //$("#Txt_ProfilePic_FileName").val(null);
+            var files = e.value;
+            //debugger;
+            if (files.length > 0) {
+                if ((files[0].type).includes("sheet")) {
+                    const blob = new Blob([files[0]], { type: files[0].type });
+                    var url = URL.createObjectURL(blob);
+                    file_path = url;
+                    file_name = files[0].name;
+                    //debugger;
+                    UploadProcessAfterBrowse();
+                }
+                else {
+                    DevExpress.ui.dialog.alert('No File is Selected', "Information...").done(function () { });
+                }
+            }
+        }
+
+        function UploadProcessAfterBrowse() {
+            //debugger;
+            var formdata = new FormData($('#uploadExcel_Address').get(0));
+            var tablename = "ADDRESS_BOOK"
+            //formdata.append("file_name", file_name);
+            //formdata.append("file_path", file_path);
+            formdata.append("table_name", tablename);
+                if (file_name) {
+                    $.ajax({
+                url: "/Base/ReadUploadedExcel",
+                        type: "POST",
+                        cache: false,
+                        data: formdata,
+                        processData: false,
+                        contentType: false,
+                        success: function (res) {
+                        //debugger;
+                        if (res.jsonParam.result == true) {
+                            DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                        }
+                        if (res.jsonParam.result == false) {
+                            //DevExpress.ui.notify({ message: res.jsonParam.message, width: 500, shading: true, position: 'center' }, "error", 1000);
+                            DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                        }
+                        HideLoader();
+                    }
+                });
+            }
+        }
+
+
+        //inputElement.addEventListener("focusin",
+        //    function (focusInEvent) {
+        //        console.log('input type file element gain focus in after you click the button ' +
+        //            'and also after pop up file dialog closed');
+        //    }
+        //);
+
+        //inputElement.addEventListener("focusout",
+        //    function (focusoutEvent) {
+        //        if (document.activeElement === inputElement) {
+        //            console.log("user still open pop up file dialog");
+        //        } else {
+        //            console.log("input type file just losing focus");
+        //        }
+        //    }
+        //);        
+        async function getChangedData_AB(oldData, newData) {
+            var changedData = {};
+            var result = false;
+            let userProfileKeyArray = ["ID", "Replicate_Confirm", "PinCode"];
+            if (parseInt("@next_Unaudited_YearID") != 0) {
+                result = await DevExpress.ui.dialog.confirm("Do You Want To Make Same Changes In This Contact in Year " + "@next_Unaudited_YearID".substring(0, 2) + "-" + "@next_Unaudited_YearID".substring(2) + " too?", "Confirm");
+            }
+            userProfileKeyArray.forEach(key => {
+                if (!newData.hasOwnProperty(key)) {
+                    newData[key] = oldData[key];
+                }
+                if (key === "Replicate_Confirm" && confirm !== null) {
+                    newData[key] = result;
+                }
+                else if (key.includes("ID")) {
+                    changedData[key] = oldData[key];
+                }
+                else if (key.includes("PinCode")) {
+                    changedData[key] = oldData[key];
+                }
+            });
+            // Iterate through the new data
+            for (var key in newData) {
+                // Check if the value has changed
+                if (oldData[key] !== newData[key]) {
+                    changedData[key] = newData[key];
+                }
+            }
+            return changedData;
+        }
+        function PANTemplate(cellElement, cellInfo) {
+            let textBox = $("<div id='PAN_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.PAN_No,
+                width: 140,
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                },
+
+                //,mask: "LLLLL0000L",
+                //maskInvalidMessage: "Invalid PAN"
+            });
+            cellElement.append(textBox);
+        }
+        function Add1Template(cellElement, cellInfo) {
+            let textBox = $("<div id='Add1_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Address_Line1,
+                showClearButton: true,
+                onFocusIn: function (e) {
+                    getWidth_AB(cellInfo)
+                },
+                onFocusOut: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        getWidth_AB(cellInfo)
+                        component.isFocusOutInProgress = false;
+                    }                    
+                },
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                },
+            });
+            cellElement.append(textBox);
+        }
+        function Add2Template(cellElement, cellInfo) {
+            let textBox = $("<div id='Add2_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Address_Line2,
+                showClearButton: true,
+                onFocusIn: function (e) {                    
+                    getWidth_AB(cellInfo)
+                },
+                onFocusOut: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        getWidth_AB(cellInfo)
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                },
+            });
+            cellElement.append(textBox);
+        }
+        function getWidth_AB(cellInfo) {
+            let text = cellInfo.displayValue || ""; // Use empty string if cellInfo.value is null
+            if (IsNullOrWhitespace(null, null, text)) return;
+            let measurementElement = $("<span style='visibility: hidden; white-space: nowrap;'></span>").text(text).appendTo("body");
+            let textWidth = measurementElement[0].offsetWidth; // Get the pixel width
+            measurementElement.remove(); // Remove the measurement element
+            let padding = 10; // Adjust padding as needed
+            cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", (textWidth + padding)+100);
+            cellInfo.component.updateDimensions();
+        }
+        function Add3Template(cellElement, cellInfo) {
+            let textBox = $("<div id='Add3_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Address_Line3,
+                showClearButton: true,
+                onFocusIn: function (e) {
+                    getWidth_AB(cellInfo)
+                },
+                onFocusOut: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        getWidth_AB(cellInfo)
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                },
+            });
+            cellElement.append(textBox);
+        }
+        function Add4Template(cellElement, cellInfo) {
+            let textBox = $("<div id='Add4_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Address_Line4,
+                showClearButton: true,
+                onFocusIn: function (e) {
+                    getWidth_AB(cellInfo)
+                },
+                onFocusOut: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        getWidth_AB(cellInfo)
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                },
+            });
+            cellElement.append(textBox);
+        }
+
+        function UIDTemplate(cellElement, cellInfo) {
+            let textBox = $("<div id='UID_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.UID_No,
+                width: 160,
+                mask: "000000000000",
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value").toUpperCase()); // Reset to null if invalid input
+                    }
+                }
+                /*,maskInvalidMessage: "Invalid Aadhar Card"*/
+            });
+            cellElement.append(textBox);
+        }
+        function MobileTemplate(cellElement, cellInfo) {
+            let textBox = $("<div id='Mobile_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Mobile_No,
+                width: 150,
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value")); // Reset to null if invalid input
+                    }
+                }
+            });
+            cellElement.append(textBox);
+        }
+        function EmailTemplate(cellElement, cellInfo) {
+            let textBox = $("<div id='Email_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.Email,
+                width: 240,
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value")); // Reset to null if invalid input
+                    }
+                }
+            });
+            cellElement.append(textBox);
+        }
+        function NumberBoxTemplate_Pincode_dx(cellElement, cellInfo) {
+            let textBox = $("<div id='Pincode_Textbox_AB" + cellInfo.key + "'>").dxTextBox({
+                value: cellInfo.data.PinCode,
+                width: 100,
+                onValueChanged: function (e) {
+                    cellInfo.setValue(e.value);
+                    if (e.value !== null) {
+                        e.component.option("value", e.component.option("value")); // Reset to null if invalid input
+                    }
+                }
+            });
+            cellElement.append(textBox);
+        }
+        function cancelEdit_AB(e) {
+            e.component.cancelEditData();
+            DisplayFABEditOrSave_AB();
+        }
+        async function saveRecord_AB(e) {
+            if (e.row.isEditing){
+                if (e.row.data["Edit_Confirm"] == void 0 || e.row.data["Edit_Confirm"] == null) {
+                    if (!IsNullOrWhitespace("Mobile_Textbox_AB" + e.row.key, "dxTextBox", $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").option("value"))) {
+                        let pattern = /^[1-9]\d{9}$/;
+                        let mobArr = null;
+                        let mobno = null;
+                        e.row.data.Mobile_No = $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                        mobArr = $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").option("value").trim().split(',');
+                        if ((IsNullOrWhitespace(null, null, mobArr[0]) === false && pattern.test(mobArr[0].trim()) === false) || ((IsNullOrWhitespace(null, null, mobArr[1]) === false && pattern.test(mobArr[1].trim()) === false))) {
+                            let msg = "";
+                            if (mobArr.length > 2) {
+                                msg = "Only 2 Mobile numbers are allowed!!!"
+                            }
+                            else {
+                                msg = "Invalid Mobile. Check both Mobile. (Mobile no should be in this format: 9876543210 => For Single mobile and 9876543210,9876543211=> For 2 Mobile Nos.)";
+                            }
+                            DevExpress.ui.dialog.alert(msg, "Invalid data input...");
+                            $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").focus();
+                            return;
+                        }
+                        if (IsNullOrWhitespace(null, null, mobArr[0]) == false) mobno = mobArr[0];
+                        if ((IsNullOrWhitespace(null, null, mobArr[0]) === false) && (IsNullOrWhitespace(null, null, mobArr[1]) === false)) mobno = mobArr[0] + "," + mobArr[1];
+                        $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").option("value", mobno);
+                        e.row.data.Mobile_No = $("#Mobile_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                    }
+                    if (!IsNullOrWhitespace("Email_Textbox_AB" + e.row.key, "dxTextBox", $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").option("value"))) {
+                        let emails = null;
+                        let emailArr = null;
+                        let pattern = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                        emailArr = $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").option("value").trim().split(',');
+                        e.row.data.Email = $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                        if ((IsNullOrWhitespace(null, null, emailArr[0]) === false && pattern.test(emailArr[0].trim()) === false) || ((IsNullOrWhitespace(null, null, emailArr[1]) === false && pattern.test(emailArr[1].trim()) === false))) {
+                            let msg = "";
+                            if (emailArr.length > 2) {
+                                msg = "Only 2 Emails are allowed!!!"
+                            }
+                            else {
+                                msg = "Invalid Email. Check both Emails. Email format should be like for single email1@email.com and when there are 2 Emails => email1@email.com,email2@email.com";
+                            }
+                            DevExpress.ui.dialog.alert(msg, "Invalid data input...");
+                            $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").focus();
+                            return;
+                        }
+                        if (IsNullOrWhitespace(null, null, emailArr[0]) === false) emails = emailArr[0];
+                        if ((IsNullOrWhitespace(null, null, emailArr[0]) === false) && (IsNullOrWhitespace(null, null, emailArr[1]) === false)) emails = emailArr[0] + "," + emailArr[1];
+                        $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").option("value", emails);
+                        e.row.data.Email = $("#Email_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                    }
+                    if (!IsNullOrWhitespace("PAN_Textbox_AB" + e.row.key, "dxTextBox", $("#PAN_Textbox_AB" + e.row.key).dxTextBox("instance").option("value"))) {
+                        let pattern = /^[A-Z]{5}\d{4}[A-Z]$/;
+                        if (pattern.test($("#PAN_Textbox_AB" + e.row.key).dxTextBox("instance").option("value").trim()) == false) {
+                            DevExpress.ui.dialog.alert("Invalid PAN. PAN data should be in <b>ABCDE1234F</b> format", "Invalid data input...");
+                            $("#PAN_Textbox_AB" + e.row.key).dxTextBox("instance").focus();
+                            return;
+                        }
+                        e.row.data.PAN_No = $("#PAN_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                    }
+                    if (!IsNullOrWhitespace("UID_Textbox_AB" + e.row.key, "dxTextBox", $("#UID_Textbox_AB" + e.row.key).dxTextBox("instance").option("value"))) {
+                        /*
+                         *  The following Aadhaar Number formats will be termed as valid.
+                            1. 12 digits without space. Ex: 123456789012
+                         */
+                        let pattern = /^[2-9]{1}[0-9]{11}$/;
+                        if (pattern.test($("#UID_Textbox_AB" + e.row.key).dxTextBox("instance").option("value").trim()) == false) {
+                            DevExpress.ui.dialog.alert("Invalid Aadhar.", "Invalid data input...");
+                            $("#UID_Textbox_AB" + e.row.key).dxTextBox("instance").focus();
+                            return;
+                        }
+                        e.row.data.UID_No = $("#UID_Textbox_AB" + e.row.key).dxTextBox("instance").option("value");
+                    }
+                    if (!IsNullOrWhitespace('Country_dd_AB' + e.row.key, "dxDropDownBox") && IsNullOrWhitespace('Pincode_Textbox_AB' + e.row.key, "dxTextBox") == false) {
+                        var Txt_Pincode = $("#Pincode_Textbox_AB" + e.row.key).dxTextBox("option", "value");
+                        if ($('#Country_dd_AB' + e.row.key).dxDropDownBox("instance").option("value") == "f9970249-121c-4b8f-86f9-2b53e850809e") {
+                            let pattern = /^[1-9][0-9]{5}$/;
+                            if (IsNullOrWhitespace(null, null, Txt_Pincode) == false && pattern.test(Txt_Pincode.trim()) == false) {
+                                $("#Pincode_Textbox_AB" + e.row.key).dxTextBox("option", "value")
+                                DevExpress.ui.dialog.alert("Invalid Pincode.", "Invalid data input.");
+                                $("#Pincode_Textbox_AB" + e.row.key).dxTextBox("instance").focus();
+                                return;
+                            }
+                        }
+                        e.row.data.PinCode = Txt_Pincode;
+                    }
+                    e.row.data = await getChangedData_AB(e.row.oldData, e.row.data);
+                }
+                //let response = await AddressListGrid_dx.saveEditData(e.row.data);
+                //AddressBook_Window_save_Success(response, "_Edit", "", "", "", e)
+                $.ajax({
+                    type: "POST",
+                    url: "/Facility/AddressBook/Frm_Address_Info_SaveEdited_GridData_dx",
+                    data: { value: JSON.stringify(e.row.data) },
+                    success: function (response) {
+                        AddressBook_Window_save_Success(response, "_Edit", "", "", "", e)
+                    },
+                    error: function (xhr, status) {
+                        // Handle error response
+                        console.log("xhr: ", xhr)
+                        console.log("status: ", status)
+                    }
+                });
+                
+            }
+            else {
+                DevExpress.ui.dialog.alert("Row is not in Edit Mode", "Alert");
+            }
+        }
+        async function CommonCallDatanavigation_AB(EditFromGrid = false)
+        {
+            if (!RightAndRowSelectionCheckforEdit_AB()) return;
+            var data = await Ajax_dataNavigation_AB();
+            if (data.result == false)
+            {
+                if (EditFromGrid == false) {
+                    AddressListGrid_dx_Refresh();
+                }
+                        DevExpress.ui.dialog.alert(data.Message, "Warning...");
+
+            }
+            return data.result;
+        }
+        function Ajax_dataNavigation_AB()
+        {
+            return $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/DataNavigation",
+                data:
+                {
+                    ActionMethod: "Edit",
+                    ID: Addressbook_ID_dx,
+                    Edit_Date: Addressbook_Edit_Date_dx
+                },
+                cache: false
+            });
+        }
+        async function AddressBookInfoGrid_EditingStart(e)
+        {
+            ShowLoader();
+            await e.component.selectRows(e.key);
+            var data = await CommonCallDatanavigation_AB(true);
+            if (data == false) {
+                e.component.cancelEditData();
+            }
+            else {
+                if (AddressBookInfo_IsDetailRowExpanded_dx) {
+                    DevExpress.ui.dialog.alert("Editing cannot be performed when row is Expanded", "Alert");
+                    e.component.cancelEditData();
+                }
+                else {
+                    DisplayFABEditOrSave_AB();
+                }
+            }
+            e.cancel = !data;
+            HideLoader();
+        }
+        function AddressBookInfoGrid_RowUpdating(e) {
+
+        }
+        var country_AddressInfo_dx = [];
+        var state_AddressInfo_dx = [];
+        var city_AddressInfo_dx = [];
+        var centre_AddressInfo_dx = [];
+        var overseas_Centre_AddressInfo_dx = [];
+        var education_AddressInfo_dx = [];
+        var occupation_AddressInfo_dx = [];
+        var CountryInit_AB = false;
+        var StateInit_AB = false;
+
+        //function NumberBoxTemplate_Pincode_dx(cellElement, cellInfo) {
+        //    let value = cellInfo.data[cellInfo.column.dataField];
+
+        //    let numberBox = $("div id='Pincode_Numberbox_AB" + cellInfo.key + "'>").dxNumberBox({
+        //        value: value,
+        //        width: 100, // Adjust width as needed
+        //        format: "#",    // Format as whole number
+        //        showSpinButtons: true, // Enable spin buttons
+        //        step: 1,        // Increment/decrement by 1
+        //        min: 0,         // Ensure only positive numbers (including 0)
+        //        onValueChanged: function (e) {
+        //            if (e.value !== null && isNaN(e.value) || e.value < 0) { // Check for NaN and negative values
+        //                e.component.option("value", null); // Reset to null if invalid input
+        //            }
+        //            cellInfo.setValue(e.value); // Update the grid cell value
+        //        },
+        //        onInput: function (e) {
+        //            // Use a regular expression to allow only digits
+        //            e.component.option("value", e.component.option("value").replace(/[^0-9]/g, ''))
+        //            cellInfo.setValue(e.component.option("value"));
+        //        }
+        //    });
+
+        //    cellElement.append(numberBox);
+        //}
+   
+        function GetValueCountryDD_Template_AB(cellInfo)
+        {
+            if (country_AddressInfo_dx && country_AddressInfo_dx.length > 0)
+            {
+                if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                let countryObj = country_AddressInfo_dx.find(c => c.R_CO_NAME === cellInfo.row.data.Country);              
+                    if (countryObj)
+                    {     
+                        return countryObj.R_CO_REC_ID;      
+                    }
+                }
+            }
+            return null;
+        }
+        function Country_DropDownBoxTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let countryDataSource = null;
+            if (country_AddressInfo_dx && country_AddressInfo_dx.length > 0)
+            {
+                countryDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.ArrayStore({
+                        data: country_AddressInfo_dx,
+                        key: 'R_CO_REC_ID',
+                    })
+                });                
+            }
+            else {
+                countryDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.AspNet.createStore({
+                        key: "R_CO_REC_ID",
+                        loadMode: "raw",
+                        loadUrl: "/Facility/Chart/UserProfile_CountryList_FrmResponse"
+                    })
+                })
+             }
+            let dropDownBox = $("<div id='Country_dd_AB" + cellInfo.key + "'>").dxDropDownBox({
+                dataSource: countryDataSource,
+                valueExpr: "R_CO_REC_ID",
+                displayExpr: "R_CO_NAME",
+                value: GetValueCountryDD_Template_AB(cellInfo),
+                showClearButton: true,
+                deferRendering: false,
+                contentTemplate: function (e, element){
+                    let dataGridEl = $("<div id='Country_dg_AB" + cellInfo.key + "'>").dxDataGrid({
+                        dataSource: e.component.option("dataSource"),
+                        hoverStateEnabled: true,
+                        height: 250,
+                        scrolling: { mode: "infinite" },
+                        showBorders: true,
+                        keyExpr: "R_CO_REC_ID",
+                        columns: [{ dataField: "R_CO_NAME", caption: "Country" }],
+                        selection: { mode: "single" },
+                        filterRow: { visible: true },
+                        onSelectionChanged(selectedItems) {
+                            const keys = selectedItems.selectedRowKeys;
+                            const DDvalue = e.component.option("value");
+                            if (keys != DDvalue && keys.length > 0) { e.component.option('value', keys[0]); }
+                            e.component.close();
+                        }
+                    });/*.dxDataGrid('instance');*/
+                    element.append(dataGridEl)
+                },
+                onInitialized: async function (e) {
+                    CountryInit_AB = true;
+                    let data = await e.component.option("dataSource").store().load();
+                    country_AddressInfo_dx = data;
+                    var value = e.component.option("value")
+                    if (value != null) {
+                        await Country_ValueChange_AB(null, cellInfo)
+                    }
+                    else {
+                        var co_rec_id = GetValueCountryDD_Template_AB(cellInfo)
+                        if (co_rec_id) {
+                            e.component.option("value", co_rec_id)
+                        }
+                    }
+                },
+                onClosed: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        if (IsNullOrWhitespace(null, null, cellInfo.value)) return;
+                        cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 210);
+                        cellInfo.component.updateDimensions();
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onOpened: function (e) {
+                    cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 275);
+                    cellInfo.component.updateDimensions();
+                },
+                onValueChanged: async function (e) { await Country_ValueChange_AB(e, cellInfo) }
+            });
+            cellElement.append(dropDownBox);
+        }
+        async function Country_ValueChange_AB(e, cellInfo) {
+            var value;
+            let state_DD_Instance = $('#State_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let state_DG_Instance = $('#State_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            let country_DG_Instance = $('#Country_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            let country_DD_Instance = $('#Country_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let city_DD_Instance = $('#City_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let city_DG_Instance = $('#City_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            if (e) {
+                value = e.value;
+            }
+            else {
+                value = country_DD_Instance.option("value")
+            }
+            if (e) {
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    cellInfo.setValue(null);                    
+                    if (state_DD_Instance) {
+                        state_DD_Instance.option("value", null);
+                        state_DD_Instance.option('dataSource', getStateDataSource_AB(cellInfo));
+                        state_DG_Instance.option('dataSource', state_DD_Instance.option('dataSource'));
+                    }
+                    if (city_DD_Instance) {
+                        city_DD_Instance.option("value", null);
+                        city_DD_Instance.option('dataSource', getCityDataSource_AB(cellInfo));
+                        city_DG_Instance.option('dataSource', city_DD_Instance.option('dataSource'));
+                        city_DD_Instance.option("readOnly", true);
+                    }                    
+                    country_DG_Instance.clearSelection();
+                    return
+                }
+            }
+            await country_DG_Instance.selectRows(value);
+            cellInfo.setValue(value);
+            if (state_DD_Instance) {
+                state_DD_Instance.option('dataSource', getStateDataSource_AB(cellInfo));
+                state_DG_Instance.option('dataSource', state_DD_Instance.option('dataSource'))
+            }
+            if (city_DD_Instance) {
+                city_DD_Instance.option('dataSource', getCityDataSource_AB(cellInfo));
+                city_DG_Instance.option('dataSource', city_DD_Instance.option('dataSource'))
+                if (value != "f9970249-121c-4b8f-86f9-2b53e850809e")//If country_AddressInfo_dx is not India
+                {
+                    city_DD_Instance.option("readOnly", false);
+                }
+                else {
+                    city_DD_Instance.option("readOnly", true);
+                }
+            }
+
+            if (CountryInit_AB == false) {
+                if (state_DD_Instance) {
+                    state_DD_Instance.option("value", null);
+                }
+                if (city_DD_Instance) {
+                    city_DD_Instance.option("value", null);
+                }
+            }
+            else {
+                CountryInit_AB = false;
+            }
+        }
+        function GetValueStateDD_Template_AB(cellInfo) {
+            if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                let stateObj = null;
+                const country = cellInfo.row.data.Country?.toString().trim().toLowerCase();
+                if (country === 'india' || country === 'f9970249-121c-4b8f-86f9-2b53e850809e') {
+                    stateObj = state_AddressInfo_dx.find(s => {
+                        return s.CO_CODE == 'IN' && s.ST_NAME == cellInfo.row.data.State;
+                    });
+                }
+                else {
+                    stateObj = state_AddressInfo_dx.find(s => {
+                        return s.ST_NAME == cellInfo.row.data.State;
+                    });
+                }
+                if (stateObj) {
+                    return stateObj.REC_ID;
+                }
+            }
+            return null;
+        }
+        function State_DropDownBoxTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let stateDropDownBox = $("<div id='State_dd_AB" + cellInfo.key + "'>").dxDropDownBox({
+                dataSource: getStateDataSource_AB(cellInfo),
+                valueExpr: "REC_ID",
+                displayExpr: "ST_NAME",
+                deferRendering: false,
+                value: GetValueStateDD_Template_AB(cellInfo),
+                showClearButton: true,
+                contentTemplate: function (e, element) {
+                    let dataGridEl = $("<div id='State_dg_AB" + cellInfo.key + "'>").dxDataGrid({
+                            dataSource: e.component.option("dataSource"),
+                            hoverStateEnabled: true,
+                            height: 250,
+                            showBorders: true,
+                            columns: [{ dataField: "ST_NAME", caption: "State" }],
+                            selection: { mode: "single" },
+                            scrolling: { mode: "infinite" },
+                            filterRow: { visible: true },
+                            onSelectionChanged(selectedItems) {
+                                const keys = selectedItems.selectedRowKeys;
+                                const DDvalue = e.component.option("value")
+                                if (keys != DDvalue && keys.length > 0) { e.component.option('value', keys[0]); }
+                                e.component.close();
+                            }
+                        });
+                    element.append(dataGridEl)
+                },
+                onInitialized: async function (e) {
+                    StateInit_AB = true;
+                    let data = await e.component.option("dataSource").store().load();
+                    state_AddressInfo_dx = data;
+                    var value = e.component.option("value")
+                    if (value != null) {
+                        e.component.option("readOnly", false);
+                        await State_ValueChange_AB(null, cellInfo);
+                    }
+                    else {
+                        var st_rec_id = GetValueStateDD_Template_AB(cellInfo)
+                        if (st_rec_id) {
+                            e.component.option("value", st_rec_id)
+                        }
+                    }
+                },
+                onClosed: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        if (IsNullOrWhitespace(null, null, cellInfo.value)) return;
+                        cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 210);
+                        cellInfo.component.updateDimensions();
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onOpened: function (e) {
+                    cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 275);
+                    cellInfo.component.updateDimensions();
+                },
+                onValueChanged: async function (e) { await State_ValueChange_AB(e, cellInfo) }                
+            });
+            cellElement.append(stateDropDownBox);
+        }
+        async function State_ValueChange_AB(e, cellInfo) {//Remember objects are always passed by refernce in JS only primitive datatypes are passed by value
+            let value = null;
+            let city_DD_Instance = $('#City_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let state_DD_Instance = $('#State_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let city_DG_Instance = $('#City_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            let state_DG_Instance = $('#State_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            if (e) {
+                value = e.value;
+            }
+            else {
+                value = state_DD_Instance.option("value");
+            }
+            if (e) {
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    cellInfo.setValue(null);
+                    if (city_DD_Instance) {
+                        city_DD_Instance.option("value", null);
+                        city_DD_Instance.option('dataSource', getCityDataSource_AB(cellInfo));
+                        city_DG_Instance.option('dataSource', city_DD_Instance.option('dataSource'));
+                        if (cellInfo.row.data.Country == "f9970249-121c-4b8f-86f9-2b53e850809e") city_DD_Instance.option("readOnly", true);//When country is India then disable City as it is dependent on State
+                    }
+                    state_DG_Instance.clearSelection();
+                    return
+                }
+            }
+            cellInfo.setValue(value);
+            await state_DG_Instance.selectRows(value);
+            if (city_DD_Instance) {
+                if (cellInfo.row.data.Country == "f9970249-121c-4b8f-86f9-2b53e850809e") {
+                    if (StateInit_AB == false) {
+                        city_DD_Instance.option("value", null);//If country is India then City will be reset. Since City is not dependent on State when Country is other than India
+                    }
+                }
+                city_DD_Instance.option('dataSource', getCityDataSource_AB(cellInfo));
+                city_DG_Instance.option('dataSource', city_DD_Instance.option('dataSource'));
+                city_DD_Instance.option("readOnly", false);
+            }
+            StateInit_AB = false;
+        }
+        function getStateDataSource_AB(cellInfo) {
+            let stateDataSource = null;
+            if (state_AddressInfo_dx && state_AddressInfo_dx.length > 0) {
+                stateDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.ArrayStore({
+                        data: state_AddressInfo_dx,
+                        key: 'REC_ID',
+                    }),
+                    filter: function (data) {
+                        if (cellInfo.row.data.Country) {
+                            let countryObj = country_AddressInfo_dx.find(c => c.R_CO_REC_ID === cellInfo.row.data.Country);
+                            if (countryObj) {
+                                if (countryObj.R_CO_CODE.includes(data.CO_CODE)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            else {
+                stateDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.AspNet.createStore({
+                        key: "REC_ID",
+                        loadMode: "raw",
+                        loadUrl: "/Facility/Chart/StateList_CR?CountryAccessibleDescription="
+                    }),
+                    filter: function (data) {
+                        if (cellInfo.row.data.Country) {
+                            let countryObj = country_AddressInfo_dx.find(c => c.R_CO_REC_ID === cellInfo.row.data.Country);
+                            if (countryObj) {
+                                if (countryObj.R_CO_CODE.includes(data.CO_CODE)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            return stateDataSource;
+        }
+        function GetValueCityDD_Template_AB(cellInfo) {
+            if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                let cityObj = null;
+                const country = cellInfo.row.data.Country?.toString().trim().toLowerCase();
+                if (country === 'india' || country === 'f9970249-121c-4b8f-86f9-2b53e850809e') {
+                    if (city_AddressInfo_dx && city_AddressInfo_dx.length > 0) {
+                        cityObj = city_AddressInfo_dx.find(c => {
+                            if (state_AddressInfo_dx && state_AddressInfo_dx.length > 0) {
+                                const state = state_AddressInfo_dx.find(c => (c.REC_ID === cellInfo.row.data.State || c.ST_NAME == cellInfo.row.data.State));
+                                if (state) {
+                                    return c.STATE_NAME == state.ST_NAME && c.CITY_NAME == cellInfo.value;
+                                }                                
+                            }
+                        });
+                    }
+                    
+                }
+                else {
+                    if (city_AddressInfo_dx && city_AddressInfo_dx.length > 0) {
+                        cityObj = city_AddressInfo_dx.find(c => {
+                            return c.CITY_NAME == cellInfo.value;
+                        });
+                    }                    
+                }
+                if (cityObj) {
+                    return cityObj.R_CI_REC_ID;
+                }
+            }
+            return null;
+        }
+        function City_DropDownBoxTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let dropDownBox = $("<div id='City_dd_AB" + cellInfo.key + "'>").dxDropDownBox({
+                dataSource: getCityDataSource_AB(cellInfo),
+                valueExpr: "R_CI_REC_ID",
+                displayExpr: "CITY_NAME",
+                value: GetValueCityDD_Template_AB(cellInfo),
+                deferRendering: false,
+                showClearButton: true,
+                contentTemplate: function (e, element) {
+                    let dataGridEl = $("<div id='City_dg_AB" + cellInfo.key + "'>").dxDataGrid({
+                            dataSource: e.component.option('dataSource'),
+                            hoverStateEnabled: true,
+                            height: 250,
+                            showBorders: true,
+                            //columns: ["CITY_NAME", "STATE_NAME", "COUNTRY_NAME"],
+                            columns: [{ dataField: "CITY_NAME", caption: "City" }],
+                            selection: { mode: "single" },
+                            scrolling: { mode: "infinite" },
+                            filterRow: { visible: true },
+                            onSelectionChanged(selectedItems) {
+                                var keys = selectedItems.selectedRowKeys;
+                                var DDvalue = e.component.option('value');
+                                if (keys != DDvalue && keys.length > 0) { e.component.option('value', keys[0]); }
+                                e.component.close();
+                                console.log("DG value is set: " + keys);
+                            }
+                        });
+                    element.append(dataGridEl);
+                },
+                onInitialized: async function (e) {
+                    ShowLoader();
+                    let data = await e.component.option("dataSource").store().load();
+                    city_AddressInfo_dx = data;
+                    var value = e.component.option("value");
+                    if (value != null) {
+                        e.component.option("readOnly", false);
+                        await City_ValueChange_AB(null, cellInfo)
+                    }
+                    else {
+                        var ct_rec_id = GetValueCityDD_Template_AB(cellInfo)
+                        if (ct_rec_id) {
+                            e.component.option("readOnly", false);
+                            e.component.option("value", ct_rec_id)
+                        }
+                    }
+                    HideLoader();
+                },
+                onClosed: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        if (IsNullOrWhitespace(null, null, cellInfo.value)) return;
+                        cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 210);
+                        cellInfo.component.updateDimensions();
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onOpened: function (e) {
+                    cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 275);
+                    cellInfo.component.updateDimensions();
+                },
+                onValueChanged: async function (e) { await City_ValueChange_AB(e, cellInfo) }                
+            })
+            cellElement.append(dropDownBox);
+        }
+        async function City_ValueChange_AB(e, cellInfo) {
+            let city_DD_Instance = $('#City_dd_AB' + cellInfo.key).dxDropDownBox('instance');
+            let city_DG_Instance = $('#City_dg_AB' + cellInfo.key).dxDataGrid('instance');
+            let value = null;
+            if (e) {
+                value = e.value;
+            }
+            else {
+                value = city_DD_Instance.option("value");
+            }
+            if (e && e.value == null && e.previousValue != null) {
+                cellInfo.setValue(null);
+                if (city_DG_Instance) city_DG_Instance.clearSelection();
+                return;
+            }
+            if (city_DD_Instance) city_DD_Instance.option("readOnly", false);
+            cellInfo.setValue(value);
+            if (city_DG_Instance) {
+                await city_DG_Instance.selectRows(value);
+            }
+        }
+        function getCityDataSource_AB(cellInfo) {
+            let cityDataSource = null;
+            var stateCode = "";
+            var CountryCode = "";
+            if (city_AddressInfo_dx && city_AddressInfo_dx.length > 0) {
+                cityDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.ArrayStore({
+                        data: city_AddressInfo_dx,
+                        key: 'R_CI_REC_ID',
+                    }),
+                    filter: function (data) {
+                        stateCode = null;
+                        CountryCode = "";
+                        if (cellInfo.row.data.State) {
+                            let stateObj = state_AddressInfo_dx.find(s => s.REC_ID === cellInfo.row.data.State);
+                            if (stateObj) {
+                                if (stateObj.ST_CODE) {
+                                    stateCode = parseInt(stateObj.ST_CODE)
+                                }
+                            }
+                        }
+                        if (cellInfo.row.data.Country) {
+                            let countryObj = country_AddressInfo_dx.find(c => c.R_CO_REC_ID === cellInfo.row.data.Country);
+                            if (countryObj) {
+                                CountryCode = countryObj.R_CO_CODE
+                            }
+                        }
+                        if (cellInfo.row.data.Country !== 'f9970249-121c-4b8f-86f9-2b53e850809e') {
+                            //if (CountryCode && stateCode) {
+                            //    if (stateCode == data.STATE_CODE && CountryCode.includes(data.COUNTRY_CODE)) {
+                            //        return true
+                            //    }
+                            //}
+                            //if (stateCode) {
+                            //    if (stateCode == data.STATE_CODE) { return true; }
+                            //}
+                            if (CountryCode && CountryCode.includes(data.COUNTRY_CODE)) {
+                                return true;
+                            }                            
+                        }
+                        else {
+                            if (CountryCode && stateCode) {
+                                if (stateCode == data.STATE_CODE && CountryCode.includes(data.COUNTRY_CODE)) {
+                                    return true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            else {
+                cityDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.AspNet.createStore({
+                        key: "R_CI_REC_ID",
+                        loadMode: "raw",
+                        loadUrl: "/Facility/Chart/GetCitiesWithSTandCO_Code?CountryAccessibleDescription="
+                    }),
+                    filter: function (data) {
+                        stateCode = null;
+                        CountryCode = "";
+                        if (cellInfo.row.data.State) {
+                            let stateObj = state_AddressInfo_dx.find(s => s.REC_ID === cellInfo.row.data.State);
+                            if (stateObj) {
+                                if (stateObj.ST_CODE) {
+                                    stateCode = parseInt(stateObj.ST_CODE)
+                                }
+                            }
+                        }
+                        if (cellInfo.row.data.Country) {
+                            let countryObj = country_AddressInfo_dx.find(c => c.R_CO_REC_ID === cellInfo.row.data.Country);
+                            if (countryObj) {
+                                CountryCode = countryObj.R_CO_CODE
+                            }
+                        }
+                        if (cellInfo.row.data.Country === 'f9970249-121c-4b8f-86f9-2b53e850809e') {
+                            if (CountryCode && stateCode) {
+                                if (stateCode == data.STATE_CODE && CountryCode.includes(data.COUNTRY_CODE)) {
+                                    return true
+                                }
+                            }
+                        }
+                        else {
+                            if (CountryCode && stateCode) {
+                                if (stateCode == data.STATE_CODE && CountryCode.includes(data.COUNTRY_CODE)) {
+                                    return true
+                                }
+                            }
+                            if (stateCode) {
+                                if (stateCode == data.STATE_CODE) { return true; }
+                            }
+                            if (CountryCode) {
+                                if (CountryCode.includes(data.COUNTRY_CODE)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            return cityDataSource;
+        }
+        function AddCustomDatatoEducation_AddressInfo_dx(cellInfo, e) {
+            var Txt_Education_AB = e.component;
+            var dataSource = Txt_Education_AB.getDataSource();
+            var dataItems = education_AddressInfo_dx;
+            var flag = false;
+            for (var i = 0; dataItems.length > i; i++) {
+                if (dataItems[i].C_TITLE_NAME == cellInfo.value) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag == true){
+                Txt_Education_AB.option("value", cellInfo.value);
+                cellInfo.setValue(cellInfo.value);
+            }
+            else {
+                //Below code will add saved education qualification by user which is not present in Datasource then it sets it to SelectBox
+                var newID = createGuid();
+                var newItem = { C_TITLE_NAME: cellInfo.value, C_TITLE_ID: newID };
+                if (dataSource._store._array) {
+                    dataSource._store._array.push(newItem);
+                }
+                if (dataSource._store.__rawData) {
+                    dataSource._store.__rawData.push(newItem);
+                }
+                education_AddressInfo_dx.push(newItem)
+                dataSource.store().load().done(function (data) {
+                    Txt_Education_AB.option("value", cellInfo.value);
+                    cellInfo.setValue(cellInfo.value);
+                })
+            }
+        }
+        function GetValueOccupationDD_Template_AB(cellInfo) {
+            if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                if (occupation_AddressInfo_dx !== null && occupation_AddressInfo_dx.length > 0 && occupation_AddressInfo_dx !== void 0) {
+                    let occupationsObj = occupation_AddressInfo_dx.find(c => c.C_TITLE_NAME === cellInfo.value);
+                    if (occupationsObj) {
+                        return occupationsObj.C_TITLE_ID;
+                    }
+                }
+            }
+            return null;
+        }
+        function occupationSelectBoxEditorTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let occupationsDataSource = null;
+            if (occupation_AddressInfo_dx && occupation_AddressInfo_dx.length > 0) {
+                occupationsDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.ArrayStore({
+                        data: occupation_AddressInfo_dx,
+                        key: 'C_TITLE_ID',
+                    })
+                });
+            }
+            else {
+                occupationsDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.AspNet.createStore({
+                        key: "C_TITLE_ID",
+                        loadMode: "raw",
+                        loadUrl: "/Facility/Chart/UserProfile_OccupationList_FrmResponse"
+                    })
+                })
+            }
+            let selectBox = $("<div  id='Occupation_sb_AB"+ cellInfo.key + "'>").dxSelectBox({
+                dataSource: occupationsDataSource,
+                valueExpr: "C_TITLE_ID",
+                displayExpr: "C_TITLE_NAME",
+                value: GetValueOccupationDD_Template_AB(cellInfo),
+                showClearButton: true,
+                onInitialized: async function (e) {
+                    let value = e.component.option("value");
+                    let data  = await e.component.option("dataSource").store().load();
+                    occupation_AddressInfo_dx = data;
+                    if (value != null) {
+                        Occupation_ValueChange_AB(null, cellInfo,e.component)
+                    }
+                    else {
+                        value = GetValueOccupationDD_Template_AB(cellInfo);
+                        e.component.option("value", value);
+                        //cellInfo.setValue(value);
+                        //await Occupation_ValueChange_AB(null, cellInfo);
+                    }
+                },                
+                onValueChanged: function (e) { Occupation_ValueChange_AB(e, cellInfo)}
+            });
+            cellElement.append(selectBox);
+        }
+        function Occupation_ValueChange_AB(e, cellInfo,instance) {
+            let value = null;
+            if (e) {
+                value = e.value;
+            }
+            else {
+              /*  let OccupationDD = $('#Occupation_sb_AB' + cellInfo.key).dxSelectBox("instance");*/
+                if (instance) {
+                    value = instance.option("value");
+                }
+            }
+            cellInfo.setValue(value);
+        }
+        function GetValueEducationSB_Template_AB(cellInfo) {
+            if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                if (education_AddressInfo_dx !== null && education_AddressInfo_dx.length > 0 && education_AddressInfo_dx !== void 0) {
+                    let educationObj = education_AddressInfo_dx.find(c => c.C_TITLE_NAME === cellInfo.value);
+                    if (educationObj) {
+                        return educationObj.C_TITLE_NAME;
+                    }
+                }
+            }
+            return null;
+        }
+        function educationSelectBoxEditorTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let educationDataSource = null;
+            if (education_AddressInfo_dx && education_AddressInfo_dx.length > 0) {
+                educationDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.ArrayStore({
+                        data: education_AddressInfo_dx,
+                        key: 'C_TITLE_ID',
+                    })
+                });
+            }
+            else {
+                educationDataSource = new DevExpress.data.DataSource({
+                    store: new DevExpress.data.AspNet.createStore({
+                        key: "C_TITLE_ID",
+                        loadMode: "raw",
+                        loadUrl: "/Facility/Chart/UserProfile_QualificationList_FrmResponse"
+                    })
+                })
+            }
+            let selectBox = $("<div>").dxSelectBox({
+                dataSource: educationDataSource,
+                valueExpr: "C_TITLE_NAME",
+                value: GetValueEducationSB_Template_AB(cellInfo),
+                displayExpr: "C_TITLE_NAME",
+                width: 150,
+                showClearButton: true,
+                onInitialized: async function (e) {
+                    let value = e.component.option("value");
+                    let data = await e.component.option("dataSource").store().load()
+                    education_AddressInfo_dx = data;
+                    if (value != null) {
+                        education_ValueChange_AB(null, cellInfo, e.component)
+                    }
+                    else {
+                        AddCustomDatatoEducation_AddressInfo_dx(cellInfo, e);
+                    }
+                },                
+                onValueChanged: function (e) { education_ValueChange_AB(e, cellInfo) }
+            });
+            cellElement.append(selectBox);
+        }
+        function education_ValueChange_AB(e, cellInfo, instance) {
+            let value = null;
+            if (e) {
+                value = e.value;
+            }
+            else {
+                if (instance) {
+                    value = instance.option("value");
+                }
+                else {
+                    value = cellInfo.value;
+                }
+            }
+            cellInfo.setValue(value);
+        }
+        function Centre_Category_SelectBoxTemplate_AddressInfo_dx(cellElement, cellInfo)
+        {
+            let centreDataSource = null;
+            let selectBox = $("<div>").dxSelectBox({
+                dataSource: ["Indian Centre", "Overseas Rajyoga Training Centre"],
+                value: cellInfo.value,
+                width: 190,
+                onInitialized: function (e)
+                {
+                },
+                //onOpened: function (e) {
+                //    let control = e.component.parentNode;
+                //    control.style.minWidth = "190px";
+                //},
+                onValueChanged: function (e)
+                {
+                    if (e.value)
+                    {
+                        cellInfo.setValue(e.value);
+                        centreDataSource = getCentreDataSource_AB(cellInfo);
+                    }
+                    else {
+                        cellInfo.setValue(null);
+                    }
+                    var DD_instance = $("#Centre_dd_AddressInfo_dx" + cellInfo.key).dxDropDownBox("instance")
+                    if (DD_instance) {
+                        DD_instance.option('value', null);
+                        DD_instance.option('dataSource', centreDataSource);
+
+                    }
+                    var DG_instance = $("#Centre_dd_AddressInfo_dg_dx" + cellInfo.key).dxDataGrid("instance")
+                    if (DG_instance) {
+                    /*    DG_instance.clearSelection();*/
+                        DG_instance.option('dataSource', centreDataSource);
+                    }
+                }
+            });
+            cellElement.append(selectBox);
+        }
+        function IsOverseasCentre_AB(cellInfo) {
+            if (IsNullOrWhitespace(null, null, cellInfo.row.data.Centre_Category) == false && cellInfo.row.data.Centre_Category == "Indian Centre") {
+                return false;
+            }
+            else if (IsNullOrWhitespace(null, null, cellInfo.row.data.Centre_Category) == false && cellInfo.row.data.Centre_Category == "Overseas Rajyoga Training Centre") {
+                return IsOverseasCentre = true;
+            }
+            else {
+                return null;
+            }
+        }
+        function getCentreDataSource_AB(cellInfo) {
+            let centreDataSource = null;
+            let IsOverseasCentre = IsOverseasCentre_AB(cellInfo);            
+            if (IsOverseasCentre == null || IsOverseasCentre==false) {
+                if (centre_AddressInfo_dx && centre_AddressInfo_dx.length > 0) {
+                    centreDataSource = new DevExpress.data.DataSource({
+                        store: new DevExpress.data.ArrayStore({
+                            data: centre_AddressInfo_dx,
+                            key: 'CEN_ID',
+                        })
+                    });
+                }
+                else {
+                    centreDataSource = new DevExpress.data.DataSource({
+                        store: new DevExpress.data.AspNet.createStore({
+                            key: "CEN_ID",
+                            loadMode: "raw",
+                            loadUrl: "/Facility/Chart/UserProfile_CentreList_FrmResponse?CenterCategory=0"
+                        })
+                    })
+                }
+            }
+            else {
+                if (overseas_Centre_AddressInfo_dx && overseas_Centre_AddressInfo_dx.length > 0) {
+                    centreDataSource = new DevExpress.data.DataSource({
+                        store: new DevExpress.data.ArrayStore({
+                            data: overseas_Centre_AddressInfo_dx,
+                            key: 'CEN_ID',
+                        })
+                    });
+                }
+                else {
+                    centreDataSource = new DevExpress.data.DataSource({
+                        store: new DevExpress.data.AspNet.createStore({
+                            key: "CEN_ID",
+                            loadMode: "raw",
+                            loadUrl: "/Facility/Chart/UserProfile_CentreList_FrmResponse?CenterCategory=1"
+                        })
+                    })
+                }
+            }
+            return centreDataSource;
+        }
+        function GetValueCentreDD_Template_AB(cellInfo) {
+            let IsOverseasCentre = IsOverseasCentre_AB(cellInfo);
+            if (IsOverseasCentre) {
+                if (overseas_Centre_AddressInfo_dx !== null && overseas_Centre_AddressInfo_dx.length > 0 && overseas_Centre_AddressInfo_dx !== void 0) {
+                    if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                        let cenNamewithTrimmedCenId = cellInfo.value.replace(/\(\d+\)/, "").trim();
+                        let centreObj = overseas_Centre_AddressInfo_dx.find(c => c.CEN_NAME === cenNamewithTrimmedCenId);
+                        if (centreObj) {
+                            return centreObj.CEN_ID;                            
+                        }
+                    }
+                }
+            }
+            else {
+                if (centre_AddressInfo_dx !== null && centre_AddressInfo_dx.length > 0 && centre_AddressInfo_dx !== undefined) {
+                    if (cellInfo.value != null && typeof cellInfo.value === "string" && cellInfo.value != "") {
+                        let cenNamewithTrimmedCenId = cellInfo.value.replace(/\(\d+\)/, "").trim();
+                        console.log(cenNamewithTrimmedCenId);
+                        let centreObj = centre_AddressInfo_dx.find(c => c.CEN_NAME === cenNamewithTrimmedCenId);
+                        if (centreObj) {
+                            return centreObj.CEN_ID;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        function centreDropdownBoxEditorTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let centreDropDownBox = $("<div id='Centre_dd_AddressInfo_dx" + cellInfo.key + "'>").dxDropDownBox({
+                dataSource: getCentreDataSource_AB(cellInfo),
+                valueExpr: "CEN_ID",
+                displayExpr: "CEN_NAME",
+                //width: 400,
+                showClearButton: true,
+                value: GetValueCentreDD_Template_AB(cellInfo),
+                deferRendering: false,
+                contentTemplate: function (e, element) {
+                    let dataGridEl = $("<div>");
+                    $("<div id='Centre_dd_AddressInfo_dg_dx" + cellInfo.key + "'>").dxDataGrid({
+                        dataSource: e.component.option("dataSource"),
+                        hoverStateEnabled: true,
+                        height: 350,
+                        showBorders: true,
+                        scrolling: { mode: "infinite" }, // Enable infinite scrolling
+                        columns: [
+                            { dataField: "CEN_NAME", caption: "Centre", width: 150 },
+                            { dataField: "CEN_BK_PAD_NO", caption: "Cert No.", width: 50 },
+                            { dataField: "CEN_INCHARGE", caption: "Incharge", width: 100 },
+                            { dataField: "CEN_ZONE_ID", caption: "Zone", width: 20 }
+                        ],
+                        selection: { mode: "single" },
+                        filterRow: { visible: true },
+                        onSelectionChanged(selectedItems) {
+                            var keys = selectedItems.selectedRowKeys;
+                            var DDvalue = e.component.option('value');
+                            if (keys != DDvalue && keys.length>0) { e.component.option('value', keys[0]); }
+                            e.component.close();
+                        }
+                    }).appendTo(dataGridEl);
+                    element.append(dataGridEl);
+                },
+                onInitialized: async function (e) {
+                    let data = await e.component.option("dataSource").store().load();
+                    let IsOverseasCentre = IsOverseasCentre_AB(cellInfo);
+                    if (IsOverseasCentre) {
+                        overseas_Centre_AddressInfo_dx = data;
+                        let value = e.component.option("value");
+                        if (value != null) {
+                            e.component.option("readOnly", false);
+                            await Centre_ValueChange_AB(null, cellInfo)
+                        }
+                        else {
+                            var centre_rec_id = GetValueCentreDD_Template_AB(cellInfo)
+                            if (centre_rec_id) {
+                                e.component.option("value", centre_rec_id)
+                            }
+                        }
+                    }
+                    else {
+                        centre_AddressInfo_dx = data;
+                        let value = e.component.option("value");
+                        if (value != null) {
+                            e.component.option("readOnly", false);
+                            await Centre_ValueChange_AB(null, cellInfo)
+                        }
+                        else {
+                            var centre_rec_id = GetValueCentreDD_Template_AB(cellInfo)
+                            if (centre_rec_id) {
+                                e.component.option("value", centre_rec_id)
+                            }
+                        }
+                    }                    
+                },
+                onClosed: function (e) {
+                    let component = e.component;
+                    if (!component.isFocusOutInProgress) {
+                        component.isFocusOutInProgress = true;
+                        if (IsNullOrWhitespace(null, null, cellInfo.value)) return;
+                        cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 350);
+                        cellInfo.component.updateDimensions();
+                        component.isFocusOutInProgress = false;
+                    }
+                },
+                onOpened: function (e) {                   
+                    cellInfo.component.columnOption(cellInfo.columnIndex + 1, "width", 400);
+                    cellInfo.component.updateDimensions();
+                },
+                onValueChanged: async function (e) { await Centre_ValueChange_AB(e, cellInfo) }
+            });
+            cellElement.append(centreDropDownBox);
+        }
+        async function Centre_ValueChange_AB(e, cellInfo) {
+            let centre_DG_Instance = $('#Centre_dd_AddressInfo_dg_dx' + cellInfo.key).dxDataGrid('instance');
+            let centre_Dd_Instance = $('#Centre_dd_AddressInfo_dx' + cellInfo.key).dxDropDownBox('instance');
+            let value = null;
+            if (e) {
+                value = e.value;
+            }
+            else {
+                value = centre_Dd_Instance.option("value");
+            }
+            if (e && e.value == null && e.previousValue != null) {
+                cellInfo.setValue(null);
+                if (centre_DG_Instance) centre_DG_Instance.clearSelection();
+                return;
+            }
+            if (centre_DG_Instance) {
+                await centre_DG_Instance.selectRows(value);
+            }
+            cellInfo.setValue(value);
+        }
+        function Status_SelectBoxTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let selectBox = $("<div>").dxSelectBox({
+                dataSource: ["B.K.", "Wellwisher"],
+                value: cellInfo.value,
+                onInitialized: function (e) {
+
+                },
+                onValueChanged: function (e) {
+                    if (e.value) {
+                        cellInfo.setValue(e.value);
+                    }
+                    else {
+                        cellInfo.setValue(null);
+                    }
+
+                }
+            });
+            cellElement.append(selectBox);
+        }
+        function Title_SelectBoxTemplate_AddressInfo_dx(cellElement, cellInfo) {
+            let selectBox = $("<div>").dxSelectBox({
+                dataSource: ["Kumar", "Kumari", "Adharkumar", "Adharkumari", "Trialkumar", "Trialkumari", "Teacher", "Surrender Kumar", "Surrender Sister"],
+                value: cellInfo.value,
+                showClearButton: true,
+                onInitialized: function (e) {
+
+                },
+                onValueChanged: function (e) {
+                    if (e.value) {
+                        cellInfo.setValue(e.value);
+                    }
+                    else {
+                        cellInfo.setValue(null);
+                    }
+                }
+            });
+            cellElement.append(selectBox);
+        }
+    </script>
+</div>
+
+

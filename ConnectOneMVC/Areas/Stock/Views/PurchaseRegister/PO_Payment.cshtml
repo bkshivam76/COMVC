@@ -1,0 +1,165 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Purchase
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("PO_PaymentGridData", "PurchaseRegister", new { ActionMethodName = Model.ActionMethod, PO_ID = Model.PO_ID })
+    </div>
+</div>
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-md-12 btnsDiv">
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_PayNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_Payment_New_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_PayDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_Payment_Delete_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_PayViewSL").Text("View Supplier Ledger").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsVisible).OnClick(@<text> function () { OnFrm_PO_Payment_ViewSL_Click() } </text>))
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var paysr;
+    var payid;
+    function OnPurchasePaymentGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID', Payment_GridRowValues);
+    }
+    function Payment_GridRowValues(values) {
+        paysr = values[0];
+        payid = values[1];
+    }
+    $("#PO_PaymentGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                OnFrm_PO_Payment_New_Click();
+                break;
+
+            case 32: //space bar
+                OnFrm_PO_Payment_ViewSL_Click();
+                break;
+            case 46://delete key
+                OnFrm_PO_Payment_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            OnFrm_PO_Payment_New_Click();
+        }
+        //if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        //{
+        //    OnFrm_PO_Payment_Edit_Click();
+        //}
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_PO_Payment_View_Click();
+        }
+    });
+    function OnFrm_PO_Payment_New_Click() {
+        debugger
+        if ("@IsDisabled" == "true") { return; }
+
+        //var menucheck = PO_StatusFlowCheck("Posting-Payments");
+        //if (menucheck[1] == false) {
+        //    DevExpress.ui.dialog.alert(menucheck[0], "Error");
+        //    return;
+        //}
+    
+            ShowLoader();
+    
+        OpenPopup("Purchaseinnergrid", "New ~ Payment Detail","@Url.Action("Frm_PO_Payment", "PurchaseRegister", new {@area= "Stock" })?PO_ID=@Model.PO_ID&SupplierID="+posupplierid, "auto", 1024, false, null);
+    }// new click 0000113 bug fixed
+
+    function OnFrm_PO_Payment_ViewSL_Click() {
+        @*if (paysr == null || paysr == undefined || paysr == "undefined") {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+        }
+
+        $("#Purchaseinnergrid").dxPopup("show");
+        $("#Purchaseinnergrid").dxPopup("instance").option("title", "View ~ Payment Detail");
+        $("#Purchaseinnergrid").dxPopup("instance").option("width", "65%");
+        $("#Purchaseinnergrid").dxPopup("instance").option("height", "50%");
+        $("#result_Purchaseinnergrid").html(null);
+                    ShowLoader();
+        $("#result_Purchaseinnergrid").load("@Url.Action("Frm_PO_Payment", "PurchaseRegister", new {@area= "Stock" })?PO_ID=@Model.PO_ID&SupplierID="+posupplierid, function () {
+                    HideLoader();
+            });*@
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+        }//view click
+    function OnFrm_PO_Payment_Delete_Click() {
+
+        if ("@IsDisabled" == "true") {
+            return;
+        }
+        if (paysr == 'undefined' || paysr == undefined || paysr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var pay_result = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        pay_result.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/PurchaseRegister/PaymentDelete",
+                    data: { ActionMethod: "Delete", sr: paysr, id: payid },
+                    cache: false,
+                    success: function (result) {
+
+                        PO_PaymentGrid.SetFocusedRowIndex(-1);
+                        PO_PaymentGrid.Refresh();
+                      }
+                });
+            }
+        });
+        //var total = ProductionStockConsumedGrid.GetVisibleRowsOnPage() + ProductionStockProducedGrid.GetVisibleRowsOnPage() + ProductionScrapCreatedGrid.GetVisibleRowsOnPage() + Actual_ManPower_Usage_Grid.GetVisibleRowsOnPage() + Machine_Usage_Window_Grid.GetVisibleRowsOnPage()-1;
+
+        //if (total == 0) {
+        //    $("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", false);
+        //}
+    }
+    function Frm_Purchase_Payment_OnSuccess(data)
+    {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+
+            $("#Purchaseinnergrid").dxPopup("hide");
+            PO_PaymentGrid.SetFocusedRowIndex(-1);
+            PO_PaymentGrid.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+
+    }
+
+    //function PO_StatusFlowCheck(Status) {
+    //    var msg;
+    //    var result;
+    //    $.ajax({
+    //        type: 'POST',
+    //        url: "/Stock/PurchaseRegister/PurchaseOrderStatusFlow",
+    //        data: {
+    //            ID: PO_ID,
+    //            StatusButton: Status,
+    //            CurrUserRole: POCurrUserRole
+    //        },
+    //        async: false,
+    //        cache: false,
+    //        success: function (data) {
+    //            msg = data.message;
+    //            result = data.result;
+    //        }
+    //    });
+    //    return [msg, result];
+    //}
+
+
+</script>
+
+

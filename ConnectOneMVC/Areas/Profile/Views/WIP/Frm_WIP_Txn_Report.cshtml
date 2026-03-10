@@ -1,0 +1,191 @@
+﻿<div class="WIP_Txn_RprtProfile_ClearReferences">
+
+    @model ConnectOneMVC.Areas.Profile.Models.WIP_Txn_Report
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        Html.EnableClientValidation();
+        Html.AntiForgeryToken();
+        Html.EnableUnobtrusiveJavaScript();
+    }
+
+    @Html.HiddenFor(x => x.ID)
+    @Html.HiddenFor(x => x.Opening)
+    @Html.HiddenFor(x => x.LED_ID)
+    @Html.HiddenFor(x => x.WIP_Ledger)
+    @Html.HiddenFor(x => x.Reference)
+    @Html.HiddenFor(x => x.Date_of_Creation)
+    @Html.HiddenFor(x => x.CallingFrom)
+    @Html.HiddenFor(x => x.WIP_PopupID)
+    @Html.HiddenFor(x => x.EntryType)
+<div id="Frm_WIP_txn_Report_Content" class="container-fluid no-padding">
+    <form class="edit_form form-horizontal">
+    <div class="full-width-header-bg2">
+        <div class="row">
+            <div class="col-sm-6">
+                <h3 class="popuphead"><i class="far fa-edit"></i> Transaction Report</h3>
+            </div>
+            <div class="col-sm-6"> 
+                <div class="report_button_div">                       
+                @(Html.DevExtreme().Button().ID("WIP_Txn_ListPreview").Text("Export").Icon("save").Width(120).OnClick(@<text> function () { WIP_Txn_Preview(); } </text>))                       
+                @(Html.DevExtreme().Button().ID("WIP_Txn_CLOSE").Text("Close").Icon("clear").OnClick(@<text> function(){WIP_Txn_Close();} </text>))                  
+                        
+             </div><!--[Buttons]-->   
+            </div>       
+        </div>
+    </div><!--[Header]-->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-field">
+                <div class="row">
+                    <div class="col-xs-3">
+                        <label id="SimpleLabelItem1" class="control-label">Ledger:</label>
+                    </div>
+                    <div class="col-xs-9">
+                        <label id="xLedger" class="control-label">@Model.WIP_Ledger</label>
+                    </div>       
+                    <div class="col-xs-3">
+                        <label id="SimpleLabelItem3" class="control-label">Reference:</label>
+                    </div>
+                    <div class="col-xs-9">
+                        <label id="xReference" class="control-label">@Model.Reference</label>
+                    </div>
+                </div>
+            </div>
+        </div>     
+    </div>
+    <div class="row">
+        <div class="col-md-12">   
+            <div id="WIPTxnreloadPartialView" class="parent_table">                   
+                @Html.Partial("Frm_WIP_Txn_Grid")                
+            </div>          
+        </div>
+    </div><!--[Grid]-->       
+    </form>
+</div>
+
+
+
+    @*Javascript Events*@
+<script>
+    function WIP_Txn_Grid_OnContentReady(e) { DxGrid_OnContentReady(e, 1);}
+    function WIP_Txn_Grid_ContextMenuPreparing(e)
+    {
+        if (!e.items) e.items = [];
+        if (e.target == "header")
+        {
+            DxGrid_HeaderContextMenu(e)
+        }
+        else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer")
+        {
+            DxGrid_FooterContextMenu(e);
+        }
+        else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive"))
+        {           
+
+            e.items = [
+                    
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: true,
+                        beginGroup: true,
+                        onItemClick: function () {
+                            WIP_Txn_Preview();
+                        }
+                    },                    
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            WIP_Txn_Close();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            e.component.refresh();
+                        }
+                    }]
+            }
+    }
+    function WIPtxnReport_OnBeforeSend(operation, ajaxOptions)
+    {
+        var param = {};
+        if (operation.includes("load"))
+        {
+            param["OpeningDate"] = $("#Date_of_Creation").val();
+            param["LED_ID"] = $("#LED_ID").val();
+            param["WIP_ID"] = $("#ID").val();
+            param["Opening"] = $("#Opening").val();
+            param["EntryType"] = $("#EntryType").val();
+            ajaxOptions.data = param;
+        }
+    }
+    function WIP_Txn_Preview()
+    {
+        ShowLoader();
+        OpenPopup("WIP_Txn_ListPreview_modal", "Export Options", "@Url.Action("WIP_Txn_Report_Export_Options", "WIP", new {@area = "Profile" })", "auto",125, false, null);
+        HideLoader();
+    }
+    function WIP_Txn_Close()
+    {
+        if (CallingFrom == "WIP_Profile")
+        {
+            $("#WIP_Txn_Report_modal").dxPopup("hide");
+        }
+        else
+        {
+            var popup = "#" + $("#WIP_PopupID").val();
+            $(popup).dxPopup("hide");
+        }
+    }
+    //function calDisplayValue(rowData)
+    //{
+    //    debugger
+    //    console.log(rowData)
+    //    return JS_Json_Date_To_ddMMyyyy(rowData.Date,"DD/MM/YYYY")
+    //}
+    //function calSortingMethod(value1, value2)
+    //{
+    //    debugger
+    //    if (!value1 && value2) return -1;
+    //    if (!value1 && !value2) return 0;
+    //    if (value1 && !value2) return 1;
+    //    return new Date(value1) > new Date(value2)
+    //}
+    //function ColHeaderDS(e, colName)
+    //{
+    //    debugger
+    //    var Data = GetDataSourceItems(e.component.element()[0].id, e.component.NAME)
+    //    var ColData = Data.map(a => a[colName])
+    //    var UniqueColData = ColData.filter(function (v, i, self)
+    //    {
+    //        return i == self.indexOf(v) && v != null && v != "";
+    //    });   
+    //    e.dataSource.postProcess = function (results) {
+    //        results = [];
+    //        results.push({ text: "(Blanks)", value: null })
+    //        for (var i = 0; i < UniqueColData.length; i++)
+    //        {
+    //            results.push({ text: JS_Json_Date_To_ddMMyyyy(UniqueColData[i], "DD/MM/YYYY"), value: UniqueColData[i] })
+    //        }
+    //        results.sort((a, b) => new Date(a.value)-new Date(b.value));
+    //        return results;
+    //    };
+    //}
+    //function calcFilterExpression(filterValue, selectedFilterOperation, target)
+    //{
+    //    if (target == "filterBuilder")
+    //    {
+    //        debugger
+    //        return [this.displayCellValue, selectedFilterOperation, filterValue]
+    //    }
+    //    return this.defaultCalculateFilterExpression.apply(this, arguments);
+    //}    
+</script>
+</div>

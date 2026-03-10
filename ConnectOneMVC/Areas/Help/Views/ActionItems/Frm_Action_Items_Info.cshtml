@@ -1,0 +1,1147 @@
+﻿<div class="AuditAction_InfoScreen_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string PopupID = ViewBag.PopupId == null ? "" : ViewBag.PopupId;
+        var RefScreen = ViewBag.RefScreen;
+        var RefTable = ViewBag.RefTable;
+        var RefRecID = ViewBag.RefRecID;
+        var Status = ViewBag.Status;
+
+        var UserType = ViewBag.UserType;
+        bool ActionItems_AddRight = (bool)ViewData["ActionItems_AddRight"];
+        bool ActionItems_UpdateRight = (bool)ViewData["ActionItems_UpdateRight"];
+        bool ActionItems_DeleteRight = (bool)ViewData["ActionItems_DeleteRight"];
+        bool ActionItems_ViewRight = (bool)ViewData["ActionItems_ViewRight"];
+        bool ActionItems_ExportRight = (bool)ViewData["ActionItems_ExportRight"];
+        bool ActionItems_Add_Edit_Action = (bool)ViewData["ActionItems_Close_Reopen_Actions"];
+        bool ActionItems_Close_Reopen_Actions = (bool)ViewData["ActionItems_Close_Reopen_Actions"];
+
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool ActionItemsInfo_Auto_Vouching_Mode = (bool)ViewData["ActionItemsInfo_Auto_Vouching_Mode"];
+        string GridToBeRefreshed = (string)ViewBag.GridToBeRefreshed;
+    }
+
+
+    <style>
+        .report_button_div > form { display: inline-block }
+    </style>
+
+    <div id="ActionItemsHelp_ParentDiv">
+        <div id="content" class="report_header_div_main">
+            <div class="report_header_div">
+                <label class="report_header_label">Audit Actions <!--<i title="Screen Intro" class="fa fa-question-circle" id="startIntro"></i> <i title="Video Help" onclick="VideosOnClick(this,'https://youtube.com/embed/xszOp16z8KY')" class="fa-brands fa-youtube"></i>--> </label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("AuditActionVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("AuditAction_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("ActionItemsViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("ActionItems_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("BUT_ActionItem_NEW").Text("New").Icon("add").Disabled((Status == "LOCKED" || ActionItems_Add_Edit_Action == false) ? true : false).OnClick(@<text> function () { OnActionItemsNewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BUT_ActionItem_EDIT").Text("Edit").Icon("edit").Disabled((Status == "LOCKED" || ActionItems_Add_Edit_Action == false) ? true : false).OnClick(@<text> function () { OnActionItemsEditClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BUT_ActionItem_VIEW").Text("View").Icon("doc").OnClick(@<text> function () { OnActionItemsViewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("ActionItemToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { ActionItemschangeMode(); } </text>) )
+                @(Html.DevExtreme().Button().ID("ActionItemBUT_PRINT").Text("Export").Icon("save").OnClick(@<text> function () { OnActionItemsListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BUT_ActionItem_CEN_REMARKS").Text("Centre Remarks").Icon("doc").OnClick(@<text> function () { OnActionItemsCentreRemarksClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("ActionItemsSampleFormat").Text("Import Excel Format").OnClick(@<text> function (){ImportSampleFormat_Action_items();} </text>))
+                <form id="uploadExcel_Action_items">
+                    @(Html.DevExtreme().FileUploader().SelectButtonText("Choose File").ID("ExcelUpload_Action_items")
+                    .Name("ExcelUpload_Action_items").Multiple(false).Accept("xls/*").UploadMode(FileUploadMode.UseForm)
+                    .ShowFileList(true).Visible(false).OnValueChanged("ExcelUpload_valueChange_Action_items"))
+                    @*<input type="file" id="ExcelUpload" />*@
+                </form>
+                @(Html.DevExtreme().Button().ID("UploadData_Action_items").Text("Upload by Excel")
+                    .OnClick(@<text> function (){UploadExcelData_Action_items();} </text>))
+                @(Html.DevExtreme().Button().ID("ActionItemBUT_CLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){closeActionitem();} </text>) )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="ActionItemsreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Action_Items_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ActionItem_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="ActionItem_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="ActionItem_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="ActionItem_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="ActionItem_Create" class="right_footertext_top"></p>
+                            <p id="ActionItem_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "ActionItemsHelp_FAB,ActionItemsHelp_grid_DIV,Type2,ActionItemsHelp") @*fab buttons*@
+    </div>
+
+    <div class="video-popup"> <div class="popup-bg"></div> <div class="popup-content"> <iframe src="" class="ytvideo" allow='autoplay'></iframe> <button class="close-btn" onclick="CloseVideos(this)"><i class="bx bx-x"></i></button> </div> </div>
+    
+    @*Javascript Events*@
+
+    <script>
+
+    var IsSucessPopup = false;
+    var IsViewPopup = false;
+    var IsActionItemNewPopup = false;
+    var ActionMethod = "";
+    var ActionItem_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var AuditAction_IsVouchingMode = false;
+    var ActionItemsInfo_Auto_Vouching_Mode = "@ActionItemsInfo_Auto_Vouching_Mode" == "True" ? true : false;
+        var UserType_ActionItemsPrf = "@UserType".toUpperCase();
+    var ActionItems_ViewMode = "Default";
+    var ActionItemsID;
+    var AI_Type;
+    var AI_Status;
+    var AI_Date;
+    var AI_Auditor;
+    var AI_Title;
+    var AI_Description;
+    var AI_Due_On;
+    var AI_Centre_Remarks;
+    var AI_Close_Remarks;
+    var AI_Closed_On;
+    var AI_Closed_By;
+    var AI_CrossedTimeLimit;
+    var AI_Add_Date;
+    var AI_Add_By;
+    var AI_Edit_By;
+    var AI_Edit_Date;
+    var AI_Action_Status;
+    var AI_Action_By;
+    var AI_Action_Date;
+    var AI_RefScreen= "@RefScreen";
+    var AI_RefTable= "@RefTable";
+    var AI_RefRecID = "@RefRecID";
+    var AI_RefStatus = "@Status";
+    var RefScreen = "";
+    var _Ref_Table = "";
+    var RefRecID = "";
+    var RefTable = "";
+    var Info_LastEditedOn = "";
+    var ActionItemsInfo_IsDetailRowExpanded = false;
+    var ActionItemsInfo_NestedRecord_FocusedRowIndex = -1;
+    var ActionItemsInfo_NestedGrid_AccessID;
+    var ActionItemsInfo_AtachmentID;
+    var ActionItemsInfo_FileName;
+    var ActionItemsInfo_ParamMandatory;
+    var ActionItemsInfo_FromDateLabel;
+    var ActionItemsInfo_ToDateLabel;
+    var ActionItemsInfo_DescriptionLabel;
+    var ActionItemsInfo_Doc_ID;
+    var ActionItemsInfo_Doc_Category;
+    var ActionItemsInfo_MasterRowRecID;
+    var ActionItemsInfo_MasterRowMID;
+    var ActionItemsInfo_NestedRowMapID;
+    var ActionItemsInfo_reason;
+    var ActionItemsInfo_Attachment_RecStatus;
+    var ActionItemsInfo_Nested_Doc_Status;
+    var AI_Select_xid = "";
+    var AIFocusedRowIndexBeforeRefresh;
+    var ActionItemsGridLayout = null;
+    var AuditAction_ColumnToBeShownIndex = "";
+    var AuditAction_ColumnToBeHidddenIndex = "";
+
+    </script>
+    @*AuditAction_Info_Global_Variables*@
+    <script type="text/javascript">
+
+    function AuditActionGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined') {
+            if (typeof window.ActionItemsListGrid !== 'undefined') {
+                if (typeof window.ActionItemsListGrid.CollapseAllDetailRows !== 'undefined') {
+                    if (typeof ActionItemsListGrid.CollapseAllDetailRows == 'function') {
+                        ActionItemsListGrid.CollapseAllDetailRows();
+                    }
+                    else {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function () {
+                        AuditActionGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else {
+                alert('grid undefined')
+            }
+        }
+        else {
+            alert('window undefined')
+        }
+    }
+
+    function AuditAction_VouchingSwitch_ValueChange(e)
+    {
+        AuditAction_IsVouchingMode = e.value;
+        AuditActionGrid_CollapseAllDetailRows();
+    }
+    function ActionItems_ViewSwitch_ValueChange(e)
+    {
+        ActionItems_ViewMode = e.value == false ? "Default" : "Compact";
+        if (ActionItemsInfo_Auto_Vouching_Mode == true)
+        {
+            ActionItemsInfo_Auto_Vouching_Mode = false;
+            $("#AuditActionVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            ActionItemsListGrid.CollapseAllDetailRows();
+        }
+    }
+    function closeActionitem()
+    {
+        if ("@PopupID".length == 0)
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        else
+        {
+            HidePopup("@PopupID");
+
+        }
+    }
+        $(function ()
+        {
+            if ("@PopupID".length > 0)
+            {
+                if ("@PopupID" != "Dynamic_Content_popup")
+                {
+                    $("#" + "@PopupID").dxPopup({
+                        onHiding: function (e)
+                        {
+                            $.ajax({
+                                url: "/Help/ActionItems/SessionClear",
+                                type: "GET"
+                            });
+                            if ("@GridToBeRefreshed".length > 0)
+                            {
+                                RefreshGridView("@GridToBeRefreshed");
+                            }
+                            // $("#ActionItemsHelp_ParentDiv").remove();
+                        }
+                    });
+                }
+                else
+                {
+                    sessionclearpath = "/Help/ActionItems/SessionClear";
+                }
+            }
+        });
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/SessionClear",
+            cache: false
+        });
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        // $("#ActionItemsHelp_ParentDiv").remove();
+
+        ClearAllReferences_AuditActionInfo()
+    });
+
+        function ClearAllReferences_AuditActionInfo() {
+            IsSucessPopup = null;
+            IsViewPopup = null;
+            IsActionItemNewPopup = null;
+            ActionMethod = null;
+            ActionItem_ShowHorizontalBar = null;
+            AuditAction_IsVouchingMode = null;
+            ActionItemsInfo_Auto_Vouching_Mode = null;
+            UserType_ActionItemsPrf = null;
+            ActionItems_ViewMode = null;
+            ActionItemsID = null;
+            AI_Type = null;
+            AI_Status = null;
+            AI_Date = null;
+            AI_Auditor = null;
+            AI_Title = null;
+            AI_Description = null;
+            AI_Due_On = null;
+            AI_Centre_Remarks = null;
+            AI_Close_Remarks = null;
+            AI_Closed_On = null;
+            AI_Closed_By = null;
+            AI_CrossedTimeLimit = null;
+            AI_Add_Date = null;
+            AI_Add_By = null;
+            AI_Edit_By = null;
+            AI_Edit_Date = null;
+            AI_Action_Status = null;
+            AI_Action_By = null;
+            AI_Action_Date = null;
+            AI_RefScree = null;
+            AI_RefTabl = null;
+            AI_RefRecID = null;
+            AI_RefStatus = null;
+            RefScreen = null;
+            _Ref_Table = null;
+            RefRecID = null;
+            RefTable = null;
+            Info_LastEditedOn = null;
+            ActionItemsInfo_IsDetailRowExpanded = null;
+            ActionItemsInfo_NestedRecord_FocusedRowIndex = null;
+            ActionItemsInfo_NestedGrid_AccessID = null;
+            ActionItemsInfo_AtachmentID = null;
+            ActionItemsInfo_FileName = null;
+            ActionItemsInfo_ParamMandatory = null;
+            ActionItemsInfo_FromDateLabel = null;
+            ActionItemsInfo_ToDateLabel = null;
+            ActionItemsInfo_DescriptionLabel = null;
+            ActionItemsInfo_Doc_ID = null;
+            ActionItemsInfo_Doc_Category = null;
+            ActionItemsInfo_MasterRowRecID = null;
+            ActionItemsInfo_MasterRowMID = null;
+            ActionItemsInfo_NestedRowMapID = null;
+            ActionItemsInfo_reason = null;
+            ActionItemsInfo_Attachment_RecStatus = null;
+            ActionItemsInfo_Nested_Doc_Status = null;
+            AI_Select_xid = null;
+            AIFocusedRowIndexBeforeRefresh = null;
+            ActionItemsGridLayout = null;
+            AuditAction_ColumnToBeShownIndex = null;
+            AuditAction_ColumnToBeHidddenIndex = null;
+
+            ClearAllReferences("AuditAction_InfoScreen_ClearReferences")
+        }
+
+
+    function OnActionItemsCellClick(event, cell,col, row)
+    {
+        if (UserType_ActionItemsPrf == "AUDITOR" || UserType_ActionItemsPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+
+    $(document).ready(function () {
+
+
+        if ("@ActionItems_AddRight" == "False")
+        {
+	        $("#BUT_ActionItem_NEW").hide();
+        }
+        if ("@ActionItems_UpdateRight" == "False")
+        {
+            $("#BUT_ActionItem_EDIT").hide();
+        }
+        if ("@ActionItems_ViewRight" == "False")
+        {
+            $("#BUT_ActionItem_VIEW").hide();
+        }
+        if ("@ActionItems_ExportRight" == "False")
+        {
+            $("#ActionItemBUT_PRINT").hide();
+        }
+        $(".ActionItemsListGrid_PreviewRow").hide();
+        GetSessionStorage("ActionItemsListGrid");
+        if (ActionItemsInfo_Auto_Vouching_Mode == true)
+        {
+            $("#ActionItemsViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    </script>
+    <script>
+    function On_ActionItemsHelp_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+            }
+            if (ActionItemsInfo_ParamMandatory == 1)
+            {
+            AddAttachment(ActionItemsInfo_MasterRowRecID, "Help_Action_Items", ActionItemsInfo_Doc_ID, ActionItemsInfo_Doc_Category, ActionItemsInfo_ParamMandatory, ActionItemsInfo_FromDateLabel, ActionItemsInfo_ToDateLabel, ActionItemsInfo_DescriptionLabel, "ActionItemsHelpAttachment", null, "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+            Attachment_DirectBrowse(ActionItemsInfo_MasterRowRecID, "Help_Action_Items", ActionItemsInfo_Doc_ID, "ActionItemsHelpAttachment", "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+            }
+            else if (e.actionName === "edit_attach")
+            {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+            }
+            if (ActionItemsInfo_Nested_Doc_Status == "NO" || ActionItemsInfo_Nested_Doc_Status == ""  ) {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            if (ActionItemsInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+            DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+            return;
+            }
+
+            EditAttachment(ActionItemsInfo_MasterRowRecID, "Help_Action_Items", ActionItemsInfo_AtachmentID, ActionItemsInfo_ParamMandatory, ActionItemsInfo_FromDateLabel, ActionItemsInfo_ToDateLabel, ActionItemsInfo_DescriptionLabel, "ActionItemsHelpAttachment", null, "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach")
+            {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+            }
+            if (ActionItemsInfo_Nested_Doc_Status == "NO" || ActionItemsInfo_Nested_Doc_Status == "") {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            DeleteAttachment(ActionItemsInfo_MasterRowRecID, "Help_Action_Items", ActionItemsInfo_AtachmentID, ActionItemsInfo_ParamMandatory, ActionItemsInfo_FromDateLabel, ActionItemsInfo_ToDateLabel, ActionItemsInfo_DescriptionLabel, null, "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID, ActionItemsInfo_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach")
+            {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+            }
+            if (ActionItemsInfo_Nested_Doc_Status == "NO" || ActionItemsInfo_Nested_Doc_Status == "") {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+
+            ViewDocument(ActionItemsInfo_AtachmentID, ActionItemsInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach")
+            {
+                LinkAttachment(ActionItemsInfo_MasterRowRecID, "Help_Action_Items", "Audit Actions", "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason")
+            {
+            if (ActionItemsInfo_Doc_Category.toLowerCase() == "others") {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(ActionItemsInfo_MasterRowRecID, ActionItemsInfo_NestedRowMapID, "Help_Action_Items", "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+         }
+            else if (e.actionName === "Edit_Reason")
+            {
+            AttachmentEditReason(ActionItemsInfo_MasterRowRecID, ActionItemsInfo_NestedRowMapID, "Help_Action_Items", "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID, ActionItemsInfo_reason);
+            }
+            else if (e.actionName === "Delete_Reason")
+            {
+            AttachmentDeleteReason(ActionItemsInfo_MasterRowRecID, ActionItemsInfo_NestedRowMapID, "ActionItemsListGrid", ActionItemsInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Rotate")
+            {
+            ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut")
+            {
+            ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn")
+            {
+            ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit")
+            {
+            ImageFit(img);
+            }
+            else if (e.actionName == "Back")
+            {
+            ImageBack(s.uniqueID, "actionItemContext");
+            }
+            }
+    function OnActionItemsListGridNestedFocusedRowChange(s, e)
+            {
+
+        if (ActionItemsInfo_IsDetailRowExpanded) {
+            ActionItemsInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (ActionItemsInfo_NestedRecord_FocusedRowIndex >= 0) {
+
+                ShowLoader();
+                ActionItemsHelp_FAB.SetVisible(true);
+                ActionItemsInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID', OnActionItemsInfo_GetGridRowValues);
+            }
+            else {
+                ActionItemsHelp_FAB.SetVisible(false);
+            }
+        }
+            }
+            function OnActionItemsInfo_GetGridRowValues(values)
+            {
+                HideLoader();
+                if (values[14] != null)
+                {
+                    ActionItemsHelp_FAB.SetVisible(true);
+                    ActionItemsInfo_Nested_Doc_Status = values[0];
+                    ActionItemsHelp_FAB.SetActionContext("actionItemContext", true);
+                    ActionItemsInfo_ParamMandatory = values[1];
+                    ActionItemsInfo_FromDateLabel = values[2];
+                    ActionItemsInfo_ToDateLabel = values[3];
+                    ActionItemsInfo_DescriptionLabel = values[4];
+                    ActionItemsInfo_Doc_Category = values[5];
+                    ActionItemsInfo_Doc_ID = values[6];
+                    ActionItemsInfo_AtachmentID = values[7];
+                    ActionItemsInfo_MasterRowRecID = values[8];
+                    ActionItemsInfo_MasterRowMID = values[9];
+                    ActionItemsInfo_NestedRowMapID = values[10];
+                    ActionItemsInfo_reason = values[11];
+                    ActionItemsInfo_FileName = values[12];
+                    ActionItemsInfo_Attachment_RecStatus = values[13];
+                    if (AuditAction_IsVouchingMode == true)
+                    {
+                        if (ActionItemsInfo_FileName != null && ActionItemsInfo_FileName.length > 0)
+                        {
+                            ViewDocument(ActionItemsInfo_AtachmentID, ActionItemsInfo_FileName, "ActionItemsHelp_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                        }
+                        else
+                        {
+                            var pane = Mainspliter.GetPaneByName('RightPane');
+                            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                            document.getElementById('RightPane_div_Iframe').style.display = "none";
+                            document.getElementById('RightPane_div_Img').style.display = "none";
+                        }
+                    }
+                }
+            }
+            function ActionItemsGrid_Nested_BeginCallBack(s, e)
+            {
+                e.customArgs["ShowHorizontalBar"] = ActionItem_ShowHorizontalBar;
+                e.customArgs["VouchingMode"] = AuditAction_IsVouchingMode;
+                e.customArgs["command"] = e.command;
+            }
+            function ActionItemsGrid_DetailRowExpanding(s, e)
+            {
+                ActionItemsInfo_IsDetailRowExpanded = true;
+                s.SetFocusedRowIndex(e.visibleIndex);
+                var pane = Mainspliter.GetPaneByName('RightPane');
+                if (AuditAction_IsVouchingMode == true)
+                {
+                    pane.Expand();
+                }
+                else
+                {
+                    pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                }
+            }
+            function ActionItemsGrid_DetailRowCollapsing(s, e)
+            {
+                ActionItemsInfo_IsDetailRowExpanded = false;
+                s.SetFocusedRowIndex(e.visibleIndex);
+                if (AuditAction_IsVouchingMode == true)
+                {
+                    if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+                    {
+                        CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+                    }
+                }
+                else
+                {
+                    ActionItemsHelp_FAB.SetVisible(false);
+                }
+            }
+    </script>
+    @*attachment and nested grid*@
+    <script>
+
+        function ActionItemsAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try { ActionItemsListGrid.SetHeight(height); } catch (err) { }
+        }
+        function ActionItemsOnInit(s, e) {
+            ActionItemsAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ActionItemsAdjustSize();
+            });
+        }
+        function ActionItemsGrid_BeginCallBack(s, e) {
+            e.customArgs["command"] = e.command;
+            e.customArgs["ShowHorizontalBar"] = ActionItem_ShowHorizontalBar;
+            e.customArgs["Status"] = AI_RefStatus;
+            e.customArgs["RefRecID"] = AI_RefRecID
+            e.customArgs["RefTable"] = AI_RefTable;
+            e.customArgs["RefScreen"] = AI_RefScreen;
+            e.customArgs["VouchingMode"] = AuditAction_IsVouchingMode;
+            e.customArgs["ViewMode"] = ActionItems_ViewMode;
+            e.customArgs["ColumnToBeShownIndex"] = AuditAction_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = AuditAction_ColumnToBeHidddenIndex;
+        }
+
+        function OnGridActionItemsListGrid_EndCallback(s, e) {
+            //ActionItemsAdjustSize();
+            ActionItemsGridLayout = s.cpClientLayout;
+            AuditAction_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            AuditAction_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+            $(".ActionItemsListGrid_PreviewRow").hide();
+            GetSessionStorage("ActionItemsListGrid");
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+
+                AIFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+                s.SetFocusedRowIndex(-1);
+                if (AI_Select_xid.length > 0) {
+                    for (var i = 0; i < s.GetVisibleRowsOnPage(); i++) {
+                        if (s.GetRowKey(i) == AI_Select_xid) {
+                            s.SetFocusedRowIndex(i);
+                            break;
+                        }
+                    }
+                }
+                else {
+                    s.SetFocusedRowIndex(AIFocusedRowIndexBeforeRefresh);
+                }
+                AI_Select_xid = "";
+            }
+        }
+        function ActionItemschangeMode() {
+            ShowLoader();
+            if (ActionItem_ShowHorizontalBar == 0) {
+                ActionItem_ShowHorizontalBar = 1;
+                $("#ActionItemToggleScrollBar").find("span").text("Default Data");
+                $("#ActionItemToggleScrollBar").width(110);
+            }
+            else {
+                ActionItem_ShowHorizontalBar = 0;
+                $("#ActionItemToggleScrollBar").find("span").text("Full Data");
+                $("#ActionItemToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: "/Help/ActionItems/Frm_Action_Items_Info_Grid",
+                type: "GET",
+                data: { ShowHorizontalBar: ActionItem_ShowHorizontalBar, Layout: ActionItemsGridLayout, VouchingMode: AuditAction_IsVouchingMode, ViewMode: ActionItems_ViewMode, ColumnToBeHidddenIndex: AuditAction_ColumnToBeHidddenIndex, ColumnToBeShownIndex: AuditAction_ColumnToBeShownIndex },
+                success: function (res) {
+
+                    $("#ActionItemsreloadPartialView").html(res);
+                    GetSessionStorage("ActionItemsListGrid");
+                    $(".ActionItemsListGrid_PreviewRow").hide();
+                }
+            });
+            HideLoader();
+        }
+        function OnActionItemsGridFocusedRowChanged(s, e) {
+            //ShowLoader();//redmine Bug #133180 fixed
+            if (s.GetFocusedRowIndex() > -1) {
+                if (!s.IsGroupRow(s.GetFocusedRowIndex())) {
+                    s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Edit_By;Add_Date;Add_By;Action_Date;Action_By;Action_Status;Status', ActionItemsOnGetRowValues);
+                }
+                else {
+                    ActionItemsID = null;
+                    AI_UpdateFooterDetail(ActionItemsID, AI_Action_Status, AI_Add_Date, AI_Add_By, AI_Action_Date, AI_Action_By, AI_Edit_Date, AI_Edit_By);
+                }
+            }
+            else {
+                ActionItemsID = null;
+                AI_UpdateFooterDetail(ActionItemsID, AI_Action_Status, AI_Add_Date, AI_Add_By, AI_Action_Date, AI_Action_By, AI_Edit_Date, AI_Edit_By);
+            }
+        }
+        function ActionItemsOnGetRowValues(values) {
+            ActionItemsID = values[0];
+            AI_Action_Status = values[7];
+            AI_Edit_Date = values[1];
+            AI_Add_By = values[4];
+            AI_Add_Date = values[3];
+            AI_Edit_By = values[2];
+            AI_Action_Date = values[5];
+            AI_Action_By = values[6];
+            AI_Status = values[8];
+            AI_UpdateFooterDetail(ActionItemsID, AI_Action_Status, AI_Add_Date, AI_Add_By, AI_Action_Date, AI_Action_By, AI_Edit_Date, AI_Edit_By);
+        }
+        function AI_UpdateFooterDetail(ActionItemsID, ActionItems_Action_Status, ActionItems_Add_Date, ActionItems_Add_By, ActionItems_Action_Date, ActionItems_Action_By, ActionItems_Edit_Date, ActionItems_Edit_By) {
+
+            HideLoader();//redmine Bug #133180 fixed
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (ActionItemsID != null) {
+                ActionItems_Add_Date = (moment(ActionItems_Add_Date).format("DD/MM/YYYY HH:mm:ss"));
+                ActionItems_Edit_Date = (moment(ActionItems_Edit_Date).format("DD/MM/YYYY HH:mm:ss"));
+                ActionItems_Action_Date = (moment(ActionItems_Action_Date).format("DD/MM/YYYY HH:mm:ss"));
+                Status = ActionItems_Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+                if (ActionItems_Action_Date) {
+                    Lbl_ActionOn = StatusStr + " On: " + ActionItems_Action_Date;
+                    Lbl_ActionBy = StatusStr + " By: " + ActionItems_Action_By;
+                }
+                else {
+                    Lbl_ActionOn = "";
+                    Lbl_ActionBy = "";
+                }
+                if (ActionItems_Add_Date) {
+                    Lbl_Create = "Add On: " + ActionItems_Add_Date + ", By: " + ActionItems_Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+                if (ActionItems_Edit_Date) {
+                    Lbl_Modify = "Edit On: " + ActionItems_Edit_Date + ", By: " + ActionItems_Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#ActionItem_Status').text(Lbl_Status);
+            $('#ActionItem_Lbl_ActionOn').text(Lbl_ActionOn)
+            $('#ActionItem_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#ActionItem_Create').text(Lbl_Create);
+            $('#ActionItem_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#ActionItem_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ActionItem_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ActionItem_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ActionItem_LockICON').removeClass("fa");
+                $('#ActionItem_LockICON').removeClass("fa-lock");
+                $('#ActionItem_LockICON').removeClass("fa-unlock");
+            }
+        }
+        function ActionItemsdblclickEdit(s, e) {
+            OnActionItemsEditClick();
+        }
+        function ActionItemsContextMenuFunction(s, e) {
+            ActionMethod = "";
+            if (e.item.name == 'New') {
+                OnActionItemsNewClick();
+            }
+            if (e.item.name == 'Close') {
+                closeActionitem();//redmine Bug #132876 fixed
+            }
+            else if (e.item.name == 'Edit') {
+                OnActionItemsEditClick();
+            }
+            else if (e.item.name == 'View') {
+                OnActionItemsViewClick();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnActionItemsListPreviewClick();
+            }
+            else if (e.item.name == 'CentreRemarks') {
+                OnActionItemsCentreRemarksClick();
+            }
+            else if (e.item.name == 'MarkClosed') {
+                AI_MarkCloseClick('MARK-CLOSED');
+            }
+            else if (e.item.name == 'ReOpen') {
+                AI_ReopenClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                ActionItemsListGrid.Refresh();
+            }
+        }
+    </script>
+    @* Grid Functions *@
+    <script>
+
+    function OnActionItemsNewClick()
+    {
+        if ("@ActionItems_AddRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if ("@ActionItems_Add_Edit_Action" == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        $("#ActionItemsvalidationForm").remove();//Redmine Bug #133231 fixed
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Action_Items_Window",
+            data:
+            {
+                ActionMethod: "New",
+                RefRecID: AI_RefRecID,
+                RefTable: AI_RefTable,
+                RefScreen: AI_RefScreen == "" ? "Direct Entry" : AI_RefScreen
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("New ~ Audit Actions", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function OnActionItemsEditClick()
+    {
+        if ("@ActionItems_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if ("@ActionItems_Add_Edit_Action" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (ActionItemsID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            return;
+        }
+        if (AI_Status.toUpperCase() == "CLOSED")
+        {
+            DevExpress.ui.dialog.alert('Closed Action Item Cannot Be Edited<br><br>Please Reopen To Make Changes', 'Information');
+            return;
+        }
+        $("#ActionItemsvalidationForm").remove();//Redmine Bug #133231 fixed
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Action_Items_Window",
+            data:
+            {
+                ActionMethod: "Edit",
+                RefRecID: AI_RefRecID,
+                RefTable: AI_RefTable,
+                RefScreen: AI_RefScreen == "" ? "Direct Entry" : AI_RefScreen,
+                ID: ActionItemsID,
+                Info_LastEditedOn: (moment(AI_Edit_Date).format("DD/MM/YYYY HH:mm:ss"))
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("Edit ~ Audit Actions", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function OnActionItemsViewClick()
+    {
+        if ("@ActionItems_ViewRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (ActionItemsID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Action_Items_Window",
+            data:
+            {
+                ActionMethod: "View",
+                ID: ActionItemsID,
+                Info_LastEditedOn: (moment(AI_Edit_Date).format("DD/MM/YYYY HH:mm:ss"))
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("View ~ Audit Actions", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function AI_MarkCloseClick(ActionItems)
+    {
+        if ("@ActionItems_Close_Reopen_Actions" == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (ActionItemsID == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (AI_Status.toUpperCase() == "CLOSED") {
+            DevExpress.ui.dialog.alert('Already Closed Action Item Cannot Be Closed...!', 'Information');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Action_Items_Window",
+            data:
+            {
+                ActionMethod: "Close",
+                ID: ActionItemsID
+            },
+            cache: false,
+            success: function (data) {
+                HideLoader();
+                OpenDynamicPopup("Close ~ Audit Actions", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function AI_ReopenClick()
+    {
+        if ("@ActionItems_Close_Reopen_Actions" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (ActionItemsID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (AI_Status.toUpperCase() != "CLOSED") {
+            DevExpress.ui.dialog.alert('Only Closed Action Can Be Re-Opened...!', 'Information');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Action_Items_Window",
+            data:
+            {
+                ActionMethod: "Re_Open",
+                RefRecID: AI_RefRecID,
+                RefTable: AI_RefTable,
+                RefScreen: AI_RefScreen == "" ? "Direct Entry" : AI_RefScreen,
+                ID: ActionItemsID,
+                Info_LastEditedOn: (moment(AI_Edit_Date).format("DD/MM/YYYY HH:mm:ss"))
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("Re-Open ~ Audit Actions", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function OnActionItemsCentreRemarksClick()
+    {
+        if (ActionItemsID ==null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (AI_Status.toUpperCase() == "CLOSED")
+        {
+            DevExpress.ui.dialog.alert('Centre Remarks Not Required For Closed Query/Centre Action...!', 'Information');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/ActionItems/Frm_Centre_Remarks_Window",
+            data:
+            {
+                ID: ActionItemsID,
+                ActionMethod:"New"
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("Audit Query ~ Centre Remarks", null, "auto", "60%", true, data);
+            }
+        });
+    }
+
+    function OnActionItemsListPreviewClick()
+    {
+        if ("@ActionItems_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        ShowLoader();
+        OpenPopup("Action_Items_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "ActionItems", new { @area = "Help" })", "auto", "auto", false, null);
+    }
+
+    function ImportSampleFormat_Action_items() {
+        file_name = "Address_Book";
+        window.location.href = '@Url.Action("ImportTableAsExcelFile", "Base", new { area = "", table_name = "ACTION_ITEM_INFO" })';
+    }
+    var dialog = document.getElementById('ExcelUpload_Action_items');
+    var file_path = "";
+    var file_name = "";
+
+
+
+    function UploadExcelData_Action_items() {
+        //$('#AddressUploadData').click(function () {
+        //debugger;
+        //$('#ExcelUpload').trigger("click");
+
+        var fileUploader = $("#ExcelUpload_Action_items").dxFileUploader("instance");
+        fileUploader.reset();
+        fileUploader._isCustomClickEvent = true;
+        fileUploader._$fileInput.click();
+    }
+    function ExcelUpload_valueChange_Action_items(e) {
+        //$("#Txt_ProfilePic_FileName").val(null);
+        var files = e.value;
+        //debugger;
+        if (files.length > 0) {
+            if ((files[0].type).includes("sheet")) {
+                const blob = new Blob([files[0]], { type: files[0].type });
+                var url = URL.createObjectURL(blob);
+                file_path = url;
+                file_name = files[0].name;
+                //debugger;
+                UploadProcessAfterBrowse_Action_items();
+            }
+            else {
+                DevExpress.ui.dialog.alert('No File is Selected', "Information...").done(function () { });
+            }
+        }
+    }
+
+    function UploadProcessAfterBrowse_Action_items() {
+        debugger;
+        var formdata = new FormData($('#uploadExcel_Action_items').get(0));
+        var tablename = "ACTION_ITEM_INFO"
+        //formdata.append("file_name", file_name);
+        //formdata.append("file_path", file_path);
+        formdata.append("table_name", tablename);
+        if (file_name) {
+            $.ajax({
+                url: "/Base/ReadUploadedExcel",
+                type: "POST",
+                cache: false,
+                data: formdata,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    //debugger;
+                    if (res.jsonParam.result == true) {
+                        DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                    }
+                    if (res.jsonParam.result == false) {
+                        //DevExpress.ui.notify({ message: res.jsonParam.message, width: 500, shading: true, position: 'center' }, "error", 1000);
+                        DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                    }
+                    HideLoader();
+                }
+            });
+        }
+        }
+
+
+        @*$('#startIntro').on('click', function () {
+            var introJsStarted = introJs().start();
+            // hiding modal on 'oncomplete' and 'exit' events
+            introJsStarted
+                .oncomplete(function () {
+                    $('#add-images-popup').hide();
+                }).onexit(function () {
+                    $('#add-images-popup').hide();
+                }).onchange(function (targetElement) {
+                    // and show modal on Step 4
+                    if ($(targetElement).attr("data-step") == 1) {
+                        $('#introModal').show();
+                    }
+                    // don't forget to hide modal on other steps
+                    if ($(targetElement).attr("data-step") != 1) {
+                        $('#introModal').hide();
+                    }
+                });
+        });*@
+
+        $(function () {
+
+            const intro = introJs();
+
+            // Define the steps of the introduction
+            intro.setOptions({
+                steps: [
+                    {
+                        intro: "<big>" + "&#128161;" + "<b> Welcome to Audit Actions</b></big><hr>" +
+                            "<p>This Screen contains Queries/Tasks by Auditrs OR Madhuban Accounts Office on which Some Action/Response is needed from Centre. Audit Action can be created/closed by Auditors/Madhuban Staff. Centers can add Response to them.</p><hr>" +
+                            "<p>इस स्क्रीन में ऑडिटर्स या मधुबन अकाउंट ऑफ़िस द्वारा वे प्रश्न/कार्य शामिल हैं जिन पर सेवाकेंद्र की तरफ से कुछ कार्रवाई/प्रतिक्रिया की आवश्यकता है। ऑडिट एक्शन ऑडिटर/मधुबन स्टाफ द्वारा बनाया/बंद किया जा सकता है। सेवाकेंद्र उनमें अपनी प्रतिक्रिया दे सकते हैं।</p>",
+                        tooltipClass: 'twid-400'
+                    },
+                    {
+                        element: "#ActionItemsListGrid_DXHeadersRow0",
+                        intro: "<p>All the Audit Actions with their current status & details would be visible in this table.</p> <hr> <p>सभी ऑडिट एक्शन उनकी वर्तमान स्थिति और जानकारी के साथ इस टेबल में दिखाई देंगे।</p>",
+                    },
+                    {
+                        element: "#BUT_ActionItem_VIEW",
+                        intro: "<p>Click here to open Selected Audit Query/Task in View Mode. You can see all details, but cannot change them.</p> <hr> <p>चयन की गयी ऑडिट क्वेरी/कार्य को व्यू मोड में खोलने के लिए यहां क्लिक करें। आप सारी जानकारी देख सकते हैं, लेकिन उन्हें बदल नहीं सकते.</p>",
+                    }, 
+                    {
+                        element: "#ActionItemToggleScrollBar",
+                        intro: "<p>Use this button to Switch between default view and Scrollable Full View of the data. Default view is more suitable to mobiles or smaller screens, where horizontal space is less and user can see full data of a specific row by clicking 3dots on extreme right of each Row. Full view is more suitable for wider screens, and user can see all columns of full table in one shot, by using horizontal scrollbar shown in bottom of Data table.</p> <hr> " +
+                            "<p>डेटा के डिफ़ॉल्ट व्यू और स्क्रॉल करने वाले फुल व्यू के बीच स्विच करने के लिए इस बटन का उपयोग करें। डिफ़ॉल्ट व्यू मोबाइल या छोटी स्क्रीन के लिए अधिक उपयोगी है, जहां चौड़ाई कम है और यूजर हर लाइन के सबसे दाईं ओर दिए तीन बिंदु पर क्लिक करके उस एक लाइन का पूरा डेटा देख सकता है। चौड़ी स्क्रीन के लिए फुल व्यू अधिक उपयोगी है, और उपयोगकर्ता डेटा टेबल के नीचे दिखाए गए चौड़े स्क्रॉलबार का उपयोग करके, एक ही बार में टेबल के सभी कॉलम देख सकता है।</p>",
+                        tooltipClass: 'twid-400'
+                    },
+                    {
+                        element: "#ActionItemBUT_PRINT",
+                        intro: "<p>You can export the data table into different file formats by clicking here.</p> <hr> <p>आप यहां क्लिक करके डेटा तालिका को विभिन्न फाइलों में निर्यात कर सकते हैं</p>",
+                    },
+                    {
+                        element: "#BUT_ActionItem_CEN_REMARKS",
+                        intro: "<p>Centers can write/edit remarks on a Audit Action by clicking here. These remarks notify Madhuban Office/Auditor on the action taken by Centre, on the Requirement asked by them. Not mentioning these remarks can Block many actions like Audit Registration etc.</p> <hr>" +
+                            "<p>सेवाकेंद्र यहां क्लिक करके ऑडिट एक्शन पर प्रतिक्रिया लिख/बदल सकते हैं। ये प्रतिक्रिया मधुबन ऑफिस/ऑडिटर को उनके द्वारा पूछी गई आवश्यकता पर सेवाकेंद्र द्वारा की गई कार्रवाई के बारे में सूचित करती हैं। प्रतिक्रिया न लिखने से ऑडिट रजिस्ट्रेशन या ऐसे अनेक कार्यों पर रोक लग सकती हैं।</p>",
+                    },
+                ],
+                doneLabel: 'Finish Intro'
+            });
+
+            // Start the introduction
+            $("#startIntro").click(function () {intro.start();})
+        })
+
+    </script>
+
+    @* Actions *@
+</div>

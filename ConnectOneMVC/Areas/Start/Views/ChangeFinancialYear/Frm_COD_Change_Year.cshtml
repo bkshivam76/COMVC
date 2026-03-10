@@ -1,0 +1,200 @@
+﻿<div class="ChangeFY_ClearReferences">
+    @using ConnectOneMVC.Models
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        var BASE = new Common_Lib.Common();
+        var SessionGUID = Request.QueryString["SessionGUID"];
+        if (!string.IsNullOrEmpty(SessionGUID))
+        {
+            List<BaseModel> ListOfBase = new List<BaseModel>();
+
+            if (HttpContext.Current.Session["BASEClass"] == null)
+            {
+                BASE = new Common_Lib.Common();
+                BASE.Get_Configure_Setting();
+            }
+            else
+            {
+                try
+                {
+                    ListOfBase = HttpContext.Current.Session["BASEClass"] as List<BaseModel>;
+                    var basedata = ListOfBase.FirstOrDefault(x => x.CenterGuid == Guid.Parse(SessionGUID.ToString()));
+                    if (basedata == null)
+                    {
+                        BASE = new Common_Lib.Common();
+                        BASE.Get_Configure_Setting();
+                    }
+                    else
+                    {
+                        BASE = basedata.BASE;
+                    }
+                }
+                catch (Exception e)
+                {
+                    BASE = new Common_Lib.Common();
+                    BASE.Get_Configure_Setting();
+                }
+            }
+        }
+        else
+        {
+            BASE = new Common_Lib.Common();
+            BASE.Get_Configure_Setting();
+        }
+    }
+    <div id="CFY_ParentDiv">
+        @*<div class="report_header_div_main">*@
+        <div id="CFYLockData" class="col-md-12  report_header_div_main">
+            <div class="col-md-12 report_header_div">
+                <label class="report_header_label">Change Financial Year from @BASE._open_Year_Name</label>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="CFY_grid_DIV">
+            <form>
+                <div id="COD_chagne_Year_Grid_ReloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_COD_Change_Year_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="row">
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <span style="color:maroon;"><b>&nbsp; @BASE._open_UID_No</b></span>
+                @(Html.DevExtreme().Button().CustomSaveButton().ID("btnSetDefault_CFY").Text("Set Selected Year as Default").Hint("Set Default").OnClick(@<text> function () {  Post_Frm_COD_Set_Default(); } </text>) )
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="styleActionBtn">
+
+                    @(Html.DevExtreme().Button().CustomSaveButton().ID("btnOK_CFY").Text("OK").Hint("OK").OnClick(@<text> function () {  Post_Frm_COD_Change_Year(); } </text>) )
+                    @(Html.DevExtreme().Button().CustomCloseButton().ID("btnCancel_CFY").Text("Cancel").Hint("Cancel").OnClick(@<text> function () { $("#Dynamic_Content_popup").dxPopup("hide"); } </text>) )
+                </div>
+            </div>
+        </div><!--[Buttons]-->
+    </div>
+
+
+    <script>
+        var CFY_SetDefaultPressed = false;
+        var CFY_IsDefault;
+        var COD_YEAR_ID;
+        var ACC_TYPE;
+        var Lock;
+        var To;
+        var From;
+        var Financial_Year;
+    </script> @*ChangeFY_Global_Variables*@
+
+    <script>
+        $(document).ready(function () {
+            ShowLoader();
+            CFY_SetDefaultPressed = false;
+            sessionclearpath = "/Start/ChangeFinancialYear/SessionClear";
+            HideLoader();
+        });
+
+        function OnCOD_Chagne_FinancialYear_FocusedRowChanged(s, e) {
+            s.Focus();
+            if (s.GetFocusedRowIndex() >= 0) {
+
+            }
+            else {
+                COD_YEAR_ID = null;
+            }
+            //s.GetRowValues(s.GetFocusedRowIndex(), 'COD_YEAR_ID;ACC_TYPE;Lock;To;From;Financial_Year', OnGetRowValues);
+        }
+
+
+        function Frm_COD_Change_Year_GridOnGetRowValues(GridData) {
+            var values = GridData.split("![");
+            COD_YEAR_ID = values[0];
+            ACC_TYPE = values[1];
+            Lock = values[2];
+            To = values[3];
+            From = values[4];
+            Financial_Year = values[5];
+            CFY_IsDefault = values[6];
+            HideLoader();
+            if (COD_YEAR_ID == null) {
+                DevExpress.ui.dialog.alert("Please Select A Row..!!", 'Warning!');
+                CFY_SetDefaultPressed = false;
+                return;
+            }
+            if (CFY_IsDefault == "True" && CFY_SetDefaultPressed == true) {
+                DevExpress.ui.dialog.alert("Selected Year Is Already Set As Default..!!", 'Warning!');
+                CFY_SetDefaultPressed = false;
+                return;
+            }
+            if (CFY_SetDefaultPressed == true) {
+                var confirm = DevExpress.ui.dialog.confirm("Sure You Want To Set " + Financial_Year + " As Default..?", "Confirm");
+                confirm.done(function (result) {
+                    if (result) {
+                        CFY_SetDefaultPressed = true;
+                        Do_ChangeFinanacialYear();
+                    }
+                    else { CFY_SetDefaultPressed = false; }
+                });
+            }
+            else {
+                Do_ChangeFinanacialYear();
+            }
+
+        }
+        function Post_Frm_COD_Set_Default() {
+            CFY_SetDefaultPressed = true;
+            Post_Frm_COD_Change_Year();
+        }
+        function Post_Frm_COD_Change_Year() {
+            if (Frm_COD_Change_Year_Grid.GetFocusedRowIndex() >= 0) {
+                ShowLoader();
+                COD_YEAR_ID = Frm_COD_Change_Year_Grid.GetRowKey(Frm_COD_Change_Year_Grid.GetFocusedRowIndex());
+                Frm_COD_Change_Year_Grid.GetValuesOnCustomCallback({ COD_YEAR_ID: COD_YEAR_ID }, Frm_COD_Change_Year_GridOnGetRowValues);
+            }
+            else {
+                COD_YEAR_ID = null;
+                if (COD_YEAR_ID == null) {
+                    CFY_SetDefaultPressed = false;
+                    DevExpress.ui.dialog.alert("Please Select A Row..!!", 'Warning!');
+                    return;
+                }
+            }
+        }
+        function getQueryStringValue(key) {
+            return decodeURIComponent(window.location.search.replace(new RegExp("^(?:.*[&\\?]" + encodeURIComponent(key).replace(/[\.\+\*]/g, "\\$&") + "(?:\\=([^&]*))?)?.*$", "i"), "$1"));
+        }
+        function Do_ChangeFinanacialYear() {
+            if (COD_YEAR_ID == null) {
+                DevExpress.ui.dialog.alert("Please Select A Row..!!", 'Warning!');
+                CFY_SetDefaultPressed = false;
+                return;
+            }
+            if (CFY_IsDefault == "True" && CFY_SetDefaultPressed == true) {
+                DevExpress.ui.dialog.alert("Selected Year Is Already Set As Default..!!", 'Warning!');
+                CFY_SetDefaultPressed = false;
+                return;
+            }
+            $.ajax({
+                type: 'POST',
+                url: "/Start/ChangeFinancialYear/Frm_COD_Change_Year",
+                data: { XCOD_YEAR_ID: parseInt(COD_YEAR_ID), XCOD_ACC_TYPE: ACC_TYPE, Lock: Lock, XCOD_YEAR_EDT: To, XCOD_YEAR_SDT: From, XCOD_YEAR_NAME: Financial_Year, SetDefaultPressed_CFY: CFY_SetDefaultPressed },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true) {
+                        $("#Dynamic_Content_popup").dxPopup("hide");
+                        window.innerDocClick = false;
+                        //var SessionGUID = getQueryStringValue("SessionGUID");
+                        window.location.reload()
+                        //window.location = "/Start/Home/Index?SessionGUID=" + SessionGUID;
+                        ClearSessionStorage();
+                        if (data.Message != null && data.Message.length > 0) {
+                            DevExpress.ui.dialog.alert(data.Message, 'Success');
+                        }
+                    }
+                    else {
+                        CFY_SetDefaultPressed = false;
+                        DevExpress.ui.dialog.alert(data.Message, 'Warning!');
+                    }
+                }
+            });
+        }
+    </script>
+</div>

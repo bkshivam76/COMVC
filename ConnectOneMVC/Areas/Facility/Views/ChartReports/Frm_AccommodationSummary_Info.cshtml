@@ -1,0 +1,284 @@
+﻿<div class="AccommSummary_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        var centreId = (string)ViewBag.CentreId;
+        if (String.IsNullOrWhiteSpace(centreId) == false)
+        {
+            Layout = "~/Views/Shared/_NoLoginAllLayout.cshtml";
+        }
+        string chartInstanceID = (string)ViewBag.chartInstanceID;
+        string summary_type = (string)ViewBag.summary_type;
+        string Theme = (string)ViewBag.Theme;
+    }
+    <style>
+        #refreshInterval_AccomSummary {
+            max-width: 40px;
+            display: inline-block
+        }
+
+            #refreshInterval_AccomSummary + b {
+                display: inline-block
+            }
+
+        .show_Btn {
+            padding: 16px 0 0 0;
+            margin-right: 20px;
+            max-width: 80px;
+        }
+
+            .show_Btn .form-field {
+                border-right: 1px solid #ddd
+            }
+
+        @@media (max-width:768px) {
+            .show_Btn {
+                padding: 0 13px
+            }
+
+                .show_Btn .form-field {
+                    border-right: none;
+                }
+
+            #AccommSummary_Filters_Div > div {
+                margin-bottom: 5px;
+            }
+
+                #AccommSummary_Filters_Div > div.set_Interval {
+                    padding: 2px 17px
+                }
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            if ("@centreId" != "") {
+                $('#Close_Btn_AccommSummary').hide();
+            }
+        });
+        function ListPreview_Btn_AccommSummary_Click()
+        {
+            ShowLoader();
+            OpenPopup("ExportOptions_modal", "Export Option", "@Url.Action("Frm_Export_Options", "ChartReports", new { @area = "Facility" })?GridName=AccommSummaryListGrid", "auto",130);
+        }
+        function Close_Btn_AccommSummary_Click()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ChartReports/SessionClearChartReports",
+                cache: false,
+                data: { SummaryType:"@summary_type"}
+            });
+        });
+        function AccommSummary_ChartReports_Init(s, e) {
+            //s.ExpandAll();
+            AccommSummary_ChartReports_AdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                AccommSummary_ChartReports_AdjustSize();
+            });
+        }
+        function AccommSummary_ChartReports_AdjustSize()
+        {
+            var height = (document.documentElement.clientHeight * 80) / 100;
+            try
+            {
+                AccommSummaryListGrid.SetHeight(height);
+            }
+            catch (err)
+            {
+            }
+        }
+        function AccommSummary_ChartReports_FocusedRowChanged(s, e) {
+
+        }
+        function AccommSummary_ChartReports_BeginCallback(s, e)
+        {
+            e.customArgs["command"] = e.command;
+            e.customArgs["Chart_Instance_ID"] = "@chartInstanceID";
+            e.customArgs["summary_type"] = "@summary_type";
+        }
+        function AccommSummary_ChartReports_ContextMenuFunction(s, e) {
+            e.handled = true;
+            if (e.item.name == "Refresh") {
+                ShowAccommSummary();
+            }
+            if (e.item.name == "Close") {
+                Close_Btn_AccommSummary_Click();
+            }
+        }
+    </script>
+    <div>
+        <div class="report_header_div_main">
+            <div class="clearfix">
+                <div class="report_header_div">
+                    <label class="report_header_label">@ViewBag.summary_type</label>
+                </div>
+                <div class="report_button_div">
+                    @(Html.DevExtreme().Button().ID("ListPreview_Btn_AccommSummary").Text("List Preview").Icon("save").OnClick("ListPreview_Btn_AccommSummary_Click").Visible(false))
+                    @(Html.DevExtreme().Button().ID("Close_Btn_AccommSummary").Text("Close").Icon("clear").OnClick("Close_Btn_AccommSummary_Click") )
+                </div>
+            </div>
+            <div class="col-md-12 no-padding" id="AccommSummary_gridDiv">
+                <form>
+                    <div id="AccommSummary_Filters_hdr" class="filhdr" onclick="AccommSummary_FilterToggle()">
+                        <span>Click to Hide Filters</span>
+                        <i class="bx bx-up-arrow-alt"></i>
+                    </div>
+                    <script>
+                        function AccommSummary_FilterToggle() {
+                            var div = document.getElementById("AccommSummary_Filters_Div");
+                            if (div.style.display !== "none") {
+                                div.style.display = "none";
+                                $("#AccommSummary_Filters_hdr").find('span').text("Click to Show Filters");
+                                $("#AccommSummary_Filters_hdr").find('i').removeClass('bx-up-arrow-alt').addClass('bx-down-arrow-alt');
+                            }
+                            else {
+                                div.style.display = "block";
+                                $("#AccommSummary_Filters_hdr").find('span').text("Click to Hide Filters")
+                                $("#AccommSummary_Filters_hdr").find('i').removeClass('bx-down-arrow-alt').addClass('bx-up-arrow-alt');
+                            }
+
+                        }
+                    </script>
+                    <div class="row" style="padding:10px;" id="AccommSummary_Filters_Div">
+                        <div class="col-sm-2">
+                            <div class="form-field">
+                                <label class="control-label text-red" for="user">Date:</label>
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("fromdate_AccSummr").Name("fromdate_AccSummr").OnValueChanged("fromdate_AccSummr_valueChange").Value(ViewBag.fromdate)
+                                .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))
+                            )
+                            </div>
+                        </div>
+                        <div class="col-sm-2" style="display:none">
+                            <div class="form-field">
+                                <label class="control-label text-red" for="user">To Date:</label>
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_AccSummr").Name("todate_AccSummr").ShowClearButton(true).Value(ViewBag.todate)
+                                    .Type(DateBoxType.Date).Placeholder("To Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))
+                                )
+                            </div>
+                        </div>
+                        <div class="col-sm-3" style="display:none">
+                            <label>Service Report/Event</label>
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Event_AccSummr").ID("Event_AccSummr").Placeholder("Choose..").DisplayExpr("Name").ValueExpr("ID")
+                                   .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_EventsList").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                            .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Event_AccSummr_datagrid")
+                                    .Columns(columns =>
+                                    {
+                                        columns.Add().DataField("Name").Caption("Name");
+                                        columns.Add().DataField("ID").Visible(false);
+                                        columns.Add().DataField("ProjID").Visible(false);
+                                        columns.Add().DataField("Type");
+                                        columns.Add().DataField("FromDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("ToDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("Venue");
+                                    })
+                                    .Selection(s => s.Mode(SelectionMode.Single))
+                                    .FilterRow(s=>s.Visible(false))
+                                    .OnSelectionChanged("function(selectedItems)" +
+                                    "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                            </text>).OnValueChanged("Event_AccSummr_ValueChange").Value(ViewBag.eventid)
+                        )
+                        </div>
+                        <script>         
+                            function fromdate_AccSummr_valueChange(e) {
+                                //if (e.value != null) {
+                                //    var todate = new Date(e.value)
+                                //    todate.setDate(todate.getDate() + 1)
+                                //    $("#todate_AccSummr").dxDateBox("option", "value", todate)
+                                //}
+                            }
+                            async function Event_AccSummr_ValueChange(e, FirstCall = false) {
+                                var value;
+                                var DG = $("#Event_AccSummr_datagrid").dxDataGrid("instance");
+                                if (e) {
+                                    value = e.value;
+                                    if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                        DG.clearSelection();
+                                        return;
+                                    }
+                                }
+                                else {
+                                    value = $("#Event_AccSummr").dxDropDownBox("option", "value");
+                                }
+                                await DG.selectRows(value);
+                            }
+                        </script>
+                        <div class="col-sm-1 show_Btn">
+                            <div class="form-field">
+                                <label class="control-label text-white" for="user"></label>
+                                @(Html.DevExtreme().Button().ID("btnShowSummary_AccSummr").Text("Show").OnClick("ShowAccommSummary"))
+                            </div>
+                        </div>
+                        <script>
+                        function ShowAccommSummary() {
+                            var fromDate = $("#fromdate_AccSummr").dxDateBox("instance").option("value");
+                            var toDate = $("#todate_AccSummr").dxDateBox("instance").option("value");
+                            if (fromDate == null || fromDate == "" || fromDate == undefined) {
+                                DevExpress.ui.notify({ message: 'From Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            if (toDate == null || toDate == "" || toDate == undefined) {
+                                DevExpress.ui.notify({ message: 'To Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            //if (fromDate > toDate) {
+                            //    DevExpress.ui.notify({ message: 'From Date should not be greater than To Date', width: 300, shading: true, position: 'center' }, "error", 2000);
+                            //    return;
+                            //}
+                            var eventid = $("#Event_AccSummr").dxDropDownBox("option", "value");
+                            fromDate = JS_Json_Date_To_ddMMyyyy(fromDate);
+                            toDate = JS_Json_Date_To_ddMMyyyy(toDate);
+                            var summary_type_GuestSummry = "@summary_type"
+                            AccommSummaryListGrid.PerformCallback({ "fromdate": fromDate, "todate": toDate, "EventID": eventid, "summary_type": summary_type_GuestSummry,  "command": "REFRESH" });
+                        }
+                        </script>
+                        @if (Theme == "")
+                        {
+                            <div class="pull-left set_Interval" style="">
+                                <div class="form-field">
+                                    <label class="control-label text-white" for="user">Set Interval</label><br />
+                                    @(Html.DevExtreme().NumberBox().ID("refreshInterval_AccSummr").Value(5).Format("#0"))
+                                    <b>Seconds</b>
+                                </div>
+                            </div>
+                            <div class="col-sm-2" style="margin-top:4px;">
+                                <div class="form-field">
+                                    <label class="control-label text-white" for="user"></label><br />
+                                    @(Html.DevExtreme().Button().ID("StartAutoRefresh_AccSummr").Text("Start Auto Refresh").OnClick("StartAutoRefresh_AccSummr"))
+                                    @(Html.DevExtreme().Button().ID("StopAutoRefresh_AccSummr").Text("Stop").OnClick("StopAutoRefresh_AccSummr"))
+                                </div>
+                            </div>
+                        }
+                        <div class="col-sm-1">
+                            <div class="form-field">
+                                <label class="control-label text-white" for="user"></label><br />
+
+                            </div>
+                        </div>
+                        <script>
+                            var timer_AccSummr;
+                            function StartAutoRefresh_AccSummr(fn, timeout, interval) {
+                                timer_AccSummr = setInterval(function () {
+                                    if ($("#contact_Frm_AccommSummary_Info").hasClass('active')||"@centreId".length>0) {
+                                        ShowAccommSummary()
+                                    } else {
+                                        StopAutoRefresh_AccSummr()
+                                    }
+                                }, parseInt($("#refreshInterval_AccSummr").dxNumberBox("instance").option("value")) * 1000)
+                            }
+                            function StopAutoRefresh_AccSummr() {
+                                clearInterval(timer_AccSummr)
+                            }
+                        </script>
+                    </div>
+                    <div class="parent_table">
+                        @Html.Partial("Frm_AccommodationSummary_Info_Grid", Model)
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

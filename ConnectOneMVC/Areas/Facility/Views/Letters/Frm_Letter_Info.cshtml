@@ -1,0 +1,800 @@
+﻿<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/combine/npm/intro.js@2.9.3/introjs.min.css,npm/intro.js@2.9.3/introjs-rtl.min.css" />
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/intro.js@2.9.3/intro.min.js"></script>
+
+<div class="LetterFacility_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool LetterW_ExportRight = (bool)ViewData["LetterW_ExportRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Letter_Auto_Vouching_Mode = (bool)ViewData["Letter_Auto_Vouching_Mode"];
+
+        bool LetterW_AddRight = (bool)ViewData["LetterW_AddRight"];
+        bool LetterW_UpdateRight = (bool)ViewData["LetterW_UpdateRight"];
+        bool LetterW_DeleteRight = (bool)ViewData["LetterW_DeleteRight"];
+    }
+    <div id="Letter_ParentDiv" class="col-md-12 report_header_div_main">
+        <div class="clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">Letter Writing</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("letterVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Letter_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button()
+                .ID("Letter_InfoModelNew")
+                .Text("New")
+                .Icon("add")
+                .ElementAttr("data-intro","Click here to start writing a new letter!")
+                .OnClick(@<text>
+                    function () {
+                    DataNavigation_LWF("NEW");
+                    }
+                </text>)
+                    )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfoModelEdit")
+                                                                            .Text("Edit")
+                                                                            .Icon("edit")
+                                                                            .ElementAttr("data-intro", "Click here to edit a letter!")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                DataNavigation_LWF("EDIT");
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfoModelDelete")
+                                                                            .Text("Delete")
+                                                                            .Icon("trash")
+                                                                            .ElementAttr("data-intro", "Click here to delete a letter!")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                DataNavigation_LWF("DELETE");
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfoModelImport")
+                                                                            .Text("Import")
+                                                                            .Icon("arrowdown")
+                                                                            .ElementAttr("data-intro", "Click here to import a letter (Coming Soon)")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfosModelListExport")
+                                                                            .Text("Export")
+                                                                            .Icon("arrowup")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                OnLetter_InfoExportClick();
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("LetterToggleScrollBar")
+                                                                            .Text("Full Data")
+                                                                            .Icon("toolbox")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                LetterchangeMode();
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfosModelListPreview")
+                                                                            .Text("Preview")
+                                                                            .Icon("save")
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                DataNavigation_LWF("PRINT");
+                                                                                }
+                                                                            </text>)
+                                                                                )
+                @(Html.DevExtreme().Button()
+                                                                            .ID("Letter_InfoModelCLOSE")
+                                                                            .Text("Close")
+                                                                            .Icon("clear")
+                                                                            .OnClick("close_letter")
+                                                                                )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="Letter_InforeloadPartialView" class="parent_table" data-intro="All your letters will be visible in this table!" data-step="5">
+                    @Html.Partial("Frm_Letter_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer">
+            @*<div class="col-lg-8 report_footer_small_buttons_div" id="LetterFooterItem">*@
+            <div class="list_footer_left_margin col-md-10">
+                <div>
+                    @*class="footer_new_left"*@
+                    <div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-locktext">
+                                <div id="Letter_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="Letter_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                            @*<div class="footer-locktext">
+                                    <div id="LetterLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                                </div>*@
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <p id="LetterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="LetterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="list_footer_right_margin_consistent col-md-1">
+                @*<i id="Letter_LockICON" class="fa fa-lock lock_symbol"></i>*@
+            </div>
+            @*</div>
+                <div class="col-lg-4 listing_footer_filter_buttons_div">
+                </div>*@
+        </div>
+
+        <div class="col-md-12">
+            @*Add/Edit Popup*@
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                        .ID("Letter_Info_report_modal")
+                                        .OnShowing("PopupOnShowing")
+                                        .Title("Letter List Preview")
+                                        .FullScreen(false)
+                                        .MaxWidth(125)
+                                        .Height("auto")
+                                        .ShowCloseButton(true)
+                                        .ContentTemplate(@<text>
+                                            <div id='Letter_Info_report_modal_result'>
+                                            </div>
+                                        </text>)
+                                            )
+
+        </div>
+        @Html.Partial("AttachmentFAB", "LetterPrf_FAB,Letter_ParentDiv,Type2,LetterFacility") @*fab buttons*@
+        @*Javascript Events*@
+        <script type="text/javascript">
+            var Letter_ExportRight;
+            var IsLetter_InfoSucessPopup = false;
+            var IsLetter_InfoViewPopup = false;
+            var Letter_ShowHorizontalBar = 0;
+            var Letter_IsVouchingMode = false;
+            var Letter_SetVouchingModeOn = "@Letter_Auto_Vouching_Mode" == "True" ? true : false;
+            var UserType_LetterPrf = "@UserType".toUpperCase();
+            var LetterID;
+            var Letter_EditDate;
+            var Letter_AddDate;
+            var Letter_AddBy;
+            var Letter_EditBy;
+            var Letter_ActionStatus;
+            var Letter_ActionDate;
+            var Letter_ActionBy;
+            var Letter_Reference;
+            var Letter_MoreEntry = false;
+
+            function Letter_VouchingSwitch_ValueChange(e)
+            {
+                Letter_IsVouchingMode = e.value;
+                Letter_CollapseAllDetailRows();
+            }
+            function DataNavigation_LWF(Action)
+            {
+
+                if (Action == "NEW")
+                {
+                    if ("@LetterW_AddRight" == "False")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                    }
+                    ShowLoader();
+                    OpenDynamicPopup("New ~ Letter Writing", "@Url.Action("Frm_Letter_Window", "Letters", new { @area = "Facility" })?Tag=_New", "auto", 800, false, null);
+                    HideLoader();
+                }
+                else if (Action == "EDIT" || Action == "DELETE")
+                {
+                    if (!"@LetterW_UpdateRight" || !"@LetterW_DeleteRight")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                    }
+                    if (LetterID == "" || LetterID == null || LetterID == 'undefined')
+                    {
+                        DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                        return;
+                    }
+                    $.ajax({
+                        type: 'GET',
+                        async: false,
+                        url: "/Facility/Letters/Frm_Letter_Window",
+                        cache: false,
+                        data:
+                        {
+                            Tag: Action == "EDIT" ? "_Edit" : "_Delete",
+                            xID: LetterID,
+                            Info_LastEditedOn: Letter_EditDate
+                        },
+                        success: function (data)
+                        {
+                            ShowLoader();
+                            OpenPopup("Dynamic_Content_popup", Action == "EDIT" ? "Edit ~ Letter Writing" : "Delete ~ Letter Writing", null, "auto", 800, true, data);
+                            HideLoader();
+                        }
+                    });
+                }
+                else if (Action == "PRINT")
+                {
+                    $.ajax({
+                        type: 'GET',
+                        async: false,
+                        url: "/Facility/Letters/Frm_Letter_Print_Dialog",
+                        cache: false,
+                        data:
+                        {
+                            xTemp_ID: LetterID,
+                            xTemp_Title: Letter_Reference
+                        },
+                        success: function (data)
+                        {
+                            ShowLoader();
+                            OpenPopup("Dynamic_Content_popup", "Print", null, "auto", "auto", true, data);
+                            HideLoader();
+                        }
+                    });
+                }
+            }
+        function OnLetterGrid_RowDblClick(s, e)
+        {
+            if (Letter_IsVouchingMode == false)
+            {
+                DataNavigation_LWF("EDIT");
+            }
+            else
+            {
+                e.cancel = true;
+            }
+        }
+            function Letter_CollapseAllDetailRows()
+            {
+                if (typeof window !== 'undefined')
+                {
+                    if (typeof window.Letter_InfoListGrid !== 'undefined')
+                    {
+                        if (typeof window.Letter_InfoListGrid.CollapseAllDetailRows !== 'undefined')
+                        {
+                            if (typeof Letter_InfoListGrid.CollapseAllDetailRows == 'function')
+                            {
+                                Letter_InfoListGrid.CollapseAllDetailRows();
+                            }
+                            else
+                            {
+                                alert("CollapseAllDetailRows is not a function");
+                            }
+                        }
+                        else
+                        {
+                            ShowLoader();
+                            setTimeout(function ()
+                            {
+                                Letter_CollapseAllDetailRows();
+                                HideLoader();
+                            }, Timeout100);
+                        }
+                    }
+                    else
+                    {
+                        alert('grid undefined')
+                    }
+                }
+                else
+                {
+                    alert('window undefined')
+                }
+            }
+            $(document).ready(function ()
+            {
+                IsLetter_InfoSucessPopup = false;
+                IsLetter_InfoViewPopup = false;
+               // SetLetter_InfoGroupPanelFooterVisible();
+                //$("#Letter_InfoListGrid").hover(function ()
+                //{
+                //    Letter_InfoListGrid.Focus()
+                //})
+
+                Letter_ExportRight = ("@LetterW_ExportRight" == "True") ? true : false;
+
+                if (Letter_ExportRight != true)
+                {
+                    $("#Letter_InfosModelListExport").hide();
+                }
+                if ("@LetterW_AddRight" == "False")
+                {
+                    $("#Letter_InfoModelNew").hide();
+                }
+                if ("@LetterW_UpdateRight" == "False")
+                {
+                    $("#Letter_InfoModelEdit").hide();
+                }
+                if ("@LetterW_DeleteRight" == "False")
+                {
+                    $("#Letter_InfoModelDelete").hide();
+                }
+                $(".Letter_InfoListGrid_PreviewRow").hide();
+                GetSessionStorage("Letter_InfoListGrid");
+                if (Letter_SetVouchingModeOn == true)
+                {
+                    $("#letterVouchingModeSwitch").dxSwitch("instance").option("value", true);
+                }
+            });
+            function close_letter()
+            {
+                $(".TabPanalMenu-tabs .active span").click();
+            }
+            $(".TabPanalMenu-tabs .active span").on("click", function ()
+            {
+                $.ajax(
+                {
+                    type: 'GET',
+                    url: "/Facility/Letters/SessionClear",
+                    cache: false
+                });
+                ClearAllReferences_LetterFacility();
+            });
+            function ClearAllReferences_LetterFacility()
+            {
+                Letter_ExportRight = null;
+                IsLetter_InfoSucessPopup = null;
+                IsLetter_InfoViewPopup = null;
+                Letter_ShowHorizontalBar = null;
+                Letter_IsVouchingMode = null;
+                Letter_SetVouchingModeOn = null;
+                UserType_LetterPrf = null;
+                LetterID = null;
+                Letter_EditDate = null;
+                Letter_AddDate = null;
+                Letter_AddBy = null;
+                Letter_EditBy = null;
+                Letter_ActionStatus = null;
+                Letter_ActionDate = null;
+                Letter_ActionBy = null;
+                Letter_IsDetailRowExpanded = null;
+                Letter_NestedRecord_FocusedRowIndex = null;
+                Letter_NestedGrid_AccessID = null;
+                Letter_AtachmentID = null;
+                Letter_FileName = null;
+                Letter_ParamMandatory = null;
+                Letter_FromDateLabel = null;
+                Letter_ToDateLabel = null;
+                Letter_DescriptionLabel = null;
+                Letter_Doc_ID = null;
+                Letter_Doc_Category = null;
+                Letter_MasterRowRecID = null;
+                Letter_MasterRowMID = null;
+                Letter_NestedRowMapID = null;
+                Letter_reason = null;
+                Letter_Attachment_RecStatus = null;
+                Letter_Nested_Doc_Status = null;
+                Letter_Reference = null;
+                Letter_MoreEntry = null;
+
+                ClearAllReferences("LetterFacility_ClearReferences");
+            }
+            function OnLetterCellClick(event, cell,col, row)
+            {
+                if (UserType_LetterPrf == "AUDITOR" || UserType_LetterPrf == "SUPERUSER")
+                {
+                    if (event.button == 0)
+                    {
+                        if (cell.style.backgroundColor.length > 0)
+                        {
+                            cell.style.backgroundColor = "";
+                        }
+                        else
+                        {
+                            cell.style.backgroundColor = 'skyblue';
+                        }
+                    }
+                }
+            }
+            function LetterOnInit(s, e)
+            {
+                LetterAdjustSize();
+                ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+                {
+                    LetterAdjustSize();
+                });
+            }
+            function OnGridLetter_InfoListGrid_EndCallback(s, e)
+            {
+                LetterAdjustSize();
+                $(".Letter_InfoListGrid_PreviewRow").hide();
+                GetSessionStorage("Letter_InfoListGrid");
+                SendCustomArgs_FilterControl(s, e);
+                if (Letter_MoreEntry == true)
+                {
+                    Letter_MoreEntry = false;
+                    var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "Letter Writing");
+                    confirm.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            DataNavigation_LWF("NEW");
+                        }
+                    });
+                }
+            }
+            function LetterAdjustSize()
+            {
+                var height = (document.documentElement.clientHeight * 90) / 100;
+                try { Letter_InfoListGrid.SetHeight(height); } catch (err) { }
+            }
+            function LetterchangeMode()
+            {
+                ShowLoader();
+                if (Letter_ShowHorizontalBar == 0)
+                {
+                    Letter_ShowHorizontalBar = 1;
+                    $("#LetterToggleScrollBar").find("span").text("Default Data");
+                    $("#LetterToggleScrollBar").width(110);
+                }
+                else
+                {
+                    Letter_ShowHorizontalBar = 0;
+                    $("#LetterToggleScrollBar").find("span").text("Full Data");
+                    $("#LetterToggleScrollBar").width(90);
+                }
+                $.ajax({
+                    url: '@Url.Action("Frm_Letter_Info_Grid", "Letters")',
+                    type: "GET",
+                    data: { ShowHorizontalBar: Letter_ShowHorizontalBar, VouchingMode: Letter_IsVouchingMode},
+                    success: function (res)
+                    {
+                        $("#Letter_InforeloadPartialView").html(res);
+                        $(".Letter_InfoListGrid_PreviewRow").hide();
+                        GetSessionStorage("Letter_InfoListGrid");
+                    }
+                });
+                HideLoader();
+            }
+            function OnLetter_InfoExportClick()
+            {
+                if (!Letter_ExportRight) { DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return; }
+
+                OpenPopup("Letter_Info_report_modal","Export Option","@Url.Action("Frm_Export_Options", "Letters", new { @area = "Facility" })","auto",125,false,null)
+            }
+            function LetterContextMenuFunction(s, e)
+            {
+                if (e.item.name == 'Letter_New')
+                {
+                    DataNavigation_LWF("NEW");
+                }
+                else if (e.item.name == 'Letter_Edit')
+                {
+                    DataNavigation_LWF("EDIT");
+                }
+                else if (e.item.name == 'Letter_Delete')
+                {
+                    DataNavigation_LWF("DELETE");
+                }
+                else if (e.item.name == 'Close')
+                {
+                    btnCloseActiveTab();
+                }
+                else if (e.item.name == 'Export')
+                {
+                    OnLetter_InfoExportClick();
+                }
+                else if (e.item.name == 'Refresh')
+                {
+                    Letter_InfoListGrid.Refresh();
+                }
+                else if (e.item.name == 'Letter_Preview')
+                {
+                    DataNavigation_LWF("PRINT");
+                }
+            }
+            function LetterGrid_BeginCallBack(s, e)
+            {
+                e.customArgs["command"] = e.command;
+                e.customArgs["VouchingMode"] = Letter_IsVouchingMode;
+            }
+            function OnLetterGridFocusedRowChanged(s, e)
+            {
+                s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By;Reference;', LetterOnGetRowValues);
+            }
+            function LetterOnGetRowValues(values)
+            {
+                LetterID = values[0];
+                Letter_EditDate = values[1];
+                Letter_AddDate = values[2];
+                Letter_AddBy = values[3];
+                Letter_EditBy = values[4];
+                Letter_ActionStatus = values[5];
+                Letter_ActionDate = values[6];
+                Letter_ActionBy = values[7];
+                Letter_Reference = values[8];
+                Letter_UpdateFooterDetail(LetterID, Letter_ActionStatus, Letter_AddDate, Letter_AddBy,
+                Letter_ActionDate, Letter_ActionBy, Letter_EditDate, Letter_EditBy);
+            }
+            function Letter_UpdateFooterDetail(LetterID, Letter_Action_Status, Letter_Add_Date, Letter_Add_By, Letter_Action_Date, Letter_Action_By, Letter_Edit_Date, Letter_Edit_By)
+            {
+                Letter_Action_Date = Letter_Action_Date != "" && Letter_Action_Date != null ? Letter_Action_Date : Letter_Action_Date;
+                Letter_Edit_Date = Letter_Edit_Date != "" && Letter_Edit_Date != null ? Letter_Edit_Date : Letter_Edit_Date;
+                Letter_Add_Date = Letter_Add_Date != "" && Letter_Add_Date != null ? Letter_Add_Date : Letter_Add_Date;
+                $.ajax({
+                    type: 'GET',
+                    url: "/Facility/Letters/CreationDetail",
+                    data:
+                    {
+                        Xrow: LetterID, Action_Status: Letter_Action_Status, Add_Date: Letter_Add_Date,
+                        Add_By: Letter_Add_By, Action_Date: Letter_Action_Date, Action_By: Letter_Action_By, Edit_Date: Letter_Edit_Date, Edit_By: Letter_Edit_By
+                    },
+                    cache: false,
+                    success: function (LetterLbl_result)
+                    {
+                        $('#Letter_Lbl_ActionOn').text(LetterLbl_result.Lbl_StatusOn);
+                        $('#Letter_Lbl_ActionBy').text(LetterLbl_result.Lbl_StatusBy);
+                        $('#LetterLbl_Status').text(LetterLbl_result.Lbl_Status);
+                        $('#LetterLbl_Create').text(LetterLbl_result.Lbl_Create);
+                        $('#LetterLbl_Modify').text(LetterLbl_result.Lbl_Modify);
+                        if (LetterLbl_result.Lbl_Status_Color != "")
+                        {
+                            $('#LetterLbl_Status').css('color', LetterLbl_result.Lbl_Status_Color);
+                        }
+                        if (LetterLbl_result.Pic_Status != "")
+                        {
+                            $('#Letter_LockICON').css('class', LetterLbl_result.Pic_Status);
+                        }
+                    }
+                });
+            }
+        </script>
+
+        <script>
+            var Letter_IsDetailRowExpanded = false;
+            var Letter_NestedRecord_FocusedRowIndex = -1;
+            var Letter_NestedGrid_AccessID;
+            var Letter_AtachmentID;
+            var Letter_FileName;
+            var Letter_ParamMandatory;
+            var Letter_FromDateLabel;
+            var Letter_ToDateLabel;
+            var Letter_DescriptionLabel;
+            var Letter_Doc_ID;
+            var Letter_Doc_Category;
+            var Letter_MasterRowRecID;
+            var Letter_MasterRowMID;
+            var Letter_NestedRowMapID;
+            var Letter_reason;
+            var Letter_Attachment_RecStatus;
+            var Letter_Nested_Doc_Status;
+
+            function On_LetterFacility_FABActionItemClick(s, e)
+            {
+                var img = document.getElementById('RightPane_Img');
+                s.ExpandActionGroupItems();
+                if (e.actionName === "add_attach")
+                {
+                    if ("@Help_Attachment_AddRight" == "False")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                        return;
+                    }
+                    if (Letter_ParamMandatory == 1)
+                    {
+                        AddAttachment(Letter_MasterRowRecID, "Facility_Letter", Letter_Doc_ID, Letter_Doc_Category, Letter_ParamMandatory, Letter_FromDateLabel, Letter_ToDateLabel, Letter_DescriptionLabel, "LetterFacilityAttachment", null, "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                    }
+                    else
+                    {
+                        Attachment_DirectBrowse(Letter_MasterRowRecID, "Facility_Letter", Letter_Doc_ID, "LetterFacilityAttachment", "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                    }
+                }
+                else if (e.actionName === "edit_attach")
+                {
+                    if ("@Help_Attachment_EditRight" == "False")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                        return;
+                    }
+                    if (Letter_Nested_Doc_Status == "NO" || Letter_Nested_Doc_Status == "")
+                    {
+                        DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                        return;
+                    }
+                    if (Letter_Attachment_RecStatus.toUpperCase() == "LOCKED")
+                    {
+                        DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                        return;
+                    }
+                    EditAttachment(Letter_MasterRowRecID, "Facility_Letter", Letter_AtachmentID, Letter_ParamMandatory, Letter_FromDateLabel, Letter_ToDateLabel, Letter_DescriptionLabel, "LetterFacilityAttachment", null, "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                }
+                else if (e.actionName === "delete_attach")
+                {
+                    if ("@Help_Attachment_DeleteRight" == "False")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                        return;
+                    }
+                    if (Letter_Nested_Doc_Status == "NO" || Letter_Nested_Doc_Status == "")
+                    {
+                        DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                        return;
+                    }
+                    DeleteAttachment(Letter_MasterRowRecID, "Facility_Letter", Letter_AtachmentID, Letter_ParamMandatory, Letter_FromDateLabel, Letter_ToDateLabel, Letter_DescriptionLabel, null, "Letter_InfoListGrid", Letter_NestedGrid_AccessID, Letter_Attachment_RecStatus);
+                }
+                else if (e.actionName === "view_attach")
+                {
+                    if ("@Help_Attachment_ViewRight" == "False")
+                    {
+                        DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                        return;
+                    }
+                    if (Letter_Nested_Doc_Status == "NO" || Letter_Nested_Doc_Status == "")
+                    {
+                        DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                        return;
+                    }
+
+                    ViewDocument(Letter_AtachmentID, Letter_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else if (e.actionName == "Link_Attach")
+                {
+                    LinkAttachment(Letter_MasterRowRecID, "Facility_Letter", "Letter Writing", "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                }
+                else if (e.actionName === "Add_Reason")
+                {
+                    if (Letter_Doc_Category.toLowerCase() == "others")
+                    {
+                        DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                    }
+                    else
+                    {
+                        AttachmentAddReason(Letter_MasterRowRecID, Letter_NestedRowMapID, "Facility_Letter", "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                    }
+                }
+                else if (e.actionName === "Edit_Reason")
+                {
+                    AttachmentEditReason(Letter_MasterRowRecID, Letter_NestedRowMapID, "Facility_Letter", "Letter_InfoListGrid", Letter_NestedGrid_AccessID, Letter_reason);
+                }
+                else if (e.actionName === "Delete_Reason")
+                {
+                    AttachmentDeleteReason(Letter_MasterRowRecID, Letter_NestedRowMapID, "Letter_InfoListGrid", Letter_NestedGrid_AccessID);
+                }
+                else if (e.actionName === "Rotate")
+                {
+                    ImageRotate(img);
+                }
+                else if (e.actionName === "ZoomOut")
+                {
+                    ImageZoomOut(img);
+                }
+                else if (e.actionName === "ZoomIn")
+                {
+                    ImageZoomIn(img);
+                }
+                else if (e.actionName == "Fit")
+                {
+                    ImageFit(img);
+                }
+                else if (e.actionName == "Back")
+                {
+                    ImageBack(s.uniqueID, "actionItemContext");
+                }
+            }
+            function OnLetter_InfoListGridNestedFocusedRowChange(s, e)
+            {
+                if (Letter_IsDetailRowExpanded)
+                {
+                    Letter_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+                    if (Letter_NestedRecord_FocusedRowIndex >= 0)
+                    {
+                        ShowLoader();
+                        LetterPrf_FAB.SetVisible(true);
+                        Letter_NestedGrid_AccessID = s.uniqueID;
+                        s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID', OnLetter_GetGridRowValues);
+                    }
+                    else
+                    {
+                        LetterPrf_FAB.SetVisible(false);
+                    }
+                }
+            }
+            function OnLetter_GetGridRowValues(values)
+            {
+                HideLoader();
+                if (values[14] != null)
+                {
+                    LetterPrf_FAB.SetVisible(true);
+                    Letter_Nested_Doc_Status = values[0];
+                    LetterPrf_FAB.SetActionContext("actionItemContext", true);
+                    Letter_ParamMandatory = values[1];
+                    Letter_FromDateLabel = values[2];
+                    Letter_ToDateLabel = values[3];
+                    Letter_DescriptionLabel = values[4];
+                    Letter_Doc_Category = values[5];
+                    Letter_Doc_ID = values[6];
+                    Letter_AtachmentID = values[7];
+                    Letter_MasterRowRecID = values[8];
+                    Letter_MasterRowMID = values[9];
+                    Letter_NestedRowMapID = values[10];
+                    Letter_reason = values[11];
+                    Letter_FileName = values[12];
+                    Letter_Attachment_RecStatus = values[13];
+                    if (Letter_IsVouchingMode == true)
+                    {
+                        if (Letter_FileName != null && Letter_FileName.length > 0)
+                        {
+                            ViewDocument(Letter_AtachmentID, Letter_FileName, "LetterPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                        }
+                        else
+                        {
+                            var pane = Mainspliter.GetPaneByName('RightPane');
+                            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                            document.getElementById('RightPane_div_Iframe').style.display = "none";
+                            document.getElementById('RightPane_div_Img').style.display = "none";
+                        }
+                    }
+                }
+            }
+            function Letter_InfoGrid_Nested_BeginCallBack(s, e)
+            {
+                e.customArgs["ShowHorizontalBar"] = Letter_ShowHorizontalBar;
+                e.customArgs["VouchingMode"] = Letter_IsVouchingMode;
+                e.customArgs["command"] = e.command;
+            }
+            function Letter_DetailRowExpanding(s, e)
+            {
+                Letter_IsDetailRowExpanded = true;
+                s.SetFocusedRowIndex(e.visibleIndex);
+                var pane = Mainspliter.GetPaneByName('RightPane');
+                if (Letter_IsVouchingMode == true)
+                {
+                    pane.Expand();
+                }
+                else
+                {
+                    pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                }
+            }
+            function Letter_DetailRowCollapsing(s, e)
+            {
+                Letter_IsDetailRowExpanded = false;
+                if (Letter_IsVouchingMode == true)
+                {
+                    if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+                    {
+                        CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+                    }
+                }
+                else
+                {
+                    LetterPrf_FAB.SetVisible(false);
+                }
+            }
+
+            //$(function ()
+            //{
+            //    introJs().start();
+            //    $("#Screen_Intro").click(function () { introJs().start();})
+            //})
+
+
+        </script>
+        @*attachment and nested grid*@
+    </div>
+</div>

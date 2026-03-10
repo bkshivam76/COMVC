@@ -1,0 +1,181 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.Model_Full_Return_MTAllocation
+
+@{
+
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+<div>
+    @using (Ajax.BeginForm("Frm_Mach_Tool_Full_Return_Save", "MTAllocationRegister",
+                new AjaxOptions
+                {
+                    HttpMethod = "POST",
+                    UpdateTargetId = "Frm_Mach_Tool_Full_Return",
+                    InsertionMode = InsertionMode.InsertAfter,
+                    OnBegin = "AjaxBeginFormPost",
+                    OnSuccess = "OnMToolAllocation_FullReturnAjaxSuccessForm"
+                },
+                 new
+                 {
+                     id = "mtvalidationForm_fullreturn",
+                     @class = "edit_form"
+                 }))
+    {
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+
+            <div class="full-width-header-bg2">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>   Machine/Tool Full Return</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                </div>
+            </div><!--[Header]-->
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 pll">
+                                    <label class="control-label text-red">Return Date:</label>
+                                </div>
+                                <div class="col-sm-8 prm">
+
+                                    @(Html.DevExtreme().DateBox().CustomDateBox().ID("MTFullReturn_ReturnDate").Name("MTFullReturn_ReturnDate").Placeholder("Return Date").InvalidDateMessage("Value must be a Date!!").Value(Model.MTFullReturn_ReturnDate))
+                                    @Html.ValidationMessageFor(model => model.MTFullReturn_ReturnDate, "", new { @class = "text-danger" })
+
+                                </div><!--[Return Date]-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-field">
+                        <div class="container-fluid ">
+                            <div class="row">
+                                <div class="col-sm-4 pll">
+                                    <label class="control-label text-red">Returned To: </label>
+                                </div>
+                                <div class="col-sm-8 prm">
+
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("MTFullReturn_ReturnedTo").Name("MTFullReturn_ReturnedTo").Value(Model.MTFullReturn_ReturnedTo).ReadOnly(true))
+
+                                </div><!--[Return To]-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 1]-->
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-2 pll">
+                                    <label class="control-label">Tools Being Returned: </label>
+                                </div>
+                                <div class="col-sm-10 prm">
+                                    <div id="MTAllocation_FullReturnGrid_PartialView" class="parent_table">
+                                        @Html.Partial("FullReturn_Grid", Model.FullReturn_Grid_data)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Full Return Grid]-->      
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-2 pll">
+                            <label class="control-label">Your Remarks:</label>
+                        </div>
+                        <div class="col-sm-10 prm ">
+                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("MTFullReturn_Remarks").Name("MTFullReturn_Remarks").Placeholder("Enter Remarks...").MaxLength(8000))
+                            @Html.ValidationMessageFor(model => model.MTFullReturn_Remarks, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Remarks]-->
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="styleActionBtn">
+                    @(Html.DevExtreme().Button().ID("MTFullRet_Save").CustomSaveButton().UseSubmitBehavior(true).Text("Return"))
+                    @(Html.DevExtreme().Button().ID("MTFullRet_Close").CustomCloseButton().Text("Close").OnClick(@<text> function(){ mt_close_NEVD(); } </text>) )
+                </div>
+            </div><!--[Buttons]-->
+        }
+    }
+</div>
+<script>
+    $(document).ready(function ()
+    {       
+        var form = "mtvalidationForm_fullreturn";
+        ShowLoader();
+        AssignIDtoLabel(form, "MTallocationFullReturn");
+        sessionclearpath = "/Stock/MTAllocationRegister/Sessionclear_FullReturn";
+
+        setTimeout(function ()
+        {         
+            Focus_FirstEditable_Field(form);
+            HideLoader();
+        }, 200);
+    });
+    function mt_close_NEVD()
+    {
+        $("#Dynamic_Content_popup").dxPopup("hide");
+    }
+
+    function FullReturn_ValueChanged(s, fieldName, keyValue)
+    {
+        if (s.GetValue() == null)
+        {
+            DevExpress.ui.dialog.alert("Return Quantity Should Be Greater Than 0...!", "Error");
+            return;
+        }
+        if (s.GetValue() > 0)
+        {
+            $.ajax({
+                type: "Get",
+                url: "/Stock/MTAllocationRegister/UpdateFullReturnGridData",
+                data: { key: keyValue, field: fieldName, value: s.GetValue() },
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, "Error");
+                    }
+                    else
+                    {
+                        MTFullReturnGrid.Refresh();
+                    }
+                }
+            });
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Return Quantity Should Be Greater Than 0...!", "Error");
+        }
+    }
+  
+    function OnMToolAllocation_FullReturnAjaxSuccessForm(data) {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == true) {
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            MTAllocationRegisterListGrid.Refresh();
+        }
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+        }
+    }
+</script>

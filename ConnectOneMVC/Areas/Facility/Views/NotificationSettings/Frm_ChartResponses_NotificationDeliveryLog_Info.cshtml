@@ -1,0 +1,504 @@
+﻿<div class="ChartNotificationResponsesWhatsappDeliveryLogFacility_ClearReferences table_blue">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataSet
+    @{
+        string SessionGUID = Request.QueryString["SessionGUID"];
+        int ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        //int ChartInstanceId = int.Parse(ViewBag.Chart_Instance_Id != null ? ViewBag.Chart_Instance_Id.ToString() : "0");
+        DateTime? FromDate = ViewBag.FromDate;
+    }
+    <style>
+        #selectedCount_div_ChartResponses .dx-datebox {
+            display: inline-block;
+            max-width: 182px;
+            height: 26px;
+        }
+
+        @@media (max-width:767px) {
+            #btn_Close_NotificationDeliveryLog_ChartResponses {
+                display: none
+            }
+
+            #selectedCount_div_ChartResponses > div {
+                max-width: 100%;
+            }
+        }
+    </style>
+
+    <div style="padding:5px">
+        <div class="row" id="selectedCount_div_ChartResponses">
+            <div class="col-md-3">
+                <label class="report_header_label" style="padding-left:3px">Notification Delivery Log</label>
+            </div>
+            <div class="col-md-6">
+                @(Html.DevExtreme().DateBox().CustomDateBox().ID("FromDate_NotificationDeliveryLog_ChartResponses").Name("FromDate_NotificationDeliveryLog_ChartResponses").Placeholder("From Date (dd-MM-yyyy)"))
+                @(Html.DevExtreme().DateBox().CustomDateBox().ID("ToDate_NotificationDeliveryLog_ChartResponses").Name("ToDate_NotificationDeliveryLog_ChartResponses").Placeholder("To Date (dd-MM-yyyy)"))
+                @Html.Hidden("SelectedTabTitleDeliveryLog_Notify_ChartResponses")
+                @Html.DevExtreme().Button().ID("btn_Filter_NotificationDeliveryLog_ChartResponses").OnClick("filterChartResponseDeliveryLogNotification").Text("Get Delivery Logs").Icon("filter")
+            </div>
+            <div class="col-md-3 text-right">
+                @Html.DevExtreme().Button().ID("btn_Export_NotificationDeliveryLog_ChartResponses").OnClick("ChartResponsesDeliveryLogNotificationInfoListPreviewClick").Text("List Preview").Icon("save")
+                @Html.DevExtreme().Button().ID("btn_Close_NotificationDeliveryLog_ChartResponses").OnClick("closeChartResponseDeliveryLogNotification").Text("Close").Icon("clear")
+            </div>
+        </div>
+    </div>
+
+    <div>
+        @(Html.DevExtreme().TabPanel().ID("NotificationDeliveryLog_ChartResponses_tabPanel").DeferRendering(false).Items
+                    (items =>
+                        {
+                            items.Add().Title("Whatsapp Notification Delivery Log").Template(@<text>@WhatsappView()</text>);
+                            items.Add().Title("Email Notification Delivery Log").Template(@<text>@EmailView()</text>);
+                        }
+                    ).OnSelectionChanged("NotifyDeliveryLogTabPanelSelectionChanged")
+                )
+        @helper WhatsappView()
+        {
+            @Html.Partial("Frm_Whatsapp_Notification_DeliveryLog_Grid_Container", Model.Tables[0]);
+        }
+        @helper EmailView()
+        {
+            @Html.Partial("Frm_ChartResponses_Email_NotificationDeliveryLog_Info_Grid");
+        }
+    </div>
+    <script>
+        var ChartResponsesWhatsappDeliveryLogNotificationInfo_ID = null;
+        var ChartResponsesWhatsappDeliveryLogNotificationInfo_GridLayout = null;
+        var ChartResponsesWhatsappDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+        var ChartResponsesEmailDeliveryLogNotificationInfo_ID = null;
+        var ChartResponsesEmailDeliveryLogNotificationInfo_GridLayout = null;
+        var ChartResponsesEmailDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+
+
+        $(document).ready(function() {
+            var date = '@(FromDate.HasValue ? FromDate.Value.ToString("yyyy/MM/dd") : "")';
+            if (date != "") {
+                $("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value", new Date(date));
+            }
+            $("#SelectedTabTitleDeliveryLog_Notify_ChartResponses").val("Whatsapp");
+        });
+        function filterChartResponseDeliveryLogNotification() {
+            debugger;
+            ChartResponsesWhatsappDeliveryLogNotificationInfoGrid.Refresh();
+            EmailDeliveryLogNotificationSetInfoGrid.refresh();
+        }
+
+        function EmailDeliveryLogNotificationSetInfoGrid_onBeforeSend(operation, ajaxOptions) {
+            debugger;
+            var param = {};
+            var fromDate = null;
+            var toDate = null;
+
+            if ($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value") != null) {
+                //fromDate = JS_Json_Date_To_ddMMyyyy($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value"));
+                fromDate = moment($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+            } else { fromDate = null; }
+            if ($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value") != null) {
+                //toDate = JS_Json_Date_To_ddMMyyyy($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value"));
+                toDate = moment($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+            } else { toDate = null; }
+            if ($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value") != null) {
+                if ($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value") > $("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")) {
+                    DevExpress.ui.notify({ message: 'From Date should not be greater than To Date', width: 300, shading: true, position: 'center' }, "error", 2000);
+                    return;
+                }
+            }
+
+            param["FromDate"] = fromDate;
+            param["ToDate"] = toDate;
+
+            ajaxOptions.data = param;
+        }
+        
+            function RescheduleEmailLogs_Click(e) {
+                if (e.itemData == "Failed in Last One Day") {
+                    rescheduletoQueue('lastday', null)
+                }
+                else if (e.itemData == "Failed in Last Week") {
+                    rescheduletoQueue('lastweek', null)
+                }
+                else if (e.itemData == "Failed in Last 30 Days") {
+                    rescheduletoQueue('lastmonth', null)
+                }
+                else if (e.itemData == "Selected Logs To Queue") {
+                    rescheduletoQueue(null, 'selected')
+                }
+            }
+    
+        function rescheduletoQueue(period, selectedrecids) {
+            debugger;
+            var selectedkeys = null;
+            if (selectedrecids == 'selected') {
+                var grid = $("#EmailDeliveryLogNotificationSetInfoGrid").dxDataGrid("instance")
+                selectedkeys = grid.getSelectedRowKeys();
+            } else if (period != null) {
+                //
+            }
+            //ajax call
+            ShowLoader()
+            $.ajax({
+                url: '/Facility/NotificationSettings/SendEmailLogsToEmailSchedulerQueue', // replace with your API endpoint
+                type: 'GET',
+                data: {
+                    period: period,
+                    recids_str: ((selectedkeys == null) || selectedkeys == "") ? null : selectedkeys.join(",")
+                },
+                success: function (data) {
+                    HideLoader()
+                    if (data.jsonParam.result) {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, "Information!!!")
+                        EmailDeliveryLogNotificationSetInfoGrid.refresh();
+                    } else {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, "Information!!!")
+                    }                    
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+        
+        function ChartResponsesDeliveryLogNotificationInfoListPreviewClick() {
+            ShowLoader();
+            OpenPopup("Notification_DeliveryLog_report_modal", "Export Option", "@Url.Action("Frm_Export_Notification_DeliveryLog", "NotificationSettings", new { @area = "Facility" })?SelectedIndex=" + $("#NotificationDeliveryLog_ChartResponses_tabPanel").dxTabPanel("instance").option("selectedIndex"), "auto", "auto", false, null);// redmine bug #132961 fixed
+        }
+
+        function NotifyDeliveryLogTabPanelSelectionChanged(e) {
+            $("#SelectedTabTitleDeliveryLog_Notify_ChartResponses").val(e.addedItems[0].title);
+        }
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoListGrid_BeginCallback(s, e) {
+            ChartResponsesWhatsappDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["FromDate"] = moment($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+            e.customArgs["ToDate"] = moment($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoListGrid_BeginCallback(s, e) {
+            ChartResponsesEmailDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["FromDate"] = moment($("#FromDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+            e.customArgs["ToDate"] = moment($("#ToDate_NotificationDeliveryLog_ChartResponses").dxDateBox("instance").option("value")).format("DD/MM/YYYY HH:mm:ss");
+        }
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoListGrid_EndCallback(s, e) {
+
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoListGrid_EndCallback(s, e) {
+
+        }
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoContextMenuFunction(s, e) {
+
+            if (e.item.name == 'ListPreview') {
+                ChartResponsesDeliveryLogNotificationInfoListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeChartResponseDeliveryLogNotification();
+            }
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoContextMenuFunction(s, e) {
+            if (e.item.name == 'ListPreview') {
+                ChartResponsesDeliveryLogNotificationInfoListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeChartResponseDeliveryLogNotification();
+            }
+        }
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoFocusedRowChanged(s, e) {
+            //debugger;
+            //var focusIndex = s.GetFocusedRowIndex();
+            //if (focusIndex > -1) {
+            //    ChartResponsesWhatsappDeliveryLogNotificationInfo_ID = s.GetRowKey(focusIndex);
+            //    Get_ChartResponsesWhatsappDeliveryLogNotificationInfo_Row_Data(focusIndex);
+            //}
+            //else {
+            //    ChartResponsesWhatsappDeliveryLogNotificationInfo_ID = null;
+            //}
+
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoFocusedRowChanged(s, e) {
+            //debugger;
+            //var focusIndex = s.GetFocusedRowIndex();
+            //if (focusIndex > -1) {
+            //    ChartResponsesEmailDeliveryLogNotificationInfo_ID = s.GetRowKey(focusIndex);
+            //    Get_ChartResponsesEmailDeliveryLogNotificationInfo_Row_Data(focusIndex);
+            //}
+            //else {
+            //    ChartResponsesEmailDeliveryLogNotificationInfo_ID = null;
+            //}
+        }
+
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoOnInit(s, e) {
+            ChartResponsesWhatsappDeliveryLogNotificationInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ChartResponsesWhatsappDeliveryLogNotificationInfoAdjustSize();
+            });
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoOnInit(s, e) {
+            ChartResponsesEmailDeliveryLogNotificationInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ChartResponsesEmailDeliveryLogNotificationInfoAdjustSize();
+            });
+        }
+        function OnChartResponseNotificationListPreviewClick() {
+            ShowLoader();
+            OpenPopup("ChartResponsesWhatsappDeliveryLogNotificationInfoExport_modal", "Export Option", "@Url.Action("Frm_ChartResponseNotificationExport_Options", "NotificationSettings", new { @area = "Facility" })", "auto", 130);
+        }
+
+
+        function closeChartResponseDeliveryLogNotification() {
+            ChartResponsesWhatsappDeliveryLogNotificationInfo_ClearAllReferences()
+            ChartResponsesEmailDeliveryLogNotificationInfo_ClearAllReferences()
+            $("#ChartResponsesNotificationDeliveryLogInfo_modal").dxPopup("hide");
+        }
+        //function ChartResponsesWhatsappDeliveryLogNotificationInfodblclickEdit() {
+        //    DataNavigation_ChartResponsesWhatsappDeliveryLogNotification("EDIT");
+        //}
+        function ChartResponsesWhatsappDeliveryLogNotificationInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 85) / 100;
+            try {
+                ChartResponsesWhatsappDeliveryLogNotificationInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 85) / 100;
+            try {
+                ChartResponsesEmailDeliveryLogNotificationInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ChartResponsesWhatsappDeliveryLogNotificationInfo_ClearAllReferences() {
+            ChartResponsesWhatsappDeliveryLogNotificationInfo_ID = null;
+
+            ChartResponsesWhatsappDeliveryLogNotificationInfo_GridLayout = null;
+            ChartResponsesWhatsappDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+        }
+        function ChartResponsesEmailDeliveryLogNotificationInfo_ClearAllReferences() {
+            ChartResponsesEmailDeliveryLogNotificationInfo_ID = null;
+
+            ChartResponsesEmailDeliveryLogNotificationInfo_GridLayout = null;
+            ChartResponsesEmailDeliveryLogNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+        }
+    </script>
+
+
+
+
+    <script>
+        $(document).ready(function () {
+            var addressGridInstance = $("#EmailDeliveryLogNotificationSetInfoGrid").dxDataGrid("instance")
+            if (selectedContacts_notificationSet != null || selectedContacts_notificationSet != undefined) {
+                if (selectedContacts_notificationSet.length > 0) {
+                    addressGridInstance.selectRows(selectedContacts_notificationSet);
+                }
+            }
+        });
+        var EmailDeliveryLog_notificationSet_IsVouchingMode_dx = false;
+        var EmailDeliveryLog_notificationSet_ShowHorizontalBar_dx = parseInt("@ViewBag.ShowHorizontalBar");
+        
+
+        function EmailDeliveryLogGridChangeMode_dx() {
+            EmailDeliveryLogNotificationSetInfoGrid.beginUpdate();
+            if (EmailDeliveryLog_notificationSet_ShowHorizontalBar_dx == 0) {
+                EmailDeliveryLog_notificationSet_ShowHorizontalBar_dx = 1;
+                $("#EmailDeliveryLogToggleScrollBar_notificationSet").find("span").text("Default Data");
+                $("#EmailDeliveryLogToggleScrollBar_notificationSet").width(110);
+                EmailDeliveryLogNotificationSetInfoGrid.option("columnHidingEnabled", false);
+                EmailDeliveryLogNotificationSetInfoGrid.option("allowColumnResizing", true)
+            }
+            else {
+                EmailDeliveryLog_notificationSet_ShowHorizontalBar_dx = 0;
+                $("#EmailDeliveryLogToggleScrollBar_notificationSet").find("span").text("Full Data");
+                $("#EmailDeliveryLogToggleScrollBar_notificationSet").width(90);
+                EmailDeliveryLogNotificationSetInfoGrid.option("columnHidingEnabled", true)
+                EmailDeliveryLogNotificationSetInfoGrid.option("allowColumnResizing", false)
+            }
+            EmailDeliveryLogNotificationSetInfoGrid.endUpdate();
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_PreviewRow_Template(e) {
+            if (EmailDeliveryLog_notificationSet_IsVouchingMode_dx == true) {
+                var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                return DxGrid_AuditButtons(e.element[0].id, keyvalue, e.rowIndex);
+            }
+            else {
+                return ""
+            }
+        }
+
+        //As of now I did not used this function. but in future it may be useful.
+        function EmailDeliveryLogNotificationSetInfoGrid_Compact_Column_Template(container, templateData) {
+            var Name = templateData.component.element()[0].id;
+            var KeyValue = templateData.data.ID != null ? templateData.data.ID.replace(/^0-9A-Za-z/gi, "_") : "Null" + templateData.rowIndex;
+            var VouchingMode = EmailDeliveryLog_notificationSet_IsVouchingMode_dx == true ? "True" : "False";
+            var htmlString = "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Emaiiler Name:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Emailer Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.EMAILER_NAME ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>To:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|To' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.TO ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Sender ID:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Sender ID' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.SENDERID ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Sent On:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Sent On' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.SENT_ON ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Status:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Status' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.STATUS ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>CC:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|CC' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.CC ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>BCC:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BCC' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.BCC ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Reply To:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Reply To' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.REPLYTO ?? "") + "</div></div></div></div></div></div></div>";
+            $(container).html(htmlString)
+        }
+        //As of now I did not used this function. but in future it may be useful.
+        function EmailDeliveryLogNotificationSetInfoGrid_Compact_Column_CellValue(rowData) {
+            var data = [rowData.EMAILER_NAME, rowData.TO, rowData.SENDERID, rowData.SENT_ON, rowData.STATUS, rowData.CC, rowData.BCC, rowData.REPLYTO]
+            return data.join(" ")
+            // return this.defaultCalculateCellValue(rowData);
+        }
+
+        function EmailDeliveryGrid_notificationSet_iIconTemplate(container, templateData) {
+            var iREQ_ATTACH_COUNT = templateData.data.REQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.COMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.RESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.REJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.OTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.ALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var UniqueID = templateData.component.element()[0].id
+            var key = templateData.data.ID != null ? templateData.data.ID.replace(/^0-9A-Za-z/gi, "_") : "";
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        
+        function EmailDeliveryLogNotificationSetInfoGrid_OnInitialized(e) {
+
+            EmailDeliveryLogNotificationSetInfoGrid = e.component;
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_OnCellPrepared(e) {
+            
+            if (e.rowType == "data") {
+                //var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                var keyvalue = e.key.toString();
+                if (EmailDeliveryLog_notificationSet_IsVouchingMode_dx == true) {
+                    if (e.column.dataField === "iIcon") {
+                        $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + keyvalue + "')");
+                        $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + keyvalue + "')");
+                    }
+                }
+                $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + keyvalue + "|" + e.column.dataField);
+                /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + keyvalue);*/
+            }
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_OnRowPrepared(e) {
+            if (e.rowType == "data") {
+                var GridName = e.element[0].id;
+                //var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                var keyvalue = e.key.toString();
+                $(e.rowElement).addClass(GridName + "_DataRow_" + keyvalue)
+
+                var PreviewRowContent = EmailDeliveryLogNotificationSetInfoGrid_PreviewRow_Template(e)
+                var PreviewRowClass = GridName + "_PreviewRow " + GridName + "_PreviewRow_" + keyvalue + " DataGridPreviewRow"
+                var PreviewRowOptions = "";
+                if (EmailDeliveryLog_notificationSet_IsVouchingMode_dx == true) {
+                    PreviewRowOptions = "style='display:none' onmouseover=OnGridPrevRowMouseHoverIn(event,this,'" + GridName + "','" + e.rowIndex + "','" + keyvalue + "') onmouseout=OnGridPrevRowMouseHoverOut(event,this,'" + GridName + "','" + e.rowIndex + "','" + keyvalue + "')"
+                }
+                var EmptyTdshtml = "";
+                var emptyTd = $(e.rowElement).find('td.dx-datagrid-group-space').length
+                for (var i = 0; i < emptyTd; i++) {
+                    EmptyTdshtml += "<td></td>"
+                }
+                // ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='100%'>" + PreviewRowContent + "</td></tr>")
+                ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='" + (e.columns.length) + "'>" + PreviewRowContent + "</td></tr>")
+            }
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_OnContentReady(e) {
+
+            DxGrid_OnContentReady(e, EmailDeliveryLog_notificationSet_ShowHorizontalBar_dx);
+
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_OnCellDblClick(e) {
+            if (e.rowType == "data") {
+                if (EmailDeliveryLog_notificationSet_IsVouchingMode_dx == true && AdresBook_ViewMode_dx == "Default") {
+                    var keyvalue = e.key != null ? e.key.replace(/^0-9A-Za-z/gi, "_") : "Null" + e.rowIndex;
+                    OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, keyvalue, e.column.dataField)
+                }
+                else if (EmailDeliveryLog_notificationSet_IsVouchingMode_dx == false) { OnAddressEditClick_dx(); }
+            }
+        }
+        function EmailDeliveryLogNotificationSetInfoGrid_OnSelectionChanged(e) {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                //EmailDeliveryLogNotificationSetInfoGrid_SelectedRowData(e.selectedRowsData);
+                selectedContacts_notificationSet = e.selectedRowKeys
+            }
+            else {
+                //EmailDeliveryLog_notificationSet_ID_dx = null;
+                selectedContacts_notificationSet = null
+            }
+        }
+
+        function closeEmailDeliveryLog_notificationSet() {
+            selectedContacts_notificationSet = EmailDeliveryLogNotificationSetInfoGrid.getSelectedRowKeys();
+            $("#EmailDeliveryLog_notificationSet_modal").dxPopup("hide");
+        }
+    </script>
+</div>

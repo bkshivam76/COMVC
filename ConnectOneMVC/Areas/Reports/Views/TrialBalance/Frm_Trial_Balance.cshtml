@@ -1,0 +1,316 @@
+﻿<div class="TrialBalance_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;    
+    @model ConnectOneMVC.Areas.Reports.Models.TrialBalanceModel    
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool TrialBalance_ExportRight = (bool)ViewData["TrialBalance_ExportRight"];
+        bool TrialBalance_Auto_Vouching_Mode = (bool)ViewData["TrialBalance_Auto_Vouching_Mode"];
+    }
+    <style>
+        div#SVR_DD_TB_Report{
+            display: inline-block; position:relative; top:3px; height:29px; width:120px;
+        }
+    </style>
+
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Trial Balance Report</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @*@Html.Label("Special Voucher Reference:", htmlAttributes: new { @class = "control-label", @id = "lbl_itemName" })*@
+
+            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+            .ID("SVR_DD_TB_Report")
+            .Name("SVR_DD_TB_Report")
+            .ValueExpr("Spl_Vouch_Ref")
+            .DisplayExpr("Spl_Vouch_Ref")
+            .ReadOnly(false).Visible(false)
+            .Placeholder("Select Special voucher reference...")
+            .Value(Model.SVR_DD_TB_Report)
+            .DataSource(Model.SVR_List, "Spl_Vouch_Ref")
+            .OnValueChanged("SVR_DD_EditValueChanged_TB_Report")
+            .ContentTemplate(@<text> @Html.Partial("SVR_DD_LookUp_TB_Report") </text>)
+            .ShowClearButton(false) )
+            @(Html.DevExtreme().Switch().ID("TrialBalanceVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("TrialBalance_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                            .ID("TrialBalanceReportsShowLedger")
+                            .Text("Show Ledger")
+                            .Icon("doc")
+                            .Visible(false)
+                            .Disabled(true)
+                            .OnClick(@<text>
+                                function () {
+                                OnTrialBalanceReportShowLedgerClick();
+                                }
+                            </text>)
+        )
+            @(Html.DevExtreme().Button()
+                            .ID("TrialBalanceReportToggleScrollBar")
+                            .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                            .Icon("toolbox")
+                            .OnClick(@<text>
+                                function () {
+                                TrialBalanceReportchangeMode();
+                                }
+                            </text>)
+        )
+            @(Html.DevExtreme().Button()
+                            .ID("TrialBalanceReportsModelListPreview")
+                            .Text("Export")
+                            .Icon("save")
+                            .OnClick(@<text>
+                                function () {
+                                OnTrialBalanceReportListPreviewClick();
+                                }
+                            </text>)
+        )
+            @(Html.DevExtreme().Button()
+                            .ID("TrialBalanceReportModelCLOSE")
+                            .Text("Close")
+                            .Icon("clear")
+                            .OnClick(@<text>
+                                function (){
+                                $(".TabPanalMenu-tabs .active span").click()
+                                }
+                            </text>)
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="TrialBalanceReportreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Trial_Balance_Grid", Model.Grid_Data)
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                .ID("TrialBalanceReport_report_modal")
+                 .OnShowing("PopupOnShowing")
+                .Title("Balance Sheet Report Preview")
+                .FullScreen(false)
+                .MaxWidth(125)
+                .Height("auto")
+                .ShowCloseButton(true)
+                .ContentTemplate(@<text>
+                    <div id='TrialBalanceReport_report_modal_result'>
+                    </div>
+                </text>)
+    )
+        @(Html.DevExtreme().Popup().CustomPopup()
+        .ID("popup_frm_Ledger_Report")
+        .OnShowing("PopupOnShowing")
+        .Title("Ledger Report")
+        .MaxHeight(460)
+        .MaxWidth(950)
+        .ContentTemplate(  @<text>
+            <div id='popup_frm_Ledger_Report_result'>
+            </div>
+        </text>)
+    )
+
+    </div>
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsTrialBalanceReportSucessPopup = false;
+    var IsTrialBalanceReportViewPopup = false;
+    var TrialBalanceReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+        var TrialBalance_IsVouchingMode;
+        var SVR_DD_Value = "ALL";
+    var TrialBalance_SetVouchingModeOn = "@TrialBalance_Auto_Vouching_Mode" == "True" ? true : false;
+
+
+    function TrialBalance_VouchingSwitch_ValueChange(e)
+    {
+        TrialBalance_IsVouchingMode = e.value;
+        TrialBalanceReportListGrid_PerformCallBack();
+    }
+    function TrialBalanceReportListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.TrialBalanceReportListGrid !== 'undefined')
+            {
+                if (typeof window.TrialBalanceReportListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof TrialBalanceReportListGrid.PerformCallback == 'function')
+                    {
+                        TrialBalanceReportListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        TrialBalanceReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    $(document).ready(function () {
+        if ("@TrialBalance_ExportRight" == "False")
+        {
+	        $("#TrialBalanceReportsModelListPreview").hide();
+        }
+        IsTrialBalanceReportSucessPopup = false;
+        IsTrialBalanceReportViewPopup = false;
+
+        $(".TrialBalanceReportListGrid_PreviewRow").hide();
+        GetSessionStorage("TrialBalanceReportListGrid");
+
+        //SetTrialBalanceReportGroupPanelFooterVisible();
+    
+        if (TrialBalance_SetVouchingModeOn == true) {
+            $("#TrialBalanceVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/TrialBalance/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_TrialBalance();
+    });
+
+    function ClearAllReferences_TrialBalance()
+    {
+        IsTrialBalanceReportSucessPopup = null;
+        IsTrialBalanceReportViewPopup = null;
+        TrialBalanceReport_ShowHorizontalBar = null;
+        TrialBalance_IsVouchingMode = null;
+        TrialBalance_SetVouchingModeOn = null;
+        SVR_DD_Value = null;
+
+        ClearAllReferences("TrialBalance_ClearReferences");
+    }
+    function OnGridTrialBalanceReportListGrid_BeginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = TrialBalanceReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = TrialBalance_IsVouchingMode;
+        e.customArgs["specialVoucherReference"] = SVR_DD_Value;
+    }
+    function OnGridTrialBalanceReportListGrid_EndCallback(s,e)
+    {
+        $(".TrialBalanceReportListGrid_PreviewRow").hide();
+        GetSessionStorage("TrialBalanceReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function TrialBalanceReportOnInit(s, e) {
+        TrialBalanceReportAdjustSize();
+        $(".TrialBalanceReportListGrid_PreviewRow").hide();
+        GetSessionStorage("TrialBalanceReportListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            TrialBalanceReportAdjustSize();
+        });
+        $("#TrialBalanceReportListGrid").hover(function () {
+            TrialBalanceReportListGrid.Focus()
+        })
+    }
+
+    function OnEndCallback(s, e) {
+        TrialBalanceReportAdjustSize();
+    }
+
+    function TrialBalanceReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{TrialBalanceReportListGrid.SetHeight(height);} catch (err) { }
+    }
+    function TrialBalanceReportchangeMode() {
+        ShowLoader();
+        if (TrialBalanceReport_ShowHorizontalBar == 0) {
+            TrialBalanceReport_ShowHorizontalBar = 1;
+            $("#TrialBalanceReportToggleScrollBar").find("span").text("Default Data");
+            $("#TrialBalanceReportToggleScrollBar").width(110);
+        }
+        else {
+            TrialBalanceReport_ShowHorizontalBar = 0;
+            $("#TrialBalanceReportToggleScrollBar").find("span").text("Full Data");
+            $("#TrialBalanceReportToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Trial_Balance_Grid", "TrialBalance")',
+            type: "GET",
+            data: { ShowHorizontalBar: TrialBalanceReport_ShowHorizontalBar, VouchingMode: TrialBalance_IsVouchingMode },
+            success: function (res) {
+                $(".TrialBalanceReportListGrid_PreviewRow").hide();
+                GetSessionStorage("TrialBalanceReportListGrid");
+                $("#TrialBalanceReportreloadPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }
+    function OnTrialBalanceReportListPreviewClick() {
+        if ("@TrialBalance_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("TrialBalanceReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "TrialBalance", new { @area = "Reports" })", "auto", "auto", false, null);
+    }
+
+    function OnTrialBalanceReportShowLedgerClick() {
+        //alert(TrialBalanceReportListGrid.GetSelectedFieldValues());
+        $("#popup_frm_Ledger_Report").dxPopup("show");
+        $("#popup_frm_Ledger_Report").dxPopup("instance").option("title", "Ledger Report");
+        $("#popup_frm_Ledger_Report_result").load("@Url.Action("Frm_Ledger_Report", "LedgerReport", new { @area = "Reports" })?ledgerName=" + PartyBalancesReportID, function () {
+            //  HideLoader();
+        });
+    }
+
+    function TrialBalanceReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnTrialBalanceReportListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            TrialBalanceReportListGrid.Refresh();
+        }
+    }
+</script>
+
+    <script>
+        function SVR_DD_EditValueChanged_TB_Report(e) {
+
+            if (e.value == null || e.value.length == 0) {
+                return;
+            }
+
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+               return;
+            }
+            if (e.value == e.previousValue) {
+                return;
+            }
+            SVR_DD_Value = e.value;
+            TrialBalanceReportListGrid.Refresh();
+        }
+    </script>
+</div>

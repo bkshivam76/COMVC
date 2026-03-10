@@ -1,0 +1,252 @@
+﻿<div class="LocationReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool LocationInfo_ExportRight = (bool)ViewData["LocationInfo_ExportRight"];
+        bool LocationReport_Auto_Vouching_Mode = (bool)ViewData["LocationReport_Auto_Vouching_Mode"];
+    }
+
+    <style>
+        @@media (max-width:768px){
+            #LocationReportListGrid, #LocationReportListGrid .dxgvHSDC > div, #LocationReportListGrid .dxgvCSD, #LocationReportListGrid_DXFilterBar { width: calc(100vw - 1.5%) !important }
+        }
+    </style>
+
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Location Details</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("LocationReportVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("LocationReport_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                                            .ID("LocationReportsToggleScrollBar")
+                                            .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                            .Icon("toolbox")
+                                            .OnClick(@<text>
+                                                function () {
+                                                LocationReportchangeMode();
+                                                }
+                                            </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                            .ID("LocationReportsModelListPreview")
+                                            .Text("Export")
+                                            .Width(80)
+                                            .Icon("save")
+                                            .OnClick(@<text>
+                                                function () {
+                                                OnLocationReportListPreviewClick();
+                                                }
+                                            </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                            .ID("LocationReportModelCLOSE")
+                                            .Text("Close")
+                                            .Icon("clear")
+                                            .OnClick(@<text>
+                                                function (){
+                                                $(".TabPanalMenu-tabs .active span").click()
+                                                }
+                                            </text>)
+
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="LocationReportreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Location_Map_Info_Grid", Model)
+            </div>
+        </form>
+    </div>
+
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsLocationReportSucessPopup = false;
+    var IsLocationReportViewPopup = false;
+    var ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var LocationR_IsVouchingMode = false;
+    var LocationReport_SetVouchingModeOn = "@LocationReport_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_LocationMapPrf = "@UserType".toUpperCase();
+
+    function LocationReport_VouchingSwitch_ValueChange(e) {
+        LocationR_IsVouchingMode = e.value;
+        LocationReportListGrid_PerformCallBack();
+    }
+    function LocationReportListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.LocationReportListGrid !== 'undefined')
+            {
+                if (typeof window.LocationReportListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof LocationReportListGrid.PerformCallback == 'function')
+                    {
+                        LocationReportListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        LocationReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    $(document).ready(function () {
+        if ("@LocationInfo_ExportRight" == "False")
+        {
+	        $("#LocationReportsModelListPreview").hide();
+        }
+        IsLocationReportSucessPopup = false;
+        IsLocationReportViewPopup = false;
+        //SetLocationReportGroupPanelFooterVisible();
+        $("#LocationReportListGrid").hover(function () {
+            LocationReportListGrid.Focus()
+        })
+        GetSessionStorage("LocationReportListGrid");
+        $(".LocationReportListGrid_PreviewRow").hide();
+        if (LocationReport_SetVouchingModeOn == true) {
+            $("#LocationReportVouchingModeSwitch").dxSwitch("instance").option("value", true);
+           // $("#DonRegViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/LocationInfo/SessionClear",
+            cache: false
+        });
+
+        ClearAllReferences_LocationReport();
+    });
+        function ClearAllReferences_LocationReport()
+        {
+            IsLocationReportSucessPopup = null;
+            IsLocationReportViewPopup = null;
+            ShowHorizontalBar = null;
+            LocationR_IsVouchingMode = null;
+            LocationReport_SetVouchingModeOn = null;
+            UserType_LocationMapPrf = null;
+
+            ClearAllReferences("LocationReport_ClearReferences");
+        }
+
+    function OnLocationMapCellClick(event, cell,col, row)
+    {
+        if (UserType_LocationMapPrf == "AUDITOR" || UserType_LocationMapPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function LocationReportOnInit(s, e) {
+        LocationReportAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            LocationReportAdjustSize();
+        });
+        $(".LocationReportListGrid_PreviewRow").hide();
+    }
+
+    function LocationOnEndCallback(s, e) {
+       // LocationReportAdjustSize();
+         $(".LocationReportListGrid_PreviewRow").hide();
+        GetSessionStorage("LocationReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function LocationReportBeginCallBAck(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = ShowHorizontalBar; //bug 131064 fixed
+        e.customArgs["VouchingMode"] = LocationR_IsVouchingMode;
+    }
+    function LocationReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{LocationReportListGrid.SetHeight(height);} catch (err) { }
+    }
+
+    function LocationReportchangeMode() {
+        // BalanceSheetReportListGrid.PerformCallback();
+        if (ShowHorizontalBar == 0)
+        {
+            ShowHorizontalBar = 1;
+            $("#LocationReportsToggleScrollBar").find("span").text("Default Data");
+            $("#LocationReportsToggleScrollBar").width(110);
+        }
+        else
+        {
+            ShowHorizontalBar = 0;
+            $("#LocationReportsToggleScrollBar").find("span").text("Full Data");
+            $("#LocationReportsToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Location_Map_Info_Grid", "LocationInfo")',
+            type: "GET",
+            data: { ShowHorizontalBar: ShowHorizontalBar, VouchingMode: LocationR_IsVouchingMode },
+            success: function (res) {
+                $("#LocationReportreloadPartialView").html(res);
+                $(".LocationReportListGrid_PreviewRow").hide();
+                GetSessionStorage("LocationReportListGrid");
+
+            }
+        });
+    }
+
+    function OnLocationReportListPreviewClick() {
+        if ("@LocationInfo_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("LocationReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "LocationInfo", new { @area = "Reports" })", "auto", 120, false, null);
+    }
+
+    function LocationReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnLocationReportListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            LocationReportListGrid.Refresh();
+        }
+    }
+
+</script>
+</div>

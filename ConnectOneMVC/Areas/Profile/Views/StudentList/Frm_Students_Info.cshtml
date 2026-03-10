@@ -1,0 +1,211 @@
+﻿<div class="StudentsProfile_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool StudentList_AddRight = (bool)ViewData["StudentList_AddRight"];
+        bool StudentList_UpdateRight = (bool)ViewData["StudentList_UpdateRight"];
+        bool StudentList_ViewRight = (bool)ViewData["StudentList_ViewRight"];
+        bool StudentList_DeleteRight = (bool)ViewData["StudentList_DeleteRight"];
+        bool StudentList_ExportRight = (bool)ViewData["StudentList_ExportRight"];
+    }
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Students List</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button()
+                                        .ID("StudentsToggleScrollBar")
+                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                        .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                        .Icon("toolbox")
+                                        .OnClick(@<text>
+                                            function () {
+                                                    StudentschangeMode();
+                                            }
+                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                        .ID("StudentsModelListPreview")
+                                        .Text("Export")
+                                        .Icon("save")
+                                        .Width(80)
+                                        .OnClick(@<text>
+                                            function () {
+                                            OnStudentsListPreviewClick();
+                                            }
+                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                        .ID("StudentsModelCLOSE")
+                                        .Text("Close")
+                                        .Icon("clear")
+                                        .OnClick(@<text>
+                                            function (){$(".TabPanalMenu-tabs .active span").click()}
+                                        </text>)
+
+        )
+        </div>
+
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="StudentsreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Students_Info_Grid", Model)
+            </div>
+        </form>
+    </div>
+    <div class="footer-MainBoxdiv full-width-footer">
+        @*<div class="col-lg-8 report_footer_small_buttons_div" id="StudentsFooterItem">*@
+        <div class="list_footer_left_margin col-md-10">
+            Note : Addresses with B.K. status excluding Surrendered Souls are shown here.
+        </div>
+        @*<div class="list_footer_right_margin_consistent col-md-1">
+                <i id="Students_LockICON" class="fa fa-lock lock_symbol"></i>
+            </div>*@
+        @*</div>
+            <div class="col-lg-4 listing_footer_filter_buttons_div">
+            </div>*@
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                .ID("Students_report_modal")
+                .OnShowing("PopupOnShowing")
+                .Title("Students List Preview")
+                .FullScreen(false)
+                .MaxWidth(125)
+                .Height("auto")
+                .ShowCloseButton(true)
+                .ContentTemplate(@<text>
+                    <div id="Students_report_modal_result">
+                    </div>
+                </text>)
+    )
+    </div>
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    //var IsSucessPopup = false;
+    //var IsViewPopup = false;
+    var Students_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    $(document).ready(function () {
+        if ("@StudentList_ExportRight" == "False")
+        {
+	        $("#StudentsModelListPreview").hide();
+        }
+        ////IsSucessPopup = false;
+        //IsViewPopup = false;
+        //SetStudentsGroupPanelFooterVisible();
+        //SetStudentsFooterVisible();
+        $("#StudentsListGrid").hover(function () {
+            StudentsListGrid.Focus()
+        })
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/StudentList/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_StudentsProfile();
+
+    });
+    var UserType_StudentPrf = "@UserType".toUpperCase();
+
+    function StudentsOnInit(s, e) {
+        StudentsAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            StudentsAdjustSize();
+        });
+    }
+    function OnEndCallback(s, e) {
+        StudentsAdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function StudentsAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{StudentsListGrid.SetHeight(height);}catch(err){}
+    }
+    function StudentschangeMode() {
+        ShowLoader();
+        if (Students_ShowHorizontalBar == 0) {
+            Students_ShowHorizontalBar = 1;
+            $("#StudentsToggleScrollBar").find("span").text("Default Data");
+            $("#StudentsToggleScrollBar").width(110);
+        }
+        else {
+            Students_ShowHorizontalBar = 0;
+            $("#StudentsToggleScrollBar").find("span").text("Full Data");
+            $("#StudentsToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Students_Info_Grid", "StudentList")',
+            type: "GET",
+            data: { ShowHorizontalBar: Students_ShowHorizontalBar },
+            success: function (res) {
+                $("#StudentsreloadPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }
+    function StudentsAjaxSuccessForm(data) {
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            //IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_Students_Window").dxPopup("hide");
+            StudentsListGrid.Refresh();
+            //IsSucessPopup = false;
+        }
+    }
+
+    function OnStudentsListPreviewClick() {
+        if ("@StudentList_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        $("#Students_report_modal").dxPopup("show");
+        $("#Students_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#Students_report_modal").html('');
+        ShowLoader();
+        $("#Students_report_modal_result").load("@Url.Action("Frm_Export_Options", "StudentList", new { @area = "Profile" })", function () {
+            HideLoader();
+        });
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function StudentsContextMenuFunction(s, e) {
+       if (e.item.name == 'ListPreview') {
+            OnStudentsListPreviewClick();
+       }
+       else if (e.item.name == 'Refresh') {
+           StudentsListGrid.Refresh();
+       }
+
+    }
+
+</script>
+</div>

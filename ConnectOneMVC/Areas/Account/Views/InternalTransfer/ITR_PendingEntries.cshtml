@@ -1,0 +1,300 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.InternalTransferRegister
+<div id="ITR_Pending_reloadPartialView" class="parent_table">
+    <form>
+        @Html.Partial("Frm_I_Transfer_Reg_Pending_Grid", Model.GridView2)
+    </form>
+</div>
+<div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+    <div class="setFooterItem">
+        <div class="footer-inner">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="row addEditDiv">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="footericon">
+                            <i id="ITR_Pending_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+
+                        <div class="footer-locktext">
+                            <div id="ITR_Pending_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="ITR_Pending_Lbl_ActionBy" class="left_footertext_bottom">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <p id="ITR_Pending_Lbl_Create" class="right_footertext_top"></p>
+                        <p id="ITR_Pending_Lbl_Modify" class="right_footertext_bottom"></p>
+                    </div>
+                </div>
+            </div>
+            @*<div class="col-sm-12 col-md-4 col-lg-6 rightDiv">
+                @Html.DevExpress().TrackBar(
+                   tb =>
+                   {
+                       tb.Name = "trackBarITR_Pending";
+                       tb.Properties.ScalePosition = ScalePosition.LeftOrTop;
+                       tb.Properties.ValueToolTipPosition = ValueToolTipPosition.RightOrBottom;
+                       tb.Properties.ValueType = typeof(string);
+                       tb.Width = 150;
+                       tb.Position = 2;
+                       tb.Properties.ClientSideEvents.PositionChanged = "ITR_Pending_TrackBarPositionChanged";
+                       tb.ControlStyle.CssClass = "float-right";
+                       tb.Properties.ScalePosition = ScalePosition.None;
+                   }
+               ).GetHtml()
+                <div class="filter_main">
+                    @(Html.DevExtreme().Button().ID("ITR_Pending_Search").Text("Find").Icon("find").Hint("Show search").ElementAttr(new Dictionary<string, object>() { { "class", "float-right find_btn" } }).OnClick(@<text> function () { OnITR_Pending_SearchClick(); } </text>))
+                    @(Html.DevExtreme().Button().ID("ITR_Pending_Find").Text("Filter").Icon("find").Hint("Show filter").ElementAttr(new Dictionary<string, object>() { { "class", "float-right filter_btn" } }).OnClick(@<text> function () { OnITR_Pending_FilterClick(); } </text>) )
+                </div>
+            </div>*@
+        </div>
+    </div>
+</div>
+<script>
+
+    var ITR_Pending_ActionBy;
+    var ITR_Pending_ActionDate;
+    var ITR_Pending_ActionStatus;
+    var ITR_Pending_AddBy;
+    var ITR_Pending_AddDate;
+    var ITR_Pending_EditBy;
+    var ITR_Pending_EditDate;
+    var ITR_Pending_ID;
+    var ITR_Pending_SearchVisible = true;
+    var ITR_Pending_FilterVisible = true;
+    var ITR_Pending_FocusedRowBeforeRefresh;
+</script> @*ITR_Pending_Global_Variables*@
+<script>
+    $(document).ready(function () {
+        $(".ITR_PendingGrid_PreviewRow").hide();
+        GetSessionStorage("ITR_PendingGrid");
+    });
+
+    function ITR_Pending_Grid_init(s, e) {
+        if (s.GetVisibleRowsOnPage() <= 0) {
+            RowFlag2 = false;
+        }
+        else {
+            try {
+                if (($("#xID").val()).length > 0) {
+                    var rowindex = s.FindVisibleIndexByKeyValue($("#xID").val());
+                    s.SetFocusedRowIndex(rowindex);
+                }
+                else {
+                    s.SetFocusedRowIndex(-1);
+                }
+            }
+            catch (err) {
+                s.SetFocusedRowIndex(-1);
+            }
+            RowFlag2 = true;
+        }
+        ITR_Pending_Grid_AdjustSize(s, e);
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            ITR_Pending_Grid_AdjustSize(s, e);
+        });
+    }
+    function ITR_Pending_Grid_AdjustSize(s, e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        s.SetHeight(height);
+    }
+    function ITR_Pending_Grid_begincallback(s, e) {
+        e.customArgs["command"] = e.command;
+        e.customArgs["VouchingMode"] = IntrnlTranfrReg_IsVouchingMode;
+        ITR_Pending_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+    }
+    function ITR_Pending_Grid_endcallback(s, e) {
+        ITR_Pending_Grid_AdjustSize(s, e);
+        $(".ITR_PendingGrid_PreviewRow").hide();
+        GetSessionStorage("ITR_PendingGrid");
+        if (e.command == "REFRESH")
+        {
+            if (s.GetFocusedRowIndex() == ITR_Pending_FocusedRowBeforeRefresh)
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(ITR_Pending_FocusedRowBeforeRefresh);
+            }
+        }
+    }
+    function ITR_PendingGrid_FocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            ITR_PostedGrid.SetFocusedRowIndex(-1);
+            if (!ITR_PendingGrid.IsGroupRow(s.GetFocusedRowIndex())) {
+                var key = s.GetRowKey(s.GetFocusedRowIndex());
+                s.GetValuesOnCustomCallback({ key: key }, ITR_PendingGridOnGetRowValues);
+            }
+            else
+            {
+                ITR_Pending_ID = null;
+                ITR_Pending_ActionBy = null;
+                ITR_Pending_ActionDate = null;
+                ITR_Pending_ActionStatus = null;
+                ITR_Pending_AddBy = null;
+                ITR_Pending_AddDate = null;
+                ITR_Pending_EditBy = null;
+                ITR_Pending_EditDate = null;
+                ITR_Pending_updateFooterDetail(ITR_Pending_ActionStatus, ITR_Pending_AddDate, ITR_Pending_AddBy, ITR_Pending_ActionDate, ITR_Pending_ActionBy, ITR_Pending_EditDate, ITR_Pending_EditBy);
+            }
+        }
+        else
+        {
+            ITR_Pending_ID = null;
+            ITR_Pending_ActionBy = null;
+            ITR_Pending_ActionDate = null;
+            ITR_Pending_ActionStatus = null;
+            ITR_Pending_AddBy = null;
+            ITR_Pending_AddDate = null;
+            ITR_Pending_EditBy = null;
+            ITR_Pending_EditDate = null;
+            ITR_Pending_updateFooterDetail(ITR_Pending_ActionStatus, ITR_Pending_AddDate, ITR_Pending_AddBy, ITR_Pending_ActionDate, ITR_Pending_ActionBy, ITR_Pending_EditDate, ITR_Pending_EditBy);
+        }
+    }
+    function ITR_PendingGridOnGetRowValues(data) {
+        var value = data.split("![");
+        ITR_Pending_ActionBy = value[0];
+        ITR_Pending_ActionDate = value[1];
+        ITR_Pending_ActionStatus = value[2];
+        ITR_Pending_AddBy = value[3];
+        ITR_Pending_AddDate = value[4];
+        ITR_Pending_EditBy = value[5];
+        ITR_Pending_EditDate = value[6];
+        ITR_Pending_ID = value[7];
+        ITR_Pending_updateFooterDetail(ITR_Pending_ActionStatus, ITR_Pending_AddDate, ITR_Pending_AddBy, ITR_Pending_ActionDate, ITR_Pending_ActionBy, ITR_Pending_EditDate, ITR_Pending_EditBy);
+    }
+    function ITR_Pending_updateFooterDetail(ITR_ActionStatus, ITR_AddDate, ITR_AddBy, ITR_ActionDate, ITR_ActionBy, ITR_EditDate, ITR_EditBy) {
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+
+        Status = ITR_ActionStatus;
+        StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+        if (Status && Status.toUpperCase() == "LOCKED") {
+            Lbl_Status = "Completed";
+            Lbl_Status_Color = "blue";
+            Pic_Status = "fa fa-lock";
+        }
+        else {
+            Pic_Status = "fa fa-unlock";
+            Lbl_Status = Status;
+            if (Status && Status.toUpperCase() == "COMPLETED") {
+                Lbl_Status_Color = "green";
+            }
+            else {
+                Lbl_Status_Color = "red";
+            }
+        }
+
+        if (ITR_AddDate) {
+            Lbl_Create = "Add On: " + ITR_AddDate + ", By: " + ITR_AddBy;
+        }
+        if (ITR_EditDate) {
+            Lbl_Modify = "Edit On: " + ITR_EditDate + ", By: " + ITR_EditBy;
+        }
+        if (ITR_ActionDate) {
+            Lbl_ActionOn = StatusStr + " On: " + ITR_ActionDate;
+        }
+        if (ITR_ActionBy) {
+            Lbl_ActionBy = StatusStr + " By: " + ITR_ActionBy;
+        }
+
+        $('#ITR_Pending_Lbl_Status').text(Lbl_Status);
+        $('#ITR_Pending_Lbl_Create').text(Lbl_Create);
+        $('#ITR_Pending_Lbl_ActionOn').text(Lbl_ActionOn);
+        $('#ITR_Pending_Lbl_ActionBy').text(Lbl_ActionBy);
+        $('#ITR_Pending_Lbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#ITR_Pending_Lbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status == "fa fa-lock") {
+            $('#ITR_Pending_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+        }
+        else if (Pic_Status == "fa fa-unlock") {
+            $('#ITR_Pending_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+        }
+        else {
+            $('#ITR_Pending_LockICON').removeClass("fa").removeClass("fa-unlock").removeClass("fa-lock");
+        }
+    }
+    function ITR_Pending_Grid_dblclickEdit(s, e) {
+        if (IntrnlTranfrReg_IsVouchingMode == true) { return; }
+        DataNavigation_ITR("EDIT");
+    }
+
+    function ITR_PendingGrid_ContextMenuClick(s, e) {
+        if (e.item.name == 'New') {
+            DataNavigation_Volume_ITR("NEW");
+        }
+        else if (e.item.name == 'Edit') {
+            DataNavigation_Volume_ITR("EDIT");
+        }
+        else if (e.item.name == 'Delete') {
+            DataNavigation_Volume_ITR("DELETE");
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnITRListPreviewClick();
+        }
+        else if (e.item.name == 'UnmatchTransfer') {
+            DataNavigation_Volume_ITR("UNMATCH");
+        }
+        else if (e.item.name == 'AcceptTransfer') {
+            DataNavigation_ITR("ACCEPT");
+        }
+        else if (e.item.name == 'Edit_Common_Info') {
+            DataNavigation_ITR("EDIT-COMMON");
+        }
+        else if (e.item.name == 'Add_Attachment') {
+            OnITRAddAttachment(ITR_Pending_ID);
+        }
+        else if (e.item.name == 'Manage_Attachments') {
+            OnITRManageAttachment(ITR_Pending_ID);
+        }
+        else if (e.item.name == 'Link_Attachment') {
+            OnITRLinkAttachment();
+        }
+        else if (e.item.name == 'Close') {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+    }
+
+    function ITR_Pending_TrackBarPositionChanged() {
+        var ITRcurrentZoom = 1.0;
+        var ITRtrackBarCurrentValue = trackBarITR_Pending.GetValue()
+        if (ITRtrackBarCurrentValue != 0) {
+            ITRcurrentZoom += ITRtrackBarCurrentValue / 100;
+        }
+        $('#ITR_Pending_reloadPartialView').animate({ 'zoom': ITRcurrentZoom }, 'slow');
+    }
+
+    function OnITR_Pending_SearchClick() {
+        if (ITR_Pending_SearchVisible) {
+            ITR_PendingGrid.contextMenuHelper.ContextMenuShowSearchPanel(1);
+        }
+        else {
+            ITR_PendingGrid.contextMenuHelper.ContextMenuShowSearchPanel(0);
+        }
+        ITR_Pending_SearchVisible = !ITR_Pending_SearchVisible;
+    }
+    function OnITR_Pending_FilterClick() {
+        if (ITR_Pending_FilterVisible) {
+            ITR_PendingGrid.contextMenuHelper.ContextMenuShowFilterRow(1);
+        }
+        else {
+            ITR_PendingGrid.contextMenuHelper.ContextMenuShowFilterRow(0);
+        }
+        ITR_Pending_FilterVisible = !ITR_Pending_FilterVisible;
+    }
+
+</script>
+
+

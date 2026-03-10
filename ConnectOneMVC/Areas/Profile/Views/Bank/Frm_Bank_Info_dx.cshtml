@@ -1,0 +1,1796 @@
+<div class="BankProfiledx_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var CalledFromOtherScreen = ViewBag.PopupID;
+        string UserType = (string)ViewBag.UserType;
+        bool Bank_AddRight = (bool)ViewData["Bank_AddRight"];
+        bool Bank_UpdateRight = (bool)ViewData["Bank_UpdateRight"];
+        bool Bank_ViewRight = (bool)ViewData["Bank_ViewRight"];
+        bool Bank_DeleteRight = (bool)ViewData["Bank_DeleteRight"];
+        bool Bank_ExportRight = (bool)ViewData["Bank_ExportRight"];
+        bool Bank_ListAdresBookRight = (bool)ViewData["Bank_ListAdresBookRight"];
+        bool Bank_LockUnlockRight = (bool)ViewData["Bank_LockUnlockRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool BankInfo_Auto_Vouching_Mode = (bool)ViewData["BankInfo_Auto_Vouching_Mode"];
+        bool LockUnlock = (bool)ViewBag.LockUnlock;
+        bool ManageRemarks = (bool)ViewBag.ManageRemarks;
+        bool SpecialGroupings = (bool)ViewBag.SpecialGroupings;
+    }
+
+    <style>
+        .GridrowMouseHover {
+            box-shadow: inset 0px 0px 5px 0px rgb(0, 114, 198);
+        }
+
+        .GridFloatDiv {
+            position: relative;
+            z-index: 2;
+            box-shadow: 2px 2px 2px 2px #888888;
+            background-color: white;
+        }
+
+        .hideHeader {
+            display: none;
+        }
+
+        #BankListGrid {
+            width: 100% !important;
+            max-width: 100% !important
+        }
+
+        .dxgvDetailRow_Aqua td.dxgvDetailCell_Aqua {
+            padding: 18px 0
+        }
+    </style>
+    <div id="BankProfile_ParentDiv_dx">
+        @*<div class="report_header_div_main">*@
+        <div id="contentBankProfile_dx" class="report_header_div_main clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">Bank Account Information</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("BankVouchingModeSwitch_dx").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Bank_VouchingSwitch_ValueChange_dx").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("BankViewModeSwitch_dx").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Bank_ViewSwitch_ValueChange_dx").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @if (ViewBag.LockUnlock != false)
+                {
+                    @(Html.DevExtreme().Button().ID("BankModelUnlock_dx").Text("Unlock").Icon("add").Visible(true).OnClick(@<text> function () { BankOnUnLockClick_dx(); } </text>) )
+
+                    @(Html.DevExtreme().Button().ID("BankModelLock_dx").Text("Lock").Icon("add").Visible(true).OnClick(@<text> function () { BankOnLockClick_dx(); } </text>) )
+                }
+                @(Html.DevExtreme().Button().ID("GetBankStatement_BankAcc_Profile").Text("Bank Statement").Visible(true).OnClick("getBankstatement_BankAcc_Onclick") )
+                @(Html.DevExtreme().Button().ID("BankModelNew_dx").Text("New").Icon("add").Visible(true).OnClick(@<text> function () { BankProfile_OnNewClick_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankModelEdit_dx").Text("Edit").Visible(true).Icon("edit").OnClick(@<text> function () { BankProfile_OnEditClick_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankModelDelete_dx").Text("Delete").Icon("trash").Visible(true).OnClick(@<text> function () { BankProfile_OnDeleteClick_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankModelView_dx").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).OnClick(@<text> function () { BankProfile_OnViewClick_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankToggleScrollBar_dx").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { BankchangeMode_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankModelListPreview_dx").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnBankListPreviewClick_dx(); } </text>) )
+                @(Html.DevExtreme().Button().ID("BankModelCLOSE_dx").Text("Close").Icon("clear").OnClick(@<text> function (){ closeProfile_Bank_dx(); } </text>) )
+
+            </div>
+            @*</div>*@
+        </div>
+        <div class="col-md-12 no-padding" id="BankProfile_grid_DIV_dx">
+            <form>
+                <div id="bankReloadPartialView_dx" class="parent_table">
+                    @Html.Partial("Frm_Bank_Info_Grid_dx")
+                </div>
+            </form>
+
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="Bank_LockICON_dx" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="BankLbl_Status_dx" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="Bank_Lbl_ActionOn_dx" class="left_footertext_top"></div>
+                            <div id="Bank_Lbl_ActionBy_dx" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="BankLbl_Create_dx" class="right_footertext_top"></p>
+                            <p id="BankLbl_Modify_dx" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("AttachmentFAB", "BankPrf_FAB_dx,BankProfile_ParentDiv_dx,Type1,BankProfile_dx," + UserType) @*fab buttons*@
+
+    <script>
+    var Bank_ShowHorizontalBar_dx = parseInt("@ViewBag.ShowHorizontalBar");
+    var BankGridLayout_dx = null;
+    var BankProfileLastSelectedRowKeyBeforeRefresh_dx;
+    var BankProfileSelectedKeysBeforeRefresh_dx = [];
+    var BankProfileFocusedRowIndexBeforeRefresh_dx;
+    var BankID_BankProfile_dx = null;
+    var BA_CLOSE_DATE_dx;
+    var YearID_dx;
+    var Bank_ActionStatus_dx;
+    var Bank_EditDate_dx;
+    var OpenActions_dx;
+    var BA_ACCOUNT_TYPE_dx;
+    var BA_ACCOUNT_NO_dx;
+    var Branch_dx;
+    var Name_dx;
+    var BA_Customer_Number_dx;
+    var Bank_AddBy_dx;
+    var Bank_AddDate_dx;
+    var Bank_EditBy_dx;
+    var Bank_ActionDate_dx;
+    var Bank_ActionBy_dx;
+    var _actionName_dx = "";
+    var _IsContextMenu_dx = false;
+    var Bank_SelectedVisibleIndex_dx = [];
+    var Bank_SelectedBankID_dx = [];
+    var BankLastSelectedindex_dx;
+    var BankLastSelectedID_dx;
+    var Bank_IsVouchingMode_dx = false;
+    var Bank_ViewMode_dx = "Default";
+    var Select_xid_bank_dx = "";
+    var UserType_BankPrf_dx = "@UserType".toUpperCase();
+    var BankListGrid_dx = null;
+    var VisibleColumns_BankListGrid_dx = [];
+    var Expanded_Row_Key_Bank_dx = null;
+
+    var BankInfo_IsDetailRowExpanded_dx = false;
+    var BankInfo_NestedRecord_FocusedRowIndex_dx = -1;
+    var BankInfo_NestedGrid_AccessID_dx = null;
+    var BankInfo_Nested_Doc_Status_dx = null;
+    var BankInfo_AtachmentID_dx = null;
+    var BankInfo_FileName_dx = null;
+    var BankInfo_ParamMandatory_dx = null;
+    var BankInfo_FromDateLabel_dx = null;
+    var BankInfo_ToDateLabel_dx = null;
+    var BankInfo_DescriptionLabel_dx = null;
+    var BankInfo_Doc_ID_dx = null;
+    var BankInfo_Doc_Category_dx = null;
+    var BankInfo_MasterRowRecID_dx = null;
+    var BankInfo_MasterRowMID_dx = null;
+    var BankInfo_NestedRowMapID_dx = null;
+    var BankInfo_NestedRowUniqueID_dx = null;
+    var BankInfo_reason_dx = null;
+    var BankInfo_Attachment_RecStatus_dx = null;
+    var BankInfo_SetVouchingModeOn_dx = "@BankInfo_Auto_Vouching_Mode" == "True" ? true : false;
+    var BankInfo_NestedRowReasonID_dx = null;
+
+    function Bank_VouchingSwitch_ValueChange_dx(e)
+    {
+        Bank_IsVouchingMode_dx = e.value;
+        if (BankInfo_SetVouchingModeOn_dx == true)
+        {
+            BankInfo_SetVouchingModeOn_dx = false;
+        }
+        else
+        {
+            BankPrf_FAB_dx.SetVisible(false);
+        }
+        if (Bank_IsVouchingMode_dx == true)
+        {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else
+        {
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        BankListGrid_dx.clearSelection();
+        BankListGrid_dx.option("masterDetail.enabled", !Bank_IsVouchingMode_dx)
+        BankListGrid_dx.repaint();
+    }
+    function Bank_ViewSwitch_ValueChange_dx(e)
+    {
+        Bank_ViewMode_dx = e.value == false ? "Default" : "Compact";
+        if (BankInfo_SetVouchingModeOn_dx == true)
+        {
+            $("#BankVouchingModeSwitch_dx").dxSwitch("instance").option("value", true);
+        }
+        BankListGrid_dx.beginUpdate();
+        var columns = BankListGrid_dx.option("columns");
+        if (Bank_ViewMode_dx == "Compact")
+        {
+            VisibleColumns_BankListGrid_dx = [];
+            for (var i = 0; i < columns.length; i++)
+            {
+                var name = columns[i].dataField;
+                var ColumnVisible = BankListGrid_dx.columnOption(name, "visible");
+                if (name == "BankListGrid_dx_Compact_Column") {
+                    BankListGrid_dx.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon")
+                {
+                    VisibleColumns_BankListGrid_dx.push(name);
+                    BankListGrid_dx.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else
+        {
+            BankListGrid_dx.columnOption("BankListGrid_dx_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_BankListGrid_dx.length; i++) {
+                BankListGrid_dx.columnOption(VisibleColumns_BankListGrid_dx[i], "visible", true);
+            }
+        }
+        BankListGrid_dx.repaint();
+        BankListGrid_dx.endUpdate();
+    }
+    function BankchangeMode_dx()
+    {
+        BankListGrid_dx.beginUpdate();
+        if (Bank_ShowHorizontalBar_dx == 0)
+        {
+            Bank_ShowHorizontalBar_dx = 1;
+            $("#BankToggleScrollBar_dx").find("span").text("Default Data");
+            $("#BankToggleScrollBar_dx").width(110);
+            BankListGrid_dx.option("columnHidingEnabled", false);
+            BankListGrid_dx.option("allowColumnResizing", true)
+        }
+        else
+        {
+            Bank_ShowHorizontalBar_dx = 0;
+            $("#BankToggleScrollBar_dx").find("span").text("Full Data");
+            $("#BankToggleScrollBar_dx").width(90);
+            BankListGrid_dx.option("columnHidingEnabled", true)
+            BankListGrid_dx.option("allowColumnResizing", false)
+        }
+        BankListGrid_dx.endUpdate();
+    }
+    function OnBankListPreviewClick_dx()
+    {
+        if ("@Bank_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        OpenPopup("Bank_report_modal", "Export Option", "@Url.Action("Frm_Export_Options_dx", "Bank", new { @area = "Profile" })", "auto", 125);
+    }
+    function Bank_UpdateFooterDetail_dx(BankID_BankProfile, Bank_Action_Status, Bank_Add_Date, Bank_Add_By, Bank_Action_Date, Bank_Action_By, Bank_Edit_Date, Bank_Edit_By)
+    {
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+        if (BankID_BankProfile != null)
+        {
+            Bank_Add_Date = (moment(Bank_Add_Date).format("DD/MM/YYYY HH:mm:ss"));
+            Bank_Edit_Date = (moment(Bank_Edit_Date).format("DD/MM/YYYY HH:mm:ss"));
+            Bank_Action_Date = (moment(Bank_Action_Date).format("DD/MM/YYYY HH:mm:ss"));
+            Status = Bank_Action_Status;
+            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "fa fa-lock";
+            }
+            else {
+                Pic_Status = "fa fa-unlock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED") {
+                    Lbl_Status_Color = "green";
+                }
+                else {
+                    Lbl_Status_Color = "red";
+                }
+            }
+            if (Bank_Action_Date) {
+                Lbl_ActionOn = StatusStr + " On: " + Bank_Action_Date;
+                Lbl_ActionBy = StatusStr + " By: " + Bank_Action_By;
+            }
+
+            else {
+                Lbl_ActionOn = "";
+                Lbl_ActionBy = "";
+            }
+            if (Bank_Add_Date) {
+                Lbl_Create = "Add On: " + Bank_Add_Date + ", By: " + Bank_Add_By;
+            }
+            else {
+                Lbl_Create = "";
+            }
+
+            if (Bank_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Bank_Edit_Date + ", By: " + Bank_Edit_By;
+            }
+            else {
+                Lbl_Modify = "";
+            }
+        }
+        $('#BankLbl_Status_dx').text(Lbl_Status);
+        $('#Bank_Lbl_ActionOn_dx').text(Lbl_ActionOn)
+        $('#Bank_Lbl_ActionBy_dx').text(Lbl_ActionBy);
+        $('#BankLbl_Create_dx').text(Lbl_Create);
+        $('#BankLbl_Modify_dx').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#BankLbl_Status_dx').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status == "fa fa-lock") {
+            $('#Bank_LockICON_dx').addClass(Pic_Status).removeClass("fa-unlock");
+        }
+        else if (Pic_Status == "fa fa-unlock") {
+            $('#Bank_LockICON_dx').addClass(Pic_Status).removeClass("fa-lock");
+        }
+        else {
+            $('#Bank_LockICON_dx').removeClass("fa");
+            $('#Bank_LockICON_dx').removeClass("fa-lock");
+            $('#Bank_LockICON_dx').removeClass("fa-unlock");
+        }
+    }
+
+    function BankListGrid_dx_OnInitialized(e)
+    {
+        //BankListGrid_dx_AdjustSize(e);
+        //ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        //{
+        //    BankListGrid_dx_AdjustSize(e);
+        //});
+        DxGrid_AdjustSize(e.component, $("#BankProfile_ParentDiv_dx .report_button_div"),"@CalledFromOtherScreen")
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize(e.component, $("#BankProfile_ParentDiv_dx .report_button_div"), "@CalledFromOtherScreen", evt)
+        });
+        BankListGrid_dx = e.component;
+    }
+    //function BankListGrid_dx_AdjustSize(e)
+    //{
+    //    var height = (document.documentElement.clientHeight * 90) / 100;
+    //    try
+    //    {
+    //        e.component.option("height", height);
+    //        e.component.updateDimensions();
+    //    }
+    //    catch (err)
+    //    {
+    //    }
+    //}
+    function BankListGrid_dx_OnCellPrepared(e)
+    {
+        if (e.rowType == "data") {
+            if (Bank_IsVouchingMode_dx == true) {
+                if (e.column.dataField === "iIcon") {
+                    $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                    $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                }
+            }
+            $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.key + "|" + e.column.dataField);
+            /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + e.key);*/
+        }
+    }
+    function BankListGrid_dx_OnRowPrepared(e)
+    {
+        if (e.rowType == "data")
+        {
+            var GridName = e.element[0].id;
+            $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+            if (e.data.RemarkStatus != null && e.data.RemarkStatus == "OPEN" || e.data.RemarkStatus == "REOPENED") {
+                $(e.rowElement).css("background-color", "gold");
+            }
+            if (e.data.RemarkStatus == null && e.data.Remarks != null && e.data.Remarks == true && e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit == 0) {
+                $(e.rowElement).css("background-color", "lightgreen");
+            }
+            if (e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit > 0) {
+                $(e.rowElement).css("background-color", "mistyrose");
+            }
+            DxGrid_CreatePreviewRow(e, Bank_IsVouchingMode_dx, "Master")
+        }
+        else if (e.rowType == "detailAdaptive") {
+            DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+        }
+    }
+    function BankListGrid_dx_OnContentReady(e)
+    {
+        DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_Bank_dx, Select_xid_bank_dx)
+        Select_xid_bank_dx = null;
+        DxGrid_OnContentReady(e, Bank_ShowHorizontalBar_dx);
+    }
+    function BankListGrid_dx_OnCellDblClick(e)
+    {
+        if (e.rowType == "data") {
+            if (Bank_IsVouchingMode_dx == true && Bank_ViewMode_dx == "Default") {
+                OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+            }
+            else if (Bank_IsVouchingMode_dx == false) {
+                if (e.rowType == "data")
+                    BankProfile_OnEditClick_dx();
+            }
+        }
+    }
+    function BankListGrid_dx_OnSelectionChanged(e)
+    {
+        var selectedRowKeys = e.selectedRowKeys;
+        if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+            if (Bank_IsVouchingMode_dx) {
+                BankPrf_FAB_dx.SetVisible(true);
+                BankPrf_FAB_dx.SetActionContext("AddAttachmentContext", false);
+            }
+            BankListGrid_dx_SelectedRowData(e.selectedRowsData);
+        }
+        else
+        {
+            BankID_BankProfile_dx= null;
+            Bank_UpdateFooterDetail_dx(BankID_BankProfile_dx, Bank_ActionStatus_dx, Bank_AddDate_dx, Bank_AddBy_dx, Bank_ActionDate_dx, Bank_ActionBy_dx, Bank_EditDate_dx, Bank_EditBy_dx);
+        }
+    }
+    function BankListGrid_dx_SelectedRowData(selectedData = null)
+    {
+        if (selectedData == null)
+        {
+            selectedData = BankListGrid_dx.getSelectedRowsData();
+        }
+        if (selectedData != null && selectedData.length > 0)
+        {
+            var values = selectedData[0]
+            BankID_BankProfile_dx = values["ID"]
+            Bank_EditDate_dx = values["Edit_Date"];
+            Bank_EditBy_dx = values["Edit_By"];
+            Bank_AddDate_dx = values["Add_Date"];
+            Bank_AddBy_dx = values["Add_By"];
+            Bank_ActionDate_dx = values["Action_Date"];
+            Bank_ActionBy_dx = values["Action_By"];
+            Bank_ActionStatus_dx = values["Action_Status"];
+            Bank_UpdateFooterDetail_dx(BankID_BankProfile_dx, Bank_ActionStatus_dx, Bank_AddDate_dx, Bank_AddBy_dx, Bank_ActionDate_dx, Bank_ActionBy_dx, Bank_EditDate_dx, Bank_EditBy_dx);
+            if (Bank_IsVouchingMode_dx == true)
+            {
+                OpenLeftPane();
+                LeftPaneContent_Bank_dx("BankListGrid_dx", BankID_BankProfile_dx, Bank_IsVouchingMode_dx)
+            }
+        }
+        else
+        {
+            BankID_BankProfile_dx = null;
+        }
+    }
+    function BankListGrid_dx_OnRowExpanding(e)
+    {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            e.component.collapseRow(Expanded_Row_Key_Bank_dx)
+            e.component.selectRows(e.key);
+            Expanded_Row_Key_Bank_dx = e.key;
+            BankInfo_IsDetailRowExpanded_dx = true;
+            var DetailGridID = e.element[0].id + e.key;
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0)
+            {
+                instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+            }
+            //e.component.collapseAll(-1);
+        }
+        else {
+            e.component.option("CustomProp.groupRowExpanded", true);
+        }
+    }
+    function BankListGrid_dx_OnRowCollapsing(e)
+    {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            var DetailGridID = e.element[0].id + e.key;
+            sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+            BankInfo_IsDetailRowExpanded_dx = false;
+            e.component.selectRows(e.key);
+            if (Bank_IsVouchingMode_dx == false) {
+                BankPrf_FAB_dx.SetVisible(false);
+            }
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.clearSelection();
+            }
+        }
+        else {
+            e.component.option("CustomProp.groupRowCollapsed", true);
+        }
+    }
+    function BankListGrid_dx_OnContextMenuPreparing(e)
+    {            if (!e.items) e.items = [];
+        if (e.target == "header") {
+
+            DxGrid_HeaderContextMenu(e, "@SpecialGroupings")
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer")
+            {
+                if (Bank_ViewMode_dx == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType =="detailAdaptive"))
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+                    {
+                        text: "Expand Detail",
+                        icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                        disabled: expanded,
+                        visible: !Bank_IsVouchingMode_dx,
+                        onItemClick: function ()
+                        {
+                            if (expanded)
+                            {
+                            }
+                            else
+                            {
+                                e.component.expandRow(key);
+                            }
+                        }
+                    }, {
+                        text: "Collapse Detail",
+                        icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                        disabled: !expanded,
+                        visible: !Bank_IsVouchingMode_dx,
+                        onItemClick: function () {
+                            if (expanded) {
+                                e.component.collapseRow(key);
+                            }
+                            else {
+                            }
+                        }
+                    },
+                   {
+                        text: "New",
+                        icon: "fa-solid fa-plus text-success",
+                        beginGroup: true,
+                        visible: "@Bank_AddRight"=="True",
+                        onItemClick: function ()
+                        {
+                            BankProfile_OnNewClick_dx();
+                        }
+                    },
+                    {
+                        text: "Edit",
+                        icon: "fa-solid fa-pen text-info",
+                        visible: "@Bank_UpdateRight"=="True",
+                        onItemClick: function ()
+                        {
+                            BankProfile_OnEditClick_dx();
+                        }
+                    },
+                    {
+                        text: "Delete",
+                        icon: "fa-solid fa-trash",
+                        visible: "@Bank_DeleteRight" == "True",
+                        onItemClick: function () {
+                            BankProfile_OnDeleteClick_dx();
+                        }
+                    },
+                    {
+                        text: "View",
+                        icon:"fa-regular fa-eye",
+                        visible: "@Bank_ViewRight"=="True",
+                        onItemClick: function () {
+
+                            BankProfile_OnViewClick_dx();
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@Bank_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnBankListPreviewClick_dx();
+                        }
+                    },
+                    {
+                        text: "Audit Actions",
+                        icon: "../../../../Icons/Audit Actions1_16x16.png",
+                        visible: true,
+                        items: [
+                            {
+                                text: "New",
+                                icon: "../../../../Icons/New button2_16x16.png",
+                                visible: "@ManageRemarks"=="True",
+                                onItemClick: function () {
+                                    OnBankAuditClick_dx("ADD_REMARKS");
+                                }
+                            },
+                            {
+                                text: "View",
+                                icon: "../../../../Icons/View button1_16x16.png",
+                                visible:true,
+                                onItemClick: function () {
+                                    OnBankAuditClick_dx("REMARKS");
+                                }
+                            },
+                            {
+                                text: "Lock",
+                                icon: "../../../../Icons/Lock1_16x16.png",
+                                visible: "@LockUnlock"=="True",
+                                onItemClick: function () {
+                                    BankOnLockClick_dx();
+                                }
+                            },
+                            {
+                                text: "Unlock",
+                                icon: "../../../../Icons/Unlock1_16x16.png",
+                                visible: "@LockUnlock"=="True",
+                                onItemClick: function () {
+                                    BankOnUnLockClick_dx();
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text: "Account Setting",
+                        icon:"fa-solid fa-gears text-primary",
+                        items: [
+                            {
+                                text: "Close Bank Account",
+                                icon: "../../../../Icons/FolderClose16x16.png",
+                                visible: "@Bank_UpdateRight" == "True",
+                                onItemClick: function () {
+
+                                    OnAccountCloseAndReOpenClick_Bank_dx('ACCOUNT-CLOSE');
+                                }
+                            },
+                            {
+                                text: "Re-Open Account",
+                                icon:"fa-regular fa-folder-open text-warning",
+                                  visible: "@Bank_UpdateRight"=="True",
+                                onItemClick: function () {
+                                    OnAccountCloseAndReOpenClick_Bank_dx('ACCOUNT-REOPEN');
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            closeProfile_Bank_dx();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            BankListGrid_dx_Refresh()
+                        }
+                    }]
+        }
+        else if (e.target == "content" && e.row == void 0) {
+            e.items = [
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        closeProfile_Bank_dx();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        BankListGrid_dx_Refresh()
+                    }
+                }
+
+            ]
+        }
+    }
+
+    function BankListGrid_dx_OnEditorPreparing(e) { }
+    function BankListGrid_dx_GroupCell_Template(container, templateData) {
+        DxGrid_GroupCell_Template(container, templateData)
+    }
+    function BankListGrid_dx_Compact_Column_Template(container, templateData) {
+        var Name = templateData.component.element()[0].id;
+        var KeyValue = templateData.data.ID;
+        var VouchingMode = Bank_IsVouchingMode_dx == true ? "True" : "False";
+
+        var htmlString = "<div class='container-fluid'>" +
+            "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Name:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.Name + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Branch:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Branch' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.Branch + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Account No.:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_ACCOUNT_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_ACCOUNT_NO + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Customer No.:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_CUST_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_CUST_NO + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Opening balance:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|OP_AMOUNT' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.OP_AMOUNT + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Closing balance:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|CL_AMOUNT' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.CL_AMOUNT ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Other Details:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_OTHER_DETAIL' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_OTHER_DETAIL + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>IFSC Code:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BB_IFSC_CODE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BB_IFSC_CODE + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>MICR Code:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BB_MICR_CODE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.BB_MICR_CODE ?? "") + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>PAN. No.:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BI_BANK_PAN_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.BI_BANK_PAN_NO ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>TAN. No.:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_TAN_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_TAN_NO + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Tel. No.:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_TEL_NOS' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_TEL_NOS + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Email ID:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_EMAIL_ID' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_EMAIL_ID + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>A/c. Open date:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_OPEN_DATE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (JS_Json_Date_To_ddMMyyyy((templateData.data.BA_OPEN_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>A/c. Closed date:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_CLOSE_DATE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (JS_Json_Date_To_ddMMyyyy((templateData.data.BA_CLOSE_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "") + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Acount Type:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_ACCOUNT_TYPE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.BA_ACCOUNT_TYPE + "</div></div>";
+        htmlString +="<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Reference:</label></div>" +
+            "<div class='col-sm-12 col-md-9 col-lg-9 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Special_Ref' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (JS_Json_Date_To_ddMMyyyy((templateData.data.Special_Ref ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "") + "</div></div></div>";
+
+        $(container).html(htmlString)
+    }
+    function BankListGrid_dx_Compact_Column_CellValue(rowData) {
+        var data =
+            [
+                rowData.Name, rowData.Branch, rowData.BA_ACCOUNT_NO, rowData.Special_Ref, rowData.BA_CUST_NO, rowData.OP_AMOUNT, rowData.CL_AMOUNT,
+                rowData.BA_OTHER_DETAIL, rowData.BB_IFSC_CODE, rowData.BB_MICR_CODE, rowData.BI_BANK_PAN_NO, rowData.BA_TAN_NO, rowData.BA_TEL_NOS,
+                rowData.BA_EMAIL_ID, rowData.BA_OPEN_DATE, rowData.BA_CLOSE_DATE, rowData.BA_ACCOUNT_TYPE, rowData.Special_Ref
+
+            ]
+        return data.join(" ")
+    }
+    function BankListGrid_dx_iIconTemplate(container, templateData) {
+        var iREQ_ATTACH_COUNT = templateData.data.iREQ_ATTACH_COUNT
+        var iCOMPLETE_ATTACH_COUNT = templateData.data.iCOMPLETE_ATTACH_COUNT
+        var iRESPONDED_COUNT = templateData.data.iRESPONDED_COUNT
+        var iREJECTED_COUNT = templateData.data.iREJECTED_COUNT
+        var iOTHER_ATTACH_CNT = templateData.data.iOTHER_ATTACH_CNT
+        var iALL_ATTACH_CNT = templateData.data.iALL_ATTACH_CNT
+        var iIcon = templateData.data.iIcon
+        var UniqueID = templateData.component.element()[0].id
+        var key = templateData.data.ID
+        var VisibleIndex = templateData.rowIndex
+        var htmlString = "";
+        htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+        htmlString += DxGrid_VouchingAuditIcons(iIcon)
+        htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+        $(container).html(htmlString)
+    }
+    function BankListGrid_dx_DetailTemplate(container, templateData) {
+        var GridName = templateData.component.element()[0].id
+        var RecID = templateData.data.ID;
+        BankListGrid_dx_Detail(container, GridName, RecID, Bank_IsVouchingMode_dx, Bank_ShowHorizontalBar_dx);
+    }
+
+    function BankListGrid_dx_Detail(container, GridName, RecID, vouchingMode, AllColumns)
+    {
+        var url = "/Profile/Bank/Frm_Bank_Info_GridData_detail_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+        var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+        instance.option("onSelectionChanged", BankListGrid_dx_Detail_onSelectionChanged);        
+    }          
+    function BankListGrid_dx_Detail_onSelectionChanged(e)
+    {
+        if (BankInfo_IsDetailRowExpanded_dx || Bank_IsVouchingMode_dx)
+        {
+            if (e.selectedRowsData != null && e.selectedRowsData.length > 0)
+            {
+                BankInfo_NestedGrid_AccessID_dx = e.element[0].id;
+                BankListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+            }
+            else
+            {
+                BankPrf_FAB_dx.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function BankListGrid_dx_Detail_SelectedRowData(selectedData = null)
+    {
+        if (selectedData == null)
+        {
+            selectedData = $("#" + BankInfo_NestedGrid_AccessID_dx).dxDataGrid("getSeletedRowsData");
+        }
+        var values = selectedData[0];
+        BankInfo_NestedRowUniqueID_dx = values["UniqueID"];
+        if (values["UniqueID"] != null)
+        {
+            BankPrf_FAB_dx.SetVisible(true);
+            BankInfo_Nested_Doc_Status_dx = values["Doc_Status"];
+
+            if (Bank_IsVouchingMode_dx == true) {
+                BankPrf_FAB_dx.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (BankInfo_Nested_Doc_Status_dx == "") {
+                    BankPrf_FAB_dx.SetActionContext("AutoItemContext", true);
+                }
+                else if (BankInfo_Nested_Doc_Status_dx == "NO") {
+                    BankPrf_FAB_dx.SetActionContext("EditItemContext", true);
+                }
+                else if (BankInfo_Nested_Doc_Status_dx == "YES") {
+                    BankPrf_FAB_dx.SetActionContext("actionItemContext", true);
+                }
+            }
+            BankInfo_ParamMandatory_dx = values["Params_Mandatory"];
+            BankInfo_FromDateLabel_dx = values["LABEL_FROM_DATE"];
+            BankInfo_ToDateLabel_dx = values["LABEL_TO_DATE"];
+            BankInfo_DescriptionLabel_dx = values["LABEL_DESCRIPTION"];
+            BankInfo_Doc_Category_dx = values["Document_Category"];
+            BankInfo_Doc_ID_dx = values["Document_ID"];
+            BankInfo_AtachmentID_dx = values["ATTACH_ID"];
+            IndexAttachmentID = BankInfo_AtachmentID_dx;
+            BankInfo_MasterRowRecID_dx = values["TxnID"];
+            BankInfo_MasterRowMID_dx = values["TxnMID"];
+            BankInfo_NestedRowMapID_dx = values["MAP_ID"];
+            BankInfo_reason_dx = values["Reason"];
+            BankInfo_FileName_dx = values["ATTACH_FILE_NAME"];
+            BankInfo_Attachment_RecStatus_dx = values["Attachment_Action_Status"];
+            if (Bank_IsVouchingMode_dx == true) {
+                if (BankInfo_FileName_dx != null && BankInfo_FileName_dx.length > 0) {
+                    ViewDocument(BankInfo_AtachmentID_dx, BankInfo_FileName_dx, "BankPrf_FAB_dx", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        BankInfo_NestedRowReasonID_dx = values["ReasonID"];
+        IndexAttachmentReasonID = BankInfo_NestedRowReasonID_dx;
+    }     
+  
+    function LeftPaneContent_Bank_dx(GridName, RecID, vouchingMode, AllColumns = 0) {
+        $("#LeftPane_Div_Content").html(null);
+        $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+        BankListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+        setTimeout(function () {
+            AdditionalInfoGrid_Bank_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+        })
+    }
+    function AdditionalInfoGrid_Bank_dx(container, GridName, RecID, vouchingMode, AllColumns)
+    {
+        var url = "/Profile/Bank/Frm_Bank_Info_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+        DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url)       
+    }
+
+    function Date_HeaderFilterDataSource(data) {
+        //data.dataSource.postProcess = function (results) {
+
+        //    var new_results = [];
+        //    for (let i = 0; i < results.length; i++) {
+        //        if (results[i].key) {
+        //            new_results.push({
+        //                key: results[i].key,
+        //                text: (JS_Json_Date_To_ddMMyyyy((results[i].text ?? ""), "DD-MM-YYYY") ?? ""),
+        //                value: (JS_Json_Date_To_ddMMyyyy((results[i].value ?? ""), "DD-MM-YYYY") ?? "")
+        //            });
+        //        }
+        //        else {
+        //            new_results.push(results[i]);
+        //        }
+        //    }
+        //};
+    }
+    function CalculateCellValue_Date(rowdata) {
+        //debugger;
+        //var t = this;
+        //return (JS_Json_Date_To_ddMMyyyy((rowdata[this.dataField] ?? ""), "DD-MM-YYYY") ?? "");
+    }
+
+    </script>
+    @*Variable and grid fns*@
+    <script>
+    function On_BankProfile_dx_FABActionItemClick(s, e)
+{
+    var img = document.getElementById('RightPane_Img');
+    s.ExpandActionGroupItems();
+    if (e.actionName === "add_attach") {
+        if ("@Help_Attachment_AddRight" == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+        }
+        if (BankInfo_ParamMandatory_dx == 1) {
+            AddAttachment(BankInfo_MasterRowRecID_dx, "Profile_BankAccounts", BankInfo_Doc_ID_dx, BankInfo_Doc_Category_dx, BankInfo_ParamMandatory_dx, BankInfo_FromDateLabel_dx, BankInfo_ToDateLabel_dx, BankInfo_DescriptionLabel_dx, "BankProfileAttachment", null, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+        }
+        else
+        {
+            Attachment_DirectBrowse(BankInfo_MasterRowRecID_dx, "Profile_BankAccounts", BankInfo_Doc_ID_dx, "BankProfileAttachment", "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+        }
+    }
+    else if (e.actionName === "edit_attach") {
+        if ("@Help_Attachment_EditRight" == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+        }
+        if (BankInfo_Attachment_RecStatus_dx.toUpperCase() == "LOCKED") {
+            DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+            return;
+        }
+        EditAttachment(BankInfo_MasterRowRecID_dx, "Profile_BankAccounts", BankInfo_AtachmentID_dx, BankInfo_ParamMandatory_dx, BankInfo_FromDateLabel_dx, BankInfo_ToDateLabel_dx, BankInfo_DescriptionLabel_dx, "BankProfileAttachment", null, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+    }
+    else if (e.actionName === "delete_attach")
+    {
+        if ("@Help_Attachment_DeleteRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+        }
+        DeleteAttachment(BankInfo_MasterRowRecID_dx, "Profile_BankAccounts", BankInfo_AtachmentID_dx, BankInfo_ParamMandatory_dx, BankInfo_FromDateLabel_dx, BankInfo_ToDateLabel_dx, BankInfo_DescriptionLabel_dx, null, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx, BankInfo_Attachment_RecStatus_dx);
+    }
+    else if (e.actionName == "Link_Attach")
+    {
+        LinkAttachment(BankInfo_MasterRowRecID_dx, "Profile_BankAccounts", "Bank Account Information", "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+    }
+    else if (e.actionName === "view_attach") {
+        if ("@Help_Attachment_ViewRight" == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+            return;
+        }
+        ViewDocument(BankInfo_AtachmentID_dx, BankInfo_FileName_dx, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+    }
+    else if (e.actionName === "Add_Reason") {
+        if (BankInfo_Doc_Category_dx.toLowerCase() == "others") {
+            DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+        }
+        else {
+
+            AttachmentAddReason(BankInfo_MasterRowRecID_dx, BankInfo_NestedRowMapID_dx, "Profile_BankAccounts", "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+        }
+    }
+    else if (e.actionName === "Edit_Reason")
+    {
+        AttachmentEditReason(BankInfo_MasterRowRecID_dx, BankInfo_NestedRowMapID_dx, "Profile_BankAccounts", "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx, BankInfo_reason_dx);
+    }
+    else if (e.actionName === "Delete_Reason")
+    {
+        AttachmentDeleteReason(BankInfo_MasterRowRecID_dx, BankInfo_NestedRowMapID_dx, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+    }
+    else if (e.actionName === "Rotate")
+    {
+        ImageRotate(img);
+    }
+    else if (e.actionName === "ZoomOut")
+    {
+        ImageZoomOut(img);
+    }
+    else if (e.actionName === "ZoomIn")
+    {
+        ImageZoomIn(img);
+    }
+    else if (e.actionName == "Fit")
+    {
+        ImageFit(img);
+    }
+    else if (e.actionName == "Back")
+    {
+        ImageBack(s.uniqueID, "actionItemContext");
+    }
+    else if (e.actionName == "AuditAction") {
+        BankPrf_FAB_dx.SetActionContext("AuditActionContext", true);
+    }
+    else if (e.actionName == "BackAudit") {
+        if (BankInfo_Nested_Doc_Status_dx == "") {
+            BankPrf_FAB_dx.SetActionContext("AutoItemContext", true);
+        }
+        if (BankInfo_Nested_Doc_Status_dx == "NO") {
+            BankPrf_FAB_dx.SetActionContext("EditItemContext", true);
+        }
+        if (BankInfo_Nested_Doc_Status_dx == "YES") {
+            BankPrf_FAB_dx.SetActionContext("actionItemContext", true);
+        }
+    }
+    else if (e.actionName == "Accept") {
+        BankInfo_AcceptwithoutRemarks_dx();
+    }
+    else if (e.actionName == "Reject") {
+        BankInfo_AcceptRejectVoucher_dx("Reject");
+    }
+    else if (e.actionName == "AcceptWithRemarks") {
+        BankInfo_AcceptRejectVoucher_dx("Accept");
+    }
+    else if (e.actionName == "AcceptDoc") {
+
+        OnBankInfo_AcceptDoc_dx();
+    }
+    else if (e.actionName == "RejectDoc") {
+
+        OnBankInfo_RejectDoc_dx();
+    }
+}
+    function OnBankInfo_RejectDoc_dx() {
+    if (BankInfo_AtachmentID_dx == null || BankInfo_AtachmentID_dx.length == 0) {
+    DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+    return;
+}
+    RejectAttachment(BankInfo_AtachmentID_dx, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+}
+    function OnBankInfo_AcceptDoc_dx() {
+        if (BankInfo_AtachmentID_dx == null || BankInfo_AtachmentID_dx.length == 0) {
+        DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+        return;
+    }
+        AcceptAttachment(BankInfo_AtachmentID_dx, "BankListGrid_dx", BankInfo_NestedGrid_AccessID_dx);
+}
+    function BankInfo_AcceptwithoutRemarks_dx() {
+        var Recid;
+        if (BankInfo_IsDetailRowExpanded_dx == true || Bank_IsVouchingMode_dx) {
+            if (BankInfo_MasterRowRecID_dx == null || BankInfo_MasterRowRecID_dx == "") {
+                Recid = BankID_BankProfile_dx;
+            }
+            else {
+                Recid = BankInfo_MasterRowRecID_dx;
+            }
+        }
+        else {
+            Recid = BankID_BankProfile_dx;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_BankAccounts", "BankListGrid_dx", BankInfo_AtachmentID_dx, BankInfo_NestedRowReasonID_dx, BankInfo_NestedRowUniqueID_dx);
+    }
+    function BankInfo_AcceptRejectVoucher_dx(_actionMethod)
+    {
+        var Recid;
+        if (BankInfo_IsDetailRowExpanded_dx == true || Bank_IsVouchingMode_dx)
+        {
+            if (BankInfo_MasterRowRecID_dx == null || BankInfo_MasterRowRecID_dx == "")
+            {
+                Recid = BankID_BankProfile_dx;
+            }
+            else
+            {
+                Recid = BankInfo_MasterRowRecID_dx;
+            }
+        }
+        else
+        {
+            Recid = BankID_BankProfile_dx;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_BankAccounts", "BankListGrid_dx", BankInfo_AtachmentID_dx, BankInfo_NestedRowReasonID_dx, BankInfo_NestedRowUniqueID_dx);
+    }
+    </script>
+    @*fab fns*@
+    <script>
+    $(document).ready(function ()
+    {
+        if ("@Bank_AddRight" == "False")
+        {
+            $("#BankModelNew_dx").hide();
+        }
+        if ("@Bank_UpdateRight" == "False")
+        {
+            $("#BankModelEdit_dx").hide();
+        }
+        if ("@Bank_ViewRight" == "False")
+        {
+            $("#BankModelView_dx").hide();
+        }
+        if ("@Bank_DeleteRight" == "False")
+        {
+            $("#BankModelDelete_dx").hide();
+        }
+        if ("@Bank_ExportRight" == "False")
+        {
+            $("#BankModelListPreview_dx").hide();
+        }
+        if ("@Bank_LockUnlockRight" == "False")
+        {
+            $("#BankModelLock_dx").hide();
+            $("#BankModelUnlock_dx").hide();
+        }
+        HideUnreleasedFunctionality('BANK_Frm_Bank_Info_dx');//Redmine bug 132497 fixed
+        if (BankInfo_SetVouchingModeOn_dx == true)
+        {
+            $("#BankViewModeSwitch_dx").dxSwitch("instance").option("value", true);
+        }
+    });
+    function closeProfile_Bank_dx()
+    {
+        if ("@CalledFromOtherScreen".length > 0)
+        {
+            var popupid = "#" + "@CalledFromOtherScreen";
+            DxGrid_EventsOnScreenClose(BankListGrid_dx)
+            $(popupid).dxPopup("hide");
+        }
+        else
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Bank/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_BankProfile_dx();
+    });
+    $(function ()
+    {
+        if ("@CalledFromOtherScreen".length > 0)
+        {
+            if ("@CalledFromOtherScreen" != "Dynamic_Content_popup")
+            {
+                $("#" + "@CalledFromOtherScreen").dxPopup({
+                    onHiding: function (e)
+                    {
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Profile/Bank/SessionClear",
+                            cache: false
+                        });
+                    }
+                });
+            }
+            else if ("@CalledFromOtherScreen" == "Dynamic_Content_popup")
+            {
+                dontaskpopupcloseconfirmation = true;
+                sessionclearpath = "/Profile/Bank/SessionClear";
+            }
+        }
+    })//popup hide
+    function ClearAllReferences_BankProfile_dx()
+    {
+        DxGrid_EventsOnScreenClose(BankListGrid_dx)
+
+        BankInfo_IsDetailRowExpanded_dx = null;
+        BankInfo_NestedRecord_FocusedRowIndex_dx = null;
+        BankInfo_NestedGrid_AccessID_dx = null;
+        BankInfo_AtachmentID_dx = null;
+        BankInfo_FileName_dx = null;
+        BankInfo_ParamMandatory_dx = null;
+        BankInfo_FromDateLabel_dx = null;
+        BankInfo_ToDateLabel_dx = null;
+        BankInfo_DescriptionLabel_dx = null;
+        BankInfo_Doc_ID_dx = null;
+        BankInfo_Doc_Category_dx = null;
+        BankInfo_MasterRowRecID_dx = null;
+        BankInfo_MasterRowMID_dx = null;
+        BankInfo_NestedRowMapID_dx = null;
+        BankInfo_NestedRowUniqueID_dx = null;
+        BankInfo_reason_dx = null;
+        BankInfo_Attachment_RecStatus_dx = null;
+        BankInfo_SetVouchingModeOn_dx = null;
+        BankInfo_NestedRowReasonID_dx = null;
+
+        Bank_ShowHorizontalBar_dx = null;
+        BankGridLayout_dx = null;
+        BankProfileLastSelectedRowKeyBeforeRefresh_dx = null;
+        BankProfileSelectedKeysBeforeRefresh_dx = null;
+        BankProfileFocusedRowIndexBeforeRefresh_dx = null;
+        BankID_BankProfile_dx = null;
+        BA_CLOSE_DATE_dx = null;
+        YearID_dx = null;
+        Bank_ActionStatus_dx = null;
+        Bank_EditDate_dx = null;
+        OpenActions_dx = null;
+        BA_ACCOUNT_TYPE_dx = null;
+        BA_ACCOUNT_NO_dx = null;
+        Branch_dx = null;
+        Name_dx = null;
+        BA_Customer_Number_dx = null;
+        Bank_AddBy_dx = null;
+        Bank_AddDate_dx = null;
+        Bank_EditBy_dx = null;
+        Bank_ActionDate_dx = null;
+        Bank_ActionBy_dx = null;
+        _actionName_dx = null;
+        _IsContextMenu_dx = null;
+        Bank_SelectedVisibleIndex_dx = null;
+        Bank_SelectedBankID_dx = null;
+        BankLastSelectedindex_dx = null;
+        BankLastSelectedID_dx = null;
+        Bank_IsVouchingMode_dx = null;
+        Bank_ViewMode_dx = null;
+        Select_xid_bank_dx = null;
+        UserType_BankPrf_dx = null;
+        Bank_ColumnToBeShownIndex_dx = null;
+        Bank_ColumnToBeHidddenIndex_dx = null;
+
+        ClearAllReferences("BankProfiledx_ClearReferences");
+
+    }
+    </script>
+    @*ready*@
+    <script>
+
+    function BankListGrid_dx_Refresh() {
+        BankListGrid_dx.refresh().done(function () { ActionAfterDataGridRefresh_BankListGrid_dx() })
+    }
+    async function ActionAfterDataGridRefresh_BankListGrid_dx()
+    {
+        //if (Select_xid_bank_dx != null && Select_xid_bank_dx.length > 0)
+        //{
+        //    var key = Select_xid_bank_dx;
+        //    Select_xid_bank_dx = "";
+        //    await BankListGrid_dx.selectRows(key)
+        //    await BankListGrid_dx.navigateToRow(key)
+        //    //var scrollable = BankListGrid_dx.getScrollable();
+        //    //var selectedRowElements = BankListGrid_dx.getRowElement(BankListGrid_dx.getRowIndexByKey(Select_xid_bank_dx));
+        //    //setTimeout(function ()
+        //    //{
+        //    //    if (selectedRowElements != null && selectedRowElements.length > 0)
+        //    //    {
+        //    //       // $(scrollable).animate({
+        //    //       //     scrollTop: $(selectedRowElements).offset().top
+        //    //      //  },2000)
+        //    //        scrollable.scrollToElement(selectedRowElements[0]);
+        //    //    }
+        //    //})
+        //}
+        //else
+        //{
+            var selectedRowKeys = BankListGrid_dx.getSelectedRowKeys()
+            if (selectedRowKeys != null && selectedRowKeys.length > 0)
+            {
+                BankListGrid_dx.clearSelection()
+                BankListGrid_dx.selectRows(selectedRowKeys)
+            }
+      //  }
+    }
+    function BankProfile_OnNewClick_dx()
+    {
+        if ("@Bank_AddRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        OpenPopup("popup_frm_Bank_Window", "New ~ Bank Account", "@Url.Action("frm_Bank_window", "Bank", new { @area = "Profile" })?ActionMethod=New", "auto", "1080px", false, null);
+    }
+    function BankProfile_OnEditClick_dx()
+    {
+        if ("@Bank_UpdateRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one Bank row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Bank/Check_Frm_Bank_Window",
+            data: { ActionMethod: "Edit", id: BankID_BankProfile_dx},
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result==true)
+                {
+                    OpenBankWindowEditMode_dx()
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmation = DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title);
+                        confirmation.done(function (result)
+                        {
+                            if (result)
+                            {
+                                OpenBankWindowEditMode_dx();
+                            }
+                            else if (data.jsonParam.refreshgrid)
+                            {
+                                BankListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            BankListGrid_dx_Refresh();
+                        }
+                    }
+                }
+            }
+         });
+     }
+    function OpenBankWindowEditMode_dx()
+     {
+         ShowLoader();
+         $.ajax({
+             type: 'GET',
+             url: "/Profile/Bank/frm_Bank_window",
+             data:
+             {
+                 ActionMethod: "Edit",
+                 id: BankID_BankProfile_dx
+             },
+             cache: false,
+             success: function (data)
+             {
+
+                 OpenPopup("popup_frm_Bank_Window", "Edit ~ Bank Account",null, "auto", "1080px", true, data);
+             }
+         });
+     }
+    function BankProfile_OnViewClick_dx()
+    {
+        if ("@Bank_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Bank/Check_Frm_Bank_Window",
+            data: { ActionMethod: "View", id: BankID_BankProfile_dx},
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Bank/frm_Bank_window",
+                        data:
+                        {
+                            ActionMethod: "View",
+                            id: BankID_BankProfile_dx
+                        },
+                        cache: false,
+                        success: function (data) {
+                            ShowLoader();
+                            OpenPopup("popup_frm_Bank_Window", "View ~ Bank Account", null, "auto", "1080px", true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    if (data.jsonParam.refreshgrid)
+                    {
+                        BankListGrid_dx_Refresh();
+                    }
+                }
+            }
+        });
+     }
+    function BankProfile_OnDeleteClick_dx()
+     {
+        if ("@Bank_DeleteRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+         }
+         ShowLoader();
+         $.ajax({
+            type: 'GET',
+            url: "/Profile/Bank/Check_Frm_Bank_Window",
+            data: { ActionMethod: "Delete", id: BankID_BankProfile_dx},
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result==true)
+                {
+                    OpenBankWindowDeleteMode_dx()
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmation = DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title);
+                        confirmation.done(function (result)
+                        {
+                            if (result)
+                            {
+                                OpenBankWindowDeleteMode_dx();
+                            }
+                            else if (data.jsonParam.refreshgrid)
+                            {
+                                BankListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            BankListGrid_dx_Refresh();
+                        }
+                    }
+                }
+            }
+         });
+     }
+    function OpenBankWindowDeleteMode_dx()
+     {
+         ShowLoader();
+         $.ajax({
+             type: 'GET',
+             url: "/Profile/Bank/frm_Bank_window",
+             data:
+             {
+                 ActionMethod: "Delete",
+                 id: BankID_BankProfile_dx
+             },
+             cache: false,
+             success: function (data) {
+
+                 OpenPopup("popup_frm_Bank_Window", "Delete ~ Bank Account", null, "auto", "1080px", true, data);
+             }
+         });
+     }
+    function BankOnUnLockClick_dx()
+    {
+        if ("@Bank_LockUnlockRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/DataNavigation",
+            data: {
+                ActionMethod: "UNLOCKED",
+                id: BankID_BankProfile_dx,
+                //Selectedid: Bank_SelectedBankID
+
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    BankUnlock_dx();
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmation = DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title);
+                        confirmation.done(function (result)
+                        {
+                            if (result)
+                            {
+                                BankUnlock_dx();
+                            }
+                            else if (data.jsonParam.refreshgrid)
+                            {
+                                BankListGrid_dx_Refresh()
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            BankListGrid_dx_Refresh();
+                        }
+                    }
+                }
+            }
+        });
+        HideLoader();
+    }
+    function BankUnlock_dx()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/BankUnlock",
+            data:
+            {
+                Selectedid: BankID_BankProfile_dx
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.xid != null) {
+                    Select_xid_bank_dx = data.xid;
+                }
+                DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                if (data.jsonParam.refreshgrid)
+                {
+                    BankListGrid_dx_Refresh()
+                }
+                HideLoader();
+            }
+        });
+    }
+    function BankOnLockClick_dx()
+    {
+        if ("@Bank_LockUnlockRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        if (BankID_BankProfile_dx ==null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/DataNavigation",
+            data: {
+                ActionMethod: "LOCKED",
+                id: BankID_BankProfile_dx,
+                //Selectedid: Bank_SelectedBankID
+
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    Banklock_dx();
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmation = DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title);
+                        confirmation.done(function (result)
+                        {
+                            if (result)
+                            {
+                                Banklock_dx();
+                            }
+                            else if (data.jsonParam.refreshgrid)
+                            {
+                                BankListGrid_dx_Refresh()
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            BankListGrid_dx_Refresh()
+                        }
+                    }
+                }
+            }
+        });
+        HideLoader();
+    }
+    function Banklock_dx()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/Banklock",
+            data:
+            {
+                Selectedid: BankID_BankProfile_dx
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.xid != null)
+                {
+                    Select_xid_bank_dx = data.xid;
+                }
+                DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                if (data.jsonParam.refreshgrid)
+                {
+                    BankListGrid_dx_Refresh()
+                }
+                HideLoader();
+            }
+        });
+    }
+    function OnAccountCloseAndReOpenClick_Bank_dx(account)
+    {
+        if ("@Bank_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/DataNavigation",
+            data:
+            {
+                ActionMethod: account,
+                id: BankID_BankProfile_dx
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'Get',
+                        url: "/Profile/Bank/Frm_Bank_Window_Close",
+                        data:
+                        {
+                            ActionMethod: account,
+                            id: BankID_BankProfile_dx
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenPopup("popup_frm_Bank_Window_Close", "Bank Account", null, "auto", "40%", true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    if (data.jsonParam.refreshgrid)
+                    {
+                        BankListGrid_dx_Refresh()
+                    }
+                }
+            }
+        });
+    }
+    function OnBankAuditClick_dx(action)
+    {
+        if (BankID_BankProfile_dx == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/Bank/DataNavigation",
+            data:
+            {
+                ActionMethod: action,
+                id: BankID_BankProfile_dx,
+                GridToBeRefreshed:"BankListGrid_dx"
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+                else
+                {
+                    if (data.jsonParam.popup_form_name != null && data.jsonParam.popup_form_name.length > 0)
+                    {
+                        OpenPopup("BankPrf_ActionItem_Popup", data.jsonParam.popup_title, data.jsonParam.popup_form_path + "?" + encodeURI(data.jsonParam.popup_querystring), "auto", 1000, false, false);
+                    }
+                }
+            }
+        });
+    }
+    function BankPrf_ActionItem_PostSuccess_dx(data)
+    {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(result.message, "Audit Actions");
+        }
+        else {
+            HidePopup("BankPrf_ActionItem_Popup");
+            DevExpress.ui.dialog.alert(result.message, "Audit Actions");
+            BankListGrid_dx_Refresh();
+        }
+    }
+    </script>
+    @*Btn_fns*@
+<script>
+    function getBankstatement_BankAcc_Onclick()
+    {
+        if ("@Bank_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        var bankgridInstance = $("#BankListGrid_dx").dxDataGrid("instance")
+        var selectedRowData = bankgridInstance.getSelectedRowsData()
+        var bankName = "";
+        var accountNumber = "";
+        if (selectedRowData.length > 0)
+        {
+            bankName = selectedRowData[0]['Name']
+            var accountType = selectedRowData[0]['BA_ACCOUNT_TYPE']
+            accountNumber = selectedRowData[0]['BA_ACCOUNT_NO']
+            var account_ID = selectedRowData[0]['ID']
+            getBankStatement_window(bankName, accountType, accountNumber, account_ID,"Profile_BankAccounts")
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Please Select any Bank to see the statement ", "Information");
+        }
+    }    
+</script>
+</div>

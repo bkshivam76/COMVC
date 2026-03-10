@@ -1,0 +1,452 @@
+﻿<div class="ChartInfo_Export_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress.XtraReports.UI;
+    @model ConnectOneMVC.Areas.Facility.Models.BulkAllottment
+    @{
+        Int32 totalregistrationsCount = Convert.ToInt32(Model.totalregistrations);
+        Int64 instanceid = Model.instanceid;
+        string action_method = Model.actionmethod;
+        Int32 alreadyallottedSum = Model.alreadyallottedCount;
+        Int32 remainingallottment = totalregistrationsCount - alreadyallottedSum;
+        Int32 currentRecordOldAllottment = ViewBag.CurrentRecordOldAllottment;
+    }
+    <form class="edit_form">
+        <div class="row hide">
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">From Date:</label>
+                    @(Html.DevExtreme().DateBox().CustomDateBox().ID("fromdate_blkAdd").Name("fromdate_blkAdd").ShowClearButton(true).Value(Model.FromDate_Blk)
+                            .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))//.OnValueChanged("fromdate_Valuechanged_blkAdd")
+                            .ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                        )
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">From Time:</label>
+                    @(Html.DevExtreme().DateBox().CustomDateBox().Name("fromtime_blkAdd").ID("fromtime_blkAdd").Min(DateTime.MinValue).Type(DateBoxType.Time).Value(Model.FromTime_Blk)
+                            .DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15)//.OnValueChanged("fromtime_ValueChange_blkAdd")
+                            .ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                        )
+                </div>
+            </div>
+        </div>
+        <div class="row hide">
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">To Date:</label>
+                    @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_blkAdd").Name("todate_blkAdd").ShowClearButton(true).Value(Model.ToDate_Blk)
+                            .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))//.OnValueChanged("fromdate_Valuechanged_blkAdd")
+                            .ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                        )
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">To Time:</label>
+                    @(Html.DevExtreme().DateBox().CustomDateBox().Name("totime_blkAdd").ID("totime_blkAdd").Min(DateTime.MinValue).Type(DateBoxType.Time).Value(Model.ToTime_Blk)
+                            .DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15)//.OnValueChanged("fromtime_ValueChange_blkAdd")
+                            .ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                        )
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">Building Name:</label>
+                    @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Building_blkAdd").ID("Building_blkAdd").Placeholder("Choose..").DisplayExpr("BUILDING_NAME").ValueExpr("REC_ID")
+                        .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_BuildingsList").Key("REC_ID").LoadMode(DataSourceLoadMode.Raw)).Value(Model.buildingid)
+                        .ContentTemplate(@<text>
+                                            @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Building_blkAdd_datagrid")
+                                                .Columns(columns =>
+                                                {
+                                                    columns.Add().DataField("BUILDING_NAME").Caption("Building Name");
+                                                    columns.Add().DataField("REC_ID").Visible(false);
+                                                })
+                                                .Selection(s => s.Mode(SelectionMode.Single))
+                                            )
+                                        </text>)
+                                .OnValueChanged("Building_blkAdd_ValueChange").ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                    )
+                </div>
+                <script>
+                    async function Building_blkAdd_ValueChange(e, FirstCall = false) {
+                        var value;
+                        var DG = $("#Building_blkAdd_datagrid").dxDataGrid("instance");
+                        if (e) {
+                            buildingid_bulk = e.value
+                            value = e.value;
+                            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                DG.clearSelection();
+                                return;
+                            }
+                        }
+                        else {
+                            var bldgid = "";
+                            var buildingid_array = $("#Building_blkAdd").dxDropDownBox("option", "value");
+                            if (buildingid_array != null) { bldgid = buildingid_array[0]; }
+                            value = bldgid;
+                        }
+                        await DG.selectRows(value);
+                        if (DG.getSelectedRowsData().length > 0) {
+                            var item = DG.getSelectedRowsData()[0];
+                            ////  $("#ProjectID_createForm").dxSelectBox("option", "readOnly", true);
+                            //$("#ProjectID_createForm").dxSelectBox("option", "value", item.ProjID);
+                            //if (item.Type == "Service Report") {
+                            //    $("#SR_ID").val(item.ID);
+                            //}
+                            //else {
+                            //    $("#Event_ID").val(item.ID);
+                            //}
+                            //if (FirstCall == false) {
+                            //    await $("#PreReq_createForm_datagrid").dxDataGrid("instance").refresh();
+                            //}
+                        }
+                        onchange_functions_BlkW(e)
+                    }
+                </script>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">AC or Non-AC:</label>
+                    @(Html.DevExtreme().SelectBox().CustomSelectBox().DataSource(new object[] { new {text = "AC", value = "AC"}, new {text = "NonAC", value = "NonAc"} })
+                        .ID("Ac_nonAc_blkAdd")
+                        .Name("Ac_nonAc_blkAdd")
+                        .Value(Model.acNonac)
+                        .DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                        .Placeholder("A/c or Non A/c..").ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false).OnValueChanged("onchange_functions_BlkW")
+                    )
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">Category:</label>
+                    @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                    .DataSource(new object[] { new { text = "BK Brothers", value = "BKBrothers" }, new { text = "Non-BK Brothers", value = "NonBKBrothers" },
+                        new { text = "BK Sisters", value = "BKSisters" }, new { text = "Non-BK Sisters", value = "NonBKSisters" }, new { text = "Foreigners", value = "foreigners" },
+                        new { text = "VIP", value = "vip" }, new { text = "Teacher", value = "teacher" }, new { text = "Mata", value = "mata" }
+                    })
+                    .ID("Category_blkAdd")
+                    .Name("Category_blkAdd")
+                    .Value(Model.category)
+                    .DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                    .Placeholder("Type Category..").ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false).OnValueChanged("onchange_functions_BlkW")
+                )
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">Room Capacity:</label>
+                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("RoomCapacity_blkAdd").Name("RoomCapacity_blkAdd").ShowClearButton(false).Min(1).Format("#").Max(500)
+                    .Placeholder("Enter Room Capacity..").OnValueChanged("onchange_functions_BlkW").Value(Model.roomCapacity).ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                )
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">No of Beds:</label>
+                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("BedCount_blkAdd").Name("BedCount_blkAdd").ShowClearButton(false).Min(1).Format("#").Max(30000)
+                    .Placeholder("Enter No. of Beds required..").OnValueChanged("RoomCapacityOnchange_BlkW").Value(Model.BedCount).ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                )
+                </div>
+            </div>
+        </div>
+        <script>
+            function onchange_functions_BlkW(e) {
+
+                //RoomCountOnchange_BlkW(e)
+                //RoomCapacityOnchange_BlkW(e)
+            }
+            var buildingid_bulk = null;
+            function RoomCountOnchange_BlkW(e) {
+                var buildingid = null;
+                buildingid = buildingid_bulk
+                if (buildingid == null) {
+                    buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value")
+                }
+                //if ($("#Building_blkAdd").dxDropDownBox("instance").option("value") != null) { buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value")[0]; }
+                //if (buildingid != undefined) {
+                //    if (buildingid.length < 36) { buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value") }
+                //}
+                var acNonac = $("#Ac_nonAc_blkAdd").dxSelectBox("instance").option("value");
+                var category = $("#Category_blkAdd").dxSelectBox("instance").option("value");
+                var roomCapacity = $("#RoomCapacity_blkAdd").dxNumberBox("instance").option("value");
+                var BedCount = $("#BedCount_blkAdd").dxNumberBox("instance").option("value");
+                var fromdate = $("#fromdate_blkAdd").dxDateBox("instance").option("value");
+                var todate = $("#todate_blkAdd").dxDateBox("instance").option("value");
+                var fromtime = $("#fromtime_blkAdd").dxDateBox("instance").option("value");
+                var totime = $("#totime_blkAdd").dxDateBox("instance").option("value");
+
+                ShowLoader();
+                $.ajax({
+                    type: 'Post',
+                    url: "/Facility/Chart/GetAvailableRoomCountOnChangeofOptions",
+                    cache: false,
+                    data: {
+                        instanceid: "@instanceid",
+                        BuildingID: buildingid,
+                        AC_NONAC: acNonac,
+                        Category: category,
+                        RoomCapacity: roomCapacity,
+                        BedCount: BedCount,
+                        ActionMethod: "@action_method",
+                        fromdate: fromdate == null ? null : JS_Json_Date_To_ddMMyyyy(fromdate),
+                        todate: todate == null ? null : JS_Json_Date_To_ddMMyyyy(todate),
+                        fromtime: fromtime == null ? null : JS_Json_Date_To_ddMMyyyy(fromtime),
+                        totime: totime == null ? null : JS_Json_Date_To_ddMMyyyy(totime),
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        if (data.jsonParam.result) {
+                            HideLoader();
+                            document.getElementById("Available_Rooms_blkw").innerHTML = data.jsonParam.flag
+                        }
+                        else if (data.jsonParam.result == false) {
+                            HideLoader();
+                        }
+                    }
+                });
+
+
+
+            }
+            function RoomCapacityOnchange_BlkW(e) {
+                var roomCapacity = $("#RoomCapacity_blkAdd").dxNumberBox("instance").option("value");
+                var BedCount = $("#BedCount_blkAdd").dxNumberBox("instance").option("value");
+                document.getElementById("currentAllottment_blkw").innerHTML = (roomCapacity * BedCount) + " Beds"
+                @*document.getElementById("alreadyAllotted_blkw").innerHTML = "@alreadyallottedSum" - "@currentRecordOldAllottment" + (roomCapacity * BedCount)*@
+                var remainingCount = "@totalregistrationsCount" - ("@alreadyallottedSum" - "@currentRecordOldAllottment") - BedCount
+                document.getElementById("RemaingRegCount_blkw").innerHTML = remainingCount
+                if (remainingCount < 0) {
+                    document.getElementById("RemaingRegCount_blkw").style.color = "red"
+                    //DevExpress.ui.dialog.alert('You have allotted the beds more than the required beds. Please recheck and correct the count.', "error");
+                } else {
+                    document.getElementById("RemaingRegCount_blkw").style.color = "black"
+                }
+            }
+        </script>
+        <div class="row" style="display:none;">
+            <div class="col-sm-6">
+                <label class="control-label text-red" for="user">No of Rooms Available:</label>
+            </div>
+            <div class="col-sm-6">
+                <label class="control-label" id="Available_Rooms_blkw" style="float:left;">0</label>
+            </div>
+        </div>
+        <div class="row" style="margin-top:10px; display:none;">
+            <div class="col-sm-6">
+                <label class="control-label text-red" for="user">Total Registrations Count:</label>
+            </div>
+            <div class="col-sm-6">
+                <label class="control-label" style="float:left;">@totalregistrationsCount</label>
+            </div>
+        </div>
+        <div class="row"  style="display:none;">
+            <div class="col-sm-6">
+                <label class="control-label text-red" for="user">Already Allotted Count:</label>
+            </div>
+            <div class="col-sm-6">
+                <label class="control-label" id="alreadyAllotted_blkw" style="float:left;">@alreadyallottedSum</label>
+            </div>
+        </div>
+        <div class="row" style="padding-bottom: 5px; display: none;">
+            <div class="col-sm-6">
+                <label class="control-label text-red" for="user">Current Allotment:</label>
+            </div>
+            <div class="col-sm-6">
+                <label id="currentAllottment_blkw" class="control-label" style="float:left;">@currentRecordOldAllottment Beds</label>
+            </div>
+        </div>
+        <div class="row"  style="display:none;">
+            <div class="col-sm-6">
+                <label class="control-label text-red" for="user">Remaining Count:</label>
+            </div>
+            <div class="col-sm-6">
+                <label id="RemaingRegCount_blkw" class="control-label" style="float:left;">@remainingallottment</label>
+            </div>
+        </div>
+        <br />
+        <div class="row">
+            <div class="col-sm-6">
+            </div>
+            <div class="col-sm-3">
+                @{
+                    var SaveBtnText = "Save";
+                    if (Model.actionmethod.ToString().ToUpper() == "_EDIT") { SaveBtnText = "Update"; }
+                    else if (Model.actionmethod.ToString().ToUpper() == "_DELETE") { SaveBtnText = "Delete"; }
+                }
+                @(Html.DevExtreme().Button().ID("Addblk_Save").Text(SaveBtnText).OnClick("save_addblk").Visible(true))
+            </div>
+            <div class="col-sm-3 pll">                
+                @(Html.DevExtreme().Button().ID("Addblk_Cancel").Text("Cancel").OnClick("cancel_addblk").Visible(true))
+            </div>
+
+        </div>
+</form>
+    <script>
+        function cancel_addblk() {
+            HidePopup('Add_BlkAllot_Popup');
+        }
+        $(document).ready(function () {
+            if ("@remainingallottment" < 0) {
+                document.getElementById("RemaingRegCount_blkw").style.color = "red"
+                //DevExpress.ui.dialog.alert('You have allotted the beds more than the required beds. Please recheck and correct the count.', "error");
+            } else {
+                document.getElementById("RemaingRegCount_blkw").style.color = "black"
+            }
+        });
+        function save_addblk() {
+            var countdata = 0; var totalAllottedBedCount = 0;
+            
+
+            var buildingid = buildingid_bulk;
+            if (buildingid == null) {
+                buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value")
+            }
+            
+            //if ($("#Building_blkAdd").dxDropDownBox("instance").option("value") != null) { buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value")[0];}            
+            //if (buildingid != undefined) {
+            //    if (buildingid.length < 36) { buildingid = $("#Building_blkAdd").dxDropDownBox("instance").option("value") }
+            //}
+            var acNonac = $("#Ac_nonAc_blkAdd").dxSelectBox("instance").option("value");
+            var category = $("#Category_blkAdd").dxSelectBox("instance").option("value");
+            var roomCapacity = $("#RoomCapacity_blkAdd").dxNumberBox("instance").option("value");
+            var BedCount = $("#BedCount_blkAdd").dxNumberBox("instance").option("value");
+            var fromdate = $("#fromdate_blkAdd").dxDateBox("instance").option("value");
+            var todate = $("#todate_blkAdd").dxDateBox("instance").option("value");
+            var fromtime = $("#fromtime_blkAdd").dxDateBox("instance").option("value");
+            var totime = $("#totime_blkAdd").dxDateBox("instance").option("value");            
+            if ((buildingid == null || buildingid == undefined) || roomCapacity == null || roomCapacity == undefined || BedCount == null || BedCount == undefined)
+            {
+                DevExpress.ui.dialog.alert("Please fill all the required fields", "Incomplete Data")
+                return;
+            }
+            var remainingCount = "@totalregistrationsCount" - (roomCapacity * BedCount)
+            ShowLoader();
+            if ("@action_method".toUpperCase() == "_ADD") {
+                $.ajax({
+                    type: 'Post',
+                    url: "/Facility/Chart/SaveBulkAllottment",
+                    cache: false,
+                    data: {
+                        instanceid: "@instanceid",
+                        BuildingID: buildingid,
+                        AC_NONAC: acNonac,
+                        Category: category,
+                        RoomCapacity: roomCapacity,
+                        BedCount: BedCount,
+                        ActionMethod: "@action_method",
+                        fromdate: fromdate == null ? null : JS_Json_Date_To_ddMMyyyy(fromdate),
+                        todate: todate == null ? null : JS_Json_Date_To_ddMMyyyy(todate),
+                        fromtime: fromtime == null ? null : JS_Json_Date_To_ddMMyyyy(fromtime),
+                        totime: totime == null ? null : JS_Json_Date_To_ddMMyyyy(totime),
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        if (data.jsonParam.result) {
+                            HideLoader();
+                            HidePopup('Add_BlkAllot_Popup');
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                                }
+                            });
+                        }
+                        else if (data.jsonParam.result == false) {
+                            HideLoader();
+                            if (data.jsonParam.flag != undefined && data.jsonParam.flag == "refeshDropdown") {
+
+                                $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                            }
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        }
+                    }
+                });
+            }
+            if ("@action_method".toUpperCase() == "_EDIT") {
+                $.ajax({
+                    type: 'Post',
+                    url: "/Facility/Chart/UpdateBulkAllottment",
+                    cache: false,
+                    data: {
+                        instanceid: "@instanceid",
+                        BuildingID: buildingid,
+                        AC_NONAC: acNonac,
+                        Category: category,
+                        RoomCapacity: roomCapacity,
+                        BedCount: BedCount,
+                        ActionMethod: "@action_method",
+                        recid_blk: selectedRecID_BlkInfo,
+                        fromdate: fromdate == null ? null : JS_Json_Date_To_ddMMyyyy(fromdate),
+                        todate: todate == null ? null : JS_Json_Date_To_ddMMyyyy(todate),
+                        fromtime: fromtime == null ? null : JS_Json_Date_To_ddMMyyyy(fromtime),
+                        totime: totime == null ? null : JS_Json_Date_To_ddMMyyyy(totime),
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        if (data.jsonParam.result) {                            
+                            HideLoader();
+                            HidePopup('Add_BlkAllot_Popup');
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                                }
+                            });
+                        }
+                        else if (data.jsonParam.result == false) {
+                            HideLoader();
+                            if (data.jsonParam.flag != undefined && data.jsonParam.flag == "refeshDropdown") {
+
+                                $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                            }
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        }
+                    }
+                });
+            }
+            else if ("@action_method".toUpperCase() == "_DELETE") {
+                $.ajax({
+                    type: 'Post',
+                    url: "/Facility/Chart/deleteBulkAllottement",
+                    cache: false,
+                    data: {
+                        recid: selectedRecID_BlkInfo
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        if (data.jsonParam.result) {
+                            HideLoader();
+                            HidePopup('Add_BlkAllot_Popup');
+
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                                }
+                            });
+
+                        }
+                        else if (data.jsonParam.result == false) {
+                            HideLoader();
+                            if (data.jsonParam.flag != undefined && data.jsonParam.flag == "refeshDropdown") {
+
+                                $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance").refresh();
+                            }
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+
+</div>

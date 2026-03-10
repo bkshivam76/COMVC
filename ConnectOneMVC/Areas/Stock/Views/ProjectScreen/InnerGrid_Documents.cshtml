@@ -1,0 +1,254 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_Project_NEVD
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        bool IsVisible = (Model != null && Model.TempActionMethod == "_Delete") ? true : false;
+        bool IsDisabled = Model != null && (Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") ? true : false;
+    }
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Action("DocumentsGridData", "ProjectScreen", new { ActionMethodName = Model.TempActionMethod, ProjectID = Model.ProjectID })
+        </div>
+    </div>
+    <div class="row">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="col-md-12">
+                    @(Html.DevExtreme().Button().ID("PR_BUT_DocNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PR_Document_New_Click() } </text>))
+                    @(Html.DevExtreme().Button().ID("PR_BUT_DocEdit").Text("Edit").Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PR_Document_Edit_Click() } </text>))
+                    @(Html.DevExtreme().Button().ID("PR_BUT_DocDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PR_Document_Delete_Click() } </text>))
+                    @(Html.DevExtreme().Button().ID("PR_BUT_DocView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsVisible).OnClick(@<text> function () { OnFrm_PR_Document_View_Click() } </text>))
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var PR_Document_Sr;
+        var PR_Document_ID;
+        function OnDocumentDetailsGridFocusedRowChanged(s, e)
+       {
+            s.GetRowValues(s.GetFocusedRowIndex(), 'Sr_No;ID', OnDocumentsDetailsGridRowValues);
+        }
+        function OnDocumentsDetailsGridRowValues(values) {
+            PR_Document_Sr = values[0];
+            PR_Document_ID = values[1];
+    }
+
+        $("#Project_Documents_Window_Grid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                OnFrm_PR_Document_New_Click();
+                break;
+            case 13: //enter key
+                OnFrm_PR_Document_Edit_Click();
+                break;
+            case 32: //space bar
+                OnFrm_PR_Document_View_Click();
+                break;
+            case 46://delete key
+                OnFrm_PR_Document_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            OnFrm_PR_Document_New_Click();
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            OnFrm_PR_Document_Edit_Click();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_PR_Document_View_Click();
+        }
+    });
+        function Frm_Document_Detail_Grid_ContextMenuFunction(s, e) {
+            if (e.item.name == "New") {
+                OnFrm_PR_Document_New_Click();
+            }
+            if (e.item.name == "Edit") {
+                OnFrm_PR_Document_Edit_Click();
+            }
+            if (e.item.name == "Delete") {
+                OnFrm_PR_Document_Delete_Click();
+            }
+            if (e.item.name == "View") {
+                OnFrm_PR_Document_View_Click();
+            }
+        }
+    function OnFrm_PR_Document_New_Click()
+    {        
+        if ("@IsDisabled" == "True") { return; }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            data: {
+                AM:"New",
+                PostSucessFunctionName:"Frm_PR_Documents_Window_OnSuccess",
+                Post_action_Name:"Frm_Project_Document",
+                Post_Controller_Name:"ProjectScreen",
+                Post_Area_Name: "Stock",
+                Document_Grid_PopupName: "PRinnergrid_NEVD",//Mantis bug 0001011 fixed
+                ByteSessionVariable:"PRDocument"
+            },
+            cache: false,
+            success: function (data)
+            {
+                ShowLoader();
+                OpenPopup("PRinnergrid_NEVD", "New ~ Documents", null, "auto", 900, true, data);              
+                HideLoader();
+            }
+        });
+      
+    }//new click//Mantis 0000213 bug fixed
+ function OnFrm_PR_Document_Edit_Click()
+ {
+        if ("@IsDisabled" == "True") { return; }
+        if (!PR_Document_Sr) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+            $("#ID_Frm_Help_Document_Attach").remove();
+            ShowLoader();          
+          $.ajax({
+              type: 'GET',
+              url: "/Help/Attachment/Frm_Attachment_Window",
+              data: {
+                  AM: "Edit",
+                  PostSucessFunctionName: "Frm_PR_Documents_Window_OnSuccess",
+                  Post_action_Name: "Frm_Project_Document",
+                  Post_Controller_Name: "ProjectScreen",
+                  Post_Area_Name: "Stock",
+                  Document_Grid_Data_SessionName: "Documents_Window_Grid_Data_Project_Proj",
+                  Document_Grid_SrNo: PR_Document_Sr,
+                  ID: PR_Document_ID,
+                  Document_Grid_PopupName: "PRinnergrid_NEVD",//Mantis bug 0001011 fixed
+                  ByteSessionVariable: "PRDocument"
+              },
+              cache: false,
+              success: function (data) {
+                  ShowLoader();
+                  OpenPopup("PRinnergrid_NEVD", "Edit ~ Documents", null, "auto", 900, true, data);   
+                  HideLoader();
+              }
+     });//Mantis bug 0000221 fixed
+               
+ }//edit click//Mantis 0000213 bug fixed
+    function OnFrm_PR_Document_Delete_Click()
+    {
+        if ("@IsDisabled"=="True") { return; }
+        if (!PR_Document_Sr)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (PR_Document_ID)
+        {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/ProjectScreen/PR_Documents_Attachment_LinkCheck",
+                    data: { DocId: PR_Document_ID, PRId: PR_REC_ID },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (data.result == false)
+                        {
+                            var deleteResultDocument = DevExpress.ui.dialog.confirm(data.message, "Confirm changes");
+                            deleteResultDocument.done(function (dialogResult)
+                            {
+                                if (dialogResult)
+                                {
+                                    $.ajax({
+                                        type: 'GET',
+                                        url: "/Stock/ProjectScreen/Frm_DocumentsDetail_Window_Delete_Grid_Record",
+                                        data: { ActionMethod: "Unlink", SrID: PR_Document_Sr, Doc_ID: PR_Document_ID },
+                                        cache: false,
+                                        success: function (result)
+                                        {
+                                            Project_Documents_Window_Grid.SetFocusedRowIndex(-1);
+                                            Project_Documents_Window_Grid.Refresh();
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        else
+                        {
+                            PR_deletedocument();
+                        }
+                    }
+                });
+            }
+            else
+            {
+                PR_deletedocument();
+            }
+    } //delete click
+         function PR_deletedocument()
+        {
+            if ("@IsDisabled" == "True")
+            {
+                return;
+            }
+        var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+            deleteResultPaymentDetail.done(function (dialogResult)
+            {
+            if (dialogResult)
+            {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/ProjectScreen/Frm_DocumentsDetail_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", SrID: PR_Document_Sr, Doc_ID: PR_Document_ID },
+                    cache: false,
+                    success: function (result)
+                    {
+                        Project_Documents_Window_Grid.SetFocusedRowIndex(-1);
+                        Project_Documents_Window_Grid.Refresh();
+                    }
+                });
+            }
+        });
+    }//delete document
+    function OnFrm_PR_Document_View_Click()
+    {
+        if (!PR_Document_Sr) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+        $("#ID_Frm_Help_Document_Attach").remove();
+            ShowLoader();
+      $.ajax({
+              type: 'GET',
+              url: "/Help/Attachment/Frm_Attachment_Window",
+              data: {
+                  AM: "View",
+                  PostSucessFunctionName: "Frm_PR_Documents_Window_OnSuccess",
+                  Post_action_Name: "Frm_Project_Document",
+                  Post_Controller_Name: "ProjectScreen",
+                  Post_Area_Name: "Stock",
+                  Document_Grid_Data_SessionName:"Documents_Window_Grid_Data_Project_Proj",
+                  Document_Grid_SrNo: PR_Document_Sr,
+                  ID: PR_Document_ID,
+                  Document_Grid_PopupName: "PRinnergrid_NEVD",//Mantis bug 0001011 fixed
+                  ByteSessionVariable: "PRDocument"
+              },
+              cache: false,
+          success: function (data) {
+              ShowLoader();
+              OpenPopup("PRinnergrid_NEVD", "View ~ Documents", null, "auto", 900, true, data);   
+                  HideLoader();
+              }
+        });//Mantis bug 0000221 fixed
+            
+    }//Mantis 0000213 bug fixed
+    function Frm_PR_Documents_Window_OnSuccess(data)
+    {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+
+            $("#PRinnergrid_NEVD").dxPopup("hide");
+            Project_Documents_Window_Grid.SetFocusedRowIndex(-1);
+            Project_Documents_Window_Grid.Refresh();
+        }
+    }
+
+    </script>

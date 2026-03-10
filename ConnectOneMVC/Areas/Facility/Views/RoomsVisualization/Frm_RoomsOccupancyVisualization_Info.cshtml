@@ -1,0 +1,1178 @@
+﻿<div class="RoomsViz_Facility_ClearReferences" onkeydown="keydown_RoomsViz(event)">
+    @using DevExtreme.AspNet.Mvc;
+    @using System.Web.Mvc.Html;
+    @using System.Data
+    @using Newtonsoft.Json;
+    @{
+        ViewBag.Title = "Frm_RoomsOccupancyVisualization_Info";
+        
+        var AllRoomsTbl = Model.Tables[0];
+        var AllRoomsjson = Newtonsoft.Json.JsonConvert.SerializeObject(AllRoomsTbl);
+        var RoomsFilledTbl = Model.Tables[1];
+        var RoomsFilledjson = Newtonsoft.Json.JsonConvert.SerializeObject(RoomsFilledTbl);
+
+    }
+    <script src="~/Content/js/d3.v7.min.js"></script>
+    <style>
+        .card {
+            border: 1px solid #ccc;
+            margin: 5px;
+            padding: 5px;
+            display: inline-block;
+        }
+        .totalArea_RoomViz {
+            display: flex;
+            position: relative
+        }
+        #topFilters_RoomViz {
+            width: 270px;
+            padding-right: 10px;
+            transition: .3s all;
+            position: absolute;
+            margin-left: 0;
+        }
+        #cardGrid_Roomviz {
+            width: 100%;
+            padding-left: 270px;
+            transition: .3s all;
+        }
+        #cardGrid_Roomviz aside {
+            padding:10px 12px;
+            border-left: 1px solid #ddd;
+        }
+        .totalArea_RoomViz.moved #topFilters_RoomViz {
+            opacity: 0;
+            padding: 2px;
+            margin-left: -270px;
+            pointer-events: none;
+        }
+        .totalArea_RoomViz.moved #cardGrid_Roomviz {
+            padding-left:0
+        }
+
+        #Rect_Circle_RoomViz {
+            margin-right: 20px
+        }
+        #topFilters_RoomViz .dx_switch {
+            width: 100px;
+        }
+
+        #tooltip {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            background-color: white;
+            border: solid 1px black;
+            padding: 5px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        #tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: black transparent transparent transparent;
+        }
+
+        #tooltip p {
+            border-bottom: 1px solid black;
+            padding: 2px;
+        }
+
+        #tooltip p:last-child {
+            border-bottom: none;
+        }
+
+        h1 {
+            display: flex;
+            justify-content: center;
+            margin: 0px;
+        }
+
+        hr {
+            height: 0.5px;
+            background-color: blueviolet;
+        }
+
+        .headings {
+            display: flex;
+            justify-content: center;
+        }
+        .modal-backdrop {
+            background-color: rgba(256, 256, 256, .1);
+        }
+        #Refresh_RoomViz {
+            background: #4472C4;
+            color: #fff;
+            border-color: #2F528F;
+            padding: 5px;
+            font-size: medium;
+            width: 100%;
+        }
+        .dx-show-clear-button .dx-texteditor-input {
+            height: 35px;
+        }
+        #topFilters_RoomViz .dx-switch-off {
+            color: #11203d;
+        }
+        #Building_RoomsViz{
+            font-size: large;
+        }
+        button.mode-slide {
+            position: absolute;
+            left: 251px;
+            width: 20px;
+            margin: auto;
+            height: 40px;
+            padding: 5px 0 2px 4px;
+            line-height: 0;
+            top: 13px;
+            z-index: 5100;
+            background: #ffffff;
+            border: 1px solid #ccc;
+            border-right-color: #fff;
+            border-radius: 4px 0 0 4px;
+            color: #a4a6ad;
+            cursor: pointer;
+            font-size: 19px;
+            font-weight: bold;
+            transition:.3s left;
+        }
+        button.mode-slide.moved {
+            left: -8px;
+            padding:0;
+            border-right-color:#ccc;
+            border-radius:2px;
+            width:16px
+        }
+        button.mode-slide:hover {
+            color: #15297e
+        }
+        button.mode-slide span {
+            display: inline-block;
+            transition: .4s all;
+            transform: rotate(-180deg)
+        }
+        button.mode-slide.moved span {
+            transform: rotate(0deg);
+        }        
+        .icon_roomViz:hover {
+            cursor: pointer;
+        }
+
+        @@keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-30px);
+            }
+
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .bounce {
+            animation: bounce 1s;
+        }
+    </style>
+
+
+    @*<h2>Thank you baba.</h2>*@
+<div class="totalArea_RoomViz">
+    <button class="mode-slide">
+        <span>»</span>
+    </button>
+    <div id="topFilters_RoomViz">
+        <br />
+        <div class="dx-field">
+            <label style="padding: 7px 0px 5px 0px;">Select Mode</label>
+            <div class="dx-field-value">
+                @(Html.DevExtreme().Switch().ID("Rect_Circle_RoomViz").SwitchedOffText("Rectangles").SwitchedOnText("Circles").Width(100)
+                        .Value(true).OnValueChanged("switch_valueChanged")
+                    )
+            </div>
+        </div>
+        <script>
+            function switch_valueChanged(data) {//true->Circles and false->Rectangles.
+                //$("#disabled").dxSwitch("instance").option("value", data.value)
+                checkSwithAndCall(AllRoomsdata)
+            }
+            function checkSwithAndCall(data) {
+                if ($("#Rect_Circle_RoomViz").dxSwitch("instance").option("value")) {
+                    updateCircles(data)
+                } else {
+                    updateRectangles(data)
+                }
+            }
+        </script>
+        <div style="padding-bottom:8px;">
+            <label>From Date</label>
+            @(Html.DevExtreme().DateBox().CustomDateBox().Name("fromdate_RoomViz").ID("fromdate_RoomViz").Min(new DateTime(1990,01,01))
+                        .OnValueChanged("fromDate_RoomsViz_ValueChange").Value(DateTime.Today).Placeholder("From Date (dd-mm-yyyy)").Height(35)
+                    )
+        </div>
+        <div style="padding-bottom:3px;">
+            <label>To Date</label>
+            @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_RoomViz").Name("todate_RoomViz").ShowClearButton(true).Value(DateTime.Today.AddDays(1))
+                        .Type(DateBoxType.Date).Placeholder("To Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31)).OnValueChanged("toDate_RoomsViz_ValueChange")
+                        .Placeholder("To Date (dd-mm-yyyy)").Height(35)
+                    )
+        </div>
+
+
+        <div style="padding-top: 10px; padding-bottom:5px;">
+            @*<label>To Date</label>*@
+            @(Html.DevExtreme().Button().ID("Refresh_RoomViz").Text("Refresh").OnClick("Refresh_RoomViz_Onclick")   )
+        </div>
+
+        <hr style="height:0.5px; background-color:lightgray;" />
+
+        <div style="padding-bottom:15px;">
+            <label>Building Name</label>
+            @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Building_RoomsViz").ID("Building_RoomsViz").Placeholder("Choose Building Name")
+                    .DisplayExpr("BUILDING_NAME").ValueExpr("REC_ID").Height(35)
+                    .DataSource(d => d.Mvc().Controller("RoomsVisualization").LoadAction("LookUp_Get_BuildingsList").Key("REC_ID").LoadMode(DataSourceLoadMode.Raw))
+                    .ContentTemplate(@<text>
+                                        @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Building_RoomsViz_datagrid")
+                                            .Columns(columns =>
+                                            {
+                                                columns.Add().DataField("BUILDING_NAME").Caption("Building Name");
+                                                columns.Add().DataField("REC_ID").Visible(false);
+                                            })
+                                            .Selection(s => s.Mode(SelectionMode.Single))
+
+                                            )
+                                    </text>)
+                    .OnValueChanged("Building_RoomsViz_ValueChange")
+                )
+        </div>
+        <div class="row" style="padding-bottom:15px;">
+            <div class="col-sm-6">
+                <label style="max-width:100px;">Room Number</label>
+                @(Html.DevExtreme().TextBox().CustomTextBox().Name("RoomNumber_RoomViz").ID("RoomNumber_RoomViz").Height(35)
+                    .OnValueChanged("RoomNumber_RoomViz_ValueChange").Placeholder("Search Room#").ShowClearButton(true)
+                )
+            </div>
+            <div class="col-sm-6">
+                <label style="max-width:100px;">Room Capacity</label>
+                @(Html.DevExtreme().TextBox().CustomTextBox().Name("RoomCapacity_RoomViz").ID("RoomCapacity_RoomViz").Height(35)
+                    .OnValueChanged("RoomCapacity_RoomViz_ValueChange").Placeholder("Search Capacity").ShowClearButton(true)
+                )
+            </div>
+        </div>
+
+        <div class="row" style="padding-bottom:15px;">
+            <div class="col-sm-6">
+                <label style="max-width:100px;">Phone #</label>
+                @(Html.DevExtreme().TextBox().CustomTextBox().Name("PhSearch_RoomViz").ID("PhSearch_RoomViz").Height(35)
+                    .OnValueChanged("PhSearch_RoomViz_ValueChange").Placeholder("Search Phone#").ShowClearButton(true)
+                )
+            </div>
+            <div class="col-sm-6">
+                <label style="max-width:100px;">Name</label>
+                @(Html.DevExtreme().TextBox().CustomTextBox().Name("NameSearch_RoomViz").ID("NameSearch_RoomViz").Height(35)
+                    .OnValueChanged("NameSearch_RoomViz_ValueChange").Placeholder("Search Name").ShowClearButton(true)
+                )
+            </div>
+        </div>
+        <div class="row" style="padding-bottom:15px;">
+            <div id="filled_Capacity_summary_RoomViz" class="col-sm-6" style="font-size:x-large; color:darkblue;">
+
+            </div>
+            <div class="col-sm-6" style="font-size:x-large; color:darkblue; text-align:right;">
+                <button style="background-color:#4472C4; color:white;font-weight:900;margin-right:2px;" onclick="PrevBuilding_RoomViz()">&larr;</button>
+                <button style="background-color:#4472C4; color:white;font-weight:900;" onclick="NextBuilding_RoomViz()">&rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cardGrid_Roomviz">
+        <aside>
+            @*All the visualization coming here*@
+        </aside>
+    </div>
+</div>
+
+    <div id="tooltip" style="position: absolute; opacity: 0; pointer-events: none; background-color: white; border: solid 1px black; padding: 5px;"></div>
+    
+    <div id="RoomRemarks" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Please Enter Remarks of the Room Below</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">X</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @(Html.DevExtreme().TextBox().Height(60).Name("enteredRemarks_RoomViz").ID("enteredRemarks_RoomViz") )
+                    
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="remarksSubmitBtn">Save Remarks</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        async function Building_RoomsViz_ValueChange(e, FirstCall = false) {
+            var value;
+            var DG = $("#Building_RoomsViz_datagrid").dxDataGrid("instance");
+            if (e) {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    DG.clearSelection();
+                    //checkSwithAndCall(AllRoomsdata)
+                    FilterData()
+                    return;
+                }
+            }
+            else {
+                var bldgid = "";
+                var buildingid_array = $("#Building_RoomsViz").dxDropDownBox("option", "value");
+                if (buildingid_array != null) { bldgid = buildingid_array[0]; }
+                value = bldgid;
+            }
+            await DG.selectRows(value);
+            if (DG.getSelectedRowsData().length > 0) {
+
+                var Bldng_Recid = DG.getSelectedRowsData()[0];
+                FilterByBuilding(Bldng_Recid.REC_ID)
+            }
+        }
+
+        function PrevBuilding_RoomViz() {            
+            var max;
+            let curr_index; var prev_index;
+            var DG = $("#Building_RoomsViz_datagrid").dxDataGrid("instance")
+            var ds = DG.getDataSource()
+            if ($("#Building_RoomsViz").dxDropDownBox("option", "value") == null || $("#Building_RoomsViz").dxDropDownBox("option", "value").length ==0) {
+                prev_index = 0;
+            } else {
+                
+                max = ds._items.length
+                for (let i = 0; i < max; i++) {
+                    if (ds._items[i].REC_ID === $("#Building_RoomsViz").dxDropDownBox("option", "value")[0]) {
+                        curr_index = i; // Arrays are zero-indexed, so add 1 to get the serial number
+                    }
+                }
+
+                if (curr_index == 0) { prev_index = max - 1; }
+                else { prev_index = curr_index - 1 }
+            }
+                    
+            $("#Building_RoomsViz").dxDropDownBox("instance").option("value", ds._items[prev_index]["REC_ID"]);
+        }
+        function NextBuilding_RoomViz() {            
+            var max;
+            let curr_index; var next_index;
+            var DG = $("#Building_RoomsViz_datagrid").dxDataGrid("instance")
+            var ds = DG.getDataSource()
+            if ($("#Building_RoomsViz").dxDropDownBox("option", "value") == null || $("#Building_RoomsViz").dxDropDownBox("option", "value").length == 0) {
+                next_index = 0;
+            } else {
+                
+                max = ds._items.length
+                for (let i = 0; i < max; i++) {
+                    if (ds._items[i].REC_ID === $("#Building_RoomsViz").dxDropDownBox("option", "value")[0]) {
+                        curr_index = i; // Arrays are zero-indexed, so add 1 to get the serial number
+                    }
+                }
+
+                if (curr_index == max - 1) { next_index = 0; }
+                else { next_index = curr_index + 1 }
+            }
+                    
+            $("#Building_RoomsViz").dxDropDownBox("instance").option("value", ds._items[next_index]["REC_ID"]);
+        }
+
+        function FilterByBuilding(bldng_recid) {//Building Onchange function
+
+            //var filteredData = AllRoomsdata.filter(function (d) {
+            //    return d.SP_REC_ID === bldng_recid;
+            //});
+
+            //checkSwithAndCall(filteredData)
+            FilterData()
+        }
+        function RoomNumber_RoomViz_ValueChange(e) {
+            //if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+            //    //DG.clearSelection();
+            //    checkSwithAndCall(AllRoomsdata)
+            //    return;
+            //}
+            //let filterText = $("#RoomNumber_RoomViz").dxTextBox("option", "value")
+            //let filteredData = AllRoomsdata.filter(item => item.AL_LOC_NAME.includes(filterText.toUpperCase()));
+            //checkSwithAndCall(filteredData)
+            FilterData()
+        }
+        function RoomCapacity_RoomViz_ValueChange(e) {            
+            //if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+            //    //DG.clearSelection();
+            //    checkSwithAndCall(AllRoomsdata)
+            //    return;
+            //}
+            //let filterText = $("#RoomCapacity_RoomViz").dxTextBox("option", "value")
+            //let filteredData = AllRoomsdata.filter(item => item.AL_MAXCAPACITY == parseInt(filterText));
+            //checkSwithAndCall(filteredData)
+            FilterData()
+        }
+        function PhSearch_RoomViz_ValueChange(e) {
+            //if (e.value == null || e.value == undefined || e.value == '') {
+            //    checkSwithAndCall(AllRoomsdata)
+            //} else {
+            //    let phNum = $("#PhSearch_RoomViz").dxTextBox("option", "value")
+            //    let RoomsFilleddataFiltered = RoomsFilleddata.filter(item => item.C_MOB_NO_1.includes(phNum))
+            //    let filteredroomsarray = RoomsFilleddataFiltered.map(item => item.ROOM_RECID)
+            //    let filteredData = AllRoomsdata.filter(function (d) {
+            //        return filteredroomsarray.includes(d.ALI_REC_ID);
+            //    });
+            //    checkSwithAndCall(filteredData)
+            //}
+            FilterData()
+        }
+        function NameSearch_RoomViz_ValueChange(e) {
+            //if (e.value == null || e.value == undefined || e.value == '') {
+            //    checkSwithAndCall(AllRoomsdata)
+            //} else {
+            //    let name = $("#NameSearch_RoomViz").dxTextBox("option", "value").toLowerCase()
+            //    let RoomsFilleddataFiltered = RoomsFilleddata.filter(item => item.C_NAME.toLowerCase().includes(name))
+            //    let filteredroomsarray = RoomsFilleddataFiltered.map(item => item.ROOM_RECID)
+            //    let filteredData = AllRoomsdata.filter(function (d) {
+            //        return filteredroomsarray.includes(d.ALI_REC_ID);
+            //    });
+            //    checkSwithAndCall(filteredData)
+            //}
+            FilterData()
+        }
+
+        function FilterData() {            
+            let bldng_recid = ($("#Building_RoomsViz").dxDropDownBox("option", "value") == null && $("#Building_RoomsViz").dxDropDownBox("option", "value") == undefined) ? null : $("#Building_RoomsViz").dxDropDownBox("option", "value")[0]
+            let roomName = $("#RoomNumber_RoomViz").dxTextBox("option", "value");
+            let roomCapacity = $("#RoomCapacity_RoomViz").dxTextBox("option", "value");
+            let phNum = $("#PhSearch_RoomViz").dxTextBox("option", "value");
+            let name = $("#NameSearch_RoomViz").dxTextBox("option", "value");
+
+            let filteredData = AllRoomsdata.filter(function (d) {
+                return (bldng_recid === undefined || bldng_recid === null || bldng_recid === "" || d.SP_REC_ID === bldng_recid) &&
+                    (roomName === undefined || roomName === null || roomName === "" || d.AL_LOC_NAME.includes(roomName.toUpperCase())) &&
+                    (roomCapacity === undefined || roomCapacity === null || roomCapacity === "" || d.AL_MAXCAPACITY == parseInt(roomCapacity));
+            });
+
+            if (phNum !== undefined && phNum !== null && phNum !== "" ||
+                name !== undefined && name !== null && name !== "") {
+                let RoomsFilleddataFiltered = RoomsFilleddata.filter(item =>
+                    (phNum === undefined || phNum === null || phNum === "" || item.C_MOB_NO_1.includes(phNum)) &&
+                    (name === undefined || name === null || name === "" || item.C_NAME.toLowerCase().includes(name.toLowerCase()))
+                );
+                let filteredroomsarray = RoomsFilleddataFiltered.map(item => item.ROOM_RECID);
+                filteredData = filteredData.filter(function (d) {
+                    return filteredroomsarray.includes(d.ALI_REC_ID);
+                });
+            }
+
+            checkSwithAndCall(filteredData);
+        }
+
+
+
+        function fromDate_RoomsViz_ValueChange(e) {
+
+        }
+        function toDate_RoomsViz_ValueChange(e) {
+
+        }        
+        function ClearAllReferences_Accom_RoomsViz() {
+
+            ClearAllReferences("RoomsViz_Facility_ClearReferences")
+        }
+        function keydown_RoomsViz(event) {
+            event.stopPropagation();
+            event.stopImmediatePropagation()
+            console.log(event.key);
+        }
+    </script>
+
+    <script type="text/javascript">
+        
+            var AllRoomsdata = JSON.parse('@Html.Raw(AllRoomsjson)');
+            var RoomsFilleddata = JSON.parse('@Html.Raw(RoomsFilledjson)');
+    
+        //This is to initialize the svg and tooltip variables as global        
+        var svg = d3.select("#cardGrid_Roomviz aside").append("svg")
+            .attr("width", 8 * 170 + 7 * 20 + 4)
+            .attr("height", 25000);
+        var tooltip = d3.select("#tooltip");
+
+        function Refresh_RoomViz_Onclick() {
+            
+            var _fromdate = $("#fromdate_RoomViz").dxDateBox("instance").option("value");
+            var _todate = $("#todate_RoomViz").dxDateBox("instance").option("value");
+                
+            if (_fromdate == null || _fromdate == '') {
+                DevExpress.ui.dialog.alert('From Date should not be null.', "error");
+                return;
+            }
+            if (_todate == null || _todate == '') {
+                DevExpress.ui.dialog.alert('To Date should not be null.', "error");
+                return;
+            }
+                
+            if (_fromdate > _todate) {
+                DevExpress.ui.dialog.alert('From Date should not be greater than to date.', "error");
+                return;
+            }
+                
+            ShowLoader();
+
+            $.ajax({
+                type: 'Post',
+                url: "/Facility/RoomsVisualization/RefreshData",
+                cache: false,
+                data: {                        
+                    fromdate: _fromdate == null ? null : JS_Json_Date_To_ddMMyyyy(_fromdate),
+                    todate: _todate == null ? null : JS_Json_Date_To_ddMMyyyy(_todate),                                                
+                },
+                success: function (data) {
+                    HideLoader();                    
+                    jsonData = JSON.parse(data)
+                    AllRoomsdata = jsonData.Table
+                    RoomsFilleddata = jsonData.Table1
+                    //updateRectangles(AllRoomsdata)
+                    checkSwithAndCall(AllRoomsdata)
+                }
+            });
+        }
+    </script>
+    <script>
+        function updateCircles(data, filteredroomsdata = null) {
+            // Remove existing rectangles
+            svg.selectAll("rect").remove();
+            svg.selectAll("text").remove();
+            svg.selectAll("circle").remove();
+            svg.selectAll("ellipse").remove();
+            svg.selectAll("foreignObject").remove();
+            
+            let sum = 0;
+
+            // This code is to find the total filled beds count
+            data.forEach(room => {
+                let matchedRooms = RoomsFilleddata.filter(filledRoom => filledRoom.ROOM_RECID === room.ALI_REC_ID);
+                let totalFilledBeds = matchedRooms.reduce((total, room) => total + room.FILLEDBEDS, 0);
+                sum += totalFilledBeds;
+            });
+
+            //This code is to count the total capacity of all the rooms. that means the sum of all beds of all rooms.
+            let TotalCapacity = data.reduce((total, room) => total + room.AL_MAXCAPACITY, 0);
+            document.getElementById("filled_Capacity_summary_RoomViz").innerHTML = sum + " / " + TotalCapacity;
+
+            let groupedData = Array.from(d3.group(data, d => d.SP_REC_ID))
+            // Sort the grouped data
+            groupedData.sort((a, b) => {
+                let aName = a[1][0].SP_SERVICE_PLACE_NAME;
+                let bName = b[1][0].SP_SERVICE_PLACE_NAME;
+                if (aName < bName) {
+                    return -1;
+                } else if (aName > bName) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
+            // Calculate the y position for each building group
+            let buildingY = 20;
+            let roomY = 0;
+            groupedData.forEach(function (building, k)
+            {
+                // Calculate the y position for rooms in this building                
+                if (k > 0) {
+                    
+                    buildingY = roomY + 60;
+                    roomY = buildingY
+                } else {
+                    roomY = buildingY + 20
+                }
+                //let buildingGroup = svg.append("g");
+                // Add building name text
+                svg.append("text")
+                    .attr("x", 2)
+                    .attr("y", buildingY)
+                    .text(groupedData[k][1][0].SP_SERVICE_PLACE_NAME)
+                    .style("font-size", "24px")
+                    //.style("font-weight", "bold");
+                // Create the refresh ellipse
+                if (k == 0) {
+                    var refreshEllipse = svg.append("ellipse")
+                        .attr("cx", 170 * 6) //after 6 rectangles width
+                        .attr("cy", buildingY)
+                        .attr("rx", 18)
+                        .attr("ry", 18)
+                        .attr("fill", "#4472C4")
+                        .attr("stroke", "#4472C4")
+                        .attr("stroke-width", 1)
+                        .on("click", Refresh_RoomViz_Onclick);
+
+                    // Add the refresh icon inside the ellipse
+                    svg.append("text")
+                        .attr("x", 170 * 6)
+                        .attr("y", buildingY+10)
+                        .attr("class", "icon_roomViz")
+                        .text("⟳")
+                        .attr("fill", "white")
+                        .style("font-size", 30)
+                        .style("text-anchor", "middle")
+                        .on("click", Refresh_RoomViz_Onclick)
+
+                    // Create the previous button ellipse
+                    var prevEllipse = svg.append("ellipse")
+                        .attr("cx", 170 * 7)
+                        .attr("cy", buildingY)
+                        .attr("rx", 24)
+                        .attr("ry", 15)
+                        .attr("fill", "#4472C4")
+                        .attr("stroke", "#4472C4")                        
+                        .attr("stroke-width", 2)
+                        .on("click", PrevBuilding_RoomViz);
+
+                    // Add the previous icon inside the ellipse
+                    svg.append("text")
+                        .attr("x", 170 * 7)
+                        .attr("y", buildingY + 8)
+                        .attr("class", "icon_roomViz")
+                        .style("font-size", 30)
+                        .style("text-anchor", "middle")
+                        .style("fill", "white")
+                        .text("⟵")
+                        .on("click", PrevBuilding_RoomViz)
+
+                    // Create the next button ellipse
+                    var nextEllipse = svg.append("ellipse")
+                        .attr("cx", 170 * 7 + 65)
+                        .attr("cy", buildingY )
+                        .attr("rx", 24)
+                        .attr("ry", 15)
+                        .attr("fill", "#4472C4")
+                        .attr("stroke", "#4472C4")
+                        .attr("stroke-width", 2)
+                        .on("click", NextBuilding_RoomViz)
+
+                    // Add the next icon inside the ellipse
+                    svg.append("text")
+                        .attr("x", 170 * 7 + 65 - 3)
+                        .attr("y", buildingY + 8)
+                        .attr("class", "icon_roomViz")
+                        .style("font-size", 30)
+                        .style("fill", "white")
+                        .style("text-anchor", "middle")
+                        .on("click", NextBuilding_RoomViz)
+                        .text("⟶");
+                }
+
+                
+                                
+                // Iterate over rooms in this building
+                building[1].forEach(function (room, j) {
+                    // Set properties of room
+                    room.width = 170;
+                    room.height = 100;
+                    room.x = (j % 8) * (room.width + 20) + 2;
+                    room.y = Math.floor(j / 8) * (room.height + 100) + 100 + roomY;
+                    room.Roomfill = 0;
+
+                    // Create rect elements within the building group
+                    var rect = svg.append("rect")
+                        .attr("width", room.width)
+                        .attr("height", room.height)
+                        .attr("x", room.x)
+                        .attr("y", room.y)
+                        .style("stroke", "blue")
+                        .style("background-color", "green")
+                        .style("stroke-width", 0.05)
+                        .style("fill", "white");
+
+                    // Call RoomDivisionCircles with specific parameters
+                    rect.each(function () {
+                        RoomDivisionCircles(room, 0, this);
+                    });
+
+                    rect.transition()
+                        .duration(100)
+                        .ease(d3.easeBounce) // Bounce at the end of the transition
+                        .attr("width", room.width)
+                        .attr("height", room.height);
+
+                    // Update roomY for next row of rooms
+                    if (building[1].length - 1 == j) {
+                        
+                        roomY = room.y + room.height;
+                        // Update buildingY for next building group
+                        
+                    }
+                });
+
+                
+                
+                    
+                building[1].forEach((d, i) => {    //Room Numbers Title plotting.
+                    svg//.selectAll("text")
+                    //.data(building[1])
+                    .append("text")
+                    .attr("x", d.x)
+                    .attr("y", d.y - (55 + 5 + 5)) //i.e. the height of the remarks box 55 + height of the text + gaps 5
+                    .attr("id", d.ALI_REC_ID)
+                    .text(`${d.AL_LOC_NAME}`)//, F (${d.Roomfill}) C(${d.AL_MAXCAPACITY})
+                    .style("color", "violet")
+                    .style("font-size", "14")
+                    .style("font-weight", 500)
+                    .style("text-anchor", "center")
+                    // Add a double click event listener
+                    .on("dblclick", function (e, d) {
+                        
+                        // Save the id of the clicked text element
+                        var clickedId = d3.select(this).attr("id");
+                        // Show the modal
+                        $("#RoomRemarks").modal('show');
+                        $("#enteredRemarks_RoomViz").dxTextBox("instance").reset();
+                        $("#enteredRemarks_RoomViz").dxTextBox("instance").option("value", $("#" + clickedId + "_rem").find("div").text());
+
+                        // Add an onclick event listener to the button
+                        $("#remarksSubmitBtn").off('click').on('click', function () {
+                            // Call your function here, passing in clickedId as a parameter
+                            saveRemarksOfRoom(clickedId);
+                        });
+                    });
+                })
+
+                building[1].forEach((e) => {//This is to create remarks box at the top of the each room.
+                    var remarksbox = svg.append("rect")
+                        .data(building[1])
+                        .attr('width', e.width)
+                        .attr('height', 55)
+                        .attr("id", e.ALI_REC_ID)
+                        .attr("x", e.x)
+                        //.attr("y", e.y - (5 + 1 + 70)) 
+                        .attr("y", e.y - 60) //i.e. The y of the first rectangle remarks box is 40
+                        .attr("rx", 10)
+                        .attr("ry", 10)
+                        .style("fill", "white")
+                        .style("stroke", "red")
+                        .style("stroke-width", () => {
+                            if (e.AL_ROOM_REMARKS == null || e.AL_ROOM_REMARKS == undefined) {
+                                return 0.1
+                            } else {
+                                return 0.2
+                            }
+                        })
+
+                    
+                    // Your existing code
+                    svg.append("foreignObject")
+                        .attr("x", e.x + 2)
+                        //.attr("y", e.y - (5 + 1 + 65))
+                        .attr("y", e.y - (60 - 5)) //i.e. y=45 of the first foreignObject.
+                        .attr("width", e.width)
+                        .attr("height", 55)
+                        .attr("id", e.ALI_REC_ID + "_rem")
+                        .append("xhtml:div")
+                        .style("word-wrap", "break-word")
+                        .style("background-color", "lightyellow")
+                        .text(function () {
+                            if (e.AL_ROOM_REMARKS != null || e.AL_ROOM_REMARKS != undefined) {
+                                return e.AL_ROOM_REMARKS;
+                            } else {
+                                return ""
+                            }
+                        })
+                        .style('color', function () {
+                            if (e.AL_ROOM_REMARKS != null || e.AL_ROOM_REMARKS != undefined) {
+                                return 'navy'
+                            } else {
+                                return 'lightgray'
+                            }
+                        });
+                })
+
+
+                function saveRemarksOfRoom(id) {
+                    var remarks_room = $("#enteredRemarks_RoomViz").dxTextBox("instance").option("value")
+                    $.ajax({
+                        url: '/Facility/RoomsVisualization/update_RoomRemarks',
+                        type: 'POST',
+                        cache: false,
+                        data: {
+                            room_recid: id,
+                            remarks: remarks_room,
+                        },
+                        success: function (data) {
+                            HideLoader()
+                            if (data.jsonParam.result) {
+                                var record = AllRoomsdata.find(room => room.ALI_REC_ID === id);
+                                if (record) {
+                                    record.AL_ROOM_REMARKS = remarks_room;
+                                }
+                                //setTimeout(function () {
+                                    $("#" + id + "_rem").find("div").text(remarks_room);
+                                    //document.querySelector("#" + id + "_rem").textContent = remarks_room;
+                                    $("#" + id + "_rem").find("div").css("color", "navy");
+                                //}, 500); // Adjust the delay as needed
+                                $("#RoomRemarks").modal('hide')
+                            } else {
+                                DevExpress.ui.dialog.alert(data.jsonParam.message, "Alert");
+                            }
+                        }
+                    });
+                }                                  
+                
+            });
+        }
+
+        function RoomDivisionCircles(d, i, n) {
+            
+            // Get the bounding box of the first element in the 'n' array
+            //let bbox = n[i].getBBox();
+
+            //// Extract the height, width, and x, y coordinates from the bounding box
+            //let rectHeight = bbox.height;
+            //let rectWidth = bbox.width;
+            //let rectX = bbox.x;
+            //let rectY = bbox.y;
+
+            let h = d.height / d.AL_MAXCAPACITY;
+            var filteredPersons = RoomsFilleddata.filter(function (k) {
+                return k.ROOM_RECID === d.ALI_REC_ID;
+            });
+            var totalfilled = RoomsFilleddata.filter(f => f.ROOM_RECID === d.ALI_REC_ID).reduce((a, b) => a + b.FILLEDBEDS, 0);
+            let j = 0;
+            for (let i = 0; i < d.AL_MAXCAPACITY; i++) {
+                d.Roomfill = totalfilled;
+                let fill; // Initialize fill color
+                let ph, gender, name, formname, arr, dep, regNo, city;
+
+                // Check if the current index is less than the number of filled beds
+                if (i < d.Roomfill) {
+                    if (j >= filteredPersons.length) { j = 0 }
+                    ph = filteredPersons[j].C_MOB_NO_1
+                    gender = filteredPersons[j].C_GENDER
+                    if (gender == "MALE") { fill = "deepskyblue" }
+                    else if (gender == "FEMALE") { fill = "pink" }
+                    name = filteredPersons[j].C_NAME
+                    formname = filteredPersons[j].CI_CHARTNAME
+                    arr = filteredPersons[j].ACCOM_FROM
+                    dep = filteredPersons[j].ACCOM_TO
+                    regNo = filteredPersons[j].REG_NO
+                    city = filteredPersons[j].CI_NAME
+                    j = j + 1;
+                } else {
+                    fill = "white"; // Set fill color to white for empty beds
+                }
+
+                (function (ph, gender, name, formname, arr, dep, regNo, city) { // IIFE to create a new scope
+                    let radius = 16, gapBtnCircles = 2, circlesPerRow = 5
+                    var circle = svg.append('circle')
+                        .attr('cx', d.x + ((i % circlesPerRow + 1) * radius) + (i % circlesPerRow * radius) + (i % circlesPerRow * gapBtnCircles) + gapBtnCircles)
+                        .attr("cy", d.y + radius + 2 + Math.floor(i / circlesPerRow) * (2 * radius + gapBtnCircles)) //d.y + i * h
+                        .attr("r", radius / 3)
+                        .style("stroke", "white")
+                        .style("fill", fill) // start with white color
+                        .style("stroke-width", 0)
+                        .on("mouseover", function (event, d) {
+                            if (fill === "deepskyblue" || fill === "pink") {
+                                tooltip.style("opacity", 1)
+                                    .style("left", (event.pageX + 10) + "px")
+                                    .style("top", (event.pageY - 10) + "px")
+                                    .html(`Name: ${name}<br>Phone #: ${ph}
+                                    <br>Registration No: ${regNo}<br>City: ${city}
+                                    <br>Form: ${formname}<br>Arrival: ${arr}<br>Departure: ${dep}`);
+                            }
+                        })
+                        .on("mouseout", function () {
+                            tooltip.style("opacity", 0);
+                        })
+                        .transition() // apply a transition
+                        .duration(500) // make it last for 1000 milliseconds
+                        .ease(d3.easeBounce) // apply bounce easing
+                        .attr("r", radius) // change the fill color to lightgreen
+                        .transition() // apply a transition
+                        .duration(100)
+                        .style("stroke-width", 0.4)
+                        .style("stroke", "dodgerblue")
+                })(ph, gender, name, formname, arr, dep, regNo, city); // Pass the variables to the IIFE
+            }
+        }
+
+
+    </script>
+
+    <script>
+        $(document).ready(function () {            
+            //updateRectangles(AllRoomsdata)
+            checkSwithAndCall(AllRoomsdata)
+        });
+
+
+        function updateRectangles(data, filteredroomsdata = null)
+        {
+            
+            // Remove existing rectangles
+            svg.selectAll("rect").remove();
+            svg.selectAll("text").remove();
+            svg.selectAll("circle").remove();
+            svg.selectAll("foreignObject").remove();
+
+            // Create rectangles for rooms and calling room division to divide rooms and fill the beds if occupied.
+            svg.selectAll("rect")
+                .data(data)
+                .join("rect")
+                .attr("width", function (d) { d.width = 170; return d.width })
+                .attr("height", (d) => { d.height = 200; return d.height })
+                .attr("x", function (d, i) {
+                    d.x = (i % 8) * (d.width + 20) + 2;
+                    d.Roomfill = 0;                    
+                    return d.x;
+                })
+                .attr("y", function (d, i) {
+                    d.y = Math.floor(i / 8) * (d.height + 100) + 100; //+ 50 is for gap between two rooms up room and down room.
+                    return d.y;
+                })
+                .style("stroke", "blue")
+                .style("background-color", "green")
+                .style("stroke-width", 0.2)
+                .style("fill", "white")
+                //.attr('class', 'papi')
+                .each(RoomDivision)                
+                .transition()
+                .duration(1000)
+                .ease(d3.easeBounce) // Bounce at the end of the transition
+                .attr("width", d => d.width)
+                .attr("height", d => d.height)            
+
+            //Room Numbers plotting.
+            var roomTitle = svg.selectAll("text")
+                .data(data)
+                .join("text")
+                .attr("x", function (d) { return d.x; })
+                .attr("y", function (d) { return d.y - (55+5+5); }) //i.e. the height of the remarks box 55 + height of the text + gaps 5
+                .attr("id", (d)=>d.ALI_REC_ID)
+                .text(d => `${d.AL_LOC_NAME}`)//, F (${d.Roomfill})  C(${d.AL_MAXCAPACITY})
+                .style("color", "violet")
+                .style("font-size", "14")
+                .style("font-weight", 500)
+                .style("text-anchor", "center")
+                // Add a double click event listener
+                .on("dblclick", function (e, d) {
+                    // Save the id of the clicked text element
+                    var clickedId = d3.select(this).attr("id");
+                    // Show the modal
+                    $("#RoomRemarks").modal('show');
+                    //document.getElementById('enteredRemarks_RoomViz').value = ""
+                    $("#enteredRemarks_RoomViz").dxTextBox("instance").reset();
+                    $("#enteredRemarks_RoomViz").dxTextBox("instance").option("value", $("#" + clickedId + "_rem").find("div").text());
+
+                    // Add an onclick event listener to the button
+                    $("#remarksSubmitBtn").off('click').on('click', function () {
+                        // Call your function here, passing in clickedId as a parameter
+                        saveRemarksOfRoom(clickedId);
+                    });
+                });
+
+
+            data.forEach((e) => {//This is to create remarks box at the top of the each room.
+                var remarksbox = svg.append("rect")
+                    .data(data)
+                    .attr('width', e.width)
+                    .attr('height', 55)
+                    .attr("id", e.ALI_REC_ID)
+                    .attr("x", e.x)
+                    //.attr("y", e.y - (5 + 1 + 70)) 
+                    .attr("y", e.y - 60) //i.e. The y of the first rectangle remarks box is 40
+                    .attr("rx", 10)
+                    .attr("ry", 10)
+                    .style("fill", "white")
+                    .style("stroke", "red")
+                    .style("stroke-width", () => {
+                        if (e.AL_ROOM_REMARKS == null || e.AL_ROOM_REMARKS == undefined) {
+                            return 0.1
+                        } else {
+                            return 0.2
+                        }
+                    })
+
+
+                // Your existing code
+                svg.append("foreignObject")
+                    .attr("x", e.x + 2)
+                    //.attr("y", e.y - (5 + 1 + 65))
+                    .attr("y", e.y - (60-5)) //i.e. y=45 of the first foreignObject.
+                    .attr("width", e.width)
+                    .attr("height", 55)
+                    .attr("id", e.ALI_REC_ID + "_rem")
+                    .append("xhtml:div")
+                    .style("word-wrap", "break-word")
+                    .style("background-color", "lightyellow")
+                    .text(function () {
+                        if (e.AL_ROOM_REMARKS != null || e.AL_ROOM_REMARKS != undefined) {
+                            return e.AL_ROOM_REMARKS;
+                        } else {
+                            return ""
+                        }
+                    })
+                    .style('color', function () {
+                        if (e.AL_ROOM_REMARKS != null || e.AL_ROOM_REMARKS != undefined) {
+                            return 'navy'
+                        } else {
+                            return 'lightgray'
+                        }
+                    });
+            })
+
+
+            function saveRemarksOfRoom(id) { //This is saving Remarks in the database and also updating the remarks box after submit button of the model.
+                
+                var remarks_room = $("#enteredRemarks_RoomViz").dxTextBox("instance").option("value")
+                $.ajax({
+                    url: '/Facility/RoomsVisualization/update_RoomRemarks',
+                    type: 'POST',
+                    cache: false,
+                    data: {
+                        room_recid: id,
+                        remarks: remarks_room,
+                    },
+                    //dataType: 'json',
+                    success: function (data) {
+                        HideLoader()
+                        
+                        if (data.jsonParam.result) {
+                            var record = AllRoomsdata.find(room => room.ALI_REC_ID === id);
+                            if (record) {
+                                record.AL_ROOM_REMARKS = remarks_room;
+                            }
+                            $("#" + id + "_rem").find("div").text(remarks_room)
+                            $("#" + id + "_rem").find("div").css("color", "navy");
+
+                            $("#RoomRemarks").modal('hide')
+                        } else {
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, "Alert");
+                        }
+                        
+                    }
+                });
+
+            }            
+
+        }
+                
+        function RoomDivision(d, i, n) {
+            let h = d.height / d.AL_MAXCAPACITY;            
+            var filteredPersons = RoomsFilleddata.filter(function (k) {
+                return k.ROOM_RECID === d.ALI_REC_ID;
+            });
+            var totalfilled = RoomsFilleddata.filter(f => f.ROOM_RECID === d.ALI_REC_ID).reduce((a, b) => a + b.FILLEDBEDS, 0);
+            let j = 0;
+            for (let i = 0; i < d.AL_MAXCAPACITY; i++) {
+                d.Roomfill = totalfilled;
+                let fill;
+                let ph, floor, gender, name, formname, capacity, BldName,arr, dep;
+                if ((d.AL_MAXCAPACITY - d.Roomfill) - i > 0) {
+                    fill = "white";
+                } else {
+                    if (j >= filteredPersons.length) { j = 0}
+                    //fill = "lightgreen";
+                    ph = filteredPersons[j].C_MOB_NO_1 //(filteredPersons[j].C_MOB_NO_1 == null || filteredPersons[j].C_MOB_NO_1 == undefined) ? "" : filteredPersons[j].C_MOB_NO_1
+                    //floor = filteredPersons[j].AL_ROOM_FLOOR //(filteredPersons[j].AL_ROOM_FLOOR == null || filteredPersons[j].AL_ROOM_FLOOR == undefined) ? "" : filteredPersons[j].AL_ROOM_FLOOR
+                    //BldName = filteredPersons[j].SP_SERVICE_PLACE_NAME //(filteredPersons[j].AL_ROOM_FLOOR == null || filteredPersons[j].AL_ROOM_FLOOR == undefined) ? "" : filteredPersons[j].AL_ROOM_FLOOR
+                    gender = filteredPersons[j].C_GENDER//(filteredPersons[j].C_GENDER==null || filteredPersons[j].C_GENDER) ? "" : filteredPersons[j].C_GENDER
+                    if (gender == "MALE") { fill = "deepskyblue" } else if (gender == "FEMALE") { fill = "pink"}
+                    name = filteredPersons[j].C_NAME//(filteredPersons[j].C_NAME == null || filteredPersons[j].C_NAME) ? "" : filteredPersons[j].C_NAME
+                    formname = filteredPersons[j].CI_CHARTNAME// (filteredPersons[j].CI_CHARTNAME == null || filteredPersons[j].CI_CHARTNAME) ? "" : filteredPersons[j].CI_CHARTNAME
+                    //capacity = filteredPersons[j].FILLEDBEDS//(filteredPersons[j].FILLEDBEDS == null || filteredPersons[j].FILLEDBEDS) ? "" : filteredPersons[j].FILLEDBEDS
+                    //var formatDate = d3.timeFormat("%d-%b-%y")
+                    arr = filteredPersons[j].ACCOM_FROM
+                    dep = filteredPersons[j].ACCOM_TO
+
+                    j = j + 1;
+                }
+                (function (ph, gender, name, formname, arr, dep) { // IIFE to create a new scope
+                    var rect = svg.append('rect')
+                        .attr('x', d.x)
+                        .attr("y", d.y + i * h)
+                        .attr("width", d.width/3)
+                        .attr("height", h)
+                        .style("stroke", "white")
+                        .style("fill", fill) // start with white color
+                        .style("stroke-width", 2)
+                        .on("mouseover", function (event, d) {
+                            if (fill === "deepskyblue" || fill === "pink") {
+                                tooltip.style("opacity", 1)
+                                    .style("left", (event.pageX + 10) + "px")
+                                    .style("top", (event.pageY - 10) + "px")
+                                    .html(`Name: ${name}<br>Phone #: ${ph}
+                                            <br>Gender: ${gender == 'MALE' ? '👨' : '👩'}
+                                            <br>Form: ${formname}<br>Arrival: ${arr}<br>Departure: ${dep}`);
+                            }
+                        })
+                        .on("mouseout", function () {
+                            tooltip.style("opacity", 0);
+                        })
+                        .transition() // apply a transition
+                        .duration(1000) // make it last for 1000 milliseconds
+                        .ease(d3.easeBounce) // apply bounce easing
+                        .attr("width", d.width) // change the fill color to lightgreen
+                        //.transition() // apply a transition
+                        //.duration(1)                        
+                        .style("stroke-width", function () {
+                            if (fill === "deepskyblue") {
+                                return 1
+                            } else {
+                                return 0.2
+                            }
+                        })
+                        .style("stroke", function () {
+                            if (fill === "deepskyblue") {
+                                return "white"
+                            } else {
+                                return "dodgerblue"
+                            }
+                        })
+                })(ph, gender, name, formname, arr, dep); // Pass the variables to the IIFE
+            }
+        }
+
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            //var pane = Mainspliter.GetPaneByName('RightPane');
+            //pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+            //Leftpane.Collapse(Middlepane);
+            //$.ajax({
+            //    type: 'GET',
+            //    url: "/Account/CashBookAuditor/SessionClear",
+            //    cache: false
+            //});
+            tooltip = null;
+            RoomsFilleddata = null;
+            AllRoomsdata = null;
+            svg = null;
+            ClearAllReferences_Accom_RoomsViz();
+
+        });
+
+        $('.mode-slide').click(function () {
+            $(this).toggleClass('moved');
+            $('.totalArea_RoomViz').toggleClass('moved')
+        });
+
+
+    </script>    
+</div>

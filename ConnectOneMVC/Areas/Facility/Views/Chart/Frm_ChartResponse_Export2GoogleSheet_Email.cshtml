@@ -1,0 +1,115 @@
+﻿
+<div class="ResponseAddEmail_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+
+        var instanceid = (int)ViewBag.Form_Instance_Id;
+        var option = (string)ViewBag.option.ToString().ToLower();
+    }
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+    <div id="Frm_ChartResponse_AddEmail">
+        <form>
+            <div class="pll prl">
+
+                <label class="control-label" for="user">
+                    <p class="text-red"> <b>Enter Email:</b></p><p> Form responses will be exported and shared to entered email.</p>
+                </label>
+
+                @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                            .ID("Response_Email")
+                                            .Name("Response_Email")
+                                            .Placeholder("Email ID ")
+                                            .Mode(TextBoxMode.Email)
+                                            .MaxLength(100)
+                            )
+
+                <p><b>If email is not provided then it will be shared to:</b></p>
+                &bull; Event Coordinator's Email OR<br />
+                &bull; Event Posting Email OR<br />
+                &bull; Center Email<br />
+                All previous sharing of Existing sheet will remain as it is !!<hr style="margin: 10px 5px;">
+
+                <div class="styleActionBtn" style="padding-bottom: 5px;">
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("Export").ID("Response_Email_Add").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("addResponseEmail"))
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Response_Email_Cancel").FocusStateEnabled(true).OnClick("CloseAddEmail"))
+                </div>
+
+            </div><!--[Buttons]-->
+        </form>
+    </div><!--[Form Div]-->
+
+    <script>
+
+        function CloseAddEmail(){
+        HidePopup('Export2GoogleSheet_popup_ChartInfo');
+        }
+
+        function addResponseEmail(e)
+        {
+
+            var email = $("#Response_Email").dxTextBox("instance").option("value");
+
+            if (!IsNullOrWhitespace("Response_Email", "dxTextBox", email))
+            {
+                var validEmailRegex = /^\w+([\.-]?\w+)*@@\w+([\.-]?\w+)*(\.\w{2,3})+$/
+                if (!validEmailRegex.test(email)) {
+                    DevExpress.ui.dialog.alert('Invalid email!', "Invalid input....").done(
+                        function () { $("#Response_Email").dxTextBox("instance").focus() });
+                    HideLoader();
+                    return;
+                }
+            }
+
+            ShowLoader();
+            $.ajax({
+            type: 'GET',
+            url: "/Facility/Chart/Frm_ChartResponse_Export2GoogleSheet_Email_Post",
+            contentType: false,
+            data: {
+                Form_Instance_Id: @instanceid,
+                optionChoosed: "@option",
+                email: email
+            },
+            success: function (data)
+            {
+                HideLoader();
+                HidePopup('Export2GoogleSheet_popup_ChartInfo');
+                if (data.jsonParam.result == false) {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+                else {
+                    if (data && data.jsonParam && data.jsonParam.message && data.jsonParam.title) {
+                        let message = data.jsonParam.message;
+                        let title = data.jsonParam.title;
+                        let token = message.includes("|") ? message.split("|") : [message];
+
+                        DevExpress.ui.dialog.custom({
+                            title: title,
+                            message: token[0],
+                            buttons: [{
+                                text: "OK",
+                                onClick: function () {
+                                    if (token.length > 1) {
+                                        window.open(token[token.length - 1], '_blank');
+                                    } else {
+                                        console.log("No URL to open");
+                                    }
+                                }
+                            }]
+                        }).show();
+                    }
+                    else {
+                        console.log("Data is not in the expected format");
+                    }
+                }
+            }
+        });
+    }
+    </script>
+
+</div>

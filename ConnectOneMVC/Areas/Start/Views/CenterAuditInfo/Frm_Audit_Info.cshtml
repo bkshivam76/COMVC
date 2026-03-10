@@ -1,0 +1,66 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model  ConnectOneMVC.Areas.Start.Models.AuditInfo
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div class="report_header_div_main">
+    <div id="AuditInfo_content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 padd report_header_div">
+            <label class="report_header_label">Center Audit Info</label>
+        </div>
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button().ID("AuditInfo_listPreview").Text("List Preview").Icon("print").OnClick(@<text> function () { AuditInfoPreviewClick(); } </text>) )
+            @(Html.DevExtreme().Button().ID("AuditInfo_Close").Text("Close").Icon("close").OnClick(@<text> function (){CloseAuditInfo();} </text>) )
+
+        </div>
+    </div>
+</div>@*Header*@
+<div>
+    @(Html.DevExtreme().TabPanel().ID("AuditInfo_Gridpanel").Items(items =>
+                                                                                {
+                                                                                    items.Add().Title("Grading Info").Template(@<text> @GradingInfoView() </text>);
+                                                                                            items.Add().Title("Audit History").Template(@<text> @AuditHistoryView() </text>);
+                                                                                                    items.Add().Title("Auditor's Allocations").Template(@<text> @AuditorsAllocationsView() </text>);
+                                                                                                        }).DeferRendering(false).ScrollByContent(false))
+    @helper GradingInfoView()
+    {
+        @Html.Partial("GradingInfo", Model.grdGradings);
+    }
+    @helper AuditHistoryView()
+    {
+        @Html.Partial("AuditHistory", Model.grdAuditHistory);
+    }
+    @helper AuditorsAllocationsView()
+    {
+        @Html.Partial("AuditAllocations", Model.grdAllocations);
+    }
+</div>@*Grid Tabs*@
+<script>
+    $(document).ready(function ()
+    {
+        if (LoginUserType != "SUPERUSER" && LoginUserType != "AUDITOR")
+        {
+            $("#AuditInfo_Gridpanel").dxTabPanel("instance").option("items[0].visible", false);
+            $("#AuditInfo_Gridpanel").dxTabPanel("instance").option("items[2].visible", false);
+            $("#AuditInfo_Gridpanel").dxTabPanel("instance").option("selectedIndex", 1);
+        }
+    });
+    function AuditInfoPreviewClick()
+    {
+                    ShowLoader();
+        OpenPopup("AuditInfo_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "CenterAuditInfo", new { @area = "Start" })?SelectedIndex=" + $("#AuditInfo_Gridpanel").dxTabPanel("instance").option("selectedIndex"), "auto", "auto", false, null);
+    }
+    function CloseAuditInfo()
+    {
+        $(".TabPanalMenu-tabs .active span").click();   
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            url: "/Start/CenterAuditInfo/SessionClear",
+            type: "GET"
+        });  
+    });
+    </script>

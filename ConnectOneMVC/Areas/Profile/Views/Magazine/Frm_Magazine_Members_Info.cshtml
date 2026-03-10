@@ -1,0 +1,1014 @@
+<div class="Magazine_MembersProfile_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool Magazine_AddRight = (bool)ViewData["Magazine_AddRight"];
+        bool Magazine_UpdateRight = (bool)ViewData["Magazine_UpdateRight"];
+        bool Magazine_ViewRight = (bool)ViewData["Magazine_ViewRight"];
+        bool Magazine_DeleteRight = (bool)ViewData["Magazine_DeleteRight"];
+        bool Magazine_ExportRight = (bool)ViewData["Magazine_ExportRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Magazine_Auto_Vouching_Mode = (bool)ViewData["Magazine_Auto_Vouching_Mode"];
+    }
+    <div id="Magazine_Members_ParentDiv" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Existing Magazine Members</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("MagzinVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Magzin_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Switch().ID("MagazineViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Magazine_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelNew")
+                                                                        .Text("New")
+                                                                        .Icon("add")
+                                                                        .Visible(false)
+                                                                        .Disabled(true)
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            OnExistingMagMemberNewClick();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelEdit")
+                                                                        .Text("Edit")
+                                                                         .Icon("edit")
+                                                                         .Visible(false)
+                                                                         .Disabled(true)
+                                                                         .OnClick(@<text>
+                                                                            function () {
+                                                                            OnExistingMagMemberEditClick();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelDelete")
+                                                                        .Text("Delete")
+                                                                        .Icon("trash")
+                                                                        .Visible(false)
+                                                                        .Disabled(true)
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            OnExistingMagMemberDeleteClick();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelView")
+                                                                        .Text("View")
+                                                                        .Icon(IconID.ViewCustomers16x16devav)
+                                                                        .Icon("doc")
+                                                                        .Visible(false)
+                                                                        .Disabled(true)
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            OnExistingMagMemberViewClick();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberToggleScrollBar")
+                                                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                                                        .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                                        .Icon("toolbox")
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            ExistingMagMemberchangeMode();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelListPreview")
+                                                                        .Text("Export")
+                                                                        .Icon("save")
+                                                                        .Width(80)
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            OnExistingMagMemberListPreviewClick();
+                                                                            }
+                                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                                        .ID("ExistingMagMemberModelCLOSE")
+                                                                        .Text("Close")
+                                                                        .Icon("clear")
+                                                                        .OnClick(@<text>
+                                                                            function (){$(".TabPanalMenu-tabs .active span").click()}
+                                                                        </text>)
+
+        )
+        </div>
+
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="ExistingMagMemberreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Magazine_Members_Info_Grid", Model)
+            </div>
+        </form>
+    </div>
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                                .ID("ExistingMagMember_report_modal")
+                                .OnShowing("PopupOnShowing")
+                                .Title("ExistingMagMember List Preview")
+                                .FullScreen(false)
+                                .MaxWidth(125)
+                                .Height("auto")
+                                .ShowCloseButton(true)
+                                .ContentTemplate(@<text>
+                                    <div id="ExistingMagMember_report_modal_result">
+                                    </div>
+                                </text>)
+    )
+        @(Html.DevExtreme().Popup().CustomPopup()
+                                .ID("popup_frm_ExistingMagMember_Window")
+                                .Title("ExistingMagMember")
+                                .OnShowing("PopupOnShowing")
+                                .ShowCloseButton(true)
+                                .ContentTemplate(@<text>
+                                    <div id="ExistingMagMemberresult">
+                                    </div>
+                                </text>)
+                                                .OnHiding(@<text>
+                                                    function () {
+                                                    if(IsSucessPopup == false && IsViewPopup == false)
+                                                    {
+                                                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                                    result.done(function (dialogResult) {
+                                                    if(dialogResult){
+                                                    $("#popup_frm_ExistingMagMember_Window").dxPopup("hide");
+                                                    }else
+                                                    {
+                                                    $("#popup_frm_ExistingMagMember_Window").dxPopup("show");
+                                                    }
+                                                    });
+                                                    }
+                                                    }
+                                                </text>)
+    )
+    </div>
+    @Html.Partial("AttachmentFAB", "Magazine_MembersPrf_FAB,Magazine_Members_ParentDiv,Type1,Magazine_Members," + UserType) @*fab buttons*@
+    @*Javascript Events*@
+<script type="text/javascript">
+    //var IsSucessPopup = false;
+    //var IsViewPopup = false;
+    var ExistingMagMember_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var Magazine_SetVouchingModeOn = "@Magazine_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_MagazinePrf = "@UserType".toUpperCase();
+    var Magzin_IsVouchingMode = false;
+    var Magzin_FocusedRowBeforeRefresh;
+    var Magazine_ViewMode = "Default";
+    $(document).ready(function () {
+        if ("@Magazine_AddRight" == "False")
+        {
+	        $("#ExistingMagMemberModelNew").hide();
+        }
+        if ("@Magazine_UpdateRight" == "False")
+        {
+            $("#ExistingMagMemberModelEdit").hide();
+        }
+        if ("@Magazine_ViewRight" == "False")
+        {
+            $("#ExistingMagMemberModelView").hide();
+        }
+        if ("@Magazine_DeleteRight" == "False")
+        {
+            $("#ExistingMagMemberModelDelete").hide();
+        }
+        if ("@Magazine_ExportRight" == "False")
+        {
+            $("#ExistingMagMemberModelListPreview").hide();
+        }
+
+        $(".ExistingMagMemberListGrid_PreviewRow").hide();
+        GetSessionStorage("ExistingMagMemberListGrid");
+        if (Magazine_SetVouchingModeOn == true)
+        {
+            $("#MagazineViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        ////IsSucessPopup = false;
+        //IsViewPopup = false;
+        //SetExistingMagMemberGroupPanelFooterVisible();
+        //SetExistingMagMemberFooterVisible();
+        $("#ExistingMagMemberListGrid").hover(function () {
+            ExistingMagMemberListGrid.Focus()
+        })
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        debugger;
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Magazine/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_Magazine_MembersProfile();
+    });
+
+        function ClearAllReferences_Magazine_MembersProfile() {
+            ExistingMagMember_ShowHorizontalBar = null;
+            Magazine_SetVouchingModeOn = null;
+            UserType_MagazinePrf = null;
+            Magzin_IsVouchingMode = null;
+            Magzin_FocusedRowBeforeRefresh = null;
+            Magazine_ViewMode = null;
+            Mag_ColumnToBeShownIndex = null;
+            Mag_ColumnToBeHidddenIndex = null;
+            ExistingMagMemberID = null;
+            ExistingMagMember_EditDate = null;
+            ExistingMagMember_AddDate = null;
+            ExistingMagMember_AddBy = null;
+            ExistingMagMember_EditBy = null;
+            ExistingMagMember_ActionStatus = null;
+            ExistingMagMember_ActionDate = null;
+            ExistingMagMember_ActionBy = null;
+            Magazine_Members_IsDetailRowExpanded = null;
+            Magazine_Members_NestedRecord_FocusedRowIndex = null;
+            Magazine_Members_NestedGrid_AccessID = null;
+            Magazine_Members_AtachmentID = null;
+            Magazine_Members_FileName = null;
+            Magazine_Members_ParamMandatory = null;
+            Magazine_Members_FromDateLabel = null;
+            Magazine_Members_ToDateLabel = null;
+            Magazine_Members_DescriptionLabel = null;
+            Magazine_Members_Doc_ID = null;
+            Magazine_Members_Doc_Category = null;
+            Magazine_Members_MasterRowRecID = null;
+            Magazine_Members_MasterRowMID = null;
+            Magazine_Members_NestedRowMapID = null;
+            Magazine_Members_reason = null;
+            Magazine_Members_Attachment_RecStatus = null;
+            Magazine_Members_NestedRowReasonID = null;
+            Magazine_Members_NestedRowKeyValue = null;
+
+            ClearAllReferences("Magazine_MembersProfile_ClearReferences");
+        }
+
+
+    function OnMagazineCellClick(event, cell,col, row)
+    {
+        if (UserType_MagazinePrf == "AUDITOR" || UserType_MagazinePrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function Magazine_ViewSwitch_ValueChange(e)
+    {
+        Magazine_ViewMode = e.value == false ? "Default" : "Compact";
+        if (Magazine_SetVouchingModeOn == true)
+        {
+            Magazine_SetVouchingModeOn = false;
+            $("#MagzinVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            ExistingMagMemberListGrid.CollapseAllDetailRows();
+        }
+    }
+    function Magzin_VouchingSwitch_ValueChange(e)
+    {
+        Magzin_IsVouchingMode = e.value;
+        ExistingMagMemberListGrid.SetFocusedRowIndex(-1);
+        Magazine_MembersPrf_FAB.SetVisible(false);
+        if (Magzin_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            Magazine_MembersPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        ExistingMagMemberListGrid_CollapseAllDetailRows();
+    }
+    function ExistingMagMemberListGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.ExistingMagMemberListGrid !== 'undefined')
+            {
+                if (typeof window.ExistingMagMemberListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof ExistingMagMemberListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        ExistingMagMemberListGrid.SetFocusedRowIndex(-1);
+                        ExistingMagMemberListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        ExistingMagMemberListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function ExistingMagMemberOnInit(s, e) {
+        ExistingMagMemberAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            ExistingMagMemberAdjustSize();
+        });
+    }
+    function OnEndCallback(s, e) {
+        ExistingMagMemberAdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function ExistingMagMemberAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{ExistingMagMemberListGrid.SetHeight(height);}catch(err){}
+    }
+
+    var Mag_ColumnToBeShownIndex = "";
+    var Mag_ColumnToBeHidddenIndex = "";
+    function OnGridExistingMagMemberListGrid_EndCallback(s, e)
+    {
+        Mag_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Mag_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+
+        $(".ExistingMagMemberListGrid_PreviewRow").hide();
+        GetSessionStorage("ExistingMagMemberListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH" && Magzin_IsVouchingMode == true)
+        {
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(Magzin_FocusedRowBeforeRefresh);
+        }
+    }
+    function ExistingMagMemberchangeMode() {
+        ShowLoader();
+        if (ExistingMagMember_ShowHorizontalBar == 0) {
+            ExistingMagMember_ShowHorizontalBar = 1;
+            $("#ExistingMagMemberToggleScrollBar").find("span").text("Default Data");
+            $("#ExistingMagMemberToggleScrollBar").width(110);
+        }
+        else {
+            ExistingMagMember_ShowHorizontalBar = 0;
+            $("#ExistingMagMemberToggleScrollBar").find("span").text("Full Data");
+            $("#ExistingMagMemberToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Magazine_Members_Info_Grid", "Magazine")',
+            type: "GET",
+            data: { ShowHorizontalBar: ExistingMagMember_ShowHorizontalBar, VouchingMode: Magzin_IsVouchingMode, ViewMode: Magazine_ViewMode, ColumnToBeHidddenIndex: Mag_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Mag_ColumnToBeShownIndex  },
+            success: function (res) {
+
+                $("#ExistingMagMemberreloadPartialView").html(res);//redmine bug 133466 fix
+                $(".ExistingMagMemberListGrid_PreviewRow").hide();
+                GetSessionStorage("ExistingMagMemberListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function ExistingMagMemberAjaxSuccessForm(data) {
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            //IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_ExistingMagMember_Window").dxPopup("hide");
+            ExistingMagMemberListGrid.Refresh();
+            //IsSucessPopup = false;
+        }
+    }
+
+    var ExistingMagMemberID;
+    var ExistingMagMember_EditDate;
+    var ExistingMagMember_AddDate;
+    var ExistingMagMember_AddBy;
+    var ExistingMagMember_EditBy;
+    var ExistingMagMember_ActionStatus;
+    var ExistingMagMember_ActionDate;
+    var ExistingMagMember_ActionBy;
+
+    function ExistingMagMember_dblclickEdit(s, e) {
+        //var key = s.GetRowKey(s.GetFocusedRowIndex());
+        //ExistingMagMemberListGrid.GetValuesOnCustomCallback({ key: key }, ExistingMagMemberOnGetRowValues);
+        //if (ExistingMagMemberID != null || ExistingMagMemberID == 'undefined' || ExistingMagMemberID == undefined)
+        //    OnExistingMagMemberEditClick();
+    }
+
+    function ExistingMagMemberGrid_BeginCallBack(s, e) {
+        Magzin_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["VouchingMode"] = Magzin_IsVouchingMode;
+        e.customArgs["ViewMode"] = Magazine_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Mag_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Mag_ColumnToBeHidddenIndex;
+    }
+
+    function OnExistingMagMemberGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            if (Magzin_IsVouchingMode)
+            {
+                Magazine_MembersPrf_FAB.SetVisible(true);
+                Magazine_MembersPrf_FAB.SetActionContext("VouchingActionContext", true);
+            }
+            s.GetRowValues(s.GetFocusedRowIndex(), 'MS_ID;MEM_ID', ExistingMagMemberOnGetRowValues); // baba rectify MS_ID
+        }
+        else
+        {
+            ExistingMagMemberID = null;
+        }
+    }
+
+        function ExistingMagMemberOnGetRowValues(values)
+        {
+            ExistingMagMemberID = values[0];
+
+        //ExistingMagMember_EditDate = values[1];
+        //ExistingMagMember_AddDate = values[2];
+        //ExistingMagMember_AddBy = values[3];
+        //ExistingMagMember_EditBy = values[4];
+        //ExistingMagMember_ActionStatus = values[5];
+        //ExistingMagMember_ActionDate = values[6];
+        //ExistingMagMember_ActionBy = values[7];
+        //ExistingMagMember_UpdateFooterDetail(ExistingMagMemberID, ExistingMagMember_ActionStatus, ExistingMagMember_AddDate, ExistingMagMember_AddBy,
+        //ExistingMagMember_ActionDate, ExistingMagMember_ActionBy, ExistingMagMember_EditDate, ExistingMagMember_EditBy);
+        if (Magzin_IsVouchingMode == true)
+        {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Magazine", "LeftPaneContent", ExistingMagMemberID, Magzin_IsVouchingMode, "");
+        }
+    }
+
+    //function ExistingMagMember_UpdateFooterDetail(ExistingMagMemberID, ExistingMagMember_Action_Status, ExistingMagMember_Add_Date, ExistingMagMember_Add_By, ExistingMagMember_Action_Date, ExistingMagMember_Action_By, ExistingMagMember_Edit_Date, ExistingMagMember_Edit_By) {
+    //    ExistingMagMember_Action_Date = ExistingMagMember_Action_Date != "" && ExistingMagMember_Action_Date != null ? ExistingMagMember_Action_Date : ExistingMagMember_Action_Date;
+    //    ExistingMagMember_Edit_Date = ExistingMagMember_Edit_Date != "" && ExistingMagMember_Edit_Date != null ? ExistingMagMember_Edit_Date : ExistingMagMember_Edit_Date;
+    //    ExistingMagMember_Add_Date = ExistingMagMember_Add_Date != "" && ExistingMagMember_Add_Date != null ? ExistingMagMember_Add_Date : ExistingMagMember_Add_Date;
+    //    $.ajax({
+    //        type: 'GET',
+    //        url: "/Profile/ExistingMagMember/CreationDetail",
+    //        data: {
+    //            Xrow: ExistingMagMemberID, Action_Status: ExistingMagMember_Action_Status, Add_Date: ExistingMagMember_Add_Date,
+    //            Add_By: ExistingMagMember_Add_By, Action_Date: ExistingMagMember_Action_Date, Action_By: ExistingMagMember_Action_By, Edit_Date: ExistingMagMember_Edit_Date, Edit_By: ExistingMagMember_Edit_By
+    //        },
+    //        cache: false,
+    //        success: function (ExistingMagMemberLbl_result) {
+    //            $('#ExistingMagMember_Lbl_ActionOn').text(ExistingMagMemberLbl_result.Lbl_StatusOn);
+    //            $('#ExistingMagMember_Lbl_ActionBy').text(ExistingMagMemberLbl_result.Lbl_StatusBy);
+    //            $('#ExistingMagMemberLbl_Status').text(ExistingMagMemberLbl_result.Lbl_Status);
+    //            $('#ExistingMagMemberLbl_Create').text(ExistingMagMemberLbl_result.Lbl_Create);
+    //            $('#ExistingMagMemberLbl_Modify').text(ExistingMagMemberLbl_result.Lbl_Modify);
+    //            if (ExistingMagMemberLbl_result.Lbl_Status_Color != "") {
+    //                $('#ExistingMagMemberLbl_Status').css('color', ExistingMagMemberLbl_result.Lbl_Status_Color);
+    //            }
+    //            if (ExistingMagMemberLbl_result.Pic_Status != "") {
+    //                $('#ExistingMagMember_LockICON').css('class', ExistingMagMemberLbl_result.Pic_Status);
+    //            }
+
+    //        }
+    //    });
+    //}
+
+    function OnExistingMagMemberNewClick() {
+        if ("@Magazine_AddRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        IsViewPopup = false;
+        //  OpenDynamicPopup("New ~ other ExistingMagMember", "", "680", "460")
+        $("#popup_frm_ExistingMagMember_Window").dxPopup("show");
+        $("#popup_frm_ExistingMagMember_Window").dxPopup("instance").option("title", "New ~ ExistingMagMember");
+        $("#ExistingMagMemberresult").html('');
+        ShowLoader();
+        $("#ExistingMagMemberresult").load("@Url.Action("Frm_ExistingMagMember_Window", "ExistingMagMember", new { @area = "Profile" })?ActionMethod=New", function () {
+            HideLoader();
+        });
+    }
+
+    function OnExistingMagMemberEditClick() {
+        if ("@Magazine_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        //IsViewPopup = false;
+        if (ExistingMagMemberID == 'undefined' || ExistingMagMemberID == undefined) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/ExistingMagMember/DataNavigation",
+            data: { ActionMethod: "Edit", id: ExistingMagMemberID, Edit_Date: encodeURIComponent(ExistingMagMember_EditDate) },
+            cache: false,
+            success: function (ExistingMagMember_Edit_ButtonClick_result) {
+                if (ExistingMagMember_Edit_ButtonClick_result.result == "true" || ExistingMagMember_Edit_ButtonClick_result.result == true) {
+                    $("#popup_frm_ExistingMagMember_Window").dxPopup("show");
+                    $("#popup_frm_ExistingMagMember_Window").dxPopup("instance").option("title", "Edit ~ ExistingMagMember");
+                    $("#ExistingMagMemberresult").html('');
+                    ShowLoader();
+                    $("#ExistingMagMemberresult").load("@Url.Action("frm_ExistingMagMember_window", "ExistingMagMember", new { @area = "Profile" })?ActionMethod=" + "Edit" + "&ID=" + ExistingMagMemberID + "&EditedOn=" + encodeURIComponent(ExistingMagMember_EditDate), function () {
+                        HideLoader();
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(ExistingMagMember_Edit_ButtonClick_result.Message);
+                    ExistingMagMemberListGrid.Refresh();
+                }
+            }
+        });
+    }
+
+    function OnExistingMagMemberViewClick() {
+        if ("@Magazine_ViewRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (ExistingMagMemberID == 'undefined' || ExistingMagMemberID == undefined) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/ExistingMagMember/DataNavigation",
+            data: { ActionMethod: "View", id: ExistingMagMemberID, Edit_Date: ExistingMagMember_EditDate.toISOString() },
+            cache: false,
+            success: function (ExistingMagMember_View_ButtonClick_result) {
+                if (ExistingMagMember_View_ButtonClick_result.result == "true" || ExistingMagMember_View_ButtonClick_result.result == true) {
+                    //IsViewPopup = true;
+                    $("#popup_frm_ExistingMagMember_Window").dxPopup("show");
+                    $("#popup_frm_ExistingMagMember_Window").dxPopup("instance").option("title", "View ~ ExistingMagMember");
+                    $("#ExistingMagMemberresult").html('');
+                    ShowLoader();
+                    $("#ExistingMagMemberresult").load("@Url.Action("frm_ExistingMagMember_window", "ExistingMagMember", new { @area = "Profile" })?ActionMethod=" + "View" + "&ID=" + ExistingMagMemberID + "&EditedOn=" + encodeURIComponent(ExistingMagMember_EditDate), function () {
+                        HideLoader();
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(ExistingMagMember_View_ButtonClick_result.Message);
+                    ExistingMagMemberListGrid.Refresh();
+                }
+            }
+        });
+    }
+
+    function OnExistingMagMemberDeleteClick() {
+        if ("@Magazine_DeleteRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        //IsViewPopup = true;
+        if (ExistingMagMemberID == 'undefined' || ExistingMagMemberID == undefined) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                $("#popup_frm_ExistingMagMember_Window_Close").dxPopup("hide");
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Profile/ExistingMagMember/DataNavigation",
+                    data: { ActionMethod: "Delete", id: ExistingMagMemberID, Edit_Date: ExistingMagMember_EditDate.toISOString() },
+                    cache: false,
+                    success: function (ExistingMagMember_Delete_ButtonClick_result) {
+                        if (ExistingMagMember_Delete_ButtonClick_result.result == "true" || ExistingMagMember_Delete_ButtonClick_result.result == true) {
+                            $("#popup_frm_ExistingMagMember_Window").dxPopup("show");
+                            $("#popup_frm_ExistingMagMember_Window").dxPopup("instance").option("title", "Delete ~ ExistingMagMember");
+                            ShowLoader();
+                            $("#ExistingMagMemberresult").load("@Url.Action("frm_ExistingMagMember_window", "ExistingMagMember", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + ExistingMagMemberID + "&EditedOn=" + encodeURIComponent(ExistingMagMember_EditDate), function () {
+                                HideLoader();
+                            });
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(ExistingMagMember_Delete_ButtonClick_result.Message);
+                            ExistingMagMemberListGrid.Refresh();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function OnExistingMagMemberListPreviewClick() {
+        if ("@Magazine_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        $("#ExistingMagMember_report_modal").dxPopup("show");
+        $("#ExistingMagMember_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#ExistingMagMember_report_modal").html('');
+        ShowLoader();
+        $("#ExistingMagMember_report_modal_result").load("@Url.Action("Frm_Export_Options", "Magazine", new { @area = "Profile" })", function () {
+            HideLoader();
+        });
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function ExistingMagMemberContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            OnExistingMagMemberNewClick();
+        }
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit') {
+            OnExistingMagMemberEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnExistingMagMemberDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnExistingMagMemberViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnExistingMagMemberListPreviewClick();
+        }
+        else if (e.item.name == 'Discontinue') {
+            OnExistingMagMemberDiscontinueClick();
+        }
+        else if (e.item.name == 'continue') {
+            OnExistingMagMembercontinueClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            ExistingMagMemberListGrid.Refresh();
+        }
+
+    }
+
+</script>
+
+    <script>
+    var Magazine_Members_IsDetailRowExpanded = false;
+    var Magazine_Members_NestedRecord_FocusedRowIndex = -1;
+    var Magazine_Members_NestedGrid_AccessID;
+    var Magazine_Members_AtachmentID;
+    var Magazine_Members_FileName;
+    var Magazine_Members_ParamMandatory;
+    var Magazine_Members_FromDateLabel;
+    var Magazine_Members_ToDateLabel;
+    var Magazine_Members_DescriptionLabel;
+    var Magazine_Members_Doc_ID;
+    var Magazine_Members_Doc_Category;
+    var Magazine_Members_MasterRowRecID;
+    var Magazine_Members_MasterRowMID;
+    var Magazine_Members_NestedRowMapID;
+    var Magazine_Members_reason;
+    var Magazine_Members_Attachment_RecStatus;
+    var Magazine_Members_NestedRowReasonID;
+    var Magazine_Members_NestedRowKeyValue;
+
+    function On_Magazine_Members_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Magazine_Members_ParamMandatory == 1)
+            {
+                AddAttachment(Magazine_Members_MasterRowRecID, "Magazine_Membership", Magazine_Members_Doc_ID, Magazine_Members_Doc_Category, Magazine_Members_ParamMandatory, Magazine_Members_FromDateLabel, Magazine_Members_ToDateLabel, Magazine_Members_DescriptionLabel, "Magazine_MembersProfileAttachment", null, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(Magazine_Members_MasterRowRecID, "Magazine_Membership", Magazine_Members_Doc_ID, "Magazine_MembersProfileAttachment", "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Magazine_Members_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(Magazine_Members_MasterRowRecID, "Magazine_Membership", Magazine_Members_AtachmentID, Magazine_Members_ParamMandatory, Magazine_Members_FromDateLabel, Magazine_Members_ToDateLabel, Magazine_Members_DescriptionLabel, "Magazine_MembersProfileAttachment", null, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(Magazine_Members_MasterRowRecID, "Magazine_Membership", Magazine_Members_AtachmentID, Magazine_Members_ParamMandatory, Magazine_Members_FromDateLabel, Magazine_Members_ToDateLabel, Magazine_Members_DescriptionLabel, null, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID, Magazine_Members_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(Magazine_Members_AtachmentID, Magazine_Members_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(Magazine_Members_MasterRowRecID, "Magazine_Membership", "Existing Magazine Members", "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (Magazine_Members_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(Magazine_Members_MasterRowRecID, Magazine_Members_NestedRowMapID, "Magazine_Membership", "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(Magazine_Members_MasterRowRecID, Magazine_Members_NestedRowMapID, "Magazine_Membership", "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID, Magazine_Members_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(Magazine_Members_MasterRowRecID, Magazine_Members_NestedRowMapID, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            Magazine_MembersPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (Magazine_Members_Nested_Doc_Status == "")
+            {
+                Magazine_MembersPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (Magazine_Members_Nested_Doc_Status == "NO")
+            {
+                Magazine_MembersPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (Magazine_Members_Nested_Doc_Status == "YES")
+            {
+                Magazine_MembersPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            Magazine_Members_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            Magazine_Members_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            Magazine_Members_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnMagazine_Members_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnMagazine_Members_RejectDoc();
+        }
+    }
+    function OnMagazine_Members_RejectDoc() {
+        if (Magazine_Members_AtachmentID == null || Magazine_Members_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(Magazine_Members_AtachmentID, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+    }
+    function OnMagazine_Members_AcceptDoc() {
+        if (Magazine_Members_AtachmentID == null || Magazine_Members_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(Magazine_Members_AtachmentID, "ExistingMagMemberListGrid", Magazine_Members_NestedGrid_AccessID);
+    }
+    function Magazine_Members_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (Magazine_Members_IsDetailRowExpanded == true || Magzin_IsVouchingMode == true)
+        {
+            if (Magazine_Members_MasterRowRecID == null || Magazine_Members_MasterRowRecID == "")
+            {
+                Recid = ExistingMagMemberID;
+            }
+            else
+            {
+                Recid = Magazine_Members_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ExistingMagMemberID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Magazine_Membership", "ExistingMagMemberListGrid", Magazine_Members_AtachmentID, Magazine_Members_NestedRowReasonID, Magazine_Members_NestedRowKeyValue);
+    }
+    function Magazine_Members_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (Magazine_Members_IsDetailRowExpanded == true || Magzin_IsVouchingMode == true)
+        {
+            if (Magazine_Members_MasterRowRecID == null || Magazine_Members_MasterRowRecID == "")
+            {
+                Recid = ExistingMagMemberID;
+            }
+            else
+            {
+                Recid = Magazine_Members_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ExistingMagMemberID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Magazine_Membership", "ExistingMagMemberListGrid", Magazine_Members_AtachmentID, Magazine_Members_NestedRowReasonID, Magazine_Members_NestedRowKeyValue);
+    }
+    function OnExistingMagMemberListGridNestedFocusedRowChange(s, e)
+    {
+        if (Magazine_Members_IsDetailRowExpanded == true || Magzin_IsVouchingMode == true)
+        {
+            Magazine_Members_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (Magazine_Members_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                Magazine_Members_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnMagazine_Members_GetGridRowValues);
+            }
+            else
+            {
+                Magazine_MembersPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnMagazine_Members_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            Magazine_MembersPrf_FAB.SetVisible(true);
+            Magazine_Members_Nested_Doc_Status = values[0];
+            if (Magzin_IsVouchingMode == true)
+            {
+                Magazine_MembersPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (Magazine_Members_Nested_Doc_Status == "")
+                {
+                    Magazine_MembersPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (Magazine_Members_Nested_Doc_Status == "NO")
+                {
+                    Magazine_MembersPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (Magazine_Members_Nested_Doc_Status == "YES")
+                {
+                    Magazine_MembersPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            Magazine_Members_ParamMandatory = values[1];
+            Magazine_Members_FromDateLabel = values[2];
+            Magazine_Members_ToDateLabel = values[3];
+            Magazine_Members_DescriptionLabel = values[4];
+            Magazine_Members_Doc_Category = values[5];
+            Magazine_Members_Doc_ID = values[6];
+            Magazine_Members_AtachmentID = values[7];
+            IndexAttachmentID = Magazine_Members_AtachmentID;
+            Magazine_Members_MasterRowRecID = values[8];
+            Magazine_Members_MasterRowMID = values[9];
+            Magazine_Members_NestedRowMapID = values[10];
+            Magazine_Members_reason = values[11];
+            Magazine_Members_FileName = values[12];
+            Magazine_Members_Attachment_RecStatus = values[13];
+            Magazine_Members_NestedRowKeyValue = values[14];
+            if (Magzin_IsVouchingMode == true)
+            {
+                if (Magazine_Members_FileName != null && Magazine_Members_FileName.length > 0)
+                {
+                    ViewDocument(Magazine_Members_AtachmentID, Magazine_Members_FileName, "Magazine_MembersPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        Magazine_Members_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = Magazine_Members_NestedRowReasonID;
+    }
+    function ExistingMagMemberGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = ExistingMagMember_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Magzin_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function ExistingMagMemberGrid_DetailRowExpanding(s, e)
+    {
+        Magazine_Members_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Magzin_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function ExistingMagMemberGrid_DetailRowCollapsing(s, e)
+    {
+        Magazine_Members_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Magzin_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            Magazine_MembersPrf_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+</div>

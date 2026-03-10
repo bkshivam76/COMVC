@@ -1,0 +1,361 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <link rel="icon" href="~/Content/image/logo_small.png">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Connect One</title>
+    @*Start StyleSheets*@
+
+    @Html.DevExpress().GetStyleSheets(
+        new StyleSheet { ExtensionSuite = ExtensionSuite.GridView, Theme = "MetropolisBlue", ExtensionType = ExtensionType.GridView }
+    )
+    @System.Web.Optimization.Styles.Render("~/Content/DevExtremeBundle")
+    <link href="@Url.Content("~/DX.ashx?cssfolder=~/Content/Min css")" rel="Stylesheet" />
+
+    @*End StyleSheets*@
+
+    @*Start Scripts*@
+    <script src="@Url.Content("~/DX.ashx?jsfileset=~/Scripts/jquery-3.6.0.min.js;~/Scripts/jquery.validate.min.js;~/Scripts/jquery.validate.unobtrusive.min.js;")" type="text/javascript"></script>
+    <script src="@Url.Content("~/DX.ashx?jsfileset=~/Content/fontawesome/js/fontawesome_v5_all.js;~/Scripts/bootstrap.min.js")" type="text/javascript"></script>
+
+    @Html.DevExpress().GetScripts(
+           new Script { ExtensionSuite = ExtensionSuite.GridView, ExtensionType = ExtensionType.GridView }
+       )
+    <script src="@Url.Content("~/DX.ashx?jsfile=~/Scripts/jquery.cookie.min.js")" type="text/javascript"></script>
+
+    @System.Web.Optimization.Scripts.Render("~/Scripts/DevExtremeBundle")
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    @*<script async src="https://www.googletagmanager.com/gtag/js?id=UA-122525782-2"></script>
+          <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'UA-122525782-2');
+          </script>*@
+
+    <style>
+        .dx-button:hover, .dx-button:focus { color: #000000; border-color: #ffae49; background: #ffe6ca; background: -moz-linear-gradient(top, #ffe6ca 0%, #ffd08e 64%, #ffae49 100%); background: -webkit-linear-gradient(top, #ffe6ca 0%,#ffd08e 64%,#ffae49 100%); background: linear-gradient(to bottom, #ffe6ca 0%,#ffd08e 64%,#ffae49 100%); filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffe6ca', endColorstr='#ffae49',GradientType=0 ); }
+
+        .dx-dialog-message { padding: 10px 10px 10px 50px; margin-left: 10px; background-image: url("../../../../Icons/About Us3.png"); background-repeat: no-repeat; background-position: left center; }
+        /*.dx-button .dx-icon {
+            color:#1D499A !important;
+        }*/
+        .dxpc-header { height: 30px; background: linear-gradient(to bottom, #7bcdff 0%,#1e8bed 100%); }
+
+        .dxpc-closeBtn { padding: 0px !important; background-color: white; }
+
+        .dxpc-headerText { font-size: 15px; color: white; }
+        @@media (max-width: 840px) {
+            .dx-popup-wrapper.popupresponsive > .dx-overlay-content { height: calc(100vh - 100px) !important; }
+            #CenterSelectionListGrid .dxgvCSD.dxTouchNativeScrollHandle { height: calc(100vh - 235px) !important; }
+            #SelectInstitute_reloadPartialView .dxgvCSD.dxTouchNativeScrollHandle { height: calc(100vh - 255px) !important; }
+            #SelectCenter_reloadPartialView .dxgvCSD.dxTouchNativeScrollHandle { height: calc(100vh - 320px) !important; }
+        }
+    </style>
+</head>
+
+<body id="LoginLayoutBody">
+    @RenderBody()
+
+    @*Loading Panel*@
+
+    <div id="loadPanel"></div>
+
+    @*Loading Panel*@
+
+    <div id="popup_frm_COD_Selection_Auditor">
+
+    </div>
+    <script>
+
+        $(document).ready(function () {
+
+            $("#loadPanel").dxLoadPanel({
+                message: 'Loading...',
+                visible: false
+            });
+            $(document).on('keydown', '.dx-numberbox input', function (e) {
+                // prevent: "e", "=", ",", "-", "."
+                if ([69, 187, 188, 189, 190, 109, 107].includes(e.keyCode)) {
+                    e.preventDefault();
+                }
+            });
+
+            ASPxClientUtils.AttachEventToElement(document, "keydown", function (evt) {
+                if (evt.keyCode == 13 && document.activeElement.id == "CenterSelectionListGrid") {
+                    $("#Save").trigger("click")
+                    ASPxClientUtils.PreventEventAndBubble(evt);
+                }
+                if (evt.keyCode == 13 && document.activeElement.id == "CenterSelectionAuditorListGrid") {
+                    $("#Save").trigger("click")
+                    ASPxClientUtils.PreventEventAndBubble(evt);
+                }
+                if (evt.keyCode == 13 && document.activeElement.id == "Frm_COD_Selection_Auditor_Grid") {
+                    Auditor_Submit();
+                    ASPxClientUtils.PreventEventAndBubble(evt);
+                }
+                if (evt.keyCode == 27) {
+                    $(".dx-popup").each(function () {
+                        $("#" + this.id).dxPopup("hide")
+                    });
+                    if (window.location.pathname.indexOf("Frm_COD_Selection") != -1) {
+                        $("#certificate_no").dxNumberBox("instance").focus();
+                    } else if (window.location.pathname.indexOf("/Start/Login/Frm_Auditor_Login") != -1) {
+                        $("#Txt_Pass").dxTextBox("instance").focus();
+                    }
+                    ASPxClientUtils.PreventEventAndBubble(evt);
+                }
+
+            });
+
+        })
+
+        // Remove the cookie
+        $(window).on('beforeunload', function () {
+            $.ajax({
+                type: "GET",
+                url: "/Start/Login/UnloadCookie",
+                success: function (data) {
+                }
+            });
+            $.removeCookie("Frm_Auditor_Cookies");
+        });
+
+        $(document)
+            .ajaxStart(function () {
+                //ajax request went so show the loading image
+                ShowLoader();
+            }).ajaxStop(function () {
+                //got response so hide the loading image
+                HideLoader();
+            });
+
+        var SessionGUID = getParameterByName('SessionGUID', window.location.href);
+
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return "";
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        function AjaxBeginFormPost(jqXHR, settings) {
+            settings.url = updateQueryStringParameter(settings.url, 'SessionGUID', SessionGUID);
+        }
+
+        $.ajaxSetup({
+            beforeSend: function (jqXHR, settings) {
+                settings.url = updateQueryStringParameter(settings.url, 'SessionGUID', SessionGUID);
+            }
+        });
+
+        function updateQueryStringParameter(uri, key, value) {
+            var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+            var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+            if (uri.match(re)) {
+                return uri.replace(re, '$1' + key + "=" + value + '$2');
+            }
+            else {
+                return uri + separator + key + "=" + value;
+            }
+        }
+
+        function ShowLoader() {
+            $("#loadPanel").dxLoadPanel("instance").option("visible", true);
+        }
+
+        function HideLoader() {
+            $("#loadPanel").dxLoadPanel("instance").option("visible", false);
+        }
+        $(window).resize(function (e) {
+            //SetHeightGrid(OpenTabName);
+            ASPxClientControl.AdjustControls(document.getElementById("LoginLayoutBody"));
+        });
+ 
+    </script>
+    <script>
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        function isDesktop() {
+            var check = true;
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                check = false;
+            }
+            return check;
+        }
+        var isDesktop = isDesktop();
+        function PopupOnShowing(e) {
+            ShowLoader();
+            var Content = e.component.content();
+            var Overlay = Content.closest(".dx-overlay-wrapper");
+            if (Overlay.length > 0) {
+                if (!(Overlay.hasClass('popupresponsive'))) {
+                    Overlay.addClass('popupresponsive');
+                }
+            }
+            if (Content.length > 0) {
+                SetScrollView(Content, e.element[0].id);
+            }
+            HideLoader();
+        }
+        function PopupOnShown(e) {
+            ShowLoader();
+            if (!isDesktop)
+            {
+                var Content = e.component.content();
+                var WindowHeight = document.documentElement.clientHeight;
+                var PopupHeight = Content.height();
+                var PopupWidth = Content.width();
+                if (PopupHeight > WindowHeight)
+                {
+                    e.component.option("width", "97%");
+                    e.component.option("height", "97%");
+                }
+                else
+                {
+                    e.component.option("height", PopupHeight + 40);
+                    e.component.option("width", PopupWidth + 15);
+                }
+            }
+            else
+            {
+                e.component.content().on('dxmousewheel', function (evt) { evt.stopPropagation(); });
+            }
+            HideLoader();
+        }
+        function SetScrollView(PopupContentElement, Popupid) {
+            if ((!(PopupContentElement.hasClass("dx-scrollable"))) && PopupContentElement.children(".dx-scrollable").length == 0) {
+                var content = PopupContentElement.children();
+                var scrollView = $("<div id='scrollView_" + Popupid + "' class='ScrollViewDiv'></div>");
+                scrollView.append(content);
+                scrollView.dxScrollView({
+                    height: "100%",
+                    width: '100%',
+                    useNative: false,
+                    showScrollbar: 'onHover',
+                    scrollByThumb: true,
+                    scrollByContent: true,
+                    bounceEnabled: false
+                });
+                PopupContentElement.html("");
+                PopupContentElement.append(scrollView);
+            }
+        }
+        function PopupOnHidden(e){
+
+        }
+        function TextBox_OnContentReady(e) {
+            var data = e.component.option("value");
+            if (data != null && data.length > 0) {
+                if (data.search(/'|<|>|&|!|\[|\]/gi) >= 0) {
+                    data = data.replace(/'|<|>|&|!|\[|\]/gi, function (x) {
+                        return transformTypedChar(x);
+                    });
+                    e.component.option("value", data);
+                }
+            }
+        }
+        function TransformTextForDB(formID = "") {
+            var GetTextBoxes = formID.length > 0 ? document.getElementById(formID).getElementsByClassName("CleanTextForDB") : document.getElementsByClassName("CleanTextForDB");
+            if (GetTextBoxes && GetTextBoxes.length > 0) {
+                for (var i = 0; i < GetTextBoxes.length; i++) {
+                    if (GetTextBoxes[i].id) {
+                        GetTextBoxes[i].oninput = function (evt) {
+                            CleanTextForDB(evt);
+                        };
+                    }
+                    //if (GetTextBoxes[i].id)
+                    //{
+                    //    $("#" + GetTextBoxes[i].id).bind('paste', function (ev)
+                    //    {
+                    //        setTimeout(function ()
+                    //        {
+                    //            CleanTextForDB(ev)
+                    //        });
+                    //    });
+                    //}
+                }
+            }
+        }
+        function transformTypedChar(charStr) {
+            if (charStr == "'") {
+                charStr = "`";
+            }
+            else if (charStr == "[") {
+                charStr = "(";
+            }
+            else if (charStr == "]") {
+                charStr = ")";
+            }
+            else if (charStr == "!") {
+                charStr = "|";
+            }
+            else if (charStr == "&") {
+                charStr = "&";
+            }
+            else if (charStr == "<") {
+                charStr = "(";
+            }
+            else if (charStr == ">") {
+                charStr = ")";
+            }
+            return charStr;
+        }
+        function CleanTextForDB(evt) {
+            evt.target.value = evt.target.value.replace(/'|<|>|&|!|\[|\]/gi, function (x) {
+                return transformTypedChar(x);
+            });
+            if ((evt.target.className).includes("TextBoxUpperCase")) {
+                TransfromTextToUpperCase(evt);
+            }
+            if ((evt.target.className).includes("OnlyDigit")) {
+                AllowOnlyDigits(evt);
+            }
+        }
+        function InitializeScrollView_GridView(s, e) {
+            if (screen.width <= 768) {
+                var GridName = s.uniqueID;
+                GetScrollableElement(s, e).dxScrollView({
+                    showScrollbar: 'always',
+                    direction: 'both',
+                    useNative: false,
+                    scrollByThumb: true,
+                    scrollByContent: true,
+                    bounceEnabled: false,
+                    height: '100%',
+                    width: '100%',
+                    onScroll: function (e) {
+                        $('#' + GridName + ' .dxgvHSDC .dxgvTable_MetropolisBlue').css('transform', 'translateX(' + (-e.scrollOffset.left) + 'px)');
+                    }
+                });
+                AdjustHeaderElement(s, e);
+            }
+        }
+        function GetScrollableElement(s,e) {
+            return $('.dxgvCSD', s.GetMainElement());
+        }
+        function AdjustHeaderElement(s, e) {         
+            var GridName = s.uniqueID;
+            $('#' + GridName+' .dxgvHSDC')[0].style.paddingRight = '';
+            var headerScrollElement = $('#' + GridName +' .dxgvHSDC > div')[0];
+            headerScrollElement.style.width = (s.GetMainElement().offsetWidth - 2) + 'px';
+        }
+        function ScrollToFocusedRow(s, e) {
+            if (screen.width <= 768) {
+                var GridName = s.uniqueID;
+                GetScrollableElement(s, e).dxScrollView("instance").scrollToElement($("#" + GridName + "_DXDataRow" + s.GetFocusedRowIndex()))
+            }
+        }
+    </script>
+</body>
+</html>

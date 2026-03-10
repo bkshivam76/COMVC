@@ -1,0 +1,1254 @@
+﻿<div class="AddressBookWindow_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.Address_Book_ViewModel
+    <link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        var next_Unaudited_YearID = (int)ViewBag.next_Unaudited_YearID;
+
+        var AB_Asset_Image = ViewBag.ABImage;
+        bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+    }
+
+    <style>
+        .control-label {
+            text-align: left !important;
+        }
+    </style>
+
+    <div id="AddressInfoWindow">
+        @using (Ajax.BeginForm("Frm_Address_Info_Window", "Facility",
+                                                    new AjaxOptions
+                                                    {
+                                                        HttpMethod = "POST",
+                                                        UpdateTargetId = "AddressInfoWindow",
+                                                        InsertionMode = InsertionMode.InsertAfter,
+                                                        OnBegin = "AjaxBeginFormPost",
+                                                        OnSuccess = String.Format("{0}", Model.PostSuccessFunction)
+                                                    },
+                                            new
+                                            {
+                                                id = "AddressBookForm",
+                                                @class = "edit_form"
+                                            }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(x => x.ActionMethod)
+            @Html.HiddenFor(x => x.ID)
+            @Html.HiddenFor(x => x.Rec_ID)
+            @Html.HiddenFor(x => x.LastEditedOn)
+            @Html.HiddenFor(x => x.Info_LastEditedOn)
+            @Html.HiddenFor(x => x.Org_RecID)
+            @Html.HiddenFor(x => x.PostSuccessFunction)
+            @Html.HiddenFor(x => x.PopUpId)
+            @Html.HiddenFor(x => x.Party_DataGridID)
+            @Html.HiddenFor(x => x.NewFunctionName)
+            @Html.HiddenFor(x => x.DropDownFunctionName)
+            @Html.HiddenFor(x => x.Replicate_Confirm)
+            @Html.HiddenFor(x => x.New_Confirm)
+            @Html.HiddenFor(x => x.Edit_Confirm)
+            using (Html.DevExtreme().ValidationGroup("AddressBookValidator"))
+
+            {
+                <div class="full-width-header-bg3">
+                    <div class="row">
+                        <div class="col-xs-4 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i>Contact </h3>
+                        </div>
+                        <div class="col-sm-8 prl">
+                            <div id="div-lbl-contact" class="popuphead"><span id="Lbl_ContactName_AB"></span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-horizontal">
+                    <div>
+                        @(Html.DevExtreme().TabPanel().ID("tabPanel_AB")
+                    .Items(items =>
+                    {
+                    items.Add().Title("Basic").Template(@<text>  @Html.Partial("Frm_Basic_tab", Model) </text>);
+                    items.Add().Title("Address").Template(@<text> @Html.Partial("Frm_Address_tab", Model) </text>);
+                    items.Add().Title("Contact").Template(@<text> @Html.Partial("Frm_Contacts_tab", Model) </text>);
+                    items.Add().Title("General").Template(@<text> @Html.Partial("Frm_General_tab", Model) </text>);
+                    items.Add().Title("Status").Template(@<text> @Html.Partial("Frm_Status_tab", Model) </text>);
+                    items.Add().Title("Special").Template(@<text> @Html.Partial("Frm_Special_tab", Model) </text>);
+                    }).DeferRendering(false))
+                    </div>
+                </div>
+            }
+        }
+    </div>
+    <script>
+    function Look_TitleList_EditValueChanged_AB(e)
+    {
+        var Name = $("#Txt_Name_AB").dxTextBox("instance").option("value") == null ? "" : $("#Txt_Name_AB").dxTextBox("instance").option("value");
+        var Title = $("#Look_TitleList_AB").dxSelectBox("instance").option("value") == null ? "" : $("#Look_TitleList_AB").dxSelectBox("instance").option("value");
+        try
+        {
+            $("#Lbl_ContactName_AB").text(Title + " " + Name);
+        }
+        catch
+        {
+            $("#Lbl_ContactName_AB").text("" + " " + Name);
+        }
+    }
+    function Txt_Name_EditValueChanged_AB(e)
+    {
+        var Name = $("#Txt_Name_AB").dxTextBox("instance").option("value") == null ? "" : $("#Txt_Name_AB").dxTextBox("instance").option("value");
+        var Title = $("#Look_TitleList_AB").dxSelectBox("instance").option("value") == null ? "" : $("#Look_TitleList_AB").dxSelectBox("instance").option("value");
+        try
+        {
+            $("#Lbl_ContactName_AB").text(Title + " " + Name);
+        }
+        catch
+        {
+            $("#Lbl_ContactName_AB").text(Title + " " + "");
+        }
+    }
+    function AB_FileUpload_Value_Change(e)
+    {
+        if (e.value[0] != null)
+        {
+            var filename = e.value[0].name;
+            var fileExt = (filename.split('.'))[1];
+            if (fileExt.Length <= 1) {
+                DevExpress.ui.dialog.alert('File Without Extension Is Not Allowed...', 'Error!!');
+                return;
+            }
+            var AllowedExtension = ["jpg", "jpeg", "png"];
+            if (AllowedExtension.indexOf(fileExt) == -1) {
+                DevExpress.ui.dialog.alert('Only Files With jpg,jpeg,png Extension Is Allowed..', 'Error!!');
+                return;
+            }
+        }
+    }
+    function AB_FileUploaded(e)
+    {
+        $("#AB_fileview").load("@Url.Action("AB_PreviewImageControl", "AddressBook", new { @area = "Facility" })", function () { });
+        $("#AB_fileRemove").show();
+    }
+    function ABImageDelete(e)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/AddressBook/RemoveABImage",
+            cache: false,
+            success: function ()
+            {
+                $("#AB_file-uploader").dxFileUploader("instance").reset();
+               $("#AB_fileview").load("@Url.Action("AB_PreviewImageControl", "AddressBook", new { @area = "Facility" })", function () { });
+                $("#AB_fileRemove").hide();
+            }
+        });
+    }
+    function EducationCustomItemCreating_AB(e)
+    {
+        if (e.text == null || e.text.length == 0) {
+            e.customItem = null;
+            return;
+        }
+        var dataSource = e.component.getDataSource();
+
+        var newID = createGuid();
+        var newItem = { C_TITLE_NAME: e.text, C_TITLE_ID: newID };
+        var result = dataSource.store().insert(newItem);
+
+        result.done(function () {
+            dataSource.reload();
+        })
+        e.customItem = result;
+    }
+    function DesignationCustomItemCreating_AB(e)
+    {
+        if (e.text == null || e.text.length == 0) {
+            e.customItem = null;
+            return;
+        }
+        var dataSource = e.component.getDataSource();
+
+        var newID = createGuid();
+        var newItem = { C_TITLE_NAME: e.text, C_TITLE_ID: newID };
+        var result = dataSource.store().insert(newItem);
+
+        result.done(function () {
+            dataSource.reload();
+        })
+        e.customItem = result;
+    }
+    function OrganizationCustomItemCreating_AB(e)
+    {
+        if (e.text == null || e.text.length == 0) {
+            e.customItem = null;
+            return;
+        }
+        var dataSource = e.component.getDataSource();
+
+        var newID = createGuid();
+        var newItem = { C_ORG_NAME: e.text, C_ORG_ID: newID };
+        var result = dataSource.store().insert(newItem);
+
+        result.done(function () {
+            dataSource.reload();
+        })
+        e.customItem = result;
+    }
+    function AddCustomDatatoDesignation()
+    {
+        var Txt_Desig_AB = $("#Txt_Desig_AB").dxSelectBox("instance");
+        var dataSource = Txt_Desig_AB.getDataSource();
+        var dataItems = dataSource.items();
+
+        var flag = false;
+        for (var i = 0; dataItems.length > i; i++)
+        {
+            if (dataItems[i].C_TITLE_NAME == "@Model.Txt_Desig_AB")
+            {
+                flag = true;
+                break;
+            }
+        }
+        if (flag == true)
+        {
+            Txt_Desig_AB.option("value", "@Model.Txt_Desig_AB");
+        }
+        else
+        {
+            var newID = createGuid();
+            var newItem = { C_TITLE_NAME: "@Model.Txt_Desig_AB", C_TITLE_ID: newID };
+            var result = dataSource.store().insert(newItem);
+
+            result.done(function ()
+            {
+                dataSource.reload();
+                Txt_Desig_AB.option("value", "@Model.Txt_Desig_AB");
+            })
+        }
+    }
+    function AddCustomDatatoEducation()
+    {
+        var Txt_Education_AB = $("#Txt_Education_AB").dxSelectBox("instance");
+        var dataSource = Txt_Education_AB.getDataSource();
+        var dataItems = dataSource.items();
+
+        var flag = false;
+        for (var i = 0; dataItems.length > i; i++)
+        {
+            if (dataItems[i].C_TITLE_NAME == "@Model.Txt_Education_AB")
+            {
+                flag = true;
+                break;
+            }
+        }
+        if (flag == true)
+        {
+            Txt_Education_AB.option("value", "@Model.Txt_Education_AB");
+        }
+        else
+        {
+            var newID = createGuid();
+            var newItem = { C_TITLE_NAME: "@Model.Txt_Education_AB", C_TITLE_ID: newID };
+            var result = dataSource.store().insert(newItem);
+
+            result.done(function ()
+            {
+                dataSource.reload();
+                Txt_Education_AB.option("value", "@Model.Txt_Education_AB");
+            })
+        }
+    }
+    function AB_Selctbox_Opened(e)
+    {
+        setTimeout(function () {
+            e.component.focus();
+        }, Timeout500);
+    }
+    </script>
+    @* Basic Tab *@
+    <script>
+    var AB_TakepopUpcloseConfirmation = true;
+    var Country_DG_AB;
+    var State_DG_AB;
+    var District_DG_AB;
+    var City_DG_AB;
+    var Country_O_DG_AB;
+    var State_O_DG_AB;
+    var District_O_DG_AB;
+    var City_O_DG_AB;
+    var ActionMethod_AB = "@Model.ActionMethod";
+    var SelectedCountryId_AB;
+    var Country_AccessibleDescription_AB;
+    var State_AccessibleDescription_AB;
+    var SelectedCountryId_O_AB;
+    var Country_AccessibleDescription_O_AB;
+    var State_AccessibleDescription_O_AB;
+    var selectedIndexCenterCategory_AB = "@Model.Cmb_Cen_Cagetory_AB";
+    var CenList_AB_DG;
+
+    function Chk_SameAs_CheckedChanged_AB(e)
+    {
+        ShowLoader();
+        if (e.value == true)
+        {
+            $("#Txt_O_Add1_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add1_AB"]').val());
+            $("#Txt_O_Add2_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add2_AB"]').val());
+            $("#Txt_O_Add3_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add3_AB"]').val());
+            $("#Txt_O_Add4_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add4_AB"]').val());
+            $("#Txt_O_Pincode_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Pincode_AB"]').val());
+
+            if ($("#GLookUp_RCountryList_AB").dxDropDownBox("instance").option("value") != null)
+            {
+                $("#GLookUp_OCountryList_AB").dxDropDownBox("instance").option("readOnly", true);
+                Country_O_DG_AB.selectRows($("#GLookUp_RCountryList_AB").dxDropDownBox("instance").option("value"), false);
+                $("#GLookUp_OCountryList_AB").dxDropDownBox("instance").option("readOnly", false);
+            }
+
+
+            if ($("#GLookUp_RStateList_AB").dxDropDownBox("instance").option("value") != null)
+            {
+                $("#GLookUp_OStateList_AB").dxDropDownBox("instance").option("readOnly", true);
+                WaitForStateDDToLoad($("#GLookUp_RStateList_AB").dxDropDownBox("instance").option("value"));
+            }
+            async function WaitForStateDDToLoad(dd_value)
+            {
+                var result = CheckIFDDHasValue_AB(State_O_DG_AB, dd_value);
+                if (result)
+                {
+                    State_O_DG_AB.selectRows(dd_value, false);
+                    $("#GLookUp_OStateList_AB").dxDropDownBox("instance").option("readOnly", false);
+                }
+                else
+                {
+                    setTimeout(function () {
+                        WaitForStateDDToLoad(dd_value);
+                    }, 500)
+                }
+            }
+            if ($("#GLookUp_RDistrictList_AB").dxDropDownBox("instance").option("value") != null)
+            {
+                $("#GLookUp_ODistrictList_AB").dxDropDownBox("instance").option("readOnly", true);
+                WaitForDistrictDDToLoad($("#GLookUp_RDistrictList_AB").dxDropDownBox("instance").option("value"))
+            }
+            async function WaitForDistrictDDToLoad(dd_value)
+            {
+                var result = CheckIFDDHasValue_AB(District_O_DG_AB, dd_value);
+                if (result)
+                {
+                    District_O_DG_AB.selectRows(dd_value, false);
+                    $("#GLookUp_ODistrictList_AB").dxDropDownBox("instance").option("readOnly", false);
+                }
+                else
+                {
+                    setTimeout(function ()
+                    {
+                        WaitForDistrictDDToLoad(dd_value);
+                    }, 500)
+                }
+            }
+            if ($("#GLookUp_RCityList_AB").dxDropDownBox("instance").option("value") != null)
+            {
+                $("#GLookUp_OCityList_AB").dxDropDownBox("instance").option("readOnly", true);
+                WaitForCityDDToLoad($("#GLookUp_RCityList_AB").dxDropDownBox("instance").option("value"))
+            }
+            async function WaitForCityDDToLoad(dd_value)
+            {
+                var result = CheckIFDDHasValue_AB(City_O_DG_AB, dd_value);
+                if (result)
+                {
+                    City_O_DG_AB.selectRows(dd_value, false);
+                    $("#GLookUp_OCityList_AB").dxDropDownBox("instance").option("readOnly", false);
+                }
+                else
+                {
+                    setTimeout(function ()
+                    {
+                        WaitForCityDDToLoad(dd_value);
+                    }, 500)
+                }
+            }
+            CheckIfAllCompletedTohideLoader();
+            function CheckIfAllCompletedTohideLoader()
+            {
+                var complete = 0;
+                if ($("#GLookUp_RDistrictList_AB").dxDropDownBox("instance").option("value") == $("#GLookUp_ODistrictList_AB").dxDropDownBox("instance").option("value")) { complete++; }
+                if ($("#GLookUp_RCityList_AB").dxDropDownBox("instance").option("value") == $("#GLookUp_OCityList_AB").dxDropDownBox("instance").option("value")) { complete++; }
+                if ($("#GLookUp_RStateList_AB").dxDropDownBox("instance").option("value") == $("#GLookUp_OStateList_AB").dxDropDownBox("instance").option("value")) { complete++; }
+                if (complete == 3)
+                {
+                    HideLoader();
+                }
+                else {
+                    setTimeout(function () {
+                        CheckIfAllCompletedTohideLoader();
+                    }, 300)
+                }
+            }
+        }
+        else
+        {
+            $("#Txt_O_Add1_AB").dxTextBox("instance").option("value", "");
+            $("#Txt_O_Add2_AB").dxTextBox("instance").option("value", "");
+            $("#Txt_O_Add3_AB").dxTextBox("instance").option("value", "");
+            $("#Txt_O_Add4_AB").dxTextBox("instance").option("value", "");
+            $("#Txt_O_Pincode_AB").dxTextBox("instance").option("value", null);
+            City_O_DG_AB.clearSelection();
+            District_O_DG_AB.clearSelection();
+            State_O_DG_AB.clearSelection();
+            Country_O_DG_AB.clearSelection();
+            HideLoader();
+        }
+
+    }
+    function CheckIFDDHasValue_AB(DG_instance, value)
+    {
+        var DS = DG_instance.getDataSource();
+        if (DS === void 0) { return false; }
+        var keyfield = DS.store().key();
+        var items = DS._store._array;
+        if (items == null || items.length == 0){return false;}
+        var index= items.findIndex(x => x[keyfield]==value)
+        return index==-1?false:true;
+    }
+    function Txt_R_Add1_EditValueChanged_AB(e)
+    {
+        if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit")
+        {
+            if ($("#Chk_SameAs_AB").dxCheckBox("instance").option('value'))
+            {
+                $("#Txt_O_Add1_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add1_AB"]').val());
+            }
+        }
+    }
+    function Txt_R_Add2_EditValueChanged_AB(e)
+    {
+        if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit")
+        {
+            if ($("#Chk_SameAs_AB").dxCheckBox("instance").option('value'))
+            {
+                $("#Txt_O_Add2_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add2_AB"]').val());
+            }
+        }
+    }
+    function Txt_R_Add3_EditValueChanged_AB(e)
+    {
+        if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit")
+        {
+            if ($("#Chk_SameAs_AB").dxCheckBox("instance").option('value'))
+            {
+                $("#Txt_O_Add3_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add3_AB"]').val());
+            }
+        }
+    }
+    function Txt_R_Add4_EditValueChanged_AB(e)
+    {
+        if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit")
+        {
+            if ($("#Chk_SameAs_AB").dxCheckBox("instance").option('value'))
+            {
+                $("#Txt_O_Add4_AB").dxTextBox("instance").option("value", $('[name="Txt_R_Add4_AB"]').val());
+            }
+        }
+    }
+
+    function LookUp_GetCountryList_AB(FirstCall=false)
+    {
+        //Skipping Refresh Part as per business logic country dd is never refreshed
+        if (ActionMethod_AB == "_New")
+        {
+            // asssigning india value is done through model during control definition
+            Control_SetReadOnly("GLookUp_RCountryList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_OCountryList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_R_StateList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetStateListOnRefresh",
+                cache: false,
+                data: { CountryCode: Country_AccessibleDescription_AB },
+                success: function (_data) {
+                    $("#GLookUp_RStateList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_ST_REC_ID",
+                        data: _data
+                    }))
+                    State_DG_AB.option("dataSource", $("#GLookUp_RStateList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New")
+        {
+            Control_SetReadOnly("GLookUp_RStateList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_R_DistrictList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetDistrictListOnRefresh",
+                cache: false,
+                data: { CountryCode: Country_AccessibleDescription_AB, StateCode: State_AccessibleDescription_AB },
+                success: function (_data) {
+                    $("#GLookUp_RDistrictList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_DI_REC_ID",
+                        data: _data
+                    }))
+                    District_DG_AB.option("dataSource", $("#GLookUp_RDistrictList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New")
+        {
+            Control_SetReadOnly("GLookUp_RDistrictList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_R_CityList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetCityListOnRefresh",
+                cache: false,
+                data: { CountryID: SelectedCountryId_AB, CountryCode: Country_AccessibleDescription_AB, StateCode: State_AccessibleDescription_AB },
+                success: function (_data) {
+                    $("#GLookUp_RCityList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_CI_REC_ID",
+                        data: _data
+                    }))
+                    City_DG_AB.option("dataSource", $("#GLookUp_RCityList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New")
+        {
+            Control_SetReadOnly("GLookUp_RCityList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_O_StateList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetStateListOnRefresh",
+                cache: false,
+                data: { CountryCode: Country_AccessibleDescription_O_AB },
+                success: function (_data)
+                {
+                    $("#GLookUp_OStateList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_ST_REC_ID",
+                        data: _data
+                    }))
+                    State_O_DG_AB.option("dataSource", $("#GLookUp_OStateList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New")
+        {
+            Control_SetReadOnly("GLookUp_OStateList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_O_DistrictList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetDistrictListOnRefresh",
+                cache: false,
+                data: { CountryCode: Country_AccessibleDescription_O_AB, StateCode: State_AccessibleDescription_O_AB },
+                success: function (_data)
+                {
+                    $("#GLookUp_ODistrictList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_DI_REC_ID",
+                        data: _data
+                    }))
+                    District_O_DG_AB.option("dataSource", $("#GLookUp_ODistrictList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New") {
+            Control_SetReadOnly("GLookUp_ODistrictList_AB", "dxDropDownBox", false);
+        }
+    }
+    function LookUp_Get_O_CityList_AB(FirstCall = false)
+    {
+        if (FirstCall == false) // refresh dd only when user initiated.initially data is fetched from model property
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/GetCityListOnRefresh",
+                cache: false,
+                data: { CountryID: SelectedCountryId_O_AB,CountryCode: Country_AccessibleDescription_O_AB, StateCode: State_AccessibleDescription_O_AB },
+                success: function (_data) {
+                    $("#GLookUp_OCityList_AB").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "R_CI_REC_ID",
+                        data: _data
+                    }))
+                    City_O_DG_AB.option("dataSource", $("#GLookUp_OCityList_AB").dxDropDownBox("option", "dataSource"))
+                }
+            });
+        }
+        if (ActionMethod_AB == "_New")
+        {
+            Control_SetReadOnly("GLookUp_OCityList_AB", "dxDropDownBox", false);
+        }
+    }
+
+    async function GLookUp_RCountryList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        if (e)
+        {
+            SelectedCountryId_AB = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                Country_DG_AB.clearSelection();
+                State_DG_AB.clearSelection();
+                District_DG_AB.clearSelection();
+                City_DG_AB.clearSelection();
+                SelectedCountryId_AB = "";
+                Country_AccessibleDescription_AB = "";
+                LookUp_Get_R_StateList_AB(FirstCall)
+                var Txt_Pincode = $("#Txt_R_Pincode_AB").dxTextBox("instance");
+                Txt_Pincode.option("mask", '');
+                Txt_Pincode.option("maskRules", {});
+                Txt_Pincode.option("isValid", true);
+                $("#Txt_R_Pincode_AB").find('input').addClass("CleanTextForDB");
+                TransformTextForDB("AddressBookForm");
+                return;
+            }
+        }
+        else
+        {
+            SelectedCountryId_AB = $("#GLookUp_RCountryList_AB").dxDropDownBox("option", "value");
+        }
+        await Country_DG_AB.selectRows(SelectedCountryId_AB)
+        if (Country_DG_AB.getSelectedRowsData().length > 0)
+        {
+            var item = Country_DG_AB.getSelectedRowsData()[0];
+            SelectedCountryId_AB = item["R_CO_REC_ID"];
+            Country_AccessibleDescription_AB = item["R_CO_CODE"];
+            LookUp_Get_R_StateList_AB(FirstCall)
+            if (SelectedCountryId_AB != "f9970249-121c-4b8f-86f9-2b53e850809e") //india
+            {
+                LookUp_Get_R_CityList_AB(FirstCall)
+            }
+            var Txt_Pincode = $("#Txt_R_Pincode_AB").dxTextBox("instance");
+            if (Country_AccessibleDescription_AB == "IN")
+            {
+                Txt_Pincode.option
+                    ({
+                        "mask": 'NNNNNN',
+                        "maskRules":
+                        {
+                            'N': /[0-9]/
+                        }
+                    });
+                Txt_Pincode.option("isValid", true);
+            }
+            else
+            {
+                Txt_Pincode.option("mask", '');
+                Txt_Pincode.option("maskRules", {});
+                Txt_Pincode.option("isValid", true);
+                $("#Txt_R_Pincode_AB").find('input').addClass("CleanTextForDB");
+                TransformTextForDB("AddressBookForm");
+            }
+        }
+    }
+    async function GLookUp_RStateList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        var state;
+        if (e)
+        {
+            state = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                State_DG_AB.clearSelection();
+                District_DG_AB.clearSelection();
+                City_DG_AB.clearSelection();
+                State_AccessibleDescription_AB = "0";
+                LookUp_Get_R_DistrictList_AB(FirstCall);
+                LookUp_Get_R_CityList_AB(FirstCall);
+                return;
+            }
+        }
+        else
+        {
+            state = $("#GLookUp_RStateList_AB").dxDropDownBox("option", "value");
+        }
+        await State_DG_AB.selectRows(state);
+        if (State_DG_AB.getSelectedRowsData().length > 0)
+        {
+            var item = State_DG_AB.getSelectedRowsData()[0];
+            State_AccessibleDescription_AB= item["R_ST_CODE"];
+            LookUp_Get_R_DistrictList_AB(FirstCall);
+            LookUp_Get_R_CityList_AB(FirstCall);
+        }
+    }
+    async function GLookUp_RDistrictList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        var District;
+        if (e) {
+            District = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                District_DG_AB.clearSelection();
+                return;
+            }
+        }
+        else
+        {
+            District = $("#GLookUp_RDistrictList_AB").dxDropDownBox("option", "value");
+        }
+        await District_DG_AB.selectRows(District)
+    }
+    async function GLookUp_RCityList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        var City;
+        if (e) {
+            City = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                City_DG_AB.clearSelection();
+                return;
+            }
+        }
+        else {
+            City = $("#GLookUp_RCityList_AB").dxDropDownBox("option", "value");
+        }
+        await City_DG_AB.selectRows(City)
+    }
+
+    async function GLookUp_OCountryList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        if (e)
+        {
+            SelectedCountryId_O_AB = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                Country_O_DG_AB.clearSelection();
+                State_O_DG_AB.clearSelection();
+                District_O_DG_AB.clearSelection();
+                City_O_DG_AB.clearSelection();
+                SelectedCountryId_O_AB = "";
+                Country_AccessibleDescription_O_AB = "";
+                LookUp_Get_O_StateList_AB(FirstCall)
+                var Txt_Pincode = $("#Txt_O_Pincode_AB").dxTextBox("instance");
+                Txt_Pincode.option("mask", '');
+                Txt_Pincode.option("maskRules", {});
+                Txt_Pincode.option("isValid", true);
+                $("#Txt_O_Pincode_AB").find('input').addClass("CleanTextForDB");
+                TransformTextForDB("AddressBookForm");
+                return;
+            }
+        }
+        else
+        {
+            SelectedCountryId_O_AB = $("#GLookUp_OCountryList_AB").dxDropDownBox("option", "value");
+        }
+        await Country_O_DG_AB.selectRows(SelectedCountryId_O_AB);
+        if (Country_O_DG_AB.getSelectedRowsData().length > 0)
+        {
+            var item = Country_O_DG_AB.getSelectedRowsData()[0];
+            SelectedCountryId_O_AB = item["R_CO_REC_ID"];
+            Country_AccessibleDescription_O_AB = item["R_CO_CODE"];
+            LookUp_Get_O_StateList_AB(FirstCall)
+            if (SelectedCountryId_O_AB != "f9970249-121c-4b8f-86f9-2b53e850809e")
+            {
+                LookUp_Get_O_CityList_AB(FirstCall);
+            }
+            var Txt_Pincode = $("#Txt_O_Pincode_AB").dxTextBox("instance");
+            if (Country_AccessibleDescription_O_AB == "IN") {
+                Txt_Pincode.option
+                    ({
+                        "mask": 'NNNNNN',
+                        "maskRules":
+                        {
+                            'N': /[0-9]/
+                        }
+                    });
+                Txt_Pincode.option("isValid", true);
+            } else
+            {
+                Txt_Pincode.option("mask", '');
+                Txt_Pincode.option("maskRules", {});
+                Txt_Pincode.option("isValid", true);
+                $("#Txt_O_Pincode_AB").find('input').addClass("CleanTextForDB");
+                TransformTextForDB("AddressBookForm");
+            }
+        }
+    }
+    async function GLookUp_OStateList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        var state;
+        if (e)
+        {
+            state = e.value;
+            if (e.value == null && e.previousValue != null)
+            {
+                State_O_DG_AB.clearSelection();
+                District_O_DG_AB.clearSelection();
+                City_O_DG_AB.clearSelection();
+                State_AccessibleDescription_O_AB = "0";
+                LookUp_Get_O_DistrictList_AB(FirstCall);
+                LookUp_Get_O_CityList_AB(FirstCall);
+                return;
+            }
+        }
+        else
+        {
+            state = $("#GLookUp_OStateList_AB").dxDropDownBox("option", "value");
+        }
+        await State_O_DG_AB.selectRows(state)
+        if (State_O_DG_AB.getSelectedRowsData().length > 0)
+        {
+            var item = State_O_DG_AB.getSelectedRowsData()[0];
+            State_AccessibleDescription_O_AB = item["R_ST_CODE"];
+            LookUp_Get_O_DistrictList_AB(FirstCall);
+            LookUp_Get_O_CityList_AB(FirstCall);
+        }
+    }
+    async function GLookUp_ODistrictList_EditValueChanged_AB(e, FirstCall = false) {
+        var District;
+        if (e) {
+            District = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                District_O_DG_AB.clearSelection();
+                return;
+            }
+        }
+        else {
+            District = $("#GLookUp_ODistrictList_AB").dxDropDownBox("option", "value");
+        }
+        await District_O_DG_AB.selectRows(District)
+    }
+    async function GLookUp_OCityList_EditValueChanged_AB(e, FirstCall = false)
+    {
+        var City;
+        if (e)
+        {
+            City = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                City_O_DG_AB.clearSelection();
+                return;
+            }
+        }
+        else
+        {
+            City = $("#GLookUp_OCityList_AB").dxDropDownBox("option", "value");
+        }
+        await City_O_DG_AB.selectRows(City)
+    }
+    </script>
+    @* Address Tab *@
+    <script>
+        function STRNotextBox_valueChanged(e) {
+            var STRNo = $("#Txt_STR_AB").dxTextBox("instance");
+            if (e.value != null && e.value != "          ST001") {
+                STRNo.option("value", STRNo.option("value").toUpperCase());
+            }
+            if (STRNo.option("value") == "          ST001") {
+                STRNo.reset();
+            }
+        }
+        function PANtextBox_valueChanged(e) {
+            var pan = $("#Txt_PAN_No_AB").dxTextBox("instance");
+            if (e.value != null) {
+                pan.option("value", pan.option("value").toUpperCase());
+            }
+        }
+        function Gst_ValueChanged(e) {
+            var gst = $("#GST_TIN").dxTextBox("instance");
+            if (e.value != null && e.value != "             Z") {
+                gst.option("value", gst.option("value").toUpperCase());
+            }
+            if (gst.option("value") === "             Z") {
+                gst.reset();
+            }
+        }
+        function TANtextBox_valueChanged(data) {
+            var tan = $("#Txt_TAN_AB").dxTextBox("instance");
+            tan.option("value", tan.option("value").toUpperCase());
+        }
+        function TxtLostFocus_AB(e) {
+            if (e.component.option("value") != null) {
+                e.component.option("value", (e.component.option("value")).toLowerCase());
+            }
+        }
+    </script>
+    <script>
+        function GLookUp_Cen_List_AB_Loaded(data) {
+            $("#GLookUp_Cen_List_AB").dxDropDownBox("instance").option("readOnly", true);
+            if (data.length == 1) {
+                if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit") {
+                    CenList_AB_DG.selectRows(data[0]["CEN_ID"]);
+                }
+            }
+            else {
+                if (ActionMethod_AB == "_New" || ActionMethod_AB == "_Edit") {
+                    if ($("#Rad_Status_AB").dxRadioGroup("instance").option("value") == "B.K.") {
+                        $("#GLookUp_Cen_List_AB").dxDropDownBox("instance").option("readOnly", false);
+                    }
+                }
+            }
+        }
+        function Rad_Status_SelectedIndexChanged_AB(e) {
+            if (e.value == "Wellwisher") {
+                SetBKEnableDisable(true);
+                SetWellwisherEnableDisable(false);
+            }
+            else {
+                SetBKEnableDisable(false);
+                SetWellwisherEnableDisable(true);
+            }
+        }
+        function SetWellwisherEnableDisable(IsDisable) {
+            $("#DE_DOC_AB").dxDateBox("instance").option('value', "");
+            Control_SetReadOnly("DE_DOC_AB", "dxDateBox", IsDisable);
+        }
+        function SetBKEnableDisable(IsDisable) {
+
+            $("#Com_BK_Title_AB").dxSelectBox("instance").option('value', "");
+            Control_SetReadOnly("Com_BK_Title_AB", "dxSelectBox", IsDisable);
+
+            $("#Txt_PAD_No_AB").dxTextBox("instance").option('value', "");
+            Control_SetReadOnly("Txt_PAD_No_AB", "dxTextBox", IsDisable);
+
+            $("#Com_Class_At_AB").dxSelectBox("instance").option('value', "");
+            Control_SetReadOnly("Com_Class_At_AB", "dxSelectBox", IsDisable);
+
+            Control_SetReadOnly("Cmb_Cen_Cagetory_AB", "dxSelectBox", IsDisable);
+
+            $("#GLookUp_Cen_List_AB").dxDropDownBox("instance").option('value', "");
+            Control_SetReadOnly("GLookUp_Cen_List_AB", "dxDropDownBox", IsDisable);
+
+            $("#Txt_Class_Add_AB").dxTextBox("instance").option('value', "");
+            Control_SetReadOnly("Txt_Class_Add_AB", "dxTextBox", IsDisable);
+
+            $("#DE_DOB_A_AB").dxDateBox("instance").option('value', "");
+            Control_SetReadOnly("DE_DOB_A_AB", "dxDateBox", IsDisable);
+
+        }
+        function ChangeCenCategory_AB(e) {
+            selectedIndexCenterCategory_AB = e.value;
+            CenList_AB_DG.clearSelection();
+            CenList_AB_DG.refresh();
+        }
+        async function GLookUp_Cen_List_EditValueChanged(e, FirstCall = false) {
+            var centre;
+            if (e) {
+                centre = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    CenList_AB_DG.clearSelection();
+                    return;
+                }
+            }
+            else {
+                centre = $("#GLookUp_Cen_List_AB").dxDropDownBox("option", "value");
+            }
+            await CenList_AB_DG.selectRows(centre)
+        }
+    </script>
+    @* Status Tab *@
+<script>
+    function InitAllDropdownDatagrid_AB()
+    {
+        var $Country_DG_AB = $("#CountryList_AB_datagrid");
+        var $Country_O_DG_AB = $("#CountryList_Off_AB_datagrid");
+        if ($Country_DG_AB.length && $Country_O_DG_AB.length)
+        {
+            Country_DG_AB = $Country_DG_AB.dxDataGrid("instance");
+            Country_O_DG_AB = $Country_O_DG_AB.dxDataGrid("instance");
+        }
+        var $State_DG_AB = $("#StateList_AB_datagrid");
+        if ($State_DG_AB.length)
+        {
+            State_DG_AB = $State_DG_AB.dxDataGrid("instance");
+        }
+        var $District_DG_AB = $("#DistrictList_AB_datagrid");
+        if ($District_DG_AB.length)
+        {
+            District_DG_AB = $District_DG_AB.dxDataGrid("instance");
+        }
+        var $City_DG_AB = $("#CityList_AB_datagrid");
+        if ($City_DG_AB.length)
+        {
+            City_DG_AB = $City_DG_AB.dxDataGrid("instance");
+        }
+        var $State_O_DG_AB = $("#StateList_Off_AB_datagrid");
+        if ($State_O_DG_AB.length)
+        {
+            State_O_DG_AB = $State_O_DG_AB.dxDataGrid("instance");
+        }
+        var $District_O_DG_AB = $("#DistrictList_Off_AB_datagrid");
+        if ($District_O_DG_AB.length)
+        {
+            District_O_DG_AB = $District_O_DG_AB.dxDataGrid("instance");
+        }
+        var $City_O_DG_AB = $("#CityList_Off_AB_datagrid");
+        if ($City_O_DG_AB.length)
+        {
+            City_O_DG_AB = $City_O_DG_AB.dxDataGrid("instance");
+        }
+        var $CenList_AB_DG = $("#CenterNameList-datagrid");
+        if ($CenList_AB_DG.length)
+        {
+            CenList_AB_DG = $CenList_AB_DG.dxDataGrid("instance");
+        }
+    }
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        TransformTextForDB("AddressBookForm");
+        if ("@AB_Asset_Image".length <= 0)
+        {
+            $("#AB_fileRemove").hide();
+        }
+        else
+        {
+            $("#AB_fileview").load("@Url.Action("AB_PreviewImageControl", "AddressBook", new { @area = "Facility" })", function () { });
+        }
+        InitAllDropdownDatagrid_AB();
+        LookUp_GetCountryList_AB(true);
+        if (ActionMethod_AB == "_New")
+        {
+            GLookUp_RCountryList_EditValueChanged_AB(null, true)
+            GLookUp_OCountryList_EditValueChanged_AB(null, true)
+        }
+        else if (ActionMethod_AB == "_Edit" || ActionMethod_AB == "_Delete")
+        {
+            $("#Look_TitleList_AB").dxSelectBox("instance").option("value", "@Model.Look_TitleList_AB");
+            if ("@Model.Txt_Desig_AB".length > 0)
+            {
+                AddCustomDatatoDesignation();
+            }
+            if ("@Model.Txt_Education_AB".length > 0)
+            {
+                AddCustomDatatoEducation();
+            }
+            Control_SetReadOnly("GLookUp_RCountryList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_RStateList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_RDistrictList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_RCityList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_OCountryList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_OStateList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_ODistrictList_AB", "dxDropDownBox", false);
+            Control_SetReadOnly("GLookUp_OCityList_AB", "dxDropDownBox", false);
+            if ("@Model.GLookUp_RCountryList_AB".length > 0)
+            {
+                GLookUp_RCountryList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_RStateList_AB".length > 0)
+            {
+                GLookUp_OStateList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_RDistrictList_AB".length > 0)
+            {
+                GLookUp_RDistrictList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_RCityList_AB".length > 0)
+            {
+                GLookUp_RCityList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_OCountryList_AB".length > 0)
+            {
+                GLookUp_OCountryList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_OStateList_AB".length > 0)
+            {
+                GLookUp_OStateList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_ODistrictList_AB".length > 0)
+            {
+                GLookUp_ODistrictList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_OCityList_AB".length > 0)
+            {
+                GLookUp_OCityList_EditValueChanged_AB(null, true)
+            }
+            if ("@Model.GLookUp_Cen_List_AB".length > 0)
+            {
+                GLookUp_Cen_List_EditValueChanged(null, true);
+            }
+        }
+        ValidateGeneralTabControl_AB();
+        ValidateAddressTabControl_AB();
+        if ("@Model.DropDownFunctionName" == "refreshCoordinator_GSR")
+        {
+            $("#Look_CategoryList_AB").dxSelectBox("option", "value", "FACULTY")
+        }
+        else if ("@Model.DropDownFunctionName" == "refreshOrganiser_GSR")
+        {
+            $("#Look_CategoryList_AB").dxSelectBox("option", "value", "EVENT ORGANIZER")
+        }
+        HideLoader_Ready();
+        $("#Look_TitleList_AB").dxSelectBox("instance").focus();
+        console.log("AB Page Ready")
+    });
+    function AB_SaveClick(e)
+    {
+        var result = e.validationGroup.validate();
+        if (result.isValid) {
+            if (ActionMethod_AB == "_Delete") {
+                var confirm = DevExpress.ui.dialog.confirm("Sure You Want To Delete This Entry...?", "Confirm");
+                confirm.done(function (result) {
+                    if (result) {
+                        $("#AddressBookForm").submit();
+                    }
+                });
+            }
+            else {
+                if (ActionMethod_AB == "_Edit") {
+                    if (parseInt("@next_Unaudited_YearID") != 0) {
+                        var confirm = DevExpress.ui.dialog.confirm("Do You Want To Make Same Changes In This Contact in Year " + "@next_Unaudited_YearID".substring(0, 2) + "-" + "@next_Unaudited_YearID".substring(2) + " too?", "Confirm");
+                        confirm.done(function (result) {
+                            if (result) {
+                                $("#Replicate_Confirm").val(true);
+                                $("#AddressBookForm").submit();
+                            }
+                            else {
+                                $("#Replicate_Confirm").val(false);
+                                $("#AddressBookForm").submit();
+                            }
+                        });
+                    }
+                    else {
+                        $("#AddressBookForm").submit();
+                    }
+                }
+                else {
+                    $("#AddressBookForm").submit();
+                }
+            }
+        }
+        else //Redmine Bug #134089 fixed
+        {
+            var ElementParentClass = result.brokenRules[0].validator._$element[0].parentElement.className;
+            if (ElementParentClass.includes("Tab0_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 0);
+            }
+            else if (ElementParentClass.includes("Tab1_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 1);
+            }
+            else if (ElementParentClass.includes("Tab2_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 2);
+            }
+            else if (ElementParentClass.includes("Tab3_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 3);
+            }
+            else if (ElementParentClass.includes("Tab4_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 4);
+            }
+            else if (ElementParentClass.includes("Tab5_AB")) {
+                $("#tabPanel_AB").dxTabPanel("instance").option("selectedIndex", 5);
+            }
+        }
+    }
+    function AjaxSuccessAddressBook(data)
+    {
+        AddressBook_Window_save_Success(data, "@Model.ActionMethod", "@Model.NewFunctionName", "@Model.DropDownFunctionName", "@Model.Party_DataGridID")
+    }
+    async function AB_ClosePopUP(Xid="")
+    {
+        if ($("#AddressListGrid").length == 0 || AllOpenControlTabs.includes("Frm_Address_Info"))
+        {
+            if ("@Model.DropDownFunctionName".length > 0)
+            {
+                var fn = window["@Model.DropDownFunctionName"];
+                if (typeof fn == "function")
+                {
+                    if ("@Model.DropDownFunctionName" == "LookUp_GetPartyList_PaymentItem" || "@Model.DropDownFunctionName" == "RefreshAdmin_ServiceProject")
+                    {
+                        if (Xid.length > 0)
+                        {
+                            fn(Xid);
+                        }
+                        else
+                        {
+                            fn();
+                        }
+                    }
+                    else
+                    {
+                        fn();
+                    }
+                    RefreshAddressBookGrid_AddressBook()
+                    close_AddressBook();
+                }
+            }
+            else if ("@Model.Party_DataGridID".length > 0)
+            {
+                var DatagridID = "#" + "@Model.Party_DataGridID";
+                await $(DatagridID).dxDataGrid("instance").refresh();
+                RefreshAddressBookGrid_AddressBook()
+                close_AddressBook();
+            }
+            else
+            {
+                RefreshAddressBookGrid_AddressBook()
+                close_AddressBook();
+            }
+        }
+        else
+        {
+            RefreshAddressBookGrid_AddressBook()
+            close_AddressBook();
+        }
+    }
+    function RefreshAddressBookGrid_AddressBook()
+    {
+        var GridInstance = $('#AddressListGrid_dx').data("dxDataGrid")
+        if (GridInstance !== void 0)
+        {
+            AddressListGrid_dx_Refresh();
+        }
+        else
+        {
+            if (typeof AddressListGrid !== "undefined" && ASPxClientUtils.IsExists(AddressListGrid) && AddressListGrid.GetMainElement())
+            {
+                RefreshGridView("AddressListGrid")
+            }
+        }
+    }
+    function close_AddressBook()
+    {
+        var popupid = "#" + "@Model.PopUpId";
+        $(popupid).dxPopup("hide");
+    }
+    $(function ()
+    {
+        $("#" + "@Model.PopUpId").dxPopup({
+            onHiding: function (e)
+            {
+                if (AB_TakepopUpcloseConfirmation == false)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/AddressBook/SessionClear_Window",
+                        cache: false
+                    });
+                }
+                else
+                {
+                    e.cancel = true;
+                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                    result.done(function (dialogResult)
+                    {
+                        AB_TakepopUpcloseConfirmation = !dialogResult;
+                        if (dialogResult)
+                        {
+                            $("#" + "@Model.PopUpId").dxPopup("hide");
+                        }
+                    });
+                }
+            }
+        });
+    });
+</script>
+</div>

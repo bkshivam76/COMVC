@@ -1,0 +1,173 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var IsDisable = (string)ViewData["MT_ActionMethod"] == "View" || (string)ViewData["MT_ActionMethod"] == "Delete" ? true : false;
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    var grid = Html.DevExpress().GridView(
+settings =>
+{
+    settings.Name = "MT_AllocatedTool_Grid";
+    settings.CallbackRouteValues = new
+    {
+        Controller = "MTAllocationRegister",
+        Action = "AllocatedTools_Grid",
+        SessionGUID = SessionGUID
+    };
+    settings.Enabled = !IsDisable;
+    settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+    settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+    settings.Settings.VerticalScrollableHeight = 100;
+    settings.KeyboardSupport = true;
+    //settings.AccessKey = "G";
+    settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+    settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+    settings.SettingsBehavior.AllowSelectByRowClick = true;
+    settings.Settings.UseFixedTableLayout = true;
+    settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+    settings.SettingsBehavior.AllowSort = true;
+    settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.NextColumn;
+    settings.SettingsResizing.Visualization = ResizingMode.Live;
+    settings.SettingsBehavior.AllowEllipsisInText = true;
+    settings.SettingsBehavior.AllowFocusedRow = true;
+    settings.SettingsContextMenu.Enabled = false;
+    settings.SettingsBehavior.EnableCustomizationWindow = false;
+
+    settings.CommandColumn.Visible = true;
+    settings.CommandColumn.ShowDeleteButton = true;
+    settings.CommandColumn.ShowEditButton = true;
+    settings.CommandColumn.ShowNewButtonInHeader = true;
+
+    settings.SettingsCommandButton.UpdateButton.Text = "Save";
+    settings.SettingsCommandButton.UpdateButton.Styles.Style.Font.Bold =true;
+    settings.SettingsCommandButton.UpdateButton.Styles.Style.ForeColor = System.Drawing.Color.Black;
+
+    settings.SettingsCommandButton.NewButton.Styles.Style.Font.Bold = true;
+    settings.SettingsCommandButton.EditButton.Styles.Style.Font.Bold = true;
+    settings.SettingsCommandButton.CancelButton.Styles.Style.Font.Bold = true;
+    settings.SettingsCommandButton.DeleteButton.Styles.Style.Font.Bold = true;
+
+    settings.SettingsCommandButton.NewButton.Styles.Style.ForeColor = System.Drawing.Color.Black;
+    settings.SettingsCommandButton.DeleteButton.Styles.Style.ForeColor = System.Drawing.Color.Black;
+    settings.SettingsCommandButton.EditButton.Styles.Style.ForeColor = System.Drawing.Color.Black;
+    settings.SettingsCommandButton.CancelButton.Styles.Style.ForeColor = System.Drawing.Color.Black;
+
+    settings.SettingsCommandButton.NewButton.Image.Url = "~/Icons/plus-16.png";
+    settings.SettingsCommandButton.NewButton.RenderMode = GridCommandButtonRenderMode.Image;
+    settings.SettingsCommandButton.DeleteButton.Image.Url = "~/Icons/minus-16.png";
+    settings.SettingsCommandButton.DeleteButton.RenderMode = GridCommandButtonRenderMode.Image;
+    settings.SettingsCommandButton.EditButton.Image.Url = "~/Icons/edit-16.png";
+    settings.SettingsCommandButton.EditButton.RenderMode = GridCommandButtonRenderMode.Image;
+    settings.SettingsCommandButton.CancelButton.Image.Url = "~/Icons/cancel-16.png";
+    settings.SettingsCommandButton.CancelButton.RenderMode = GridCommandButtonRenderMode.Image;
+    settings.SettingsCommandButton.UpdateButton.Image.Url = "~/Icons/save-16.png";
+    settings.SettingsCommandButton.UpdateButton.RenderMode = GridCommandButtonRenderMode.Image;
+
+    settings.SettingsEditing.Mode = GridViewEditingMode.Inline;
+
+    settings.SettingsEditing.AddNewRowRouteValues = new
+    {
+        Controller = "MTAllocationRegister",
+        Action = "AllocatedTools_Grid_AddNewRow"
+    };
+    settings.SettingsEditing.DeleteRowRouteValues = new
+    {
+        Controller = "MTAllocationRegister",
+        Action = "AllocatedTools_Grid_DeleteRow"
+    };
+    settings.SettingsEditing.UpdateRowRouteValues = new
+    {
+        Controller = "MTAllocationRegister",
+        Action = "AllocatedTools_Grid_EditRow"
+    };
+    settings.InitNewRow = (s, e) =>
+    {
+        e.NewValues["Qty_Issued"] = 1;
+    };
+    settings.PreRender = (sender, e) =>
+    {
+        ASPxGridView mvcgrid = (ASPxGridView)sender;
+        mvcgrid.FocusedRowIndex = -1;
+    };
+    settings.CustomJSProperties = (sender, e) =>
+    {
+        if (ViewData["EditError"] != null)
+        {
+            e.Properties["cpIssueToolGridError"] = (string)ViewData["EditError"];
+        }
+        e.Properties["cpVisibleRowCount"] = (sender as MVCxGridView).VisibleRowCount;
+    };
+    settings.ClientSideEvents.EndCallback = "IssueTool_Grid_End_CallBack";
+
+    settings.KeyFieldName = "Sr";
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Machine_Tool_Name";
+            column.Caption = "Machine/Tool Name";
+            column.Visible = true;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(70);
+            column.EditorProperties().ComboBox(p =>
+            {
+                p.BindList(ViewData["MachineToolName_List"]);
+                p.Columns.Add("Item_Name", "Name");
+                p.Columns.Add("Item_Code", "Code");
+                p.Columns.Add("Location", "Location");
+                p.Columns.Add("ID", "ID").Visible = false;
+                p.Columns.Add("Org_Qty", "Total Qty").Visible = false;
+                p.ValueField = "ID";
+                p.TextField = "Item_Name";
+                p.ValueType = typeof(int);
+            });
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Qty_Issued";
+            column.Caption = "Allocated Qty";
+            column.Visible = true;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(30);
+            column.EditorProperties().SpinEdit(p =>
+            {
+                p.AllowUserInput = true;
+                p.DecimalPlaces = 0;
+                p.NumberFormat = SpinEditNumberFormat.Number;
+                p.NumberType = SpinEditNumberType.Integer;
+                p.AllowNull = false;
+            });
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ToolStockID";
+            column.Caption = "ToolStockID";
+            column.Visible = false;
+
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ID";
+            column.Caption = "ID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Sr";
+            column.Caption = "Sr";
+            column.Visible = false;
+        }
+    });
+});
+    //if (ViewData["EditError"] != null)
+    //{
+    //    grid.SetEditErrorText((string)ViewData["EditError"]);
+    //}
+}
+
+@grid.Bind(Model).GetHtml()
+

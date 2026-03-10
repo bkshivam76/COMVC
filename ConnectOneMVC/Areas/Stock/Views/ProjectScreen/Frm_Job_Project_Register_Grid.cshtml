@@ -1,0 +1,410 @@
+﻿@{ 
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool Project_AddRight = (bool)ViewData["Project_AddRight"];
+    bool Project_UpdateRight = (bool)ViewData["Project_UpdateRight"];
+    bool Project_ViewRight = (bool)ViewData["Project_ViewRight"];
+    bool Project_DeleteRight = (bool)ViewData["Project_DeleteRight"];
+    bool Project_ExportRight = (bool)ViewData["Project_ExportRight"];
+    bool Project_ApproveRight = (bool)ViewData["Project_ApproveRight"];
+    bool Project_AddDeptRight = (bool)ViewData["Project_AddDeptRight"];
+    bool Project_AddPersonnelRight = (bool)ViewData["Project_AddPersonnelRight"];
+    bool Project_ViewPersonnelRight = (bool)ViewData["Project_ViewPersonnelRight"];
+    bool Project_AddJobRight = (bool)ViewData["Project_AddJobRight"];
+    bool Project_AddHelpAttachmentRight = (bool)ViewData["Project_AddHelpAttachmentRight"];
+
+    var ProjectExportGridHeaderLeft = ViewData["ProjectExportGridHeaderLeft"] != null ? ViewData["ProjectExportGridHeaderLeft"].ToString() : "";
+    var ProjectExportGridHeaderRight = ViewData["ProjectExportGridHeaderRight"] != null ? ViewData["ProjectExportGridHeaderRight"].ToString() : "";
+    var ProjectExportGridFooter = ViewData["ProjectExportGridFooter"] != null ? ViewData["ProjectExportGridFooter"].ToString() : "";
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "ProjectScreenListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "ProjectScreen",
+            Action = "Frm_Job_Project_Register_Grid",
+            SessionGUID = SessionGUID
+        };
+        settings.PreRender = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            grid.FilterExpression = "";
+        };
+
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsCookies.Enabled = true;
+        settings.SettingsCookies.CookiesID = "ProjectGridCookie";
+
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.Expanded;
+        settings.SettingsExport.PageHeader.Center = "Project Register";
+        settings.SettingsExport.PageHeader.Left = ProjectExportGridHeaderLeft;
+        settings.SettingsExport.PageHeader.Right = ProjectExportGridHeaderRight;
+        settings.SettingsExport.PageFooter.Right = ProjectExportGridFooter;
+        //settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.CustomDataActionRouteValues = new { Controller = "ProjectScreen", Action = "ProjectRegisterCustomDataAction" };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var New = e.CreateItem("New", "New");
+                New.Image.IconID = "actions_new_16x16gray";
+                New.BeginGroup = true;
+                if (Project_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), New);
+
+                var Edit = e.CreateItem("Edit", "Edit");
+                Edit.Image.IconID = "actions_edit_16x16devav";
+                Edit.BeginGroup = true;
+                if (Project_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edit);
+
+                var Deleteitem = e.CreateItem("Delete", "Delete");
+                Deleteitem.Image.IconID = "actions_delete_16x16devav";
+                Deleteitem.BeginGroup = true;
+                if (Project_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                var Viewitem = e.CreateItem("View", "View");
+                Viewitem.Image.IconID = "actions_show_16x16gray";
+                Viewitem.BeginGroup = true;
+                if (Project_ViewRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_export_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if (Project_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+
+                var Actions = e.CreateItem("Actions", "Actions");
+                Actions.Items.Add("Mark As Complete", "MarkComplete").Image.IconID = "actions_task_16x16devav";
+                Actions.Items.Add("Reopen Project", "ReOpen").Image.IconID = "actions_task_16x16devav";
+                if (Project_AddHelpAttachmentRight) Actions.Items.Add("Add Documents", "Adddocuments").Image.IconID = "actions_newdoc_16x16devav";
+                Actions.Items.Add("Print Estimation Report", "PrintEstimationReport").Image.IconID = "print_profilereport_16x16devav";
+                if (Project_AddJobRight)
+                {
+                    Actions.Items.Add("Add Job", "AddJob").Image.IconID = "actions_driving_16x16devav";//Mantis bug 0000380 fixed
+                    Actions.Items.Add("Add Quick Job", "QuickJob").Image.IconID = "actions_driving_16x16devav";//Mantis bug 0000380 fixed
+                }
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Actions); //Mantis bug 0000468 fixed
+            }
+        };
+        settings.SettingsDataSecurity.AllowReadUnlistedFieldsFromClientApi = DefaultBoolean.True;
+        //settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+        settings.KeyFieldName = "ID";
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Project_Name";
+                column.Caption = "Project_Name";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Complex_Name";
+                column.Caption = "Complex Name";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Sanction_No";
+                column.Caption = "Sanction No";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Project_Type";
+                column.Caption = "Project Type";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Request_Date";
+                column.Caption = "Request Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Req_Main_Dept";
+                column.Caption = "Requestor's Main Department";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Req_Sub_Dept";
+                column.Caption = "Requestor's Sub Department";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Assignee_Main_Dept";
+                column.Caption = "Assignee's Main Department";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Assignee_Sub_Dept";
+                column.Caption = "Assignee's Sub Department";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Project_Status";
+                column.Caption = "Status";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Estimated_Cost";
+                column.Caption = "Estimated Cost";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Actual_Cost";
+                column.Caption = "Actual Cost";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Estimation_Date";
+                column.Caption = "Estimation Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Sanction_Date";
+                column.Caption = "Sanction Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Start_Date";
+                column.Caption = "Req. Start Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Actual_Start_Date";
+                column.Caption = "Actual Start Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Finish_Date";
+                column.Caption = "Req. Finish Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Actual_Finish_Date";
+                column.Caption = "Actual Finish Date";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Proj_Summary";
+                column.Caption = "Project Summary";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Rec_Add_By";
+                column.Caption = "Rec_Add_By";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Rec_Add_On";
+                column.Caption = "Rec_Add_On";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Rec_Edit_By";
+                column.Caption = "Rec_Edit_By";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Rec_Edit_On";
+                column.Caption = "Rec_Edit_On";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ID";
+                column.Caption = "ID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "CurrUserRole";
+                column.Caption = "CurrUserRole";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Proj_Engineer";
+                column.Caption = "Project Engineer";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Proj_Estimator";
+                column.Caption = "Project Estimator";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Proj_Approver";
+                column.Caption = "Project Approver";
+                column.Visible = false;
+            }
+        });
+        settings.Settings.ShowPreview = true;
+        settings.PreviewFieldName = "Proj_Summary";
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            var Summary = DataBinder.Eval(c.DataItem, "Proj_Summary")==null? "" : DataBinder.Eval(c.DataItem, "Proj_Summary").ToString();
+            var formattedSummary = string.Format("Project Summary: {0} ", Summary);
+            ViewContext.Writer.Write("<span style='color: black'>" + formattedSummary + "</span>");
+        });
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.False;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+        }
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.Hidden;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        //settings.Settings.ShowGroupedColumns = ShowGroupedColumns;
+        settings.Settings.ShowFooter = false;
+
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.ClientSideEvents.Init = "PR_OnInit";
+        settings.ClientSideEvents.BeginCallback = "ProjectRegisterGrid_beginCallback";
+        settings.ClientSideEvents.ContextMenuItemClick = "ProjectRegisterContextMenuFunction";
+        settings.ClientSideEvents.FocusedRowChanged = "ProjectRegisterGridFocusedRowChanged";
+        settings.ClientSideEvents.EndCallback = "ProjectRegisterGrid_endCallback";
+        settings.ClientSideEvents.ContextMenu = "ProjectRegisterContextMenuInit";
+
+    }).Bind(Model).GetHtml()

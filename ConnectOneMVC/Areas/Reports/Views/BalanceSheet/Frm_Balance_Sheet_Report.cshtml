@@ -1,0 +1,386 @@
+﻿<div class="BalanceSheet_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool BalanceSheet_ExportRight = (bool)ViewData["BalanceSheet_ExportRight"];
+        bool BalanceSheet_Auto_Vouching_Mode = (bool)ViewData["BalanceSheet_Auto_Vouching_Mode"];
+    }
+    <script type="text/javascript">
+        //function PopupOnShowing() {
+        //    $('.dx-overlay-wrapper').addClass('popupresponsive');
+        //   // $(".dx-popup-content").dxScrollView();
+        //}
+    </script>
+    <style>
+        .parent_table .col-xs-6{padding:0}
+        .parent_table .col-xs-6 .dxgvHSDC { padding-right: 0 !important}
+        #BalanceSheetReportAssetreloadPartialView { padding-left: 5px }
+        @@media (max-width:768px){
+            .parent_table .col-xs-6{overflow:auto}
+            .dxgvADR td { display: block }
+            .dxgvDetailRow_MetropolisBlue.dxgvADR .dxgvADT > tbody > tr > td.dxgvADDC { padding-top: 0 }
+        }
+    </style>
+    <div class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Balance Sheet Report</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("BalanceSheetVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("BalanceSheetVouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                        .ID("BalanceSheetReportsShowLedger")
+                        .Width(110)
+                        .Text("Show Ledger")
+                        .Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen")
+                        .Visible(false)
+                        .Disabled(true)
+                        .OnClick(@<text>
+                            function () {
+                            OnBalanceSheetReportShowLedgerClick();
+                            }
+                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                            .ID("BalanceSheetReportToggleScrollBar")
+                                            .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                            .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                            .Icon("toolbox")
+                                            .OnClick(@<text>
+                                                function () {
+                                                BalanceSheetReportchangeMode();
+                                                }
+                                            </text>)
+        )
+            @*@(Html.DevExtreme().Button()
+                                            .ID("BalanceSheetReportsModelListexport")
+                                            .Text("Export")
+                                            .Icon("save")
+                                              .Width(80)
+                                            .OnClick(@<text>
+                                                function () {
+                                                OnBalanceSheetReportListPreviewClick();
+                                                }
+                                            </text>)
+                )*@
+            @(Html.DevExtreme().Button()
+                                            .ID("BalanceSheetReportModelCLOSE")
+                                            .Text("Close")
+                                            .Icon("clear")
+                                            //.ElementAttr("style","min-width:70px")
+                                            .OnClick(@<text>
+                                                function (){
+                                                $(".TabPanalMenu-tabs .active span").click()
+                                                }
+                                            </text>)
+
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div class="parent_table">
+                <div id="BalanceSheetReportLiabilityreloadPartialView" class="col-xs-6">
+                    @Html.Partial("Frm_Balance_Sheet_Liability_Report_Grid", Model)
+                </div>
+                <div id="BalanceSheetReportAssetreloadPartialView" class="col-xs-6">
+                    @Html.Partial("Frm_Balance_Sheet_Asset_Report_Grid", Model)
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @*@(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("BalanceSheetReport_report_modal")
+                         .OnShowing("PopupOnShowing")
+                        .Title("Balance Sheet Report Preview")
+                        .FullScreen(false)
+                        .MaxWidth(125)
+                        .Height("auto")
+                        .ShowCloseButton(true)
+                        .ContentTemplate(@<text>
+                            <div id='BalanceSheetReport_report_modal_result'>
+                            </div>
+                        </text>)
+            )*@
+
+    </div>
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsBalanceSheetReportSucessPopup = false;
+    var IsBalanceSheetReportViewPopup = false;
+    var BalanceSheetReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var BSheet_IsVouchingMode = false;
+    var BalanceSheet_SetVouchingModeOn = "@BalanceSheet_Auto_Vouching_Mode" == "True" ? true : false;
+    function BalanceSheetVouchingSwitch_ValueChange(e)
+    {
+        BSheet_IsVouchingMode = e.value;
+        BalanceSheetReportLiabilityListGrid_PerformCallBack();
+        BalanceSheetReportAssetListGrid_PerformCallBack();
+    }
+    function BalanceSheetReportAssetListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.BalanceSheetReportAssetListGrid !== 'undefined')
+            {
+                if (typeof window.BalanceSheetReportAssetListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof BalanceSheetReportAssetListGrid.PerformCallback == 'function')
+                    {
+                        BalanceSheetReportAssetListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        BalanceSheetReportAssetListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function BalanceSheetReportLiabilityListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.BalanceSheetReportLiabilityListGrid !== 'undefined')
+            {
+                if (typeof window.BalanceSheetReportLiabilityListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof BalanceSheetReportLiabilityListGrid.PerformCallback == 'function')
+                    {
+                        BalanceSheetReportLiabilityListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        BalanceSheetReportLiabilityListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    $(document).ready(function () {
+        @*if ("@BalanceSheet_ExportRight" == "False")
+        {
+	        $("#BalanceSheetReportsModelListexport").hide();
+        }*@
+        IsBalanceSheetReportSucessPopup = false;
+        IsBalanceSheetReportViewPopup = false;
+
+        $(".BalanceSheetReportLiabilityListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportLiabilityListGrid");
+
+        $(".BalanceSheetReportAssetListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportAssetListGrid");
+        //SetBalanceSheetReportGroupPanelFooterVisible();
+       // $('#BalanceSheetReportreloadPartialView').maxHeight = document.documentElement.clientHeight;
+       // $('#BalanceSheetReportreloadPartialView').maxWidth = document.documentElement.clientWidth;
+        $("#BalanceSheetReportAssetListGrid").hover(function () {
+            BalanceSheetReportAssetListGrid.Focus()
+        })
+        $("#BalanceSheetReportLiabilityListGrid").hover(function () {
+            BalanceSheetReportLiabilityListGrid.Focus()
+        })
+        if (BalanceSheet_SetVouchingModeOn == true)
+        {
+            $("#BalanceSheetVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/BalanceSheet/SessionClear",
+            cache: false
+        });
+
+        ClearAllReferences_BalanceSheet();
+    });
+    function ClearAllReferences_BalanceSheet()
+    {
+        IsBalanceSheetReportSucessPopup = null;
+        IsBalanceSheetReportViewPopup = null;
+        BalanceSheetReport_ShowHorizontalBar = null;
+        BSheet_IsVouchingMode = null;
+        BalanceSheet_SetVouchingModeOn = null;
+
+        ClearAllReferences("BalanceSheet_ClearReferences");
+    }
+    function OnGridBalanceSheetReportLiabilityListGrid_EndCallback(s, e)
+    {
+        $(".BalanceSheetReportLiabilityListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportLiabilityListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function OnGridBalanceSheetReportAssetListGrid_EndCallback(s, e) {
+        $(".BalanceSheetReportAssetListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportAssetListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+
+    function OnGridBalanceSheetReportAssetListGrid_BeginCallback(s, e) {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = BalanceSheetReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = BSheet_IsVouchingMode;
+    }
+    function OnGridBalanceSheetReportLiabilityListGrid_BeginCallback(s, e) {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = BalanceSheetReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = BSheet_IsVouchingMode;
+    }
+
+    function BalanceSheetReportchangeMode() {
+        ShowLoader();
+        if (BalanceSheetReport_ShowHorizontalBar == 0) {
+            BalanceSheetReport_ShowHorizontalBar = 1;
+            $("#BalanceSheetReportToggleScrollBar").find("span").text("Default Data");
+            $("#BalanceSheetReportToggleScrollBar").width(110);
+        }
+        else {
+            BalanceSheetReport_ShowHorizontalBar = 0;
+            $("#BalanceSheetReportToggleScrollBar").find("span").text("Full Data");
+            $("#BalanceSheetReportToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Balance_Sheet_Asset_Report_Grid", "BalanceSheet")',
+            type: "GET",
+            data: { ShowHorizontalBar: BalanceSheetReport_ShowHorizontalBar, VouchingMode: BSheet_IsVouchingMode },
+            success: function (res) {
+
+                $("#BalanceSheetReportAssetreloadPartialView").html(res);
+                $(".BalanceSheetReportAssetListGrid_PreviewRow").hide();
+                GetSessionStorage("BalanceSheetReportAssetListGrid");
+            }
+        });
+          $.ajax({
+            url: '@Url.Action("Frm_Balance_Sheet_Liability_Report_Grid", "BalanceSheet")',
+            type: "GET",
+              data: { ShowHorizontalBar: BalanceSheetReport_ShowHorizontalBar, VouchingMode: BSheet_IsVouchingMode },
+            success: function (res) {
+
+                $("#BalanceSheetReportLiabilityreloadPartialView").html(res);
+                $(".BalanceSheetReportLiabilityListGrid_PreviewRow").hide();
+                GetSessionStorage("BalanceSheetReportLiabilityListGrid");
+            }
+        });
+        HideLoader();
+    }
+
+    function BalanceSheetAssetReportOnInit(s, e) {
+        BalanceSheetReportAdjustSize();
+        $(".BalanceSheetReportAssetListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportAssetListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            BalanceSheetReportAdjustSize();
+        });
+    }
+
+    function BalanceSheetLiabilityReportOnInit(s, e) {
+        BalanceSheetReportAdjustSize();
+        $(".BalanceSheetReportLiabilityListGrid_PreviewRow").hide();
+        GetSessionStorage("BalanceSheetReportLiabilityListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            BalanceSheetReportAdjustSize();
+        });
+    }
+
+    //function OnEndCallback(s, e) {
+    //    BalanceSheetReportAdjustSize();
+    //}
+
+    function BalanceSheetReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try { BalanceSheetReportAssetListGrid.SetHeight(height); } catch (err) { }
+        try { BalanceSheetReportLiabilityListGrid.SetHeight(height); } catch (err) { }
+    }
+
+    $("#BalanceSheetReportTrackBar").click(function (evt) {
+
+    });
+
+    @*function OnBalanceSheetReportListPreviewClick() {
+        if ("@BalanceSheet_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("BalanceSheetReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "BalanceSheet", new { @area = "Reports" })", "auto", "auto", false, null);
+    }*@
+
+    function OnBalanceSheetReportShowLedgerClick() {
+        ShowLoader();
+        OpenDynamicPopup('Ledger Report', '@Url.Action("Frm_Ledger_Report", "LedgerReport",new { @area = "Reports", @id="" })', 460, 680);
+        HideLoader();
+    }
+
+    function BalanceSheetReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        //else if (e.item.name == 'ListPreview') {
+        //    OnBalanceSheetReportListPreviewClick();
+        //}
+        else if (e.item.name == 'Refresh') {
+            BalanceSheetReportLiabilityListGrid.Refresh();
+            BalanceSheetReportAssetListGrid.Refresh();
+        }
+    }
+
+    //function BalanceSheetReportHScrollClick()
+    //{
+    //    BalanceSheetReportListGrid.PerformCallback({ 'FilterVisible': BalanceSheetReportFilterVisible, "SearchVisible": BalanceSheetReportSearchVisible, "ShowGroupedColumns": !BalanceSheetReportGroupedColumnsVisible, "ShowHorizontalBar": BalanceSheetReportHorzBarVisible });
+    //    if (BalanceSheetReportHorzBarVisible) {
+    //        $("#BalanceSheetReportHScrollButton").attr("title", "Hide Extra Columns")
+    //    }
+    //    else {
+    //        $("#BalanceSheetReportHScrollButton").attr("title", "Show All Columns")
+    //    }
+    //    BalanceSheetReportHorzBarVisible = !BalanceSheetReportHorzBarVisible;
+    //}
+</script>
+</div>

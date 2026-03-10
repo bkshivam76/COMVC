@@ -1,0 +1,158 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Purchase
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("PO_GoodsReturnedGridData", "PurchaseRegister", new { ActionMethodName = Model.ActionMethod, PO_ID = Model.PO_ID })
+    </div>
+</div>
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-md-12 btnsDiv">
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_GRNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_GoodsRet_New_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_GREdit").Text("Edit").Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_GoodsRet_Edit_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_GRDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_GoodsRet_Delete_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_GRView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsVisible).OnClick(@<text> function () { OnFrm_PO_GoodsRet_View_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_GRAllRet").Text("All Returned").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_GoodsRet_AllReturned_Click() } </text>))
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var goodsretsr;
+    var goodsretid;
+    function OnPurchaseGoodsReturnedGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID', PO_GoodsRet_GridRowValues);
+    }
+    function PO_GoodsRet_GridRowValues(values) {
+        goodsretsr = values[0];
+        goodsretid = values[1];
+    }
+    $("#PO_GoodsReturnedGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                OnFrm_PO_GoodsRet_New_Click();
+                break;
+            case 13: //enter key
+                OnFrm_PO_GoodsRet_Edit_Click();
+                break;
+            case 32: //space bar
+                OnFrm_PO_GoodsRet_View_Click();
+                break;
+            case 46://delete key
+                OnFrm_PO_GoodsRet_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            OnFrm_PO_GoodsRet_New_Click();
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            OnFrm_PO_GoodsRet_Edit_Click();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_PO_GoodsRet_View_Click();
+        }
+    });
+    function OnFrm_PO_GoodsRet_New_Click() {
+        if ("@IsDisabled" == "true") { return; }
+
+        var menucheck = PO_StatusFlowCheck("POSTING DELIVERY RETURNED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+            ShowLoader();
+  
+        OpenPopup("Purchaseinnergrid", "New ~ Goods Returned Detail","@Url.Action("Frm_PO_Goods_Returned", "PurchaseRegister", new {@area= "Stock" })?ActionMethod=New", "auto", 1024, false, null);
+    }// new click
+    function OnFrm_PO_GoodsRet_Edit_Click() {
+        if ("@IsDisabled" == "true") { return; }
+        if (goodsretsr == null || goodsretsr == undefined || goodsretsr == "undefined") {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+            }  
+            ShowLoader();     
+                OpenPopup("Purchaseinnergrid", "Edit ~ Goods Returned Detail","@Url.Action("Frm_PO_Goods_Returned", "PurchaseRegister", new {@area= "Stock" })?ActionMethod=Edit&SR=" + encodeURIComponent(goodsretsr), "auto", 1024, false, null);
+        }//edit click
+    function OnFrm_PO_GoodsRet_View_Click()
+    {
+        if (goodsretsr == null || goodsretsr == undefined || goodsretsr == "undefined")
+        {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+        } 
+        ShowLoader();
+         OpenPopup("Purchaseinnergrid", "View ~ Goods Returned Detail","@Url.Action("Frm_PO_Goods_Returned", "PurchaseRegister", new {@area= "Stock" })?ActionMethod=View&SR=" + encodeURIComponent(goodsretsr), "auto", 1024, false, null);
+        }//view click
+    function OnFrm_PO_GoodsRet_Delete_Click() {
+
+        if ("@IsDisabled" == "true") {
+            return;
+        }
+        if (goodsretsr == 'undefined' || goodsretsr == undefined || goodsretsr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var io_result = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        io_result.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/PurchaseRegister/Frm_PO_GoodsRet_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", sr: goodsretsr, id: goodsretid },
+                    cache: false,
+                    success: function (result) {
+
+                        PO_GoodsReturnedGrid.SetFocusedRowIndex(-1);
+                        PO_GoodsReturnedGrid.Refresh();
+                      }
+                });
+            }
+        });
+        //var total = ProductionStockConsumedGrid.GetVisibleRowsOnPage() + ProductionStockProducedGrid.GetVisibleRowsOnPage() + ProductionScrapCreatedGrid.GetVisibleRowsOnPage() + Actual_ManPower_Usage_Grid.GetVisibleRowsOnPage() + Machine_Usage_Window_Grid.GetVisibleRowsOnPage()-1;
+
+        //if (total == 0) {
+        //    $("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", false);
+        //}
+    }
+
+    function OnFrm_PO_GoodsRet_AllReturned_Click() {
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    
+
+    //function PO_StatusFlowCheck(Status) {
+    //    var msg;
+    //    var result;
+    //    $.ajax({
+    //        type: 'POST',
+    //        url: "/Stock/PurchaseRegister/PurchaseOrderStatusFlow",
+    //        data: {
+    //            ID: PO_ID,
+    //            StatusButton: Status,
+    //            CurrUserRole: POCurrUserRole
+    //        },
+    //        async: false,
+    //        cache: false,
+    //        success: function (data) {
+    //            msg = data.message;
+    //            result = data.result;
+    //        }
+    //    });
+    //    return [msg, result];
+    //}
+
+</script>
+
+

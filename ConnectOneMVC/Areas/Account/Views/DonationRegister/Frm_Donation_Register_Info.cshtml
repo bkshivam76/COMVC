@@ -1,0 +1,1482 @@
+﻿<div class="DonationRegister_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool DonationReg_ExportRight = (bool)ViewData["DonationReg_ExportRight"];
+        bool DonationReg_HelpAttachmentAddRight = (bool)ViewData["DonationReg_HelpAttachmentAddRight"];
+        bool DonationReg_HelpAttachmentListRight = (bool)ViewData["DonationReg_HelpAttachmentListRight"];
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool DonationReg_Auto_Vouching_Mode = (bool)ViewData["DonationReg_Auto_Vouching_Mode"];
+    }
+
+    <style>
+        #DonRegisterListGrid_DXMainTable img.dxGridView_gvCollapsedButton_MetropolisBlue {
+            filter: brightness(0.5)
+        }
+
+        #DonRegisterListGrid_DXMainTable .dxgvFocusedGroupRow_MetropolisBlue .dxGridView_gvExpandedButton_MetropolisBlue {
+            background-position: -35px -120px !important;
+        }
+    </style>
+    <script>
+        function DonationRegister_Gridpanel_selectionChanged(e) {
+
+        }
+
+    </script>
+    <div>
+        @(Html.DevExtreme().TabPanel().ID("DonationRegister_Gridpanel").Items(items =>
+        {
+            items.Add().Title("Posted Entries").Template(@<text> @CurrentlyPostedView() </text>);
+            items.Add().Title("Online Donation Logs").Template(@<text> @PendingEntriesView() </text>);
+        }).DeferRendering(false).OnSelectionChanged("DonationRegister_Gridpanel_selectionChanged"))
+        @helper CurrentlyPostedView()
+        {
+            @Html.Partial("Frm_Donation_Register", Model);
+        }
+        @helper PendingEntriesView()
+        {
+            @Html.Partial("Frm_OnlineDonationLogs_dx");
+        }
+    </div>@*Grid Tabs*@
+
+
+
+    @*Javascript Events*@
+    <script>
+    var DonReg_IsVouchingMode = false;
+    var DonReg_ViewMode = "Default";
+    var DonReg_SetVouchingModeOn = "@DonationReg_Auto_Vouching_Mode" == "True" ? true : false;
+    var DonationRegister_FocusedRowBeforeRefresh;
+    var DonationRegisterInfo_IsDetailRowExpanded = false;
+    var DonationRegisterInfo_NestedRecord_FocusedRowIndex = -1;
+    var DonationRegisterInfo_NestedGrid_AccessID;
+    var DonationRegisterInfo_AtachmentID;
+    var DonationRegisterInfo_FileName;
+    var DonationRegisterInfo_ParamMandatory;
+    var DonationRegisterInfo_FromDateLabel;
+    var DonationRegisterInfo_ToDateLabel;
+    var DonationRegisterInfo_DescriptionLabel;
+    var DonationRegisterInfo_Doc_ID;
+    var DonationRegisterInfo_Doc_Category;
+    var DonationRegisterInfo_MasterRowRecID;
+    var DonationRegisterInfo_MasterRowMID;
+    var DonationRegisterInfo_NestedRowMapID;
+    var DonationRegisterInfo_reason;
+    var DonationRegisterInfo_Attachment_RecStatus;
+    var DRAttachmentFocusRowIndexBeforeRefresh;
+    var DonationRegister_NestedRowUniqueID;
+    //  var IsAllDetailExpanded = false;
+    var DonReg_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+        var DonLogs_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    //var IsSucessPopup = false;
+    //var IsViewPopup = false;
+    var flag = 0;
+    var DonationRegisterInfo_NestedRowReasonID;
+    var UserType_DonationRegPrf = "@UserType".toUpperCase();
+    var DonRegister_layout = null;
+    var DonReg_ColumnToBeShownIndex = "";
+    var DonReg_ColumnToBeHidddenIndex = "";
+    var All_Attachments_DonReg;
+    var Curr_Attachment_DonReg;
+    var DonRegisterID;
+    var DonRegister_EditDate;
+    var DonRegister_AddDate;
+    var DonRegister_AddBy;
+    var DonRegister_EditBy;
+    var DonRegister_ActionStatus;
+    var DonRegister_ActionDate;
+    var DonRegister_ActionBy;
+    var DonRegister_Kind_of_Donation;
+    var DonRegister_Attachments;
+    var DonRegister_Status;
+    var command;
+    var SelectedAlreadyOfferedRows = "";
+    var SelectedNotOfferedRows = "";
+    var SelectedIDs = "";
+    var SelectedStatuses = "";
+    var SelectedAttached_Form = ""
+    var SelectedStatusIDs = "";
+    var SelectedAB_IDs = "";
+    var SelectedAttached_PANs = "";
+    var SelectedAttached_AADHARs = "";
+    var Selected_PANs = "";
+        var Selected_AADHARs = "";
+        var Selected_Donation_Kinds = "";
+        var Selected_Donation_Dates = "";
+        var Selected_Form_Received_Dates = "";
+
+    </script>
+    @* Donationregister_Global_Variables*@
+    <script>
+        function PeriodSelectionChange_DonReg()
+        {
+            var SelectBox = $("#PeriodSelection_DonReg").dxSelectBox("instance").option("value");
+            $("#btnChangePeriod_DonReg").dxButton("instance").option("disabled", true);
+            if (SelectBox == "Specific Period")
+            {
+                $("#btnChangePeriod_DonReg").dxButton("instance").option("disabled", false);
+                ChangePeriodClick_DonReg();
+            }
+            else
+            {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/DonationRegister/Period_ChangeEvent",
+                    data: { Chaval: $("#PeriodSelection_DonReg").dxSelectBox("instance").option("value") },
+                    cache: false,
+                    success: function (data)
+                    {
+                        $("#BE_View_Period_DonReg").text(data.Period);
+                        HideLoader();
+                    }
+                });
+            }
+        }
+        function ChangePeriodClick_DonReg()
+        {
+            ShowLoader();
+            OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen", "DonationRegister", new { @area = "Account" })", "auto", "30%", false, null);
+        }
+        function DonationRegisterShowClick(e)
+        {
+            DonRegisterListGrid.SetFocusedRowIndex(-1);
+            if (DonReg_IsVouchingMode == true)
+            {
+                ClearLeftPane();
+                ClearRightPane();
+            }
+            DonRegisterListGrid.Refresh();
+        }
+    </script>
+    <script>
+
+        function DonReg_VouchingSwitch_ValueChange(e) {
+            ShowLoader();
+            DonReg_IsVouchingMode = e.value;
+            //DonRegisterListGrid.SetFocusedRowIndex(-1);
+            if (DonReg_SetVouchingModeOn == true) {
+                DonReg_SetVouchingModeOn = false;
+            }
+            else {
+                DonationRegister_FAB.SetVisible(false);
+            }
+            if (DonReg_IsVouchingMode == true) {
+                OpenRightPane();
+                ClearLeftPane();
+                OpenLeftPane();
+            }
+            else {
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+            DonRegisterListGrid_CollapseAllDetailRows();
+        }
+        function DonReg_ViewSwitch_ValueChange(e) {
+            ShowLoader();
+            DonReg_ViewMode = e.value == false ? "Default" : "Compact";
+            if (DonReg_SetVouchingModeOn == true) {
+                $("#DonRegVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            }
+            else {
+                if (DonReg_IsVouchingMode == false) {
+                    DonationRegister_FAB.SetVisible(false);
+                }
+                DonRegisterListGrid.CollapseAllDetailRows();
+            }
+            HideLoader();
+        }
+        function DonRegisterListGrid_CollapseAllDetailRows() {
+            ShowLoader();
+            if (typeof window !== 'undefined') {
+                if (typeof window.DonRegisterListGrid !== 'undefined') {
+                    if (typeof window.DonRegisterListGrid.CollapseAllDetailRows !== 'undefined') {
+                        if (typeof DonRegisterListGrid.CollapseAllDetailRows == 'function') {
+                            HideLoader();
+                            DonRegisterListGrid.SetFocusedRowIndex(-1);
+                            DonRegisterListGrid.CollapseAllDetailRows();
+                        }
+                        else {
+                            alert("CollapseAllDetailRows is not a function");
+                        }
+                    }
+                    else {
+                        setTimeout(function () {
+                            DonRegisterListGrid_CollapseAllDetailRows();
+                        }, Timeout100);
+                    }
+                }
+                else {
+                    alert('grid undefined')
+                }
+            }
+            else {
+                alert('window undefined')
+            }
+        }
+    </script>
+    <script type="text/javascript">
+
+
+
+        $(document).ready(function () {
+        ShowLoader_Ready();
+        if ("@DonationReg_ExportRight" == "False")
+        {
+            $("#DonRegisterModelListPreview").hide();
+        }
+        if (_open_Ins_ID == 00001) {
+            $("#DonRegister80GReceipt").hide();
+        }
+        ////IsSucessPopup = false;
+        //IsViewPopup = false;
+        //SetDonRegisterGroupPanelFooterVisible();
+        //SetDonRegisterFooterVisible();
+
+        if (DonReg_IsVouchingMode == true) {
+            $(".DonRegisterListGrid_PreviewRow").hide();
+        }
+        else { $(".DonRegisterListGrid_PreviewRow").show();}
+
+        GetSessionStorage("DonRegisterListGrid");
+        HideUnreleasedFunctionality('Frm_Donation_Register');
+        $("#PeriodSelection_DonReg").dxSelectBox("instance").option("value", "@ViewBag.OpenPeriod");
+        if (DonReg_SetVouchingModeOn == true)
+        {
+            $("#DonRegViewModeSwitch").dxSwitch("instance").option("value", true);
+            //$("#DonRegVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        HideLoader_Ready();
+        DevExpress.ui.notify({ message:"Click The Show Button To View The Data", width: "auto", shading: true, position: 'center' }, "info", 1500);
+    });
+    function closeDonationRegister()
+    {
+        //debugger;
+        $(".TabPanalMenu-tabs .active span").click();
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            url: "/Account/DonationRegister/SessionClear",
+            type: "GET",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        //debugger;
+        ClearAllReferences_DonationRegister()
+    });
+
+        function ClearAllReferences_DonationRegister() {
+            DonReg_IsVouchingMode = null;
+            DonReg_ViewMode = null;
+            DonReg_SetVouchingModeOn = null;
+            DonationRegister_FocusedRowBeforeRefresh = null;
+            DonationRegisterInfo_IsDetailRowExpanded = null;
+            DonationRegisterInfo_NestedRecord_FocusedRowIndex = null;
+            DonationRegisterInfo_NestedGrid_AccessID = null;
+            DonationRegisterInfo_AtachmentID = null;
+            DonationRegisterInfo_FileName = null;
+            DonationRegisterInfo_ParamMandatory = null;
+            DonationRegisterInfo_FromDateLabel = null;
+            DonationRegisterInfo_ToDateLabel = null;
+            DonationRegisterInfo_DescriptionLabel = null;
+            DonationRegisterInfo_Doc_ID = null;
+            DonationRegisterInfo_Doc_Category = null;
+            DonationRegisterInfo_MasterRowRecID = null;
+            DonationRegisterInfo_MasterRowMID = null;
+            DonationRegisterInfo_NestedRowMapID = null;
+            DonationRegisterInfo_reason = null;
+            DonationRegisterInfo_Attachment_RecStatus = null;
+            DRAttachmentFocusRowIndexBeforeRefresh = null;
+            DonationRegister_NestedRowUniqueID = null;
+            DonReg_ShowHorizontalBar = null;
+            flag = null;
+            DonationRegisterInfo_NestedRowReasonID = null;
+            UserType_DonationRegPrf = null;
+            DonRegister_layout = null;
+            DonReg_ColumnToBeShownIndex = null;
+            DonReg_ColumnToBeHidddenIndex = null;
+            All_Attachments_DonReg = null;
+            Curr_Attachment_DonReg = null;
+            DonRegisterID = null;
+            DonRegister_EditDate = null;
+            DonRegister_AddDate = null;
+            DonRegister_AddBy = null;
+            DonRegister_EditBy = null;
+            DonRegister_ActionStatus = null;
+            DonRegister_ActionDate = null;
+            DonRegister_ActionBy = null;
+            DonRegister_Kind_of_Donation = null;
+            DonRegister_Attachments = null;
+            DonRegister_Status = null;
+            command = null;
+            SelectedAlreadyOfferedRows = null;
+            SelectedNotOfferedRows = null;
+            SelectedIDs = null;
+            SelectedStatuses = null;
+            SelectedAttached_Form = null;
+            SelectedStatusIDs = null;
+            SelectedAB_IDs = null;
+            SelectedAttached_PANs = null;
+            SelectedAttached_AADHARs = null;
+            Selected_PANs = null;
+            Selected_AADHARs = null;
+            //debugger;
+            ClearAllReferences("DonationRegister_ClearReferences")
+        }
+
+    function OnDonationRegCellClick(event, cell,col, row)
+    {
+        if (UserType_DonationRegPrf == "AUDITOR" || UserType_DonationRegPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function DonRegister_OnInit(s, e) {
+        DonRegister_AdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DonRegister_AdjustSize();
+        });
+    }
+
+    function OnGridDonRegisterListGrid_EndCallback(s, e)
+    {
+        ASPxClientControl.AdjustControls(document.getElementById("DonationRegister_ParentDiv"));
+        DonReg_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        DonReg_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        if (DonReg_IsVouchingMode == true) {
+            $(".DonRegisterListGrid_PreviewRow").hide();
+        }
+        else { $(".DonRegisterListGrid_PreviewRow").show(); }
+        GetSessionStorage("DonRegisterListGrid");
+        if (flag == 1) {
+            HideLoader();
+            flag = 2;
+            DRAttachmentFocusRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            ASPxClientControl.GetControlCollection().GetByName(DonationRegisterInfo_NestedGrid_AccessID).Refresh();
+
+        }
+
+        //DonRegister_AdjustSize();
+        DonRegister_layout = s.cpClientLayout;
+        SendCustomArgs_FilterControl(s, e);
+        if (command == "REFRESH")
+        {
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(DonationRegister_FocusedRowBeforeRefresh);
+            if (DonRegisterListGrid.GetSelectedRowCount() > 0)
+            {
+                DonRegisterListGrid.UnselectRows();
+            }
+        }
+
+    }
+
+        function OnGridDonRegisterNestedListGrid_EndCallback(s, e) {
+
+
+            if (e.command == "REFRESH") {
+
+                if (flag == 2) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(DRAttachmentFocusRowIndexBeforeRefresh);
+                }
+            }
+        }
+    function DonRegister_AdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try { DonRegisterListGrid.SetHeight(height); } catch (err) { }
+    }
+    function DonRegister_changeMode() {
+        if (DonReg_ShowHorizontalBar == 0) {
+            DonReg_ShowHorizontalBar = 1;
+            $("#DonRegisterToggleScrollBar").find("span").text("Default Data");
+            $("#DonRegisterToggleScrollBar").width(110);
+        }
+        else {
+            DonReg_ShowHorizontalBar = 0;
+            $("#DonRegisterToggleScrollBar").find("span").text("Full Data");
+            $("#DonRegisterToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Donation_Register_Grid", "DonationRegister")',
+            type: "GET",
+            data: { ShowHorizontalBar: DonReg_ShowHorizontalBar, Layout: DonRegister_layout, VouchingMode: DonReg_IsVouchingMode, ViewMode: DonReg_ViewMode, ColumnToBeHidddenIndex: DonReg_ColumnToBeHidddenIndex, ColumnToBeShownIndex: DonReg_ColumnToBeShownIndex   },
+            success: function (res)
+            {
+                $("#DonRegisterreloadPartialView").html(res);
+                if (DonReg_IsVouchingMode == true) {
+                    $(".DonRegisterListGrid_PreviewRow").hide();
+                    ClearLeftPane();
+                    ClearRightPane();
+                }
+                else { $(".DonRegisterListGrid_PreviewRow").show(); }
+                GetSessionStorage("DonRegisterListGrid");
+                DonRegisterListGrid.SetFocusedRowIndex(-1);
+            }
+        });
+    }
+
+
+    function OnAttachmentClick_DonReg(AttachmentIDs) {
+        All_Attachments_DonReg = AttachmentIDs;
+        Curr_Attachment_DonReg = All_Attachments_DonReg.split(",")[0];
+        $("#popup_frm_Donation_Register_Attachment").dxPopup("show");
+        ShowLoader();
+        $("#popup_frm_Donation_Register_Attachment").dxPopup("instance").option("width", "100vw");
+        $("#popup_frm_Donation_Register_Attachment").dxPopup("instance").option("height", "100vh");
+	    @*$("#popup_frm_Cash_Book_Attachment_result").load("@Url.Action("Frm_NEVD_Production", "ProductionRegister", new {@area= "Stock" })?ActionMethod=New", function () {
+	        HideLoader();
+	    });*@
+        document.getElementById('DonRegAttachmentFrm').src = "http://192.168.61.142:1008/Attachments/" + Curr_Attachment_DonReg + "#toolbar=0&navpanes=0";
+        showHideNextPrev();
+        HideLoader();
+    }
+    function showHideNextPrev() {
+        var Attachments = All_Attachments_DonReg.split(",");
+        var CurrAttachmentSlot = 0;
+
+        for (let i = 0; i < Attachments.length; i++) {
+            if (Attachments[i] == Curr_Attachment_DonReg) {
+                CurrAttachmentSlot = i;
+            }
+        }
+
+            if (CurrAttachmentSlot == 0){ $("#linkPrevAttachment").hide(); }
+            else { $("#linkPrevAttachment").show(); }
+
+            if (CurrAttachmentSlot == Attachments.length-1) { $("#linkNextAttachment").hide(); }
+            else { $("#linkNextAttachment").show(); }
+    }
+    function OnNextAttachmentClick() {
+        var Attachments = All_Attachments_DonReg.split(",");
+        for (let i = 0; i < Attachments.length-1; i++) {
+            if (Attachments[i] == Curr_Attachment_DonReg) {
+                Curr_Attachment_DonReg = Attachments[i + 1];
+                document.getElementById('DonRegAttachmentFrm').src = "http://192.168.61.142:1008/Attachments/" + Curr_Attachment_DonReg + "#toolbar=0&navpanes=0";
+            }
+        }
+        showHideNextPrev();
+    }
+    function OnPrevAttachmentClick() {
+        var Attachments = All_Attachments_DonReg.split(",");
+        for (let i = 0; i < Attachments.length - 1; i++) {
+            if (Attachments[i + 1] == Curr_Attachment_DonReg) {
+                Curr_Attachment_DonReg = Attachments[i];
+                document.getElementById('DonRegAttachmentFrm').src = "http://192.168.61.142:1008/Attachments/" + Curr_Attachment_DonReg + "#toolbar=0&navpanes=0";
+            }
+        }
+        showHideNextPrev();
+    }
+        function DonRegisterAjaxSuccessForm(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            //IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_DonRegister_Window").dxPopup("hide");
+            DonRegisterListGrid.Refresh();
+            //IsSucessPopup = false;
+        }
+    }
+
+    function DonationRegisterExpandAll()
+    {
+        if (!DonationRegisterInfo_IsDetailRowExpanded)
+        { DonRegisterListGrid.ExpandAllDetailRows(); DonationRegisterInfo_IsDetailRowExpanded = true; $("#btndonationRegExpandAll").find("span").text("Collapse All");}
+        else
+        { DonRegisterListGrid.CollapseAllDetailRows(); DonationRegisterInfo_IsDetailRowExpanded = false; $("#btndonationRegExpandAll").find("span").text("Expand All"); }
+    }
+
+
+        function DonRegisterGrid_BeginCallBack(s, e)
+        {
+            DonationRegister_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            command = e.command;
+            e.customArgs["ShowHorizontalBar"] = DonReg_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = DonReg_IsVouchingMode;
+            e.customArgs["ViewMode"] = DonReg_ViewMode;
+            e.customArgs["ColumnToBeShownIndex"] = DonReg_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = DonReg_ColumnToBeHidddenIndex;
+        }
+    function Donreg_PrintGrid_BeginCallBack(s, e) {
+
+        e.customArgs["ShowHorizontalBar"] = DonReg_ShowHorizontalBar;
+    }
+    function Donreg_RejectGrid_BeginCallBack(s, e) {
+
+        e.customArgs["ShowHorizontalBar"] = DonReg_ShowHorizontalBar;
+    }
+    function Donreg_dispatchGrid_BeginCallBack(s, e) {
+
+        e.customArgs["ShowHorizontalBar"] = DonReg_ShowHorizontalBar;
+    }
+
+        function OnDonRegisterGridFocusedRowChanged(s, e)
+        {
+            if (s.GetFocusedRowIndex() > -1)
+            {
+                if (DonReg_IsVouchingMode)
+                {
+                    // s.ExpandDetailRow(s.GetFocusedRowIndex());
+                    DonationRegister_FAB.SetVisible(true);
+                    DonationRegister_FAB.SetActionContext("VouchingActionContext", true);
+                }
+
+                s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By;Kind_of_Donation;Attachment_IDs;Status', DonRegisterOnGetRowValues);
+            }
+            else { DonRegisterID = null;}
+        }
+
+    function DonRegisterOnGetRowValues(values) {
+        DonRegisterID = values[0];
+        DonRegister_EditDate = values[1];
+        DonRegister_AddDate = values[2];
+        DonRegister_AddBy = values[3];
+        DonRegister_EditBy = values[4];
+        DonRegister_ActionStatus = values[5];
+        DonRegister_ActionDate = values[6];
+        DonRegister_ActionBy = values[7];
+        DonRegister_Kind_of_Donation = values[8];
+        DonRegister_Attachments = values[9];
+        DonRegister_Status = values[10];
+        DonRegister_UpdateFooterDetail(DonRegisterID, DonRegister_ActionStatus, DonRegister_AddDate, DonRegister_AddBy,
+        DonRegister_ActionDate, DonRegister_ActionBy, DonRegister_EditDate, DonRegister_EditBy);
+        if (DonReg_IsVouchingMode == true)
+        {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Account", "DonationRegister", "LeftPaneContent", DonRegisterID, DonReg_IsVouchingMode);
+        }
+    }
+
+    function DonRegister_UpdateFooterDetail(DonRegisterID, DonRegister_Action_Status, DonRegister_Add_Date, DonRegister_Add_By, DonRegister_Action_Date, DonRegister_Action_By, DonRegister_Edit_Date, DonRegister_Edit_By) {
+        DonRegister_Action_Date = DonRegister_Action_Date != "" && DonRegister_Action_Date != null ? DonRegister_Action_Date : DonRegister_Action_Date;
+        DonRegister_Edit_Date = DonRegister_Edit_Date != "" && DonRegister_Edit_Date != null ? DonRegister_Edit_Date : DonRegister_Edit_Date;
+        DonRegister_Add_Date = DonRegister_Add_Date != "" && DonRegister_Add_Date != null ? DonRegister_Add_Date : DonRegister_Add_Date;
+        $.ajax({
+            type: 'GET',
+            url: "/Account/DonationRegister/CreationDetail",
+            data: {
+                Xrow: DonRegisterID, Action_Status: DonRegister_Action_Status, Add_Date: DonRegister_Add_Date,
+                Add_By: DonRegister_Add_By, Action_Date: DonRegister_Action_Date, Action_By: DonRegister_Action_By, Edit_Date: DonRegister_Edit_Date, Edit_By: DonRegister_Edit_By
+            },
+            cache: false,
+            success: function (DonRegisterLbl_result) {
+                $('#DonRegister_Lbl_ActionOn').text(DonRegisterLbl_result.Lbl_StatusOn);
+                $('#DonRegister_Lbl_ActionBy').text(DonRegisterLbl_result.Lbl_StatusBy);
+                $('#DonRegisterLbl_Status').text(DonRegisterLbl_result.Lbl_Status);
+                $('#DonRegisterLbl_Create').text(DonRegisterLbl_result.Lbl_Create);
+                $('#DonRegisterLbl_Modify').text(DonRegisterLbl_result.Lbl_Modify);
+                if (DonRegisterLbl_result.Lbl_Status_Color != "") {
+                    $('#DonRegisterLbl_Status').css('color', DonRegisterLbl_result.Lbl_Status_Color);
+                }
+                if (DonRegisterLbl_result.Pic_Status != "") {
+                    $('#DonRegister_LockICON').css('class', DonRegisterLbl_result.Pic_Status);
+                }
+
+            }
+        });
+    }
+
+    function OnDonRegisterListPreviewClick() {
+        if ("@DonationReg_ExportRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        @*$("#DonRegister_report_modal").dxPopup("show");
+        $("#DonRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#DonRegister_report_modal").html('');
+        ShowLoader();
+        $("#DonRegister_report_modal_result").load("@Url.Action("Frm_Export_Options", "DonationRegister", new { @area = "Account" })", function () {
+            HideLoader();
+        });*@
+        OpenPopup("DonRegister_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "DonationRegister", new { @area = "Account" })", "auto", 125, false, null);
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function DonRegister_ContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            closeDonationRegister();
+        }
+        else if (e.item.name == 'Add_Attachment') {
+            if (DonRegisterID.length > 0) {
+                Open_Attachment_Window(DonRegisterID, DonRegister_Kind_of_Donation = "Regular" ? "Donation_Regular" : "Donation_Foreign", "DonRegisterListGrid");
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please select a donation entry to which document has to be attached!!', 'Alert ');
+            }
+        }
+        else if (e.item.name == 'Attach_Don_Form') {
+            if (DonRegisterID.length > 0) {
+                Open_Attachment_Window(DonRegisterID, DonRegister_Kind_of_Donation = "Regular" ? "Donation_Regular" : "Donation_Foreign", "DonRegisterListGrid", "DONATION", "3a4c7065-29eb-47aa-b31b-a07f91f5bc6b");
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please select a donation entry to which Donation Form has to be attached!!', 'Alert ');
+            }
+        }
+        else if (e.item.name == 'Attach_PAN') {
+            if (DonRegisterID.length > 0) {
+                Open_Attachment_Window(DonRegisterID, DonRegister_Kind_of_Donation = "Regular" ? "Donation_Regular" : "Donation_Foreign", "DonRegisterListGrid", "PARTY RELATED", "713f0a66-d980-4c85-b031-1e29a37bd964");
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please select a donation entry to which PAN Card has to be attached!!', 'Alert ');
+            }
+        }
+        else if (e.item.name == 'Attach_Aadhar') {
+            if (DonRegisterID.length > 0) {
+                Open_Attachment_Window(DonRegisterID, DonRegister_Kind_of_Donation = "Regular" ? "Donation_Regular" : "Donation_Foreign", "DonRegisterListGrid", "PARTY RELATED", "c11bdbc5-001a-4232-8288-88678951ad6b");
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please select a donation entry to which Aadhar Card has to be attached!!', 'Alert ');
+            }
+        }
+        else if (e.item.name == 'Manage_Attachments') {
+            if (DonRegisterID.length > 0) {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Help/Attachment/Frm_Attachment_Info",
+                    cache: false,
+                    data: {
+                        PopUpId: "Donation_manage_Attachment",
+                        RefRecID: DonRegisterID
+                    },
+                    success: function (data) {
+                        ShowLoader();
+                        OpenPopup("Donation_manage_Attachment", "Donation Register", null, "auto", 1150, true, data);
+                        HideLoader();
+                    }
+                });
+                HideLoader();
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please select a donation entry!!', 'Alert ');
+            }
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnDonRegisterListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            DonRegisterListGrid.Refresh();
+        }
+        else if (e.item.name == "Print_DonationForm") {
+            Print_Form();
+        }
+    }
+
+        function CollapseDonationRow(s, e)
+        {
+            DonationRegisterInfo_IsDetailRowExpanded = false;
+            if (DonReg_IsVouchingMode == false)
+            {
+                DonationRegister_FAB.SetVisible(false);
+            }
+            if (DonReg_IsVouchingMode == true)
+            {
+                CloseRightPane();
+            }
+        }
+
+
+        function ExpandDonationRow(s, e)
+        {
+            s.SetFocusedRowIndex(e.visibleIndex);
+            DonationRegisterInfo_IsDetailRowExpanded = true;
+            if (DonReg_IsVouchingMode == true)
+            {
+                OpenRightPane();
+            }
+            else
+            {
+                CloseRightPane();
+            }
+        }
+
+
+        function DonationRegisterSelectionChanged(s, e) {
+
+            s.GetSelectedFieldValues("ID;Offered_for_Audit;Status;Attached_Form;DS_STATUS_MISC_ID;TR_AB_ID_1;Attached_PAN;Attached_Aadhar;PAN;AADHAR;Edit_Date;Kind_of_Donation;DonationDate;Form_Received_Date", GetSelectedFieldValuesCallback_DonationRegister);
+            }
+        var RecEditOn;
+        var StatusID;
+
+    function GetSelectedFieldValuesCallback_DonationRegister(values) {
+        SelectedAlreadyOfferedRows = ""; SelectedNotOfferedRows = ""; SelectedIDs = ""; SelectedStatuses = ""; SelectedAttached_Form = ""; SelectedStatusIDs = ""; SelectedAB_IDs = ""; Selected_PANs = ""; Selected_AADHARs = ""; Selected_Donation_Kinds = "";Selected_Donation_Dates=""
+        for (var i = 0; i < values.length; i++) {
+            var CurrValue = values[i].toString();
+            var Values_Arr = CurrValue.split(",");
+            var ID = Values_Arr[0];
+            var Offered = Values_Arr[1];
+            var Status = Values_Arr[2];
+            var Attached_Form = Values_Arr[3];
+            StatusID = Values_Arr[4];
+            var ABID = Values_Arr[5];
+            var Attached_PAN = Values_Arr[6];
+            var Attached_Aadhar = Values_Arr[7];
+            var PAN = Values_Arr[8];
+            var Aadhar = Values_Arr[9];
+            RecEditOn = Values_Arr[10];
+            var Aadhar = Values_Arr[9];
+            var DonationKind = Values_Arr[11];
+            var VoucherDate = Values_Arr[12];
+            var FormReceivedDate = Values_Arr[13];
+            if (Offered == "NO") {
+                if (SelectedNotOfferedRows.length > 0) { SelectedNotOfferedRows = SelectedNotOfferedRows + "," }
+                SelectedNotOfferedRows = SelectedNotOfferedRows + ID;
+            }
+            else {
+                if (SelectedAlreadyOfferedRows.length > 0) { SelectedAlreadyOfferedRows = SelectedAlreadyOfferedRows + "," }
+                SelectedAlreadyOfferedRows = SelectedAlreadyOfferedRows + ID;
+            }
+            if (SelectedIDs.length > 0) { SelectedIDs = SelectedIDs + "," }
+            SelectedIDs = SelectedIDs + ID;
+            if (SelectedStatuses.length > 0) { SelectedStatuses = SelectedStatuses + "," }
+            SelectedStatuses = SelectedStatuses + Status;
+            if (SelectedAttached_Form.length > 0) { SelectedAttached_Form = SelectedAttached_Form + "," }
+            SelectedAttached_Form = SelectedAttached_Form + Attached_Form;
+            if (SelectedStatusIDs.length > 0) { SelectedStatusIDs = SelectedStatusIDs + "," }
+            SelectedStatusIDs = SelectedStatusIDs + StatusID;
+            if (SelectedAB_IDs.length > 0) { SelectedAB_IDs = SelectedAB_IDs + "," }
+            SelectedAB_IDs = SelectedAB_IDs + ABID;
+            if (SelectedAttached_PANs.length > 0) { SelectedAttached_PANs = SelectedAttached_PANs + "," }
+            SelectedAttached_PANs = SelectedAttached_PANs + Attached_PAN;
+            if (SelectedAttached_AADHARs.length > 0) { SelectedAttached_AADHARs = SelectedAttached_AADHARs + "," }
+            SelectedAttached_AADHARs = SelectedAttached_AADHARs + Attached_Aadhar;
+            if (Selected_PANs.length > 0) { Selected_PANs = Selected_PANs + "," }
+            Selected_PANs = Selected_PANs + PAN;
+            if (Selected_Donation_Kinds.length > 0) { Selected_Donation_Kinds = Selected_Donation_Kinds + "," }
+            Selected_Donation_Kinds = Selected_Donation_Kinds + DonationKind;
+            if (Selected_Donation_Dates.length > 0) { Selected_Donation_Dates = Selected_Donation_Dates + "," }
+            Selected_Donation_Dates = Selected_Donation_Dates + JS_Json_Date_To_ddMMyyyy(VoucherDate, _format = "DD/MM/YYYY HH:mm:ss.SSS");
+            if (Selected_Form_Received_Dates.length > 0) { Selected_Form_Received_Dates = Selected_Form_Received_Dates + "," }
+            Selected_Form_Received_Dates = Selected_Form_Received_Dates + JS_Json_Date_To_ddMMyyyy(FormReceivedDate, _format = "DD/MM/YYYY HH:mm:ss.SSS");
+            if (Selected_AADHARs.length > 0) { Selected_AADHARs = Selected_AADHARs + "," }
+            Selected_AADHARs = Selected_AADHARs + Aadhar;
+           // alert((moment(VoucherDate, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss")));
+           // alert(JS_Json_Date_To_ddMMyyyy(VoucherDate, _format = "DD/MM/YYYY HH:mm:ss.SSS"))
+
+        }
+    }
+
+        function Download_80GReceipt(e)
+        {
+            if (SelectedIDs == "")
+            {
+                DevExpress.ui.dialog.alert('Please select donation for which 80G Receipt is to be Downloaded!!', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Account/DonationRegister/Download80GReceipt",
+                data:
+                {
+                    IDs: SelectedIDs
+                },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.jsonParam.result == true)
+                    {
+                        var links = data.jsonParam.flag.split('|');
+                        links.forEach(function (item) {
+                            var aftertrim = item.trim();
+                            if (aftertrim.length > 0) {
+                                $(aftertrim)[0].click();
+                            }
+                        })
+                    }
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            });
+        }
+
+    function Request_Receipt() {
+        if (SelectedIDs == "") {
+            DevExpress.ui.dialog.alert('Please select donation for which Receipt is to be Requested!!', 'Alert ');
+            return;
+        }
+        var All_IDs = SelectedIDs.split(",");
+        var All_Forms = SelectedAttached_Form.split(",");
+        var All_Attached_PANs = SelectedAttached_PANs.split(",");
+        var All_Attached_Aadhars = SelectedAttached_AADHARs.split(",");
+        var All_PANs = Selected_PANs.split(",");
+        var All_Aadhars = Selected_AADHARs.split(",");
+        var All_Status = SelectedStatuses.split(",");
+
+        for (let i = 0; i < All_Status.length; i++) {
+            if (All_Status[i] != "Donation Accepted" && All_Status[i] != "Receipt Request Rejected") {
+                DevExpress.ui.dialog.alert('Receipt for Donation Entry in "' + All_Status[i] + '" status can not be Requested!!', 'Alert ');
+                return;
+            }
+        }
+
+        //for (let i = 0; i < All_IDs.length; i++) {
+        //    if (All_Forms[i] == "") {
+        //        DevExpress.ui.dialog.alert('Receipt for Donation Entry without attached Donation Form can not be Requested!!', 'Alert ');
+        //        return;
+        //    }
+        //    if (All_PANs[i] != "" && All_Attached_PANs[i] == "") {
+        //        DevExpress.ui.dialog.alert('Receipt for Donation Entry having PAN no but without attached PAN Card, can not be Requested!!', 'Alert ');
+        //        return;
+        //    }
+        //    if (All_Aadhars[i] != "" && All_Attached_Aadhars[i] == "") {
+        //        DevExpress.ui.dialog.alert('Receipt for Donation Entry having Aadhar no but without attached Aadhar Card, can not be Requested!!', 'Alert ');
+        //        return;
+        //    }
+        //}
+
+        //if (DialogResult.Yes == xPromptWindow.ShowDialog("Confirmation...", "<u>Sure you want to apply<color=red> Receipt Request</color> of this Entry...?</u>" + Constants.vbNewLine + Constants.vbNewLine + "<size=12>" + xEntry + "</size>", Common_Lib.Prompt_Window.ButtonType._Question, Common_Lib.Prompt_Window.WindowSize._599x220, Common_Lib.Prompt_Window.FocusButton._Button1, Color.AliceBlue)) {
+        var result = DevExpress.ui.dialog.confirm("Sure you want to apply<color=red> Receipt Request</color> of Selected Entries...?", "Confirmation...");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/DonationRegister/Request_Receipt",
+                    data: {
+                        IDs: SelectedIDs,
+                        StatusIDs: SelectedStatusIDs,
+                        Statuses: SelectedStatuses,
+                        AB_IDs: SelectedAB_IDs
+                    },
+                    cache: false,
+                    success: function (result) {
+                        DevExpress.ui.dialog.alert(result.Message, 'Alert ');
+                        DonRegisterListGrid.Refresh();
+                    }
+                });
+            }
+        });
+    }
+
+        function Print_Receipt()
+        {
+            //debugger;
+            if (SelectedStatuses== "") {
+                DevExpress.ui.dialog.alert('Please select donation to be printed!!', 'Alert ');
+                return;
+            }
+            var All_Status = SelectedStatuses.split(",");
+            for (let i = 0; i < All_Status.length; i++)
+            {
+                if (All_Status[i] != "Receipt Generated" && All_Status[i] != "Receipt Printed" && All_Status[i] != "Receipt Despatched")
+                {
+                    DevExpress.ui.dialog.alert('Donation Entry in "' + All_Status[i] + '" status can not be printed!!', 'Alert ');
+                    return;
+                }
+            }
+            ShowLoader();
+            var url = '@Url.Action("DonationReceipt", "DonationRegister", new { @area = "Account" })';
+            //$("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+            //$("#Dynamic_Content_popup").dxPopup("show");
+            //$("#Dynamic_Content_popup").dxPopup("instance").option("title", "Donation Acknowledgement");
+            //$("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+            //$("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+            //$("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+            //$("#result_Dynamic_Content_popup").load(url + "?RecIDs=" + SelectedIDs + "&type='blank'", function () {
+            //});
+            OpenDynamicPopup("Donation Acknowledgement", url + "?RecIDs=" + SelectedIDs + "&type='blank'", "100%", "100%", false, null);
+            HideLoader();
+        }
+
+        function Generate_Receipt()
+        {
+            //debugger;
+            if (SelectedStatuses== "") {
+                DevExpress.ui.dialog.alert('Please select donation to be Generated!!', 'Alert ');
+                return;
+            }
+            var All_Status = SelectedStatuses.split(",");
+            for (let i = 0; i < All_Status.length; i++)
+            {
+                if (All_Status[i] == "Receipt Generated" || All_Status[i] == "Receipt Printed" || All_Status[i] == "Receipt Despatched")
+                {
+                    DevExpress.ui.dialog.alert('Donation Entry in "' + All_Status[i] + '" status can not be generated!!', 'Alert ');
+                    return;
+                }
+            }
+           // alert(Selected_Donation_Dates);
+            var result = DevExpress.ui.dialog.confirm("Sure you want to <color=red> Generate Receipt </color> for Selected Entries...?", "Confirmation...");
+            result.done(function (dialogResult) {
+                if (dialogResult) {
+                    $.ajax({
+                        type: 'POST',
+                        url: "/Account/DonationRegister/Generate_Receipt",
+                        data: {
+                            IDs: SelectedIDs,
+                            StatusIDs: SelectedStatusIDs,
+                            Statuses: SelectedStatuses,
+                            AB_IDs: SelectedAB_IDs,
+                            Donation_Types: Selected_Donation_Kinds,
+                            Donation_Dates: Selected_Donation_Dates,
+                            Form_Received_Dates: Selected_Form_Received_Dates
+                        },
+                        cache: false,
+                        success: function (result) {
+                            DevExpress.ui.dialog.alert(result.Message, 'Alert ');
+                            DonRegisterListGrid.Refresh();
+                        }
+                    });
+                }
+            });
+        }
+
+        function Print_Form()
+        {
+            if (SelectedStatuses== "") {
+                DevExpress.ui.dialog.alert('Please select donation to be printed!!', 'Alert ');
+                return;
+            }
+            var All_Status = SelectedStatuses.split(",");
+            if (All_Status.length > 1) {
+                DevExpress.ui.dialog.alert('Please select Single Record to Print donation Form!!', 'Error!!');
+                return;
+            }
+            else if (All_Status.length == 1)
+            {
+                var URL = "/Account/DonationRegister/PrintDonationForm";
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: URL,
+                    data:
+                    {
+                        RecID: SelectedIDs,
+                        DsStatusMiscID: StatusID,
+                        Rec_Edit_ON_Grid: RecEditOn
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        HideLoader();
+
+                        if (data.length > 0) {
+                            //debugger;
+                            OpenDynamicPopup(data.title, null, "auto", "100%", true, data);
+                            //debugger;
+                            HideLoader();
+                            return;
+                            //$('#StatementPeriodPopup').dxPopup('hide');
+                        }
+                        else {
+                            if (data.length == 0) {
+
+                            }
+                            else if (data.jsonParam.result == false) {
+                                if (data.jsonParam.refreshgrid)
+                            {
+                                RefreshGridView("DonRegisterListGrid");
+                            }
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        function Reject_Receipt() {            
+
+            var proceedForRejection = true;
+
+            const SelectedStatusesArray = SelectedStatuses.split(",");
+            if (SelectedStatusesArray.length > 0) {
+                for (let i = 0; i < SelectedStatusesArray.length; i++) {
+                    if (SelectedStatusesArray[i] == "Receipt Request Rejected") {
+                        proceedForRejection = false;
+                        break;
+                    }
+                }
+            }
+            else {
+                DevExpress.ui.dialog.alert("Please select atleast one row.", "!! Alert !!")
+                return;
+            }
+
+            if (proceedForRejection == false) {
+                DevExpress.ui.dialog.alert("The receipt in 'Rejected' status cannot be rejected again. Please unselect the receipts which are already rejected", "!! Alert !!")
+                return;
+            }
+
+            var confirmClick = DevExpress.ui.dialog.confirm("Are you Sure Selected Donation Acknowledgement should be Rejected ?", "!! Confirm !!");
+            confirmClick.done(function (confirmresult) {
+                if (confirmresult) {
+                    ShowLoader();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Account/DonationRegister/Donation_Register_AddRejectionReason",
+                        cache: false,
+                        data:
+                        {
+                            DonationID: SelectedIDs,
+                            RejectionRemarks: "",//RejectionRemarks : show previous filled ones here
+                            ABID: SelectedAB_IDs,
+                        },
+                        success: function (data) {
+                            OpenPopup("Reject_Reason_popup", "Reason for Rejection", null, "auto",550, true, data);
+                        }
+                    });
+                }
+            })
+        }
+        function updateRejectionAPICall(DonationID, RejectionRemarks, ABID) {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/DonationRegister/Donation_Register_UpdateRejectionReason",
+                cache: false,
+                data: {
+                    DonationIDs: DonationID,
+                    ABID: ABID,
+                    RejectReason: RejectionRemarks,
+                },
+                success: function (data) {
+                    HideLoader();
+                    HidePopup('Reject_Reason_popup');
+
+                    var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertClick.done(function (alertResult) {
+                        if (alertResult) {
+                            DonRegisterListGrid.Refresh();
+                        }
+                    });
+                   
+                }
+            });
+        }
+    function On_DonationRegister_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@DonationReg_HelpAttachmentAddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (DonationRegisterInfo_ParamMandatory == 1)
+            {
+                AddAttachment(DonationRegisterInfo_MasterRowRecID, "Accounts_DonationRegister", DonationRegisterInfo_Doc_ID, DonationRegisterInfo_Doc_Category, DonationRegisterInfo_ParamMandatory, DonationRegisterInfo_FromDateLabel, DonationRegisterInfo_ToDateLabel, DonationRegisterInfo_DescriptionLabel, "DonationRegisterAttachment", null, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(DonationRegisterInfo_MasterRowRecID, "Accounts_DonationRegister", DonationRegisterInfo_Doc_ID, "DonationRegisterAttachment", "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (DonationRegisterInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(DonationRegisterInfo_MasterRowRecID, "Accounts_DonationRegister", DonationRegisterInfo_AtachmentID, DonationRegisterInfo_ParamMandatory, DonationRegisterInfo_FromDateLabel, DonationRegisterInfo_ToDateLabel, DonationRegisterInfo_DescriptionLabel, "DonationRegisterAttachment", null, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(DonationRegisterInfo_MasterRowRecID, "Accounts_DonationRegister", DonationRegisterInfo_AtachmentID, DonationRegisterInfo_ParamMandatory, DonationRegisterInfo_FromDateLabel, DonationRegisterInfo_ToDateLabel, DonationRegisterInfo_DescriptionLabel, null, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID, DonationRegisterInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(DonationRegisterInfo_AtachmentID, DonationRegisterInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (DonationRegisterInfo_Doc_Category.toLowerCase() == "others") {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(DonationRegisterInfo_MasterRowRecID, DonationRegisterInfo_NestedRowMapID, "Accounts_DonationRegister", "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName == "Link_Attach") {
+            LinkAttachment(DonationRegisterInfo_MasterRowRecID, "Accounts_DonationRegister", "Donation Register", "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(DonationRegisterInfo_MasterRowRecID, DonationRegisterInfo_NestedRowMapID, "Accounts_DonationRegister", "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID, DonationRegisterInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(DonationRegisterInfo_MasterRowRecID, DonationRegisterInfo_NestedRowMapID, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            DonationRegister_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (DonationRegisterInfo_Nested_Doc_Status == "") {
+                DonationRegister_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (DonationRegisterInfo_Nested_Doc_Status == "NO") {
+                DonationRegister_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (DonationRegisterInfo_Nested_Doc_Status == "YES") {
+                DonationRegister_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "Accept") {
+
+            OnDonReg_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject") {
+
+            OnDonReg_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks") {
+
+            OnDonReg_AcceptRejectVoucher("Accept");
+        }
+            else if (e.actionName == "AcceptDoc") {
+
+                OnDonReg_AcceptDoc();
+            }
+            else if (e.actionName == "RejectDoc") {
+
+                OnDonReg_RejectDoc();
+            }
+        }
+        function OnDonReg_RejectDoc() {
+            if (DonationRegisterInfo_AtachmentID == null || DonationRegisterInfo_AtachmentID.length == 0) {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+            }
+            RejectAttachment(DonationRegisterInfo_AtachmentID, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+        }
+        function OnDonReg_AcceptDoc() {
+            if (DonationRegisterInfo_AtachmentID == null || DonationRegisterInfo_AtachmentID.length == 0) {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+            }
+            AcceptAttachment(DonationRegisterInfo_AtachmentID, "DonRegisterListGrid", DonationRegisterInfo_NestedGrid_AccessID);
+        }
+        function OnDonReg_AcceptwithoutRemarks()
+        {
+            var Recid;
+            if (DonationRegisterInfo_IsDetailRowExpanded == true || DonReg_IsVouchingMode == true) {
+                if (DonationRegisterInfo_MasterRowMID == null || DonationRegisterInfo_MasterRowMID == "") {
+                    if (DonationRegisterInfo_MasterRowRecID == null || DonationRegisterInfo_MasterRowRecID == "") {
+                        Recid = DonRegisterID;
+                    }
+                    else {
+                        Recid = DonationRegisterInfo_MasterRowRecID;
+                    }
+                }
+                else {
+                    Recid = DonationRegisterInfo_MasterRowMID;
+                }
+            }
+            else
+            {
+                Recid = DonRegisterID;
+            }
+
+            Entry_AcceptwithoutRemarks(Recid, "DonationRegister", "DonRegisterListGrid", DonationRegisterInfo_AtachmentID, DonationRegisterInfo_NestedRowReasonID, DonationRegister_NestedRowUniqueID);
+        }
+        function OnDonReg_AcceptRejectVoucher(_actionMethod) {
+            var Recid;
+            if (DonationRegisterInfo_IsDetailRowExpanded == true || DonReg_IsVouchingMode == true) {
+                if (DonationRegisterInfo_MasterRowMID == null || DonationRegisterInfo_MasterRowMID == "") {
+                    if (DonationRegisterInfo_MasterRowRecID == null || DonationRegisterInfo_MasterRowRecID == "") {
+                        Recid = DonRegisterID;
+                    }
+                    else {
+                        Recid = DonationRegisterInfo_MasterRowRecID;
+                    }
+                }
+                else {
+                    Recid = DonationRegisterInfo_MasterRowMID;
+                }
+            }
+            else {
+                Recid = DonRegisterID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "DonationRegister", "DonRegisterListGrid", DonationRegisterInfo_AtachmentID, DonationRegisterInfo_NestedRowReasonID, DonationRegister_NestedRowUniqueID);
+        }
+    function OnDonationRegisterListGridNestedFocusedRowChange(s, e)
+    {
+        if (DonationRegisterInfo_IsDetailRowExpanded || DonReg_IsVouchingMode == true)
+        {
+            DonationRegisterInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (DonationRegisterInfo_NestedRecord_FocusedRowIndex < 0)
+            {
+                DonationRegister_FAB.SetActionContext("AddAttachmentContext", false);
+                DonationRegisterInfo_MasterRowMID = null;
+                DonationRegisterInfo_MasterRowRecID = null;
+
+            }
+            else
+            {
+                ShowLoader();
+                DonationRegisterInfo_NestedGrid_AccessID = s.uniqueID;
+              //  s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID', OnDonationRegisterInfo_GetGridRowValues);
+                DonationRegister_NestedRowUniqueID = s.GetRowKey(s.GetFocusedRowIndex());
+                flag = 1;
+                s.GetValuesOnCustomCallback({ key: DonationRegister_NestedRowUniqueID }, OnDonationRegisterInfo_GetGridRowValues);
+
+            }
+        }
+    }
+    function OnDonationRegisterInfo_GetGridRowValues(data)
+    {
+        flag = 0;
+        HideLoader();//Redmine Bug #131651 fixed
+        var values = data.split('![');
+        if (values[14] != null)
+        {
+            DonationRegister_FAB.SetVisible(true);
+            DonationRegisterInfo_Nested_Doc_Status = values[0];
+            if (DonReg_IsVouchingMode == true) {
+                DonationRegister_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (DonationRegisterInfo_Nested_Doc_Status == "") {
+                    DonationRegister_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (DonationRegisterInfo_Nested_Doc_Status == "NO") {
+                    DonationRegister_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (DonationRegisterInfo_Nested_Doc_Status == "YES") {
+                    DonationRegister_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            DonationRegisterInfo_ParamMandatory = values[1];
+            DonationRegisterInfo_FromDateLabel = values[2];
+            DonationRegisterInfo_ToDateLabel = values[3];
+            DonationRegisterInfo_DescriptionLabel = values[4];
+            DonationRegisterInfo_Doc_Category = values[5];
+            DonationRegisterInfo_Doc_ID = values[6];
+            DonationRegisterInfo_AtachmentID = values[7];
+            IndexAttachmentID = DonationRegisterInfo_AtachmentID;
+            DonationRegisterInfo_MasterRowRecID = values[8];
+            DonationRegisterInfo_MasterRowMID = values[9];
+            DonationRegisterInfo_NestedRowMapID = values[10];
+            DonationRegisterInfo_reason = values[11];
+            DonationRegisterInfo_FileName = values[12];
+            DonationRegisterInfo_Attachment_RecStatus = values[13];
+            if (DonReg_IsVouchingMode == true) {
+                if (DonationRegisterInfo_FileName != null && DonationRegisterInfo_FileName.length > 0) {
+                    ViewDocument(DonationRegisterInfo_AtachmentID, DonationRegisterInfo_FileName, "DonationRegister_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else {
+                    CloseRightPane();
+                    document.getElementById('RightPane_div_Iframe').style.display = "none";
+                    document.getElementById('RightPane_div_Img').style.display = "none";
+                }
+            }
+
+        }
+        DonationRegisterInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = DonationRegisterInfo_NestedRowReasonID;
+    }
+    function DonationRegisterGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["VouchingMode"] = DonReg_IsVouchingMode;
+        e.customArgs["ShowHorizontalBar"] = DonReg_ShowHorizontalBar;
+        e.customArgs["command"] = e.command;
+    }
+
+    </script>
+    @*attachment and nested grid*@
+
+
+    @*Donation Logs related js code*@
+<script>
+        function DonLogsListGrid_dx_OnInitialized(e) {
+            DxGrid_AdjustSize(e.component, $("#DonationLogs_ParentDiv_dx .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#DonationLogs_ParentDiv_dx .report_button_div"), "", evt)
+            });
+
+
+        }
+        function DonLogs_onRowPrepared(e) {     //This is to color the rows.
+            var DonationLogsInstance = $("#DonRegister_Gateway_Logs_dx").dxDataGrid("instance");
+            if (e.rowType == "data") {
+                var GridName = e.element[0].id;
+                $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+                if (e.data.RESULT == 'CAPTURED') {
+                    $(e.rowElement).css("background-color", "lightgreen");
+
+                } else {
+                    $(e.rowElement).css("background-color", "lightcoral");
+                }
+            }
+        }
+
+        function DonLogs_dx_GroupCell_Template(container, templateData) { //This is to name the group name.
+
+            var Bank_Name, AccNo, recid;
+            var RowData = DxGrid_GetGroupRowData(templateData.data)
+            if (RowData != null) {
+                Bank_Name = RowData.BI_BANK_NAME;
+                AccNo = RowData.CEN_ACC_NO;
+                recid = RowData.REC_ID;
+            }
+            if (templateData.groupContinuesMessage && recid == null) {
+                $(container).html(templateData.groupContinuesMessage);
+                return
+            }
+
+            $(container).html("Online Donation Logs for "+Bank_Name + "  A/C No. " + AccNo);
+
+
+        }
+
+        function DonLogschangeMode_dx() {
+            var DonationLogsInstance = $("#DonRegister_Gateway_Logs_dx").dxDataGrid("instance");
+            DonationLogsInstance.beginUpdate();
+            if (DonLogs_ShowHorizontalBar == 0) {
+                DonLogs_ShowHorizontalBar = 1;
+                $("#DonLogsToggleScrollBar_dx").find("span").text("Default Data");
+                $("#DonLogsToggleScrollBar_dx").width(110);
+                DonationLogsInstance.option("columnHidingEnabled", false);
+                DonationLogsInstance.option("allowColumnResizing", true)
+                DonationLogsInstance.option("columnResizingMode", "widget")
+            }
+            else {
+                DonLogs_ShowHorizontalBar = 0;
+                $("#DonLogsToggleScrollBar_dx").find("span").text("Full Data");
+                $("#DonLogsToggleScrollBar_dx").width(90);
+                DonationLogsInstance.option("columnHidingEnabled", true)
+                DonationLogsInstance.option("allowColumnResizing", false)
+                DonationLogsInstance.option("columnResizingMode", "nextColumn")
+            }
+            DonationLogsInstance.endUpdate();
+        }
+
+        function OnDonLogsListPreviewClick() {
+                if ("@DonationReg_ExportRight" == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                    return;
+                }
+                OpenPopup("DonLogs_report_modal", "Export Option", "@Url.Action("Frm_Export_Options_Logs_dx", "DonationRegister", new { @area = "Account" })", "auto", 125, false, null);
+        }
+    function DonLogsListGrid_dx_OnContextMenuPreparing(e)
+        {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {                
+                DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && e.row.rowType == "data")
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [                    
+                    {
+                        text: "List Preview",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@DonationReg_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnDonLogsListPreviewClick();
+                        }
+                    },                    
+                    {
+                        text: "Refresh",
+                        beginGroup: true,//redmine Bug #137374 fix
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        onItemClick: function () {
+                            var dataGridInstance = $("#DonRegister_Gateway_Logs_dx").dxDataGrid("instance");
+                            dataGridInstance.refresh();
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeDonationRegister();
+                        }
+                    }
+                ]
+            }
+    }
+    function DonLogsListGrid_dx_OnContentReady(e) {       
+        DxGrid_OnContentReady(e, DonLogs_ShowHorizontalBar);
+        DxGrid_RowSelectionTobeCheckedAfterAnyAction(e)
+    }
+</script>
+
+
+</div>
+
+

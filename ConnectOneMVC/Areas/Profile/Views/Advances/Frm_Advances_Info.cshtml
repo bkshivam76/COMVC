@@ -1,0 +1,1297 @@
+<div class="AdvancesProfile_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool Advances_AddRight = (bool)ViewData["Advances_AddRight"];
+        bool Advances_UpdateRight = (bool)ViewData["Advances_UpdateRight"];
+        bool Advances_ViewRight = (bool)ViewData["Advances_ViewRight"];
+        bool Advances_DeleteRight = (bool)ViewData["Advances_DeleteRight"];
+        bool Advances_ExportRight = (bool)ViewData["Advances_ExportRight"];
+        bool Advances_AdresBookListRight = (bool)ViewData["Advances_AdresBookListRight"];
+        bool Advances_LockUnlockRight = (bool)ViewData["Advances_LockUnlockRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool AdvancesInfo_Auto_Vouching_Mode = (bool)ViewData["AdvancesInfo_Auto_Vouching_Mode"];
+    }
+
+    <script>
+        function AdvancesShown() {
+            setTimeout(function () {
+                $('#Amount input, #AdvanceDate input').keydown(function (e) {
+                    if (e.key == "[") {
+
+                        $(this).val($(this).val() + "(");
+                        e.preventDefault();
+                    }
+                    if (e.key == "]") {
+
+                        $(this).val($(this).val() + ")");
+                        e.preventDefault();
+                    }
+                    if (e.key == "'") {
+
+                        $(this).val($(this).val() + "`");
+                        e.preventDefault();
+                    }
+                });
+            }, 2000);//Redmine Bug #129765 fixed
+        }
+    </script>
+    <div id="AdvancesProfile_ParentDiv">
+        <div id="content" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">Advances Information</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("AdvancesVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Advances_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("AdvancesViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Advances_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @if (ViewBag.LockUnlock != false)
+                {
+                    @(Html.DevExtreme().Button()
+                                                                                                            .ID("AdvancesModelUnlock")
+                                                                                                            .Text("Unlock")
+                                                                                                            .Icon("fa fa-unlock")
+                                                                                                            .Visible(false)
+                                                                                                            .Disabled(true)
+                                                                                                            .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                AdvancesOnUnLockClick();
+                                                                                                                }
+                                                                                                            </text>)
+                )
+
+                    @(Html.DevExtreme().Button()
+                                                                                                            .ID("AdvancesModelLock")
+                                                                                                            .Text("Lock")
+                                                                                                            .Icon("fa fa-lock")
+                                                                                                            .Visible(false)
+                                                                                                            .Disabled(true)
+                                                                                                            .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                AdvancesOnLockClick();
+                                                                                                                }
+                                                                                                            </text>)
+                )}
+
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelNew")
+                                                                                                    .Text("New")
+                                                                                                    .Icon("add")
+                                                                                                    .Visible(false) //Redmine Bug #132781 fixed
+                                                                                                    .Disabled(false)
+                                                                                                    .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        OnAdvancesNewClick();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelEdit")
+                                                                                                    .Text("Edit")
+                                                                                                     .Icon("edit")
+                                                                                                     .Visible(false)
+                                                                                                     .Disabled(true)
+                                                                                                     .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        OnAdvancesEditClick();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelDelete")
+                                                                                                    .Text("Delete")
+                                                                                                    .Icon("trash")
+                                                                                                    .Visible(false)
+                                                                                                    .Disabled(true)
+                                                                                                    .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        OnAdvancesDeleteClick();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelView")
+                                                                                                    .Text("View")
+                                                                                                    .Icon(IconID.ViewCustomers16x16devav)
+                                                                                                    .Icon("doc")
+                                                                                                    .Visible(false)
+                                                                                                    .Disabled(true)
+                                                                                                    .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        OnAdvancesViewClick();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesToggleScrollBar")
+                                                                                                    .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                                                                                    .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)                                                                                                    
+                                                                                                    .Icon("toolbox")
+                                                                                                    .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        AdvanceschangeMode();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelListPreview")
+                                                                                                    .Text("Export")
+                                                                                                    .Icon("save")
+                                                                                                     .Width(80)
+                                                                                                    .OnClick(@<text>
+                                                                                                        function () {
+                                                                                                        OnAdvancesListPreviewClick();
+                                                                                                        }
+                                                                                                    </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                    .ID("AdvancesModelCLOSE")
+                                                                                                    .Text("Close")
+                                                                                                    .Icon("clear")
+                                                                                                    .OnClick(@<text>
+                                                                                                        function (){closeProfile_Advances();}
+                                                                                                    </text>)
+
+            )
+            </div>
+
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="AdvancesreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Advances_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+
+        <div class="footer-MainBoxdiv full-width-footer">
+            <div class="list_footer_left_margin col-md-10">
+                <div>
+                    @*class="footer_new_left"*@
+                    <div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-locktext">
+                                <div id="Advances_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="Advances_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                            @*<div class="footer-locktext">
+                                <div id="AdvancesLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                                </div>*@
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <p id="AdvancesLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="AdvancesLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="list_footer_right_margin_consistent col-md-1">
+                @*<i id="Advances_LockICON" class="fa fa-lock lock_symbol"></i>*@
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "AdvancesPrf_FAB,AdvancesProfile_grid_DIV,Type1,AdvancesProfile," + UserType) @*fab buttons*@
+        <div class="col-md-12">
+            @*Add/Edit Popup*@
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                        .ID("Advances_report_modal")
+                                        .OnShowing("PopupOnShowing")
+                                        .Title("Advances List Preview")
+                                        .FullScreen(false)
+                                        .MaxWidth(125)
+                                        .Height("auto")
+                                        .ShowCloseButton(true)
+                                        .ContentTemplate(@<text>
+                                            <div id='Advances_report_modal_result'>
+                                            </div>
+                                        </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                        .ID("popup_frm_Advances_Window")
+                                        .Title("Advances")
+                                        .OnShowing("PopupOnShowing")
+                                        .OnShown("AdvancesShown")
+                                        .Height(272)
+                                        .Width(640)
+                                        .ShowCloseButton(true)
+                                        .ContentTemplate(@<text>
+                                            <div id="Advancesresult">
+                                            </div>
+                                        </text>)
+                                                    .OnHiding(@<text>
+                                                        function () {
+                                                        if(IsAdvancesSucessPopup == false && IsAdvancesViewPopup == false)
+                                                        {
+                                                        var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                                        result.done(function (dialogResult) {
+                                                        if(dialogResult){
+                                                        $("#popup_frm_Advances_Window").dxPopup("hide");
+                                                        }else
+                                                        {
+                                                        $("#popup_frm_Advances_Window").dxPopup("show");
+                                                        }
+                                                        });
+                                                        }
+                                                        }
+                                                    </text>)
+        )
+        </div>
+    </div>
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsAdvancesSucessPopup = false;
+    var IsAdvancesViewPopup = false;
+    var IsAdvancesNewPopup = false;
+    var IsAdvancesEditPopup = false;
+    var Advances_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var AdvancesInfo_SetVouchingModeOn = "@AdvancesInfo_Auto_Vouching_Mode" == "True" ? true : false;
+    var Advances_ViewMode = "Default";
+    var UserType_AdvancesPrf = "@UserType".toUpperCase();
+    var Advances_IsVouchingMode = false;
+    var Advances_FocusedRowBeforeRefresh;
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Advances/SessionClear",
+                cache: false
+            });
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+            ClearAllReferences_AdvancesProfile();
+        });
+        function ClearAllReferences_AdvancesProfile() {
+            IsAdvancesSucessPopup = null;
+            IsAdvancesViewPopup = null;
+            IsAdvancesNewPopup = null;
+            IsAdvancesEditPopup = null;
+            Advances_ShowHorizontalBar = null;
+            AdvancesInfo_SetVouchingModeOn = null;
+            Advances_ViewMode = null;
+            UserType_AdvancesPrf = null;
+            Advances_IsVouchingMode = null;
+            Advances_FocusedRowBeforeRefresh = null;
+            Advances_ColumnToBeShownIndex = null;
+            Advances_ColumnToBeHidddenIndex = null;
+            AdvancesID = null;
+            ITEM_NAME = null;
+            PARTY_NAME = null;
+            AI_ADV_DATE = null;
+            AI_OTHER_DETAIL = null;
+            Advance = null;
+            Advances_EditDate = null;
+            YearId = null;
+            TR_ID = null;
+            AI_PARTY_ID = null;
+            Advances_AddDate = null;
+            Advances_AddBy = null;
+            Advances_EditBy = null;
+            Advances_ActionStatus = null;
+            Advances_ActionDate = null;
+            Advances_ActionBy = null;
+            Advances_Type = null;
+            AdvancesInfo_IsDetailRowExpanded = null;
+            AdvancesInfo_NestedRecord_FocusedRowIndex = null;
+            AdvancesInfo_NestedGrid_AccessID = null;
+            AdvancesInfo_AtachmentID = null;
+            AdvancesInfo_FileName = null;
+            AdvancesInfo_ParamMandatory = null;
+            AdvancesInfo_FromDateLabel = null;
+            AdvancesInfo_ToDateLabel = null;
+            AdvancesInfo_DescriptionLabel = null;
+            AdvancesInfo_Doc_ID = null;
+            AdvancesInfo_Doc_Category = null;
+            AdvancesInfo_MasterRowRecID = null;
+            AdvancesInfo_MasterRowMID = null;
+            AdvancesInfo_NestedRowMapID = null;
+            AdvancesInfo_reason = null;
+            AdvancesInfo_Attachment_RecStatus = null;
+            AdvancesInfo_NestedRowReasonID = null;
+            AdvancesInfo_NestedRowKeyValue = null;
+
+            ClearAllReferences("AdvancesProfile_ClearReferences");
+        }
+
+        $(document).ready(function () {
+            if ("@Advances_AddRight" == "False")
+            {
+	            $("#AdvancesModelNew").hide();
+            }
+            if ("@Advances_UpdateRight" == "False")
+            {
+                $("#AdvancesModelEdit").hide();
+            }
+            if ("@Advances_ViewRight" == "False")
+            {
+                $("#AdvancesModelView").hide();
+            }
+            if ("@Advances_DeleteRight" == "False")
+            {
+                $("#AdvancesModelDelete").hide();
+            }
+            if ("@Advances_ExportRight" == "False")
+            {
+                $("#AdvancesModelListPreview").hide();
+            }
+            if ("@Advances_LockUnlockRight" == "False")
+            {
+                $("#AdvancesModelUnlock").hide();
+                $("#AdvancesModelLock").hide();
+            }
+            IsAdvancesSucessPopup = false;
+            IsAdvancesViewPopup = false;
+            //SetAdvancesGroupPanelFooterVisible();
+            //$("#AdvancesListGrid").hover(function () {
+            //    AdvancesListGrid.Focus()
+            //});
+            HideUnreleasedFunctionality('Advances_frm_Advances_Info');
+            $(".AdvancesListGrid_PreviewRow").hide();
+            GetSessionStorage("AdvancesListGrid");
+            if (AdvancesInfo_SetVouchingModeOn == true)
+            {
+                $("#AdvancesViewModeSwitch").dxSwitch("instance").option("value", true);
+            }
+        });
+    function OnAdvancesCellClick(event, cell,col, row)
+    {
+        if (UserType_AdvancesPrf == "AUDITOR" || UserType_AdvancesPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+
+    function Advances_VouchingSwitch_ValueChange(e)
+    {
+        Advances_IsVouchingMode = e.value;
+        if (AdvancesInfo_SetVouchingModeOn == true) {
+            AdvancesInfo_SetVouchingModeOn = false;
+        }
+        else {
+            AdvancesPrf_FAB.SetVisible(false);
+        }
+        if (Advances_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            AdvancesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        AdvancesListGrid_CollapseAllDetailRows();
+    }
+    function AdvancesListGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.AdvancesListGrid !== 'undefined')
+            {
+                if (typeof window.AdvancesListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof AdvancesListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        AdvancesListGrid.SetFocusedRowIndex(-1);
+                        AdvancesListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        AdvancesListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, 100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function Advances_ViewSwitch_ValueChange(e)
+    {
+        Advances_ViewMode = e.value == false ? "Default" : "Compact";
+        if (AdvancesInfo_SetVouchingModeOn == true)
+        {
+            $("#AdvancesVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            AdvancesListGrid.CollapseAllDetailRows();
+        }
+    }
+
+        function AdvancesOnInit(s, e) {
+            AdvancesAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                AdvancesAdjustSize();
+            });
+    }
+
+    var Advances_ColumnToBeShownIndex = "";
+    var Advances_ColumnToBeHidddenIndex = "";
+    function OnGridAdvancesListGrid_EndCallback(s, e)
+    {
+            //AdvancesAdjustSize();
+            AdvancesGridLayout = s.cpClientLayout;
+            Advances_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            Advances_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+       $(".AdvancesListGrid_PreviewRow").hide();
+        GetSessionStorage("AdvancesListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH" && Advances_IsVouchingMode == true) {
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(Advances_FocusedRowBeforeRefresh);
+        }
+    }
+
+        function AdvancesAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try { AdvancesListGrid.SetHeight(height); } catch (err) { }
+        }
+        function AdvanceschangeMode() {
+            ShowLoader();
+            if (Advances_ShowHorizontalBar == 0) {
+                Advances_ShowHorizontalBar = 1;
+                $("#AdvancesToggleScrollBar").find("span").text("Default Data");
+                $("#AdvancesToggleScrollBar").width(110);
+            }
+            else {
+                Advances_ShowHorizontalBar = 0;
+                $("#AdvancesToggleScrollBar").find("span").text("Full Data");
+                $("#AdvancesToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: '@Url.Action("Frm_Advances_Info_Grid", "Advances")',
+                type: "GET",
+                data: { ShowHorizontalBar: Advances_ShowHorizontalBar, VouchingMode: Advances_IsVouchingMode, ViewMode: Advances_ViewMode, ColumnToBeHidddenIndex: Advances_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Advances_ColumnToBeShownIndex  },
+                success: function (res) {
+                    $("#AdvancesreloadPartialView").html(res);
+                    $(".AdvancesListGrid_PreviewRow").hide();
+                    GetSessionStorage("AdvancesListGrid");
+                }
+            });
+            HideLoader();
+        }
+        function AdvancesAjaxSuccessForm(data) {
+            HideLoader();
+            if (data.result == false) {
+                DevExpress.ui.dialog.alert(data.Message, "Error");
+            }
+            else {
+                IsAdvancesSucessPopup = true;
+                var advancesSubmitSuccess = DevExpress.ui.dialog.alert(data.Message, "Success");
+                $("#popup_frm_Advances_Window").dxPopup("hide");
+                AdvancesListGrid.Refresh();
+                IsAdvancesSucessPopup = false;
+                advancesSubmitSuccess.done(function (alertResult) {
+                    if (alertResult) {
+                        if (IsAdvancesNewPopup == true) {
+                            var addmoreresult = DevExpress.ui.dialog.confirm("Add More Entry...?", "Advances");
+                            addmoreresult.done(function (dialogResult) {
+                                if (dialogResult) {
+                                    OnAdvancesNewClick();
+                                }
+                            });
+                        }
+                        if (IsAdvancesEditPopup == true) {
+                            var lockresult = DevExpress.ui.dialog.confirm("Do you want to Lock this Entry...?", "Confirmation");
+                            lockresult.done(function (dialogResult) {
+                                if (dialogResult) {
+                                    AdvancesOnLockClick();
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+
+    function AdvancesGrid_BeginCallBack(s, e) {
+        Advances_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["ShowHorizontalBar"] = Advances_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = Advances_IsVouchingMode;
+            e.customArgs["ViewMode"] = Advances_ViewMode;
+            e.customArgs["ColumnToBeShownIndex"] = Advances_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = Advances_ColumnToBeHidddenIndex;
+        }
+
+        var AdvancesID;
+        var ITEM_NAME;
+        var PARTY_NAME;
+        var AI_ADV_DATE;
+        var AI_OTHER_DETAIL;
+        var Advance;
+        var Advances_EditDate;
+        var YearId;
+        var TR_ID;
+        var AI_PARTY_ID;
+        var Advances_AddDate;
+        var Advances_AddBy;
+        var Advances_EditBy;
+        var Advances_ActionStatus;
+        var Advances_ActionDate;
+        var Advances_ActionBy;
+        var Advances_Type;
+
+        function AdvancesdblclickEdit(s, e) {
+            //var key = s.GetRowKey(s.GetFocusedRowIndex());
+            //AdvancesListGrid.GetValuesOnCustomCallback({ key: key }, AdvancesOnGetRowValues);
+            //if (AdvancesID != null || AdvancesID == 'undefined' || AdvancesID == undefined)
+            //    OnAdvancesEditClick();
+        }
+
+    function AdvancesOnGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            if (!s.IsGroupRow(s.GetFocusedRowIndex()))
+            {
+                if (Advances_IsVouchingMode)
+                {
+                    AdvancesPrf_FAB.SetVisible(true);
+                    AdvancesPrf_FAB.SetActionContext("VouchingActionContext", true);
+                }
+                var key = s.GetRowKey(s.GetFocusedRowIndex());
+                AdvancesListGrid.GetValuesOnCustomCallback({ key: key }, AdvancesOnGetRowValues);
+            }
+            else
+            {
+                AdvancesID = null;
+            }
+        }
+        else
+        {
+            AdvancesID = null;
+        }
+    }
+
+        function AdvancesOnGetRowValues(data) {
+            var values = data.split("![");
+            AdvancesID = values[0];
+            ITEM_NAME = values[1];
+            PARTY_NAME = values[2];
+            AI_ADV_DATE = values[3];
+            AI_OTHER_DETAIL = values[4];
+            Advance = values[5];
+            Advances_EditDate = values[6];
+            YearId = values[7];
+            TR_ID = values[8];
+            AI_PARTY_ID = values[9];
+            Advances_AddDate = values[10];
+            Advances_AddBy = values[11];
+            Advances_EditBy = values[12];
+            Advances_ActionStatus = values[13];
+            Advances_ActionDate = values[14];
+            Advances_ActionBy = values[15];
+            Advances_Type = values[16];
+            Advances_UpdateFooterDetail(AdvancesID, Advances_ActionStatus, Advances_AddDate, Advances_AddBy,
+                Advances_ActionDate, Advances_ActionBy, Advances_EditDate, Advances_EditBy);
+            if (Advances_IsVouchingMode == true) {
+                OpenLeftPane();
+                LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Advances", "LeftPaneContent", AdvancesID, Advances_IsVouchingMode, "");
+            }
+        }
+
+        function Advances_UpdateFooterDetail(Advances_ID, Advances_Action_Status, Advances_Add_Date, Advances_Add_By, Advances_Action_Date, Advances_Action_By, Advances_Edit_Date, Advances_Edit_By) {
+
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+
+            Status = Advances_Action_Status;
+
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "Fa Fa-Lock";
+            }
+            else {
+                Pic_Status = "Fa Fa-UnLock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED")
+                    Lbl_Status_Color = "green";
+                else
+                    Lbl_Status_Color = "red";
+            }
+
+            if (Advances_Add_Date) {
+                Lbl_Create = "Add On: " + Advances_Add_Date + ", By: " + Advances_Add_By;
+            }
+            else {
+                Lbl_Create = "Add On: " + "?, By: " + Advances_Add_By;
+            }
+            if (Advances_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Advances_Edit_Date + ", By: " + Advances_Edit_By;
+            }
+            else {
+                Lbl_Modify = "Edit On: " + "?, By: " + Advances_Edit_By;
+            }
+            if (Advances_Action_Date) {
+                Lbl_ActionOn = "UnLocked On: " + Advances_Action_Date;
+            }
+            else {
+                Lbl_ActionOn = "UnLocked On: " + "?";
+            }
+
+            Lbl_ActionBy = "UnLocked By: " + Advances_Action_By;
+
+            $('#Advances_Lbl_Status').text(Lbl_Status);
+            $('#Advances_Lbl_Create').text(Lbl_Create);
+            $('#Advances_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#Advances_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#Advances_Lbl_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#Advances_Lbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status != "") {
+                $('#Advances_LockICON').css('class', Pic_Status);
+            }
+        }
+
+        function AdvancesIsDate(val) {
+            var d = new Date(val);
+            return !isNaN(d.valueOf());
+        }
+
+        function AdvancesOnUnLockClick() {
+            if ("@Advances_LockUnlockRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            if (AdvancesID == 'undefined' || AdvancesID == undefined) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Advances/DataNavigation",
+                data: { ActionMethod: "UNLOCKED", id: AdvancesID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: Advances_ActionStatus, EditDate: Advances_EditDate, Type: Advances_Type },
+                cache: false,
+                success: function (Advances_UNLOCKED_Get_DataNavigation_result) {
+                    if (Advances_UNLOCKED_Get_DataNavigation_result.result == "NoUnLockRights") {
+                        DevExpress.ui.dialog.alert(Advances_UNLOCKED_Get_DataNavigation_result.Message,"Locked..");
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(Advances_UNLOCKED_Get_DataNavigation_result.Message);
+                    }
+                }
+            });
+        }
+
+        function AdvancesOnLockClick() {
+            if ("@Advances_LockUnlockRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            if (AdvancesID == 'undefined' || AdvancesID == undefined) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Advances/DataNavigation",
+                data: { ActionMethod: "LOCKED", id: AdvancesID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: Advances_ActionStatus, EditDate: Advances_EditDate, Type: Advances_Type },
+                cache: false,
+                success: function (Advances_LOCKED_Get_DataNavigation_result) {
+                    if (Advances_UNLOCKED_Get_DataNavigation_result.result == "NoLockRights") {
+                        DevExpress.ui.dialog.alert(Advances_UNLOCKED_Get_DataNavigation_result.Message, "Locked..");
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(Advances_LOCKED_Get_DataNavigation_result.Message);
+                    }
+                }
+            });
+        }
+
+        function OnAdvancesNewClick() {
+            if ("@Advances_AddRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            IsAdvancesNewPopup = true;
+            IsAdvancesViewPopup = false;
+            IsAdvancesEditPopup = false;
+            $("#popup_frm_Advances_Window").dxPopup("show");
+            $("#popup_frm_Advances_Window").dxPopup("instance").option("title", "New ~ Advances");
+            $("#Advancesresult").html('');
+            ShowLoader();
+            $("#Advancesresult").load("@Url.Action("frm_Advances_window", "Advances", new { @area = "Profile" })?ActionMethod=New", function () {
+                HideLoader();
+                $("#ItemID").dxSelectBox('instance').focus();
+            });
+        }
+
+        function OnAdvancesEditClick() {
+            if ("@Advances_UpdateRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            IsAdvancesNewPopup = false;
+            IsAdvancesEditPopup = true;
+            if (AdvancesID == 'undefined' || AdvancesID == undefined) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Advances/DataNavigation",
+                data: { ActionMethod: "Edit", id: AdvancesID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: Advances_ActionStatus, EditDate: Advances_EditDate },
+                cache: false,
+                async: true,
+                success: function (Advances_Edit_ButtonClick_result) {
+                    if (Advances_Edit_ButtonClick_result.result == "true" || Advances_Edit_ButtonClick_result.result == true) {
+                        $("#popup_frm_Advances_Window").dxPopup("show");
+                        $("#popup_frm_Advances_Window").dxPopup("instance").option("title", "Edit ~ Advances");
+                        $("#Advancesresult").html('');
+                        ShowLoader();
+                        $("#Advancesresult").load('@Url.Action("frm_Advances_window", "Advances", new { @area = "Profile" })?ActionMethod=Edit&ID=' + AdvancesID + '&EditedOn=' + encodeURIComponent(Advances_EditDate), function () {
+                            HideLoader();
+                            $("#ItemID").dxSelectBox('instance').focus();
+                        });
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(Advances_Edit_ButtonClick_result.Message);
+                        AdvancesListGrid.Refresh();
+                    }
+                }
+            });
+        }
+
+        function OnAdvancesViewClick() {
+            if ("@Advances_ViewRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            IsAdvancesNewPopup = false;
+            IsAdvancesEditPopup = false;
+            IsAdvancesViewPopup = true;
+            if (AdvancesID == 'undefined' || AdvancesID == undefined) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Advances/DataNavigation",
+                data: { ActionMethod: "View", id: AdvancesID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: Advances_ActionStatus, EditDate: Advances_EditDate },
+                cache: false,
+                success: function (Advances_View_ButtonClick_result) {
+                    if (Advances_View_ButtonClick_result.result == "true" || Advances_View_ButtonClick_result.result == true) {
+                        $("#popup_frm_Advances_Window").dxPopup("show");
+                        $("#popup_frm_Advances_Window").dxPopup("instance").option("title", "View ~ Advances");
+                        $("#Advancesresult").html('');
+                        ShowLoader();
+                        $("#Advancesresult").load("@Url.Action("frm_Advances_window", "Advances", new { @area = "Profile" })?ActionMethod=" + "View" + "&ID=" + AdvancesID + "&EditedOn=" + encodeURIComponent(Advances_EditDate), function () {
+                            HideLoader();
+                        });
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(Advances_View_ButtonClick_result.Message);
+                        AdvancesListGrid.Refresh();
+                    }
+                }
+            });
+        }
+
+        function OnAdvancesDeleteClick() {
+            if ("@Advances_DeleteRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            IsAdvancesNewPopup = false;
+            IsAdvancesEditPopup = false;
+            IsAdvancesViewPopup = false;
+            if (AdvancesID == 'undefined' || AdvancesID == undefined) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+            result.done(function (dialogResult) {
+                if (dialogResult) {
+                    $("#popup_frm_Advances_Window_Close").dxPopup("hide");
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Advances/DataNavigation",
+                        data: { ActionMethod: "Delete", id: AdvancesID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: Advances_ActionStatus, EditDate: Advances_EditDate },
+                        cache: false,
+                        success: function (Advances_Delete_ButtonClick_result) {
+                            if (Advances_Delete_ButtonClick_result.result == "true" || Advances_Delete_ButtonClick_result.result == true) {
+                                $("#popup_frm_Advances_Window").dxPopup("show");
+                                $("#popup_frm_Advances_Window").dxPopup("instance").option("title", "Delete ~ Advances");
+                                $("#Advancesresult").load("@Url.Action("frm_Advances_window", "Advances", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + AdvancesID + "&EditedOn=" + encodeURIComponent(Advances_EditDate), function () {
+                                    HideLoader();
+                                    $("#AdvancesDelete").dxButton('instance').focus();
+                                });
+                            }
+                            else {
+                                DevExpress.ui.dialog.alert(Advances_Delete_ButtonClick_result.Message);
+                                AdvancesListGrid.Refresh();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function OnAdvancesListPreviewClick() {
+            if ("@Advances_ExportRight" == "False")
+            {
+	            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	            return;
+            }
+            @*$("#Advances_report_modal").dxPopup("show");
+            $("#Advances_report_modal").dxPopup("instance").option("title", "Export Option");
+            $("#Advances_report_modal").html('');
+            ShowLoader();
+            $("#Advances_report_modal_result").load("@Url.Action("Frm_Export_Options", "Advances", new { @area = "Profile" })", function () {
+                HideLoader();
+            });*@
+            OpenPopup("Advances_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Advances", new { @area = "Profile" })", "auto", 125, false, null);
+        }
+
+        function GetSelectedFieldValuesCallback(values) {
+            SelectedRows.BeginUpdate();
+            try {
+                SelectedRows.ClearItems();
+                for (var i = 0; i < values.length; i++) {
+                    SelectedRows.AddItem(values[i]);
+                }
+            } finally {
+                SelectedRows.EndUpdate();
+            }
+            $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+        }
+
+        function AdvancesContextMenuFunction(s, e) {
+            if (e.item.name == 'New') {
+                OnAdvancesNewClick();
+            }
+            if (e.item.name == 'Close') {
+                closeProfile_Advances();
+            }
+            else if (e.item.name == 'Edit') {
+                OnAdvancesEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                OnAdvancesDeleteClick();
+            }
+            else if (e.item.name == 'View') {
+                OnAdvancesViewClick();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnAdvancesListPreviewClick();
+            }
+            else if (e.item.name == 'AuditActions') {
+                OnAdvancesAuditActionsClick();
+            }
+            else if (e.item.name == 'Unlock') {
+                AdvancesOnUnLockClick();
+            }
+            else if (e.item.name == 'Lock') {
+                AdvancesOnLockClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                AdvancesListGrid.Refresh();
+            }
+
+        }
+
+        function LookUp_GetPartyList_Advances_ChangeEvent(e) {
+            var PdropDownBox = $("#PartyID").dxDropDownBox("instance");
+            PdropDownBox.close();
+            var $dataGrid = $("#PartyList-datagrid");
+            if ($dataGrid.length) {
+                var dataGrid = $dataGrid.dxDataGrid("instance");
+                dataGrid.selectRows(e.value, false);
+                if (dataGrid.getSelectedRowsData().length > 0) {
+                    var item = dataGrid.getSelectedRowsData()[0];
+                    $("#PartyEditDate").val(item["REC_EDIT_ON"]);
+                }
+            }
+        }
+
+        function OnAdvancesAuditActionsClick() {
+            alert("Audit Actions Screen is under construction will be available soon!!!");
+        }
+        function closeProfile_Advances() {
+            $(".TabPanalMenu-tabs .active span").click();
+
+        }
+        //$(".TabPanalMenu-tabs .active span").on("click", function () {
+        //    $.ajax({
+        //        type: 'GET',
+        //        url: "/Profile/Advances/SessionClear",
+        //        cache: false
+        //    });
+        //    var pane = Mainspliter.GetPaneByName('RightPane');
+        //    pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        //});
+</script>
+    <script>
+    var AdvancesInfo_IsDetailRowExpanded = false;
+    var AdvancesInfo_NestedRecord_FocusedRowIndex = -1;
+    var AdvancesInfo_NestedGrid_AccessID;
+    var AdvancesInfo_AtachmentID;
+    var AdvancesInfo_FileName;
+    var AdvancesInfo_ParamMandatory;
+    var AdvancesInfo_FromDateLabel;
+    var AdvancesInfo_ToDateLabel;
+    var AdvancesInfo_DescriptionLabel;
+    var AdvancesInfo_Doc_ID;
+    var AdvancesInfo_Doc_Category;
+    var AdvancesInfo_MasterRowRecID;
+    var AdvancesInfo_MasterRowMID;
+    var AdvancesInfo_NestedRowMapID;
+    var AdvancesInfo_reason;
+    var AdvancesInfo_Attachment_RecStatus;
+    var AdvancesInfo_NestedRowReasonID;
+    var AdvancesInfo_NestedRowKeyValue;
+
+    function On_AdvancesProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AdvancesInfo_ParamMandatory == 1)
+            {
+                AddAttachment(AdvancesInfo_MasterRowRecID, "Profile_Advances", AdvancesInfo_Doc_ID, AdvancesInfo_Doc_Category, AdvancesInfo_ParamMandatory, AdvancesInfo_FromDateLabel, AdvancesInfo_ToDateLabel, AdvancesInfo_DescriptionLabel, "AdvancesProfileAttachment", null, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(AdvancesInfo_MasterRowRecID, "Profile_Advances", AdvancesInfo_Doc_ID, "AdvancesProfileAttachment", "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AdvancesInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(AdvancesInfo_MasterRowRecID, "Profile_Advances", AdvancesInfo_AtachmentID, AdvancesInfo_ParamMandatory, AdvancesInfo_FromDateLabel, AdvancesInfo_ToDateLabel, AdvancesInfo_DescriptionLabel, "AdvancesProfileAttachment", null, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(AdvancesInfo_MasterRowRecID, "Profile_Advances", AdvancesInfo_AtachmentID, AdvancesInfo_ParamMandatory, AdvancesInfo_FromDateLabel, AdvancesInfo_ToDateLabel, AdvancesInfo_DescriptionLabel, null, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID, AdvancesInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(AdvancesInfo_AtachmentID, AdvancesInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(AdvancesInfo_MasterRowRecID, "Profile_Advances", "Advances Information", "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (AdvancesInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(AdvancesInfo_MasterRowRecID, AdvancesInfo_NestedRowMapID, "Profile_Advances", "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(AdvancesInfo_MasterRowRecID, AdvancesInfo_NestedRowMapID, "Profile_Advances", "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID, AdvancesInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(AdvancesInfo_MasterRowRecID, AdvancesInfo_NestedRowMapID, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            AdvancesPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (AdvancesInfo_Nested_Doc_Status == "")
+            {
+                AdvancesPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (AdvancesInfo_Nested_Doc_Status == "NO")
+            {
+                AdvancesPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (AdvancesInfo_Nested_Doc_Status == "YES")
+            {
+                AdvancesPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            AdvancesInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            AdvancesInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            AdvancesInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnAdvancesInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnAdvancesInfo_RejectDoc();
+        }
+    }
+    function OnAdvancesInfo_RejectDoc() {
+        if (AdvancesInfo_AtachmentID == null || AdvancesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(AdvancesInfo_AtachmentID, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+    }
+    function OnAdvancesInfo_AcceptDoc() {
+        if (AdvancesInfo_AtachmentID == null || AdvancesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(AdvancesInfo_AtachmentID, "AdvancesListGrid", AdvancesInfo_NestedGrid_AccessID);
+    }
+    function AdvancesInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (AdvancesInfo_IsDetailRowExpanded == true || Advances_IsVouchingMode == true)
+        {
+            if (AdvancesInfo_MasterRowRecID == null || AdvancesInfo_MasterRowRecID == "")
+            {
+                Recid = AdvancesID;
+            }
+            else
+            {
+                Recid = AdvancesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = AdvancesID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_Advances", "AdvancesListGrid", AdvancesInfo_AtachmentID, AdvancesInfo_NestedRowReasonID, AdvancesInfo_NestedRowKeyValue );
+    }
+    function AdvancesInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (AdvancesInfo_IsDetailRowExpanded == true || Advances_IsVouchingMode == true)
+        {
+            if (AdvancesInfo_MasterRowRecID == null || AdvancesInfo_MasterRowRecID == "")
+            {
+                Recid = AdvancesID;
+            }
+            else
+            {
+                Recid = AdvancesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = AdvancesID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_Advances", "AdvancesListGrid", AdvancesInfo_AtachmentID, AdvancesInfo_NestedRowReasonID, AdvancesInfo_NestedRowKeyValue);
+    }
+    function OnAdvancesListGridNestedFocusedRowChange(s, e)
+    {
+        if (AdvancesInfo_IsDetailRowExpanded ==true || Advances_IsVouchingMode == true)
+        {
+            AdvancesInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (AdvancesInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                AdvancesInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnAdvancesInfo_GetGridRowValues);
+            }
+            else
+            {
+                AdvancesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnAdvancesInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            AdvancesPrf_FAB.SetVisible(true);
+            AdvancesInfo_Nested_Doc_Status = values[0];
+            if (Advances_IsVouchingMode == true)
+            {
+                AdvancesPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (AdvancesInfo_Nested_Doc_Status == "")
+                {
+                    AdvancesPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (AdvancesInfo_Nested_Doc_Status == "NO")
+                {
+                    AdvancesPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (AdvancesInfo_Nested_Doc_Status == "YES")
+                {
+                    AdvancesPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            AdvancesInfo_ParamMandatory = values[1];
+            AdvancesInfo_FromDateLabel = values[2];
+            AdvancesInfo_ToDateLabel = values[3];
+            AdvancesInfo_DescriptionLabel = values[4];
+            AdvancesInfo_Doc_Category = values[5];
+            AdvancesInfo_Doc_ID = values[6];
+            AdvancesInfo_AtachmentID = values[7];
+            IndexAttachmentID = AdvancesInfo_AtachmentID;
+            AdvancesInfo_MasterRowRecID = values[8];
+            AdvancesInfo_MasterRowMID = values[9];
+            AdvancesInfo_NestedRowMapID = values[10];
+            AdvancesInfo_reason = values[11];
+            AdvancesInfo_FileName = values[12];
+            AdvancesInfo_Attachment_RecStatus = values[13];
+            AdvancesInfo_NestedRowKeyValue = values[14];
+            if (Advances_IsVouchingMode == true)
+            {
+                if (AdvancesInfo_FileName != null && AdvancesInfo_FileName.length > 0)
+                {
+                    ViewDocument(AdvancesInfo_AtachmentID, AdvancesInfo_FileName, "AdvancesPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        AdvancesInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = AdvancesInfo_NestedRowReasonID;
+    }
+    function AdvancesGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = Advances_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Advances_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function AdvancesGrid_DetailRowExpanding(s, e)
+    {
+        AdvancesInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Advances_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function AdvancesGrid_DetailRowCollapsing(s, e)
+    {
+        AdvancesInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Advances_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            AdvancesPrf_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+
+</div>

@@ -1,0 +1,778 @@
+﻿<div class="InternalTransferRegister_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Account.Models.InternalTransferRegister
+    @{
+        Layout = null;
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+        string UserType = (string)ViewBag.UserType;
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool IntrnlTranfrReg_Auto_Vouching_Mode = (bool)ViewData["IntrnlTranfrReg_Auto_Vouching_Mode"];
+        bool IsVolumeCentre = (bool)ViewBag.IsVolumeCentre;
+    }
+    <link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+    <style>
+        .filter_btn i {
+            background: #86c13e;
+        }
+
+        .find_btn i {
+            background: #81b4df;
+        }
+
+        .addEditDiv {
+            padding: 2px 0;
+        }
+
+            .addEditDiv p {
+                margin: 0;
+            }
+
+        .rightDiv {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+    @Html.HiddenFor(x => x.xID)
+    <div class="ITR_Reg_ParentDiv clearfix">
+        <div id="ITR_Reg_content" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 padd report_header_div">
+                <label class="report_header_label">Internal Transfers Register</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("IntrnlTranfrRegVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("IntrnlTranfrReg_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("IntrnlTranfrRegViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("IntrnlTranfrReg_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("ITR_Edit").Text("Edit").Icon("edit").OnClick(@<text> function () { DataNavigation_ITR("EDIT"); } </text>) )
+                @(Html.DevExtreme().Button().ID("ITR_Delete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_ITR("DELETE"); } </text>) )
+                @(Html.DevExtreme().Button().ID("ITR_View").Text("View").Icon("doc").OnClick(@<text> function () { DataNavigation_ITR("VIEW"); } </text>) )
+                @(Html.DevExtreme().Button().ID("ITR_Accept").Text("Accept Transfer").Icon("fas fa-check-circle btn-icons checkgreen icon-rgt-space5").OnClick(@<text> function () {DataNavigation_ITR("ACCEPT"); } </text>) )
+                @(Html.DevExtreme().Button().ID("ITR_listPreview").Text("List Preview").Icon("print").OnClick(@<text> function () { OnITRListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("ITR_Close").Text("Close").Icon("close").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>) )
+
+            </div>
+        </div>
+    </div>@*Header*@
+    <div>
+        @(Html.DevExtreme().TabPanel().ID("ITR_Gridpanel").Items(items =>
+                                                                                {
+                                                                                    items.Add().Title("Currently Posted Entries").Template(@<text> @CurrentlyPostedView() </text>);
+                                                                                            items.Add().Title("Pending Entries To Be Accepted By Us").Template(@<text> @PendingEntriesView() </text>);
+                                                                                                }).DeferRendering(false).OnSelectionChanged("ITR_Gridpanel_selectionChanged"))
+        @helper CurrentlyPostedView()
+        {
+            @Html.Partial("ITR_CurrentlyPosted", Model);
+        }
+        @helper PendingEntriesView()
+        {
+            @Html.Partial("ITR_PendingEntries", Model);
+        }
+    </div>@*Grid Tabs*@
+    @Html.Partial("AttachmentFAB", "ITR_PostedPrf_FAB,ITR_Reg_ParentDiv,Type1,ITR_Posted," + UserType)@*fab buttons*@
+
+    @(Html.DevExtreme().Popup().CustomPopup().ID("ITR_report_modal").OnShowing("PopupOnShowing").Title("Pending Internal Transfer").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='ITR_report_modal_result'> </div> </text>) )
+    @(Html.DevExtreme().Popup().CustomPopup().ID("ITR_manage_Attachment").OnShowing("PopupOnShowing").DragEnabled(true).Height(250).Width(850).ShowCloseButton(true).ContentTemplate(@<text> <div id="ITR_manage_Attachment_result"> </div> </text>))
+
+    <script>
+        var RowFlag1;
+        var RowFlag2;
+        var ColumnFormVisibleFlag1 = false;
+        var ColumnFormVisibleFlag2 = false;
+        var Help_Attachment_AddRight = "@Help_Attachment_AddRight";
+        var Help_Attachment_EditRight = "@Help_Attachment_EditRight";
+        var Help_Attachment_ViewRight = "@Help_Attachment_ViewRight";
+        var Help_Attachment_DeleteRight = "@Help_Attachment_DeleteRight";
+        var IntrnlTranfrReg_SetVouchingModeOn = "@IntrnlTranfrReg_Auto_Vouching_Mode" == "True" ? true : false;
+        var UserType_IntTransPrf = "@UserType".toUpperCase();
+        var IntrnlTranfrReg_IsVouchingMode = false;
+        var IntrnlTranfrReg_FocusedRowBeforeRefresh;
+        var IntrnlTranfrReg_ViewMode = "Default";
+        var ITR_Posted_IsDetailRowExpanded = false;
+        var ITR_Posted_NestedRecord_FocusedRowIndex = -1;
+        var ITR_Posted_NestedGrid_AccessID;
+        var ITR_Posted_AtachmentID;
+        var ITR_Posted_FileName;
+        var ITR_Posted_ParamMandatory;
+        var ITR_Posted_FromDateLabel;
+        var ITR_Posted_ToDateLabel;
+        var ITR_Posted_DescriptionLabel;
+        var ITR_Posted_Doc_ID;
+        var ITR_Posted_Doc_Category;
+        var ITR_Posted_MasterRowRecID;
+        var ITR_Posted_MasterRowMID;
+        var ITR_Posted_NestedRowMapID;
+        var ITR_Posted_reason;
+        var ITR_Posted_Attachment_RecStatus;
+        var ITR_Posted_RecID_ForAttachment;
+        var ITR_Posted_NestedRowReasonID;
+        var ITR_Posted_NestedRowKeyValue;
+
+
+    </script>@* ITR_Global_Variables*@
+
+    <script>
+
+    function ITR_Gridpanel_selectionChanged(e)
+    {
+        ITR_PendingGrid.SetFocusedRowIndex(-1);
+        ITR_PostedGrid.SetFocusedRowIndex(-1);
+    }
+
+    function OnIntTransCellClick(event, cell,col, row)
+    {
+        if (UserType_IntTransPrf == "AUDITOR" || UserType_IntTransPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+
+
+    $(document).ready(function ()
+    {
+        if (IntrnlTranfrReg_SetVouchingModeOn == true)
+        {
+            $("#IntrnlTranfrRegViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    function IntrnlTranfrReg_VouchingSwitch_ValueChange(e)
+    {
+        IntrnlTranfrReg_IsVouchingMode = e.value;
+        ITR_PostedGrid.SetFocusedRowIndex(-1);
+        ITR_PostedPrf_FAB.SetVisible(false);
+        if (IntrnlTranfrReg_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            ITR_PostedPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        ITR_PostedGrid_CollapseAllDetailRows();
+    }
+    function ITR_PostedGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.ITR_PostedGrid !== 'undefined')
+            {
+                if (typeof window.ITR_PostedGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof ITR_PostedGrid.CollapseAllDetailRows == 'function')
+                    {
+                        ITR_PostedGrid.SetFocusedRowIndex(-1);
+                        ITR_PostedGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        ITR_PostedGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function IntrnlTranfrReg_ViewSwitch_ValueChange(e)
+    {
+        IntrnlTranfrReg_ViewMode = e.value == false ? "Default" : "Compact";
+        if (IntrnlTranfrReg_SetVouchingModeOn == true)
+        {
+            $("#IntrnlTranfrRegVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            ITR_PostedGrid.CollapseAllDetailRows();
+        }
+    }
+    function OnITRNewClick()
+    {
+        ShowLoader();
+        OpenDynamicPopup("New ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_New" + "&_New_From_Register" + true, "auto", 1000, false, null);
+    }
+    function OnITR_AcceptTransferClick()
+    {
+        if ($("#ITR_Gridpanel").dxTabPanel("instance").option("selectedIndex") == 1 )
+        {
+            if (ITR_Pending_ID != null)
+            {
+                ShowLoader();
+                OpenDynamicPopup("Match ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?RegisterGridRowID=" + ITR_Pending_ID + "&_Accepted_From_Register=" + true +"&Tag=_New", "auto", 1000, false, null);
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            }
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Internal Transfer Entry Not Selected...!", 'Inform!');
+        }
+    }//accept transfer
+    function OnITRUnmatchTransferClick()
+    {
+        if (ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/UnmatchTransferClick",
+            cache: false,
+            data: { Posted_Id: ITR_Posted_ID, Pending_Id: ITR_Pending_ID },
+            success: function (data)
+            {
+                if (data.message.length > 0)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                }
+                if (data.refreshGrid == true)
+                {
+                    ITR_PostedGrid.Refresh();
+                }
+            }
+        });
+    }//unmatch transfer
+    function OnITREditClick()
+    {
+        if (ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Please Select Posted Transfer Entry To Be Edited...!", 'Error'); return; }
+        var multiuser_confirm = false;
+        var Edit_Check_Passed = false;
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/MultiUser_ITR_Confirm",
+            async:false,
+            cache: false,
+            data: { Posted_Id: ITR_Posted_ID },
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Error!');
+                }
+                else if (data.result == true)
+                {
+                    multiuser_confirm = true;
+                }
+                else if (data.result == "MultiUser_Confirm")
+                {
+                    var confirm = DevExpress.ui.dialog.confirm(data.message, 'Confirm!');
+                    confirm.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            multiuser_confirm = true;
+                        }
+                        else
+                        {
+                            multiuser_confirm = false;
+                        }
+                    });
+                }
+            }
+        });
+        if (multiuser_confirm)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/InternalTransfer/Checks_Edit_DeleteClick_ITR",
+                async:false,
+                cache: false,
+                data: { Posted_Id: ITR_Posted_ID },
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, 'Inform !');
+                        if (data.refreshGrid)
+                        {
+                            ITR_PostedGrid.Refresh();
+                        }
+                    }
+                    else if (data.result == true)
+                    {
+                        Edit_Check_Passed = true;
+                    }
+                }
+            });
+        }
+        if (Edit_Check_Passed)
+        {
+            ShowLoader();
+            OpenDynamicPopup("Edit ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_Edit&RegisterGridRowID=" + ITR_Posted_ID + "&_Edit_From_Register=" + true, "auto", 1000, false, null);
+        }
+    }// edit click
+    function OnITRDeleteClick ()
+    {
+        if (ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+        var multiuser_confirm = false;
+        var Delete_Check_Passed = false;
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/MultiUser_ITR_Confirm",
+            async:false,
+            cache: false,
+            data: { Posted_Id: ITR_Posted_ID },
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Error!');
+                }
+                else if (data.result == true)
+                {
+                    multiuser_confirm = true;
+                }
+                else if (data.result == "MultiUser_Confirm")
+                {
+                    var confirm = DevExpress.ui.dialog.confirm(data.message, 'Confirm!');
+                    confirm.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            multiuser_confirm = true;
+                        }
+                        else
+                        {
+                            multiuser_confirm = false;
+                        }
+                    });
+                }
+            }
+        });
+        if (multiuser_confirm)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/InternalTransfer/Checks_Edit_DeleteClick_ITR",
+                async:false,
+                cache: false,
+                data: { Posted_Id: ITR_Posted_ID },
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, 'Inform !');
+                        if (data.refreshGrid)
+                        {
+                            ITR_PostedGrid.Refresh();
+                        }
+                    }
+                    else if (data.result == true)
+                    {
+                        Delete_Check_Passed = true;
+                    }
+                }
+            });
+        }
+        if (Delete_Check_Passed)
+        {
+            ShowLoader();
+            OpenDynamicPopup("Delete ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_Delete&RegisterGridRowID=" + ITR_Posted_ID + "&_Delete_From_Register=" + true, "auto", 1000, false, null);
+        }
+    }// delete clicked
+    function OnITRListPreviewClick()
+    {
+        ShowLoader();
+        OpenPopup("ITR_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "InternalTransfer", new { @area = "Account" })?SelectedIndex=" + $("#ITR_Gridpanel").dxTabPanel("instance").option("selectedIndex"), "auto", "20%", false, null);// redmine bug #132961 fixed
+    }
+    function OnITRAddAttachment(ID)
+    {
+        if (ID == null)
+        {
+            DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            return;
+        }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+        OpenDynamicPopup("Internal Transfer Register", "@Url.Action("Frm_Attachment_Window", "Attachment", new { @area = "Help" })?AM=New&Refrecid=" + ID + "&RefScreen=" + "Internal_Transfer", "auto", 900, false, null);
+    }
+    function OnITRManageAttachment(ID)
+    {
+        if (ID == null) {
+            DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            return;
+        }
+        ShowLoader();
+        OpenPopup("ITR_manage_Attachment", "Internal Transfer Register", "@Url.Action("Frm_Attachment_Info", "Attachment", new { @area = "Help" })?RefRecID=" + ID + "&PopUpId=ITR_manage_Attachment", "auto", 1150, false, null);
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/SessionClear_REG",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+
+        ClearAllReferences_InternalTransferRegister()
+    });
+
+        function ClearAllReferences_InternalTransferRegister() {
+
+            ITR_Posted_ActionBy = null;
+            ITR_Posted_ActionDate = null;
+            ITR_Posted_ActionStatus = null;
+            ITR_Posted_AddBy = null;
+            ITR_Posted_AddDate = null;
+            ITR_Posted_EditBy = null;
+            ITR_Posted_EditDate = null;
+            ITR_Posted_ID = null;
+            ITR_Posted_MID = null;
+            ITR_Posted_SearchVisible = null;
+            ITR_Posted_FilterVisible = null;
+            ITRPosted_ColumnToBeShownIndex = null;
+            ITRPosted_ColumnToBeHidddenIndex = null;
+            ITR_Pending_ActionBy = null;
+            ITR_Pending_ActionDate = null;
+            ITR_Pending_ActionStatus = null;
+            ITR_Pending_AddBy = null;
+            ITR_Pending_AddDate = null;
+            ITR_Pending_EditBy = null;
+            ITR_Pending_EditDate = null;
+            ITR_Pending_ID = null;
+            ITR_Pending_SearchVisible = null;
+            ITR_Pending_FilterVisible = null;
+            RowFlag1 = null;
+            RowFlag2 = null;
+            ColumnFormVisibleFlag1 = null;
+            ColumnFormVisibleFlag2 = null;
+            Help_Attachment_AddRight = null;
+            Help_Attachment_EditRight = null;
+            Help_Attachment_ViewRight = null;
+            Help_Attachment_DeleteRight = null;
+            IntrnlTranfrReg_SetVouchingModeOn = null;
+            UserType_IntTransPrf = null;
+            IntrnlTranfrReg_IsVouchingMode = null;
+            IntrnlTranfrReg_FocusedRowBeforeRefresh = null;
+            IntrnlTranfrReg_ViewMode = null;
+            ITR_Posted_IsDetailRowExpanded = null;
+            ITR_Posted_NestedRecord_FocusedRowIndex = null;
+            ITR_Posted_NestedGrid_AccessID = null;
+            ITR_Posted_AtachmentID = null;
+            ITR_Posted_FileName = null;
+            ITR_Posted_ParamMandatory = null;
+            ITR_Posted_FromDateLabel = null;
+            ITR_Posted_ToDateLabel = null;
+            ITR_Posted_DescriptionLabel = null;
+            ITR_Posted_Doc_ID = null;
+            ITR_Posted_Doc_Category = null;
+            ITR_Posted_MasterRowRecID = null;
+            ITR_Posted_MasterRowMID = null;
+            ITR_Posted_NestedRowMapID = null;
+            ITR_Posted_reason = null;
+            ITR_Posted_Attachment_RecStatus = null;
+            ITR_Posted_RecID_ForAttachment = null;
+            ITR_Posted_NestedRowReasonID = null;
+            ITR_Posted_NestedRowKeyValue = null;
+            ITR_Pending_FocusedRowBeforeRefresh = null;
+            ITR_Posted_XID = null;
+            ClearAllReferences("InternalTransferRegister_ClearReferences")
+        }
+    </script>
+
+    <script>
+        
+
+        function On_ITR_Posted_FABActionItemClick(s, e) {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            if (e.actionName === "add_attach") {
+                if (Help_Attachment_AddRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ITR_Posted_ParamMandatory == 1) {
+                    AddAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_Doc_ID, ITR_Posted_Doc_Category, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, "ITR_PostedProfileAttachment", null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+                else {
+                    Attachment_DirectBrowse(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_Doc_ID, "ITR_PostedProfileAttachment", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "edit_attach") {
+                if (Help_Attachment_EditRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ITR_Posted_Attachment_RecStatus.toUpperCase() == "LOCKED") {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_AtachmentID, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, "ITR_PostedProfileAttachment", null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach") {
+                if (Help_Attachment_DeleteRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                DeleteAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_AtachmentID, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID, ITR_Posted_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach") {
+                if (Help_Attachment_ViewRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                ViewDocument(ITR_Posted_AtachmentID, ITR_Posted_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach") {
+                LinkAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", "Internal Transfers Register", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason") {
+                if (ITR_Posted_Doc_Category.toLowerCase() == "others") {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else {
+                    AttachmentAddReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "Edit_Reason") {
+                AttachmentEditReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID, ITR_Posted_reason);
+            }
+            else if (e.actionName === "Delete_Reason") {
+                AttachmentDeleteReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Rotate") {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut") {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn") {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit") {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back") {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "AuditAction") {
+                ITR_PostedPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit") {
+                if (ITR_Posted_Nested_Doc_Status == "") {
+                    ITR_PostedPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                if (ITR_Posted_Nested_Doc_Status == "NO") {
+                    ITR_PostedPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                if (ITR_Posted_Nested_Doc_Status == "YES") {
+                    ITR_PostedPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName == "Accept") {
+                ITR_Posted_AcceptwithoutRemarks();
+            }
+            else if (e.actionName == "Reject") {
+                ITR_Posted_AcceptRejectVoucher("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks") {
+                ITR_Posted_AcceptRejectVoucher("Accept");
+            }
+        }
+        function ITR_Posted_AcceptwithoutRemarks() {
+            var Recid;
+            if (ITR_Posted_IsDetailRowExpanded == true || IntrnlTranfrReg_IsVouchingMode == true) {
+                if (ITR_Posted_MasterRowRecID == null || ITR_Posted_MasterRowRecID == "") {
+                    Recid = ITR_Posted_MasterRowMID;
+                }
+                else {
+                    Recid = ITR_Posted_MasterRowRecID;
+                }
+            }
+            else {
+                Recid = ITR_Posted_ID;
+            }
+            Entry_AcceptwithoutRemarks(Recid, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_AtachmentID, ITR_Posted_NestedRowReasonID, ITR_Posted_NestedRowKeyValue);
+        }
+        function ITR_Posted_AcceptRejectVoucher(_actionMethod) {
+            var Recid;
+
+            if (ITR_Posted_IsDetailRowExpanded == true || IntrnlTranfrReg_IsVouchingMode == true) {
+                if (ITR_Posted_MasterRowRecID == null || ITR_Posted_MasterRowRecID == "") {
+                    Recid = ITR_Posted_MasterRowMID;
+                }
+                else {
+                    Recid = ITR_Posted_MasterRowRecID;
+                }
+            }
+            else {
+                Recid = ITR_Posted_ID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_AtachmentID, ITR_Posted_NestedRowReasonID, ITR_Posted_NestedRowKeyValue);
+        }
+        function OnITR_PostedGridNestedFocusedRowChange(s, e) {
+            if (ITR_Posted_IsDetailRowExpanded == true || IntrnlTranfrReg_IsVouchingMode == true) {
+                ITR_Posted_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+                if (ITR_Posted_NestedRecord_FocusedRowIndex >= 0) {
+                    var key = s.GetRowKey(s.GetFocusedRowIndex());
+                    s.GetValuesOnCustomCallback({ key: key }, OnITR_Posted_GetGridRowValues)
+                    ITR_Posted_NestedGrid_AccessID = s.uniqueID;
+                    //s.GetRowValues(ITR_Posted_NestedRecord_FocusedRowIndex, 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID', OnITR_Posted_GetGridRowValues);
+                }
+                else {
+                    ITR_PostedPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+            }
+        }
+        function OnITR_Posted_GetGridRowValues(values) {
+            var values = values.split("![");
+            if (values[14] != null) {
+                ITR_PostedPrf_FAB.SetVisible(true);
+                ITR_Posted_Nested_Doc_Status = values[0];
+                if (IntrnlTranfrReg_IsVouchingMode == true) {
+                    ITR_PostedPrf_FAB.SetActionContext("AuditActionContext", true);
+                }
+                else {
+                    if (ITR_Posted_Nested_Doc_Status == "") {
+                        ITR_PostedPrf_FAB.SetActionContext("AutoItemContext", true);
+                    }
+                    else if (ITR_Posted_Nested_Doc_Status == "NO") {
+                        ITR_PostedPrf_FAB.SetActionContext("EditItemContext", true);
+                    }
+                    else if (ITR_Posted_Nested_Doc_Status == "YES") {
+                        ITR_PostedPrf_FAB.SetActionContext("actionItemContext", true);
+                    }
+                }
+                ITR_Posted_ParamMandatory = values[1];
+                ITR_Posted_FromDateLabel = values[2];
+                ITR_Posted_ToDateLabel = values[3];
+                ITR_Posted_DescriptionLabel = values[4];
+                ITR_Posted_Doc_Category = values[5];
+                ITR_Posted_Doc_ID = values[6];
+                ITR_Posted_AtachmentID = values[7];
+                IndexAttachmentID = ITR_Posted_AtachmentID;
+                ITR_Posted_MasterRowRecID = values[8];
+                ITR_Posted_MasterRowMID = values[9];
+                ITR_Posted_NestedRowMapID = values[10];
+                ITR_Posted_reason = values[11];
+                ITR_Posted_FileName = values[12];
+                ITR_Posted_Attachment_RecStatus = values[13];
+                ITR_Posted_NestedRowKeyValue = values[14];
+
+                if (ITR_Posted_MasterRowMID != null || ITR_Posted_MasterRowMID != "") {
+                    ITR_Posted_RecID_ForAttachment = ITR_Posted_MasterRowMID;
+                }
+                else if (ITR_Posted_MasterRowRecID != null || ITR_Posted_MasterRowRecID != "") {
+                    ITR_Posted_RecID_ForAttachment = ITR_Posted_MasterRowRecID;
+                }
+                if (IntrnlTranfrReg_IsVouchingMode == true) {
+                    if (ITR_Posted_FileName != null && ITR_Posted_FileName.length > 0) {
+                        ViewDocument(ITR_Posted_AtachmentID, ITR_Posted_FileName, "ITR_PostedPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            ITR_Posted_NestedRowReasonID = values[15];
+            IndexAttachmentReasonID = ITR_Posted_NestedRowReasonID;
+            HideLoader();
+        }
+
+        function ITR_PostedGrid_Nested_BeginCallBack(s, e) {
+            //e.customArgs["ShowHorizontalBar"] = Cash_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = IntrnlTranfrReg_IsVouchingMode;
+            e.customArgs["command"] = e.command;
+        }
+        function ITR_Posted_DetailRowExpanding(s, e) {
+            ITR_Posted_IsDetailRowExpanded = true;
+            s.SetFocusedRowIndex(e.visibleIndex);
+            var pane = Mainspliter.GetPaneByName('RightPane');
+            if (IntrnlTranfrReg_IsVouchingMode == true) {
+                pane.Expand();
+            }
+            else {
+                pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        function ITR_Posted_DetailRowCollapsing(s, e) {
+            ITR_Posted_IsDetailRowExpanded = false;
+            s.SetFocusedRowIndex(e.visibleIndex)
+            if (IntrnlTranfrReg_IsVouchingMode == true) {
+                if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false) {
+                    CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+                }
+            }
+            else {
+                ITR_PostedPrf_FAB.SetVisible(false);
+            }
+        }
+    </script>
+    @*attachment and nested grid*@
+    <script>
+        function DataNavigation_ITR(Action)
+        {
+            if (ITR_Posted_ID == null && Action!="ACCEPT") { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+            switch (Action)
+            {
+                case "EDIT":
+                    Vouchers_Edit_AllEntryData("", "", "", "", "Internal Transfer Register", "", "", "", "", "", "", "ITR_PostedGrid", ITR_Posted_ID, false);
+                    break;
+                case "DELETE":
+                    Vouchers_Delete_AllEntryData("", "", "", "", "Internal Transfer Register", "", "", "", "", "", "", "ITR_PostedGrid", ITR_Posted_ID, false, false);
+                    break;
+                case "VIEW":
+                    Vouchers_View_AllEntryData("", "", "", "Internal Transfer Register", "", "", "ITR_PostedGrid", ITR_Posted_ID);
+                    break;
+                case "EDIT-COMMON":
+                    Edit_Common(ITR_Posted_ID, ITR_Posted_MID, "ITR_PostedGrid","8");
+                    break;
+                case "ACCEPT":
+                    OnITR_AcceptTransferClick();
+                    break;
+            }        
+        }
+        function DataNavigation_Volume_ITR(Action)
+        {
+            if ("@IsVolumeCentre" == "True")
+            {
+                switch (Action)
+                {
+                    case "NEW":
+                        OnITRNewClick();
+                        break;
+                    case "EDIT":
+                        OnITREditClick();
+                        break;
+                    case "DELETE":
+                        OnITRDeleteClick();
+                        break;
+                    case "UNMATCH":
+                        OnITRUnmatchTransferClick();
+                        break;
+                }
+            }
+        }
+        </script>
+</div>

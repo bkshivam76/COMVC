@@ -1,0 +1,261 @@
+﻿<div class="ServiceProjectWindow_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.ServiceProject
+    @{
+        bool IsReadOnly = Model != null && (Model.Tag.ToString().Trim() == "_View" || Model.Tag.ToString().Trim() == "_Delete") ? true : false;
+        string submitBtnText = Model != null && Model.Tag.ToString().Trim() == "_Delete" ? "Delete" : "Save";
+
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+    }
+
+    <style>
+        #ServiceProjectWindow_ParentDiv {
+            padding-right:0px;
+            padding-left:0px;
+        }
+        /*#AddAdmin_ServiceProject {
+            height: 20px;
+            padding-right: 8px;
+            margin-left: 5px
+        }
+        .flex {display: flex;flex-wrap: nowrap;}
+        .flex > div {width: 100%}
+        .flex .flex1 {width: 1200px}*/
+    </style>
+    <div id="ServiceProjectWindow_ParentDiv" class="container-fluid">
+
+        @using (Ajax.BeginForm("Frm_ServiceProject_Window", "ServiceProject",
+                                               new AjaxOptions
+                                               {
+                                                   HttpMethod = "POST",
+                                                   UpdateTargetId = "ServiceProjectWindow_ParentDiv",
+                                                   InsertionMode = InsertionMode.InsertAfter,
+                                                   OnBegin = "AjaxBeginFormPost",
+                                                   OnSuccess = "AjaxSuccess_ServiceProjectWindow"
+                                               },
+                                               new
+                                               {
+                                                   id = "ServiceProjectWindowForm",
+                                                   @class = "edit_form form-horizontal"
+                                               }))
+        {
+            @Html.HiddenFor(x => x.Tag)
+            @Html.HiddenFor(x => x.Rec_ID)
+            @Html.HiddenFor(x => x.TempActionMethod)
+
+            using (Html.DevExtreme().ValidationGroup())
+            {
+                <div class="full-width-header-bg2">
+                    <div class="row">
+                        <div class="col-sm-8">
+                            <h3 class="popuphead"><i class="far fa-edit"></i> Service Projects</h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align">
+                                <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                            </h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                    </div>
+                </div><!--[Header]-->
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            @Html.Label("Project Name:", htmlAttributes: new { @class = "control-label text-red" })
+                            @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Project_ServiceProject").Name("Project_ServiceProject")
+                                  .Value(Model.Project_ServiceProject).MaxLength(8000).Placeholder("Type Project Name"))
+                        </div>
+                    </div>
+                </div><!--[Project Name]-->
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-field">
+                            @Html.Label("From:", htmlAttributes: new { @class = "control-label" })
+
+                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("FromDate_ServiceProject").Name("FromDate_ServiceProject").Placeholder("Select From Date")
+                                      .Value(Model.FromDate_ServiceProject).Min(new DateTime(1900,1,1)))
+
+                        </div>
+                    </div><!--[From]-->
+                    <div class="col-sm-6">
+                        <div class="form-field">
+                            @Html.Label("To:", htmlAttributes: new { @class = "control-label" })
+
+                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("ToDate_ServiceProject").Name("ToDate_ServiceProject").Placeholder("Select To Date")
+                                      .Value(Model.ToDate_ServiceProject).Min(new DateTime(1900,1,1)))
+
+                        </div>
+                    </div><!--[TO]-->
+                </div>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-field">
+                            @Html.Label("Admin:", htmlAttributes: new { @class = "control-label" })
+                            <div class="row flex">
+                                <div class="flex1">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("AdminID_ServiceProject").Name("AdminID_ServiceProject").Value(Model.AdminID_ServiceProject).Placeholder(Model.AdminID_ServiceProject)
+                                        .DataSource(d => d.Mvc().Controller("ServiceProject").LoadAction("LookUp_Get_AdminList").Key("ID").LoadMode(DataSourceLoadMode.Raw)).DisplayExpr("NAME").ValueExpr("ID").OnValueChanged("AdminID_ServiceProject_ValueChange")
+                                        .ContentTemplate(@<text>
+                    @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("AdminID_ServiceProject_datagrid")
+                        .Columns(columns =>
+                        {
+                            columns.Add().DataField("NAME").Caption("Name");
+                            columns.Add().DataField("ID").Caption("ID").Visible(false);
+                        })
+                        .Selection(s => s.Mode(SelectionMode.Single)).FilterRow(s=>s.Visible(false))
+                        .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);};}"))
+                    </text>))
+                                </div>
+
+                                @*@(Html.DevExtreme().Button().ID("AddAdmin_ServiceProject").Text("Add").Icon(Url.Content("../../../../Icons/add user.png")).OnClick(@<text> function() { AddAdmin_ServiceProject(); }</text>).Disabled(IsReadOnly))*@
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-field">
+                            @Html.Label("Status:", htmlAttributes: new { @class = "control-label" })
+                            <div class="row" style="padding-bottom:1px">
+                                <div class="col-sm-12">
+                                    @(Html.DevExtreme().CheckBox().Text("Active").ID("Status_ServiceProject").Name("Status_ServiceProject").Value(Model.Status_ServiceProject).ReadOnly(IsReadOnly))
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="styleActionBtn">
+                            @if (Model.Tag.ToString() != "_View")
+                            {
+                                @(Html.DevExtreme().Button().CustomSaveButton(Model.Tag.ToString()).ID("SaveSerVicePrj").Text(submitBtnText).UseSubmitBehavior(false).OnClick("ServiceProjectFormSubmit") )
+                            }
+                            @(Html.DevExtreme().Button().CustomCloseButton().ID("CancelSerVicePrj").Text(Model.Tag.ToString() == "_View" ? "Close" : "Cancel").OnClick(@<text> function () { $("#Dynamic_Content_popup").dxPopup("hide"); } </text>) )
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+    <script>
+        var Tag_serviceProject = "@Model.Tag";
+        var Screen_ServiceProjectWind = "@ViewBag.Screen";
+        $(document).ready(function ()
+        {
+            ShowLoader_Ready()
+            TransformTextForDB("ServiceProjectWindowForm");
+            if ("@Model.AdminID_ServiceProject".length > 0) { AdminID_ServiceProject_ValueChange(null, true);}
+            Set_Form_View_Delete_Mode(null, "ServiceProjectWindowForm", Tag_serviceProject);
+            Focus_FirstEditable_Field("ServiceProjectWindowForm");
+            HideLoader_Ready();
+            if (Screen_ServiceProjectWind == "Sparc_Create" || Screen_ServiceProjectWind == "Sparc_Edit") {
+                $("#AddAdmin_ServiceProject").hide();
+            }
+        })
+        async function AdminID_ServiceProject_ValueChange(e,FirstCall=false)
+        {
+            var value;
+            var DG = $("#AdminID_ServiceProject_datagrid").dxDataGrid("instance");
+            if (e)
+            {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+                {
+                    DG.clearSelection();
+                    return;
+                }
+            }
+            else
+            {
+                value = $("#AdminID_ServiceProject").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);
+        }
+        function RefreshAdmin_ServiceProject(AdminID = "")
+        {
+            var DG = $("#AdminID_ServiceProject_datagrid").dxDataGrid("instance");
+            DG.refresh().done(function (data)
+            {
+                if (AdminID != null && AdminID.length > 0)
+                {
+                    DG.selectRows(AdminID)
+                }
+            })
+        }
+        function AddAdmin_ServiceProject()
+        {
+            if (Tag_serviceProject == "_New" || Tag_serviceProject == "_Edit" || Tag_serviceProject == "_New_From_Selection")
+            {
+                AddParty("ProjectAdminAddDonor", "RefreshAdmin_ServiceProject", "AddAdmin_ServiceProject", "AddAdmin_ServiceProject", "New ~ Address Book (Admin Details)");
+            }
+        }
+        function ServiceProjectFormSubmit(e)
+        {
+            if (ValidateForm(e))
+            {
+                if (Tag_serviceProject == "_Delete")
+                {
+                    DeleteAfterConfirmation("Delete", "", $("#ServiceProjectWindowForm"));
+                }
+                else
+                {
+                    if (IsNullOrWhitespace("FromDate_ServiceProject", "dxDateBox") == false && IsNullOrWhitespace("ToDate_ServiceProject", "dxDateBox") == false)
+                    {
+                        if ($("#FromDate_ServiceProject").dxDateBox("option", "value") > $("#ToDate_ServiceProject").dxDateBox("option", "value"))
+                        {
+                            DevExpress.ui.dialog.alert('Form Start Date Should Be Less Than To Date', "Information...").done(function () { $("#ToDate_ServiceProject").dxDateBox("instance").focus() });
+                            return;
+                        }
+                    }
+                    $("#ServiceProjectWindowForm").submit();
+                }
+            }
+        }
+        function AjaxSuccess_ServiceProjectWindow(data)
+        {
+            HideLoader();
+            if (data.jsonParam.result == false)
+            {
+                if (data.jsonParam.closeform)
+                {
+                    $("#Dynamic_Content_popup").dxPopup("hide");
+                }
+                var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertclick.done(function (alertResult)
+                {
+                    if (alertResult)
+                    {
+                        if (data.jsonParam.focusid)
+                        {
+                            var id = "#" + data.jsonParam.focusid;
+                            setTimeout(function ()
+                            {
+                                $(id).find('input').focus();
+                            }, Timeout100);
+                        }
+                    }
+                });
+            }
+            else
+            {
+                var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertclick.done(function (result)
+                {
+                    debugger;
+                    if (result)
+                    {
+                        if (Screen_ServiceProjectWind != "Sparc_Create") {
+                            ServiceProjectListGrid.Refresh();
+                        }
+                        $("#Dynamic_Content_popup").dxPopup("hide");
+                    }
+                });
+            }
+        }
+    </script>
+
+</div>
+

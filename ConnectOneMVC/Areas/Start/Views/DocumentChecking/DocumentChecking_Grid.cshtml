@@ -1,0 +1,327 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    string ExportGridHeaderLeft = ViewBag.ExportGridHeaderLeft==null?"":(string)ViewBag.ExportGridHeaderLeft;
+    string ExportGridHeaderRight = ViewBag.ExportGridHeaderRight == null ? "" :(string)ViewBag.ExportGridHeaderRight;
+    string ExportGridFooter=ViewBag.ExportGridFooter == null ? "" :(string)ViewBag.ExportGridFooter;
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "DocumentCheckingListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "DocumentChecking",
+            Action = "DocumentChecking_Grid",
+            SessionGUID= SessionGUID
+        };
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsResizing.ColumnResizeMode = DevExpress.Web.ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = DevExpress.Web.ResizingMode.Live;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.Expanded;
+        settings.SettingsExport.PageHeader.Center = "Document Checking Register";
+        settings.SettingsExport.PageHeader.Left = ExportGridHeaderLeft;
+        settings.SettingsExport.PageHeader.Right = ExportGridHeaderRight;
+        settings.SettingsExport.PageFooter.Right = ExportGridFooter;
+        //settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        settings.SettingsBehavior.AllowEllipsisInText = true;
+        settings.Styles.Row.Wrap = DefaultBoolean.False;
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+            e.Properties["cpPageSize"] = gridView.SettingsPager.PageSize;
+            e.Properties["cpClientLayout"] = gridView.SaveClientLayout();
+        };
+        settings.PreRender = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (ViewData["Layout"] != null)
+            {
+                grid.LoadClientLayout(ViewData["Layout"].ToString());
+            }
+            grid.FilterExpression = "";
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.Settings.ShowPreview = true;
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            var Description = DataBinder.Eval(c.DataItem, "Decument_Description") == null ? "" : DataBinder.Eval(c.DataItem, "Decument_Description").ToString();
+            var Reason = DataBinder.Eval(c.DataItem, "Document_Rejection_Reason") == null ? "" : DataBinder.Eval(c.DataItem, "Document_Rejection_Reason").ToString();
+            if (Description.Length > 0)
+            {
+                ViewContext.Writer.Write("<div><span style='color: #0000FF'> <i>" + Description + "</i></span></div>");
+            }
+            if (Reason.Length > 0)
+            {
+                ViewContext.Writer.Write("<div><span style='color: #FF0000'> <i>" + Reason + "</i></span></div>");
+            }
+        });
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            if (e.RowType == GridViewRowType.Preview)
+            {
+                var description = e.GetValue("Decument_Description");
+                var Reason = e.GetValue("Document_Rejection_Reason");
+                if ((description == null || description.ToString().Length == 0)&&(Reason == null || Reason.ToString().Length == 0))
+                {
+                    e.Row.Visible = false;
+                }
+            }
+        };
+
+        settings.KeyFieldName = "Document_Attachment_ID";
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Institute_Name";
+                column.Caption = "Institute Name";
+                column.MinWidth = 75;
+                column.MaxWidth = 110;
+                column.AdaptivePriority = 1;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "UID";
+                column.Caption = "UID";
+                column.MinWidth = 80;
+                column.AdaptivePriority = 1;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Category";
+                column.Caption = "Document Category";
+                column.MinWidth = 80;
+                column.MaxWidth = 180;
+                column.AdaptivePriority = 0;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Name";
+                column.Caption = "Document Name";
+                column.MinWidth = 165;
+                column.AdaptivePriority = 0;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_File_Name";
+                column.Caption = "File Name";
+                column.MinWidth = 150;
+                column.AdaptivePriority = 0;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "From_Date";
+                column.Caption = "From Date";
+                column.MinWidth = 80;
+                column.AdaptivePriority = 0;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "To_Date";
+                column.Caption = "To Date";
+                column.MinWidth = 80;
+                column.AdaptivePriority = 0;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Attachment_ID";
+                column.Caption = "Document_Attachment_ID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Rejection_Reason";
+                column.Caption = "Document_Rejection_Reason";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Checking_Status";
+                column.Caption = "Document_Checking_Status";
+                column.Visible = false;
+            }
+        });//Redmine Bug #133050 fixed
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Params_Mandatory";
+                column.Caption = "Document_Params_Mandatory";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_LABEL_FROM_DATE";
+                column.Caption = "Document_LABEL_FROM_DATE";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_LABEL_TO_DATE";
+                column.Caption = "Document_LABEL_TO_DATE";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_LABEL_DESCRIPTION";
+                column.Caption = "Document_LABEL_DESCRIPTION";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Added_On";
+                column.Caption = "Document_Added_On";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Last_Action_On";
+                column.Caption = "Document_Last_Action_On";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Document_Last_Action_By";
+                column.Caption = "Document_Last_Action_By";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Attachment_Action_Status";
+                column.Caption = "Attachment_Action_Status";
+                column.Visible = false;
+            }
+        });
+
+
+
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        var ShowHorizontalBar = ViewBag.ShowHorizontalBar==null?0: (int)ViewBag.ShowHorizontalBar;
+  
+        if (ShowHorizontalBar == 1)
+        {
+
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+        }
+
+        //pager settings
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.AlwaysShowPager = true;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        //settings.Settings.ShowGroupedColumns = ShowGroupedColumns;
+        settings.Settings.ShowFooter = false;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+        settings.SettingsDataSecurity.AllowReadUnlistedFieldsFromClientApi = DefaultBoolean.True;
+        settings.ClientSideEvents.Init = "DocumentCheckingOnInit";
+
+        settings.ClientSideEvents.FocusedRowChanged = "DocumentCheckingFocusedRowChanged";
+        settings.ClientSideEvents.BeginCallback = "DocumentChecking_BeginCallBack";
+        settings.ClientSideEvents.EndCallback = "DocumentChecking_EndCallBack";
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()
+

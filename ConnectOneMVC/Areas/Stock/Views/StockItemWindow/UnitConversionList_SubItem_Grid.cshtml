@@ -1,0 +1,110 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.StockItemWindow
+@using DevExtreme.AspNet.Mvc;
+
+
+@{
+    bool IsVisible = Model != null && Model.ItemMaster_ActionMethod.ToString().Trim() == "_Delete" ? true : false;
+    bool IsDisabled = Model != null && (Model.ItemMaster_ActionMethod == "_View" || Model.ItemMaster_ActionMethod == "_Delete") ? true : false;
+}
+
+<div id="unitconversions" class="tab-pane fade in">    
+    <div class="row">
+        <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+            <div class="tabtbl width1200px">
+                @Html.Action("UnitConversionList_SubItem_Grid_Data", "StockItemWindow", new { ActionMethodName = Model.ItemMaster_ActionMethod, SubItemID = Model.SubItemID })
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-field">
+                @(Html.DevExtreme().Button().ID("IDUnitVDNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function(){ EditOrDeleteUnitConversion("_New")} </text>))
+                @(Html.DevExtreme().Button().ID("IDUnitVDEdit").Text("Edit").Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function(){ EditOrDeleteUnitConversion("_Edit");} </text>))
+                @(Html.DevExtreme().Button().ID("IDUnitVDDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function(){ EditOrDeleteUnitConversion("_Delete");} </text>))
+                @(Html.DevExtreme().Button().ID("IDUnitVDView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function(){ EditOrDeleteUnitConversion("_View");} </text>))
+            </div>
+        </div>
+    </div>
+</div><!--[2]-->
+@*@(Html.DevExtreme().Popup().CustomPopup().ID("EditOrDeleteOrViewPopUp").ContentTemplate(@<text> <div id="id_EditOrViewOrDeleteResult"></div> </text>))*@
+
+<script>
+    var Unit_SrNo ;
+ 
+
+
+    function UnitGridOnRowFocusing(s, e) {
+        debugger;
+        if (s.GetFocusedRowIndex() > -1) {
+            var key = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: key }, ItemUnitOnGetRowValues);
+            
+        }
+        else { Unit_SrNo = 0; }
+    }//Mantis bug 0000347 fixed
+     
+    function ItemUnitOnGetRowValues(data) {
+        debugger;
+        var values = data.split("![");
+        Unit_SrNo = values[0];
+       
+    }
+
+    function EditOrDeleteUnitConversion(actionMethod) {
+        debugger;
+
+        if (actionMethod == "_New") {
+            if ("@IsDisabled" == "true") { return; }
+
+            ShowLoader();          
+            OpenPopup("StockIteminnergrid", "Add New Unit", "@Url.Action("frm_Item_Window_Add_Unit_conversion", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_New", "auto", 1000, false, null);
+            HideLoader();
+        }
+        if (actionMethod == "_Edit") {
+            if (!Unit_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }//Mantis bug 0000349 fixed
+
+                 ShowLoader();          
+            OpenPopup("StockIteminnergrid", "Edit Unit", "@Url.Action("frm_Item_Window_Add_Unit_conversion", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_Edit&SrNo=" + encodeURIComponent(Unit_SrNo), "auto", 1000, false, null);
+            HideLoader();
+        }
+        if (actionMethod == "_View") {
+            if (!Unit_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }//Mantis bug 0000349 fixed  
+            ShowLoader();          
+            OpenPopup("StockIteminnergrid", "View Unit", "@Url.Action("frm_Item_Window_Add_Unit_conversion", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_View&SrNo=" + encodeURIComponent(Unit_SrNo), "auto", 1000, false, null);
+            HideLoader();
+        }
+
+        if (actionMethod == "_Delete") {
+            if ("@IsDisabled" == "True") { return; }
+            if (!Unit_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }
+            var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+            deleteResultPaymentDetail.done(function (dialogResult) {
+
+                if (dialogResult) {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Stock/StockItemWindow/Frm_Unit_Grid_Delete_Record",
+                        data: { ActionMethod: "_Delete", SrNo: Unit_SrNo },
+                        cache: false,
+                        success: function (result) {
+                            if (result.result == true) {
+                                UnitConversionList_SubItem_Grid_Data.SetFocusedRowIndex(-1);
+                                UnitConversionList_SubItem_Grid_Data.Refresh();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+   
+</script>

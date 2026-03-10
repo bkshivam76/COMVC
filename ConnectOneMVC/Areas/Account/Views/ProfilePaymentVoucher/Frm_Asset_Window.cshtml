@@ -1,0 +1,784 @@
+﻿<div class="VoucherAssetProfile_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Payment_Frm_Asset_Window_Model
+<style>
+
+    #Frm_Asset_Window_ParentDiv {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .dx-fileuploader-input-label {
+        visibility: hidden;
+    }
+
+    .dx-fileuploader-files-container {
+        padding: 0px 0px 0px 0px;
+    }
+    #asset_fileRemove { margin: 14px 0 10px; }
+    #asset_fileview{margin-top:10px}
+    #asset_fileRemove .dx-button { width: 96% }
+    #AssetbrowseDiv .file-uploader{padding-bottom: 0px}
+    #paymentAsset_file-uploader .dx-fileuploader-input-wrapper:before{padding-top: 10px;}
+    #AssetbrowseDiv .form-field {
+        padding: 2px 5px 0;
+    }
+
+
+    @@media (max-width: 768px) {
+        #asset_fileRemove {margin-top:0}
+    }
+    
+
+</style>
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    var isvisible = (Model.Tag == Common_Lib.Common.Navigation_Mode._View || Model.Tag == Common_Lib.Common.Navigation_Mode._Delete) ? true : false;
+    bool ProfileCore__AddRight = (bool)ViewData["ProfileCore_AddRight"];
+    var Payment_Asset_Image = (byte[])ViewBag.Payment_Asset_Image;
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var Asset_Window_FromWIPFinalization = (bool)ViewBag.Asset_Window_FromWIPFinalization;
+    bool From_DNK = (bool)ViewBag.FromDNK;
+    bool From_JV = (bool)ViewBag.FromJV;
+
+}
+
+<div id="Frm_Asset_Window_ParentDiv">
+
+    @using (Ajax.BeginForm("Frm_Asset_Window", "ProfilePaymentVoucher",
+        new AjaxOptions
+        {
+            HttpMethod = "POST",
+            UpdateTargetId = "Frm_Asset_Window_popup",
+            InsertionMode = InsertionMode.InsertAfter,
+            OnBegin = "AjaxBeginFormPost",
+            OnSuccess = "AjaxSuccessAssetWindow"
+        },
+        new
+        {
+            id = "ID_Frm_Voucher_Asset_Window",
+            @class = "edit_form"
+        }))
+    {
+        @Html.HiddenFor(x => x.Tag)
+        @Html.HiddenFor(x => x.IsGift)
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="full-width-header-bg2">
+                            <div class="row">
+                                <div class="col-sm-8 pll">
+                                    <h3 class="popuphead"><i class="far fa-edit"></i>Movable Asset</h3>
+                                </div>
+                                <div class="col-sm-4 prm">
+                                    <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                                </div>
+                            </div>
+                            @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                        </div>
+                    </div>
+                </div><!--[Header]-->
+                <div class="row">
+                    <div class="col-sm-3 col-md-3 col-lg-3" id="AssetbrowseDiv">
+                        <div class="form-field">
+                            <fieldset class="default-fieldset">
+                                <legend>Asset Image</legend>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div id="asset_fileview">
+                                            @Html.Partial("Asset_PreviewImageControl")
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row justify-content-center align-items-start">
+                                    <div class="col-sm-6" id="asset_browseFile">
+                                        @(Html.DevExtreme().FileUploader().ID("paymentAsset_file-uploader").SelectButtonText("Browse").Name("paymentAsset_myFile").Multiple(false).Accept("image/*").ShowFileList(false).UploadMode(FileUploadMode.Instantly).OnUploaded("Payment_asset_FileUploaded")
+                          .UploadUrl(@Url.Action("Upload", "ProfilePaymentVoucher", new { Area = "Account", SessionGUID = SessionGUID })).ReadOnly(isvisible).Disabled(isvisible).OnValueChanged("Asset_FileUpload_Value_Change").OnUploadStarted("Payment_asset_FileUpload_start"))
+                                    </div>
+                                    <div class="col-sm-6" id="asset_fileRemove" align="center">
+                                        @(Html.DevExtreme().Button().ID("Asset_image_CANCEL").Text("Delete").OnClick("AssetImageDelete").Visible(!isvisible))
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div><!--[Asset Image]-->
+                    <div class="col-sm-9 col-md-9 col-lg-9" id="AssetDetailDiv">
+                        <div class="row">
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Item Name", htmlAttributes: new { @class = "control-label disabletxt", @id = "payment_OtherAsset_ItemName" })<br />
+                                    @(Html.DevExtreme().TextBoxFor(x => x.BE_ItemName).CustomTextBox().ID("BE_ItemName").Name("BE_ItemName").Value(Model.BE_ItemName).ReadOnly(true).FocusStateEnabled(false))
+                                    @Html.ValidationMessageFor(model => model.BE_ItemName, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Item Name]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Item Make / Company:", htmlAttributes: new { @class = "control-label text-red", @id = "payment_OtherAsset_ItemMake" })<br />
+                                    @(Html.DevExtreme().TextBoxFor(x => x.Txt_Make).CustomTextBox(true).ID("Txt_Make").Name("Txt_Make").Value(Model.Txt_Make).Placeholder("Type Item Make / Company").MaxLength(100).ReadOnly(isvisible))
+                                    @Html.ValidationMessageFor(model => model.Txt_Make, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Item Make]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Item Model:", htmlAttributes: new { @class = "control-label text-red", @id = "payment_OtherAsset_ItemModel" })<br />
+                                    @(Html.DevExtreme().TextBoxFor(x => x.Txt_Model).CustomTextBox(true).ID("Txt_Model").Name("Txt_Model").Value(Model.Txt_Model).MaxLength(100).Placeholder("Type Item Model...").ReadOnly(isvisible) )
+                                    @Html.ValidationMessageFor(model => model.Txt_Model, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Item model]-->
+                        </div><!--[Name/Make/Model]-->
+                        <div class="row">
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Quantity:", htmlAttributes: new { @class = "control-label text-red", @id = "payment_OtherAsset_Quantity" })<br />
+                                    @(Html.DevExtreme().NumberBoxFor(x => x.Txt_Qtys).CustomNumberBox().ID("Txt_Qtys").Name("Txt_Qtys").Value(Model.Txt_Qtys).Max(999999999).Placeholder("Type Item Quantity...").ReadOnly(isvisible).Format("#") )
+                                    @Html.ValidationMessageFor(model => model.Txt_Qtys, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Quantity]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Rate:", htmlAttributes: new { @class = "control-label", @id = "payment_OtherAsset_Rate" })<br />
+                                    @(Html.DevExtreme().NumberBoxFor(x => x.Txt_Rates).CustomNumberBox().ID("Txt_Rates").Name("Txt_Rates").Value(Model.Txt_Rates).Placeholder("Type Rate...").ReadOnly(isvisible) )
+                                    @Html.ValidationMessageFor(model => model.Txt_Rates, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Rate]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Amount", htmlAttributes: new { @class = "control-label text-red", @id = "payment_OtherAsset_Amount" })<br />
+                                    @(Html.DevExtreme().NumberBoxFor(x => x.Txt_Amts).CustomNumberBox().ID("Txt_Amts").Name("Txt_Amts").Value(Model.Txt_Amts).ReadOnly(isvisible).Format("#.##").Placeholder("Type Amount..."))
+                                    @Html.ValidationMessageFor(model => model.Txt_Amts, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Amount]-->
+                        </div><!--[Quantity/Rate/Amount]-->
+                        <div class="row">
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Item Warranty:(in months)", htmlAttributes: new { @class = "control-label", @id = "payment_OtherAsset_Warranty" })<br />
+                                    @(Html.DevExtreme().NumberBoxFor(x => x.Txt_Warranty).CustomNumberBox().ID("Txt_Warranty").Name("Txt_Warranty").Value(Model.Txt_Warranty).Max(999999999).Placeholder("Type Item Warranty (in months)").ReadOnly(isvisible).Format("#"))
+                                    @Html.ValidationMessageFor(model => model.Txt_Warranty, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Warranty]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Item Serial No:", htmlAttributes: new { @class = "control-label", @id = "payment_OtherAsset_Serial" })<br />
+                                    @(Html.DevExtreme().TextBoxFor(x => x.Txt_Serial).CustomTextBox(true).ID("Txt_Serial").Name("Txt_Serial").Value(Model.Txt_Serial).ReadOnly(false).MaxLength(100).Placeholder("Type Item Serial No...").ReadOnly(isvisible) )
+                                    @Html.ValidationMessageFor(model => model.Txt_Serial, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Serial]-->
+                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                <div class="form-field">
+                                    @Html.Label("Purchase/Creation Date:", htmlAttributes: new { @class = "control-label  text-red", @id = "payment_OtherAsset_Purchase" })<br />
+                                    @(Html.DevExtreme().DateBoxFor(x => x.Txt_Date).CustomDateBox().ID("Txt_Date").Name("Txt_Date").Value(Model.Txt_Date).Placeholder("dd-MM-yyyy").ReadOnly(isvisible))
+                                    @Html.ValidationMessageFor(model => model.Txt_Date, "", new { @class = "text-red" })
+                                </div>
+                            </div><!--[Purchase Date]-->
+                        </div><!--[Warranty/Serial/Date]-->
+                        <div class="row">
+                            <div class="col-sm-12 col-md-12 col-lg-12">
+                                <div class="form-field">
+                                    <div class="row">
+                                        <div class="col-sm-2 col-md-2 col-lg-2">
+                                            @Html.Label("Location:", htmlAttributes: new { @class = "control-label  text-red", @id = "payment_OtherAsset_Location" })
+                                        </div>
+                                        <div class="col-sm-7 col-md-7 col-lg-7 prm">
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("LocList").Name("LocList").ValueExpr("AL_ID").DisplayExpr("Location_Name").DataSource(Model.LocationListData, "AL_ID").Placeholder("Select Location...")
+                                                       .OnValueChanged("Frm_Asset_Window_LocList_OnValueChanged").ContentTemplate(@<text> @Html.Partial("Frm_Asset_Window_GLookUp_LocList") </text>).Value(Model.LocList).ReadOnly(isvisible))
+                                            @Html.ValidationMessageFor(model => model.LocList, "", new { @class = "text-red" })
+                                        </div>
+                                        <div class="col-sm-3 col-md-3 col-lg-3 prm">
+                                            @(Html.DevExtreme().Button().ID("But_Loc_Asset").Text("Add Location").OnClick(@<text> function () { OnFrm_Asset_Window_popup_NewLocationClick(); } </text>).Disabled(isvisible) )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[Location]-->
+                        <div class="row">
+                            <div class="col-sm-12 col-md-12 col-lg-12">
+                                <div class="form-field">
+                                    <div class="row">
+                                        <div class="col-sm-2 col-md-2 col-lg-2">
+                                            @Html.Label("Other Details:", htmlAttributes: new { @class = "control-label", @id = "payment_OtherAsset_Otherdetail" })
+                                        </div>
+                                        <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                            @(Html.DevExtreme().TextBoxFor(x => x.Txt_Others).CustomTextBox(true).ID("Txt_Others").Name("Txt_Others").Value(Model.Txt_Others).ReadOnly(isvisible).MaxLength(250).Placeholder("Type Any Other Details / Remarks...") )
+                                            @Html.ValidationMessageFor(model => model.Txt_Others, "", new { @class = "text-red" })
+                                        </div>
+                                    </div><!--[Other Details]-->
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[Asset Detail]-->
+                </div><!--[Asset]-->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="row">
+                            <div class="col-sm-5 col-md-5 col-lg-5">
+                                @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ Item Detail (Movable Assets Detail)...)...", Model.Tag.ToString().Substring(1)))
+                            </div>
+                            <div class="col-sm-7 col-md-7 col-lg-7">
+                                <div class="styleActionBtn">
+                                    @(Html.DevExtreme().Button().CustomSaveButton().ID("BUT_SAVE_COM_asset").Text((Model.Tag.ToString().Trim() == "_New" || Model.Tag.ToString().Trim() == "_Edit") ? "Save" : "Delete").UseSubmitBehavior(false).Visible(Model.Tag.ToString().Trim() == "_View" ? false : true).OnClick("SaveAssetDetail") )
+                                    @(Html.DevExtreme().Button().CustomCloseButton().ID("CANCEL_asset").Text((Model.Tag.ToString().Trim() == "_New" || Model.Tag.ToString().Trim() == "_Edit" || Model.Tag.ToString().Trim() == "_Delete") ? "Cancel" : "Close").FocusStateEnabled(true).OnClick("CloseAssetDetail"))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Buttons]-->
+            </div>
+        }
+    }
+
+    @(Html.DevExtreme().Popup().CustomPopup().ID("Frm_AssetWindow_Location_popup").OnShowing("PopupOnShowing").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ Location").ContentTemplate(@<text> <div id="result_AssetWindow_Location_popup"> </div> </text>) )
+</div>
+<script>
+    function AssetImageDelete(e)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Account/ProfilePaymentVoucher/RemoveAssetImage",
+            cache: false,
+            success: function ()
+            {
+                $("#asset_fileview").load("@Url.Action("Asset_PreviewImageControl", "ProfilePaymentVoucher", new { @area = "Account" })", function () { });
+                $("#asset_fileRemove").hide();
+                $("#paymentAsset_file-uploader").dxFileUploader("instance").reset();
+            }
+        });
+    }
+    function Asset_FileUpload_Value_Change(e)
+    {
+        if (e.value != null && e.value[0]!=null)
+        {
+            var filename = e.value[0].name;
+            var fileExt = (filename.split('.'))[1];
+            if (fileExt.Length <= 1)
+            {
+                DevExpress.ui.dialog.alert('File Without Extension Is Not Allowed...', 'Error!!');
+                return;
+            }
+            var AllowedExtension = ["jpg", "jpeg", "png"];
+            if (AllowedExtension.indexOf(fileExt) == -1)
+            {
+                DevExpress.ui.dialog.alert('Only Files With jpg,jpeg,png Extension Is Allowed..', 'Error!!');
+                return;
+            }
+        }
+    }
+    function Payment_asset_FileUpload_start(e)
+    {
+        ShowLoader();
+    }
+    function Payment_asset_FileUploaded(e)
+    {
+        ShowLoader();
+        $("#asset_fileview").load("@Url.Action("Asset_PreviewImageControl", "ProfilePaymentVoucher", new { @area = "Account" })", function () { HideLoader();});
+        $("#asset_fileRemove").show();
+    }
+</script>
+@* image upload *@
+<script>
+
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        Init_DD_Asset_Window();
+        await LookUp_GetLocList_Asset(true);
+        TransformTextForDB("ID_Frm_Voucher_Asset_Window");      
+        if ("@ProfileCore__AddRight" == "False")
+        {
+            $("#But_Loc_Asset").hide();
+        }
+        if ("@Asset_Window_FromWIPFinalization" == "True") //from wip finalization
+        {
+            var Txt_Amts_Enabled = true;
+            var Txt_Amts_ReadOnly = false;
+            var Txt_Date_Enabled = true;
+            var Txt_Date_ReadOnly = false;
+            Txt_Amts_Enabled = false;
+            Control_SetReadOnly("Txt_Amts", "dxNumberBox", (Txt_Amts_Enabled == true && Txt_Amts_ReadOnly == false) ? false : true);
+            Txt_Date_Enabled = false;
+            Control_SetReadOnly("Txt_Date", "dxDateBox", (Txt_Date_Enabled == true && Txt_Date_ReadOnly == false) ? false : true);
+        }
+        else if ("@From_DNK" == "True") // from DNK
+        {
+            $("#Calc_Allow_DNK_Itm").val(false);
+            $("#Txt_Date").dxDateBox("instance").option("min", new Date(1900, 0, 1));
+        }
+        else if ("@From_JV" == "True") // from JV
+        {
+            $("#Calc_Allow_JV_Itm").val(false);
+            $("#Txt_Date").dxDateBox("instance").option("min", new Date(1900, 0, 1));
+        }
+        else //from payment
+        {
+            $("#Calc_Allow").val(false);
+            if ($("#AllowAmountEdit").val() == "False")
+            {
+                $("#Txt_Amts").dxNumberBox("instance").option("readOnly", true);
+                $("#Txt_Qtys").dxNumberBox("instance").option("readOnly", true);
+
+                $("#Txt_Qtys").dxNumberBox({ inputAttr: { title: "Created asset has been referenced in other entries" } });
+                $("#Txt_Amts").dxNumberBox({ inputAttr: { title: "Created asset has been referenced in other entries" } });
+            }         
+        }
+        if ("@Model.Tag" == "_Edit" || "@Model.Tag" == "_View" || "@Model.Tag" == "_Delete")
+        {
+            await Frm_Asset_Window_LocList_OnValueChanged();
+        }
+        if ("@Model.IsGift" == "True")
+        {
+            $("#payment_OtherAsset_Amount").text("Insurance Amount:");
+            $("#Txt_Amts").dxNumberBox("instance").option("format", "#");
+        }
+        if ("@Payment_Asset_Image".length <= 0)
+        {
+            $("#asset_fileRemove").hide();
+        }
+        Set_Form_View_Delete_Mode(null, "ID_Frm_Voucher_Asset_Window", "@Model.Tag");
+        Focus_FirstEditable_Field("ID_Frm_Voucher_Asset_Window", "@Model.Tag");
+        if ("@Model.Tag" == "_View")
+        {
+            document.getElementById("asset_fileRemove").style.display = "none";
+            document.getElementById("asset_browseFile").style.display = "none";
+        }
+        else
+        {
+            if ("@Asset_Window_FromWIPFinalization" == "True")
+            {
+                $("#Txt_Qtys").dxNumberBox("instance").focus();
+            }
+        }
+        HideLoader_Ready();
+    });
+           @*document.body.addEventListener("keydown", PaymentItem_Asset, false);
+    function PaymentItem_Asset(evt) {
+        if (evt.ctrlKey && evt.keyCode == 83)//ctrl+s save
+        {
+            evt.preventDefault();
+            if ("@Model.Tag" == "_New" || "@Model.Tag" == "_Edit" || "@Model.Tag" == "_New_From_Selection") {
+                $("#BUT_SAVE_COM_asset").trigger("dxclick");
+            }
+        }
+    }*@ //shortcuts
+
+    function AjaxSuccessAssetWindow(data)
+    {
+        HideLoader();
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+        }
+        else if (data.jsonParam.result == true)
+        {
+            if ("@Asset_Window_FromWIPFinalization" == "True") //from wip finalization
+            {
+                ShowLoader();
+                if ($("#iCond_Ledger_ID_WIPF").val() != "00000")
+                {
+                    var totalAmount_WIPF = $("#Txt_TotalAmount_WIPF").dxNumberBox("instance").option("value");
+                    var Txt_Amt_AstWin = $("#Txt_Amts").dxNumberBox('instance').option("value");
+                    var iMinValue_WIPF = $("#iMinValue_WIPF").val();
+                    var iMaxValue_WIPF = $("#iMaxValue_WIPF").val();
+                    var iCon_Led_Type_WIPF = $("#iCon_Led_Type_WIPF").val();
+                    if (parseFloat(totalAmount_WIPF) > parseFloat(iMinValue_WIPF) && parseFloat(Txt_Amt_AstWin) <= parseFloat(iMaxValue_WIPF))
+                    {
+                        if (iCon_Led_Type_WIPF == "ASSET")
+                        {
+                            $("#AI_Type_WIPF").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_Type_WIPF").val("EXPENSE");
+                        }
+                    }
+                    else
+                    {
+                        if ($("#iLed_Type_WIPF").val() == "ASSET")
+                        {
+                            $("#AI_Type_WIPF").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_Type_WIPF").val("EXPENSE");
+                        }
+                    }
+                }
+                else
+                {
+                    if ($("#iLed_Type_WIPF").val() == "ASSET")
+                    {
+                        $("#AI_Type_WIPF").val("ASSET");
+                    }
+                    else
+                    {
+                        $("#AI_Type_WIPF").val("EXPENSE");
+                    }
+                }
+
+                $("#AI_MAKE_WIPF").val($("#Txt_Make").dxTextBox('instance').option("value"));
+                $("#AI_MODEL_WIPF").val($("#Txt_Model").dxTextBox('instance').option("value"));
+                $("#AI_SERIAL_NO_WIPF").val($("#Txt_Serial").dxTextBox('instance').option("value"));
+                $("#AI_WARRANTY_WIPF").val($("#Txt_Warranty").dxNumberBox('instance').option("value"));
+                $("#Txt_TotalAmount_WIPF").dxNumberBox("instance").option("value", $("#Txt_Amts").dxNumberBox('instance').option("value"));
+                $("#QTY_WIPF").val($("#Txt_Qtys").dxNumberBox('instance').option("value"));
+                $("#AI_RATE_WIPF").val($("#Txt_Rates").dxNumberBox('instance').option("value"));
+                $("#Other_Details_WIPF").val($("#Txt_Others").dxTextBox('instance').option("value"));
+                $("#X_LOC_ID_WIPF").val($("#LocList").dxDropDownBox('instance').option("value"));
+                $("#Saving_From_Asset_Window").val(true);
+                $("#Frm_WIPFinal_Asset_Window_Popup").dxPopup("hide");
+                $("#Frm_WIP_Finalization_Window").submit();
+            }
+            else if ("@From_DNK" == "True")      //Calling from Donation in Kind screen
+            {
+                $("#AI_MAKE_DNK_Itm").val($("#Txt_Make").dxTextBox('instance').option("value"));
+                $("#AI_MODEL_DNK_Itm").val($("#Txt_Model").dxTextBox('instance').option("value"));
+                $("#AI_SERIAL_NO_DNK_Itm").val($("#Txt_Serial").dxTextBox('instance').option("value"));
+                $("#AI_WARRANTY_DNK_Itm").val($("#Txt_Warranty").dxNumberBox('instance').option("value"));
+                if (isValidDate(data.AI_Pur_Date)) {
+                    $("#AI_PUR_DATE_DNK_Itm").val(data.AI_Pur_Date);
+                }
+                $("#AI_INS_AMT_DNK_Itm").val($("#Txt_Amts").dxNumberBox('instance').option("value"));
+                $("#Txt_Qty_DNK_Itm").dxNumberBox("instance").option("value", $("#Txt_Qtys").dxNumberBox('instance').option("value"));
+                $("#Txt_Rate_DNK_Itm").dxNumberBox("instance").option("value", $("#Txt_Rates").dxNumberBox('instance').option("value"));
+                $("#Txt_Remarks_DNK_Itm").dxTextBox("instance").option("value", $("#Txt_Others").dxTextBox('instance').option("value"));
+                $("#X_LOC_ID_DNK_Itm").val($("#LocList").dxDropDownBox('instance').option("value"));
+
+                if ($("#iCond_Ledger_ID_DNK_Itm").val() != "00000")
+                {
+                    var totalAmount = $("#Txt_Amount_DNK_Itm").dxNumberBox("instance").option("value");
+                    var iMinValue = $("#iMinValue_DNK_Itm").val();
+                    var iMaxValue = $("#iMaxValue_DNK_Itm").val();
+                    var iCon_Led_Type = $("#iCon_Led_Type_DNK_Itm").val();
+                    if (parseFloat(totalAmount) > parseFloat(iMinValue) && parseFloat(totalAmount) <= parseFloat(iMaxValue))
+                    {
+                        if (iCon_Led_Type == "ASSET")
+                        {
+                            $("#AI_TYPE_DNK_Itm").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_TYPE_DNK_Itm").val("EXPENSE");
+                        }
+                    }
+                    else
+                    {
+                        if ($("#iLed_Type_DNK_Itm").val() == "ASSET")
+                        {
+                            $("#AI_TYPE_DNK_Itm").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_TYPE_DNK_Itm").val("EXPENSE");
+                        }
+                    }
+                }
+                else
+                {
+                    if ($("#iLed_Type_DNK_Itm").val() == "ASSET")
+                    {
+                        $("#AI_TYPE_DNK_Itm").val("ASSET");
+                    }
+                    else
+                    {
+                        $("#AI_TYPE_DNK_Itm").val("EXPENSE");
+                    }
+                }
+                Fill_Item_Grid_DonationInKindVoucher();
+            }
+            else if ("@From_JV" == "True")      //Calling from Journal Voucher screen
+            {
+                debugger;
+                $("#AI_MAKE_JV_Itm").val($("#Txt_Make").dxTextBox('instance').option("value"));
+                $("#AI_MODEL_JV_Itm").val($("#Txt_Model").dxTextBox('instance').option("value"));
+                $("#AI_SERIAL_NO_JV_Itm").val($("#Txt_Serial").dxTextBox('instance').option("value"));
+                $("#AI_WARRANTY_JV_Itm").val($("#Txt_Warranty").dxNumberBox('instance').option("value"));
+                if (isValidDate(data.AI_Pur_Date)) {
+                    $("#AI_PUR_DATE_JV_Itm").val(data.AI_Pur_Date);
+                }
+                $("#Txt_Amt_JV_Itm").dxNumberBox("instance").option("value", $("#Txt_Amts").dxNumberBox('instance').option("value"));
+                $("#Txt_Qty_JV_Itm").dxNumberBox("instance").option("value", $("#Txt_Qtys").dxNumberBox('instance').option("value"));
+                $("#Txt_Remarks_JV_Itm").dxTextBox("instance").option("value", $("#Txt_Others").dxTextBox('instance').option("value"));
+                $("#X_LOC_ID_JV_Itm").val($("#LocList").dxDropDownBox('instance').option("value"));
+
+                if ($("#iCond_Ledger_ID_JV_Itm").val() != "00000")
+                {
+                    var totalAmount = $("#Txt_Amts").dxNumberBox("instance").option("value");
+                    var iMinValue = $("#iMinValue_JV_Itm").val();
+                    var iMaxValue = $("#iMaxValue_JV_Itm").val();
+                    var iCon_Led_Type = $("#iCon_Led_Type_JV_Itm").val();
+                    if ((parseFloat(totalAmount) > parseFloat(iMinValue)) && (parseFloat(totalAmount) <= parseFloat(iMaxValue)))
+                    {
+                        if (iCon_Led_Type == "ASSET")
+                        {
+                            $("#AI_TYPE_JV_Itm").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_TYPE_JV_Itm").val("EXPENSE");
+                        }
+                    }
+                    else
+                    {
+                        if ($("#iLed_Type_JV_Itm").val() == "ASSET")
+                        {
+                            $("#AI_TYPE_JV_Itm").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_TYPE_JV_Itm").val("EXPENSE");
+                        }
+                    }
+                }
+                else
+                {
+                    if ($("#iLed_Type_JV_Itm").val() == "ASSET")
+                    {
+                        $("#AI_TYPE_JV_Itm").val("ASSET");
+                    }
+                    else
+                    {
+                        $("#AI_TYPE_JV_Itm").val("EXPENSE");
+                    }
+                }
+                Fill_Item_Grid_JournalVoucher();
+
+            }
+            else      //Calling from Payments screen
+            {
+                $("#AI_MAKE").val($("#Txt_Make").dxTextBox('instance').option("value"));
+                $("#AI_MODEL").val($("#Txt_Model").dxTextBox('instance').option("value"));
+                $("#AI_SERIAL_NO").val($("#Txt_Serial").dxTextBox('instance').option("value"));
+                $("#AI_WARRANTY").val($("#Txt_Warranty").dxNumberBox('instance').option("value"));
+                $("#AI_PUR_DATE").val(data.AI_Pur_Date);
+                $("#Txt_Amt").dxNumberBox("instance").option("value", $("#Txt_Amts").dxNumberBox('instance').option("value"));
+                $("#Txt_Qty").dxNumberBox("instance").option("value", $("#Txt_Qtys").dxNumberBox('instance').option("value"));
+                $("#Txt_Rate").dxNumberBox("instance").option("value", $("#Txt_Rates").dxNumberBox('instance').option("value"));
+                $("#Txt_Remarks").dxTextBox('instance').option("value", $("#Txt_Others").dxTextBox('instance').option("value"));
+                $("#X_LOC_ID").val($("#LocList").dxDropDownBox('instance').option("value"));
+
+                if ($("#iCond_Ledger_ID").val() != "00000")
+                {
+                    if (parseFloat($("#Txt_Amt").dxNumberBox('instance').option("value")) > parseFloat($("#iMinValue").val()) && parseFloat($("#Txt_Amt").dxNumberBox('instance').option("value")) <= parseFloat($("#iMaxValue").val()))
+                    {
+                        if ($("#iCon_Led_Type").val() == "ASSET")
+                        {
+                            $("#AI_TYPE").val("ASSET");
+                        }
+                        else
+                        {
+                            $("#AI_TYPE").val("EXPENSE");
+                        }
+                    }
+                    else if ($("#iLed_Type").val() == "ASSET")
+                    {
+                        $("#AI_TYPE").val("ASSET");
+                    }
+                    else
+                    {
+                        $("#AI_TYPE").val("EXPENSE");
+                    }
+                }
+                else if ($("#iLed_Type").val() == "ASSET")
+                {
+                    $("#AI_TYPE").val("ASSET");
+                }
+                else
+                {
+                    $("#AI_TYPE").val("EXPENSE");
+                }
+                Fillgrid1_PaymentVoucher();
+            }
+        }
+    }
+
+
+</script>
+@* document.ready Save Success *@
+<script>
+    var LocList_Asset_DG;
+    var dataSource_AssetLocation_PrfPay=null;
+    function Init_DD_Asset_Window()
+    {
+        var $LocList_Asset_DG = $("#Frm_Window_GLookUp_LocList_datagrid");
+        if ($LocList_Asset_DG.length)
+        {
+            LocList_Asset_DG = $LocList_Asset_DG.dxDataGrid("instance");
+        }
+    }
+    async function LookUp_GetLocList_Asset(FirstCall = false)
+    {
+        if (FirstCall === false)
+        {
+            ShowLoader();
+            var DDvalue = $("#LocList").dxDropDownBox("instance").option("value");
+            $.ajax({
+                type: 'GET',
+                url: "/Account/ProfilePaymentVoucher/RefreshLocationList",
+                cache: false,
+                success: function (data)
+                {
+                    dataSource_AssetLocation_PrfPay = new DevExpress.data.DataSource({ // need to dispose it in in clearreference
+                        store:
+                        {
+                            type: "array",
+                            key: "AL_ID",
+                            data: data
+                        }
+                    });
+                    $("#LocList").dxDropDownBox("instance").option("dataSource", dataSource_AssetLocation_PrfPay);
+                    LocList_Asset_DG.option("dataSource", dataSource_AssetLocation_PrfPay);
+                    dataSource_AssetLocation_PrfPay.load().done((r) =>
+                    {
+                        $("#LocList").dxDropDownBox("reset");
+                        if (data.some(data => data.AL_ID === DDvalue))
+                        {
+                            $("#LocList").dxDropDownBox("instance").option("value", DDvalue);
+                        }
+                        $("#LocList").dxDropDownBox("focus");
+                        AssetLocation_Settings_PrfPay(FirstCall);
+                        HideLoader();
+                    })
+                }
+            });
+        }
+        else
+        {
+            AssetLocation_Settings_PrfPay(FirstCall);
+        }
+    }     
+    async function AssetLocation_Settings_PrfPay(FirstCall)
+    {
+        var DGItem = GetDataSourceItems("LocList", "dxDropDownBox");
+        var TotalCount = DGItem.length;   
+        if (TotalCount == 1)
+        {
+            if (FirstCall === true)
+            {
+                await Frm_Asset_Window_LocList_OnValueChanged();
+            }
+            else
+            {
+                $("#LocList").dxDropDownBox("instance").option("value", DGItem[0].AL_ID);
+            }          
+            Control_SetReadOnly("LocList", "dxDropDownBox", true, "#696969");
+        }
+        else
+        {
+            Control_SetReadOnly("LocList", "dxDropDownBox", false);
+        }
+        if (TotalCount > 1)
+        {
+            $("#payment_OtherAsset_Location").addClass("text-red");
+        }
+        else
+        {
+            $("#payment_OtherAsset_Location").removeClass("text-red");
+        }
+    }
+    async function Frm_Asset_Window_LocList_OnValueChanged(e)
+    {
+        var LocID;
+        if (e)
+        {
+            LocID = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                LocList_Asset_DG.clearSelection();
+                return;
+            }
+        }
+        else
+        {
+            LocID = $("#LocList").dxDropDownBox("instance").option("value");
+        }
+        await LocList_Asset_DG.selectRows(LocID);
+    }
+    function OnFrm_Asset_Window_popup_NewLocationClick()
+    {
+        if ("@ProfileCore__AddRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Account/ProfilePaymentVoucher/AddLocations_Check",
+            data: { ActionMethod: "New"},
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == true)
+                {
+                    ShowLoader();
+                    OpenPopup("PaymentAddLocation", "New ~ Location", "@Url.Action("Frm_Location_Window", "ProfilePaymentVoucher", new { @area = "Account" })?ActionMethod=New&PopupID=PaymentAddLocation&DropdownRefreshFunction=LookUp_GetLocList_Asset", "auto", 400, false, null);
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.message, "Error").done(function (result) { $("#LocList").dxDropDownBox("focus") });
+                }
+            }
+        });
+    }
+</script>
+@* Location *@
+<script>
+    function CloseAssetDetail()
+    {
+        if ("@Asset_Window_FromWIPFinalization" == "True")
+        {
+            $("#Frm_WIPFinal_Asset_Window_Popup").dxPopup("hide");
+        }
+        else if ("@From_DNK" == "True")
+        {
+            $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+        }
+        else if ("@From_JV" == "True")
+        {
+            $("#JV_Item_Content_popup").dxPopup("hide");
+        }
+        else
+        {
+            $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+        }
+        //$("#Frm_Voucher_Item_popup").dxPopup("hide");
+    }
+    $(function ()
+    {
+        if ($("#Frm_WIPFinal_Asset_Window_Popup").length > 0)
+        {
+            $("#Frm_WIPFinal_Asset_Window_Popup").dxPopup({
+                onHiding: function (e) {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Account/ProfilePaymentVoucher/ProfilePaymentClearSession",
+                        cache: false
+                    });
+                    //if ($("#ID_Frm_Voucher_Asset_Window").length > 0) { $("#ID_Frm_Voucher_Asset_Window").remove() };
+                }
+            });
+        }
+    });
+    function SaveAssetDetail(e)
+    {
+        if (ValidateForm(e))
+        {
+            $("#ID_Frm_Voucher_Asset_Window").submit();
+        }
+    }
+</script>
+    </div>

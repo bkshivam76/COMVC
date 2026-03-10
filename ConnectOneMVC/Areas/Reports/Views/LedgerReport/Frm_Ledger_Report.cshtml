@@ -1,0 +1,1128 @@
+﻿<div class="LedgerReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+
+        string UserType = (string)ViewBag.UserType;
+        string SelectedPeriodValue = (string)ViewBag.SelectedPeriodValue;
+        bool LedgerReport_ExportRight = (bool)ViewData["LedgerReport_ExportRight"];
+        bool LedgerRep_Auto_Vouching_Mode = (bool)ViewData["LedgerRep_Auto_Vouching_Mode"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];
+    }
+    <style>
+        div#PeriodSelection {
+            width: 100%;
+        }
+
+        .footer_smallbtns {
+            padding-left: 16px !important;
+        }
+    </style>
+    <div id="LedgerReport_ParentDiv" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Ledger Report</label>
+        </div>
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("ledgerRVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("LedgerR_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Switch().ID("LedgerRepViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("LedgerRep_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button().ID("LedgerToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () {LedgerReport_changeMode();}</text>))
+            @(Html.DevExtreme().Button().ID("btnLedgerPrintExport").Text("Export").Icon("save").Width(80).OnClick(@<text> function () {OnLedgerReportListPreviewClick();}</text>))
+            @(Html.DevExtreme().Button().ID("btnLedgerLinkAttachment").Text("Link By Serial No.").Icon("unpin").OnClick(@<text> function () {OnLedgerReportLinkAttachmentSrNo();}</text>))
+            @(Html.DevExtreme().Button().ID("btnLedgerLinkAttachmentFileName").Text("Link By File Name").Icon("unpin").OnClick(@<text> function () {OnLedgerReportLinkAttachmentFileName();}</text>))
+            @(Html.DevExtreme().Button().ID("LedgerReportModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click() }</text>))
+        </div>
+    </div>
+    <form class="edit_form" style="">
+        <div class="row">
+            <input type="hidden" id="hdfxFr_Date" value="@ViewData["xFr_Date"].ToString()" />
+            <input type="hidden" id="hdfxTo_Date" value="@ViewData["xTo_Date"].ToString()" />
+            <div class="col-sm-6 col-md-9 col-lg-9">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Ledger</label></div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                @(Html.DevExtreme().SelectBox()
+                                                                        .ID("LedgerSelection")
+                                                                        .Name("LedgerSelection")
+                                                                        .DataSource(d => d.Mvc().Controller("LedgerReport").LoadAction("Fill_Ledgers").Key("ID"))
+                                                                        .DisplayExpr("Name")
+                                                                        .ValueExpr("ID")
+                                                                        .Value(ViewData["SelectedLedgerID"].ToString())
+                                                                        .SearchEnabled(true)
+                                                                        .ShowClearButton(true)
+                                                                        .Placeholder("Select Ledger")
+                                                                        .OnValueChanged("GLookUp_LedgerList_EditValueChanged_LedgerReport")
+                            )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Period</label></div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                <div class="row">
+                                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                        @(Html.DevExtreme().SelectBox()
+                                                                            .ID("PeriodSelection")
+                                                                            .Name("PeriodSelection")
+                                                                            .DataSource(d => d.Mvc().Controller("LedgerReport").LoadAction("Fill_Change_Period_Items").Key("C_TITLE_ID"))
+                                                                            .DisplayExpr("C_TITLE_NAME")
+                                                                            .ValueExpr("C_TITLE_ID")
+                                                                            .Value(SelectedPeriodValue)
+                                                                            .SearchEnabled(true)
+                                                                            .Placeholder("Select Period")
+                                                                            .OnValueChanged(@<text>
+                                                                                function () {
+                                                                                PeriodSelectionChange();
+                                                                                }
+                                                                            </text>)
+                                    )
+                                    </div>
+                                    <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                        &nbsp;@(Html.DevExtreme().Button()
+                                              .ID("btnChangePeriod")
+                                              .Text("Change Period")
+                                              .Hint("Change Period")
+                                              .Disabled(true)
+                                              .OnClick(@<text>
+                                                function () {
+                                                ChangePeriodClick();
+                                                }
+                                            </text>)
+                                    )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[]-->
+            <div class="col-sm-6 col-md-3 col-lg-3">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-12" style="vertical-align:central">
+                                <span id="BE_View_Period" style="padding-left:10px;">
+                                    @ViewData["returnPeriod"]
+                                </span> &nbsp;&nbsp;
+
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 prm" style="padding-top:11px;">
+                                @(Html.DevExtreme().Button()
+                                                                                              .ID("btnshowLedger")
+                                                                                              .Text("Show")
+                                                                                              .Hint("Show Ledger")
+                                                                                              .Disabled(false)
+                                                                                              .Icon("folder")
+                                                                                              .Width(70)
+                                                                                              .OnClick(@<text>
+                                                                                                function () {
+                                                                                                showLedger();
+                                                                                                }
+                                                                                            </text>)
+                            )
+                            </div>
+                            <div class="col-sm-8 col-md-8 col-lg-8 prm" style="padding-top:14px;">
+                                @(Html.DevExtreme().TextBox()
+                                                                                               .ID("Ledger_TextForFileNameLink")
+
+
+                            )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    <form>
+        <div id="LedgerReportreloadPartialView" class="parent_table">
+            @Html.Partial("Frm_Ledger_Report_Grid", Model)
+        </div>
+    </form>
+
+    @Html.Partial("AttachmentFAB", "LedgerReportPrf_FAB,LedgerReport_ParentDiv,Type1,LedgerReport," + UserType) @* FAB Buttons *@
+
+    <div class="col-md-12">
+        @*Specific period popup*@
+        @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_Voucher_Specific_Period").ShowCloseButton(true).MaxHeight(110).MaxWidth(450).OnShowing("popup_frm_Specific_Period_OnShowing").OnHiding("popup_frm_Specific_Period_OnHiding").Title("Select specific period").ContentTemplate( @<text>
+            <div id='popup_frm_Voucher_Specific_Period_result'>
+                @Html.Partial("frm_Voucher_Specific_Period")
+            </div>
+    </text>)
+    )
+    </div>
+
+    <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+        <div class="setFooterItem">
+            <div class="footer-inner">
+                <div class="footer_new_left">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <div style="padding-left:20px">
+                                <span id="lbl_Party_Ledger_Balance_label" style="color:#D2691E;font-weight:bold">Net Balance: </span>
+                                <span id="lbl_Party_Ledger_Balance" style="color:#D2691E;font-weight:bold">0</span>
+                            </div>
+
+                            @*<div class="footer-locktext">
+                                    <div id="LedgerReportLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                                </div>*@
+                        </div>
+                        <div class="footer-text">
+                            <p id="LedgerReportLbl_Create" class="right_footertext_top"></p>
+                            <p id="LedgerReportLbl_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-filter">
+                    @*<div class="filter_main">
+                        </div>*@
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                                                    .ID("LedgerReport_report_modal")
+                                                     .OnShowing("PopupOnShowing")
+                                                    .Title("Ledger Preview")
+                                                    .FullScreen(false)
+                                                    .MaxWidth(125)
+                                                    .Height("auto")
+                                                    .ShowCloseButton(true)
+                                                    .ContentTemplate(@<text>
+                                                        <div id='LedgerReport_report_modal_result'>
+                                                        </div>
+                                                    </text>)
+    )
+
+    </div>
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsLedgerReportSucessPopup = false;
+    var IsLedgerReportViewPopup = false;
+    var LedgerReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var LedgerReport_IsVouchingMode = false;
+    var LedgerRep_SetVouchingModeOn = "@LedgerRep_Auto_Vouching_Mode" == "True" ? true : false;
+    var LedgerRep_ViewMode = "Default";
+    var LedgerReportID;
+    var LedgerReport_EditDate;
+    var LedgerReport_AddDate;
+    var LedgerReport_AddBy;
+    var LedgerReport_EditBy;
+    var LedgerReport_ActionStatus;
+    var LedgerReport_Showclick = false;
+    var LedgerReport_ColumnToBeShownIndex = "";
+        var LedgerReport_ColumnToBeHidddenIndex = "";
+        var LedgerID_LedgerRpt = "";
+        var LedgerName_LedgerRpt = "";
+        var SubLedID_LedgerRpt = "";
+        var LedgerReport_IsDetailRowExpanded = false;
+        var LedgerReport_NestedRecord_FocusedRowIndex = -1;
+        var LedgerReport_NestedGrid_AccessID;
+        var LedgerReport_AtachmentID;
+        var LedgerReport_FileName;
+        var LedgerReport_ParamMandatory;
+        var LedgerReport_FromDateLabel;
+        var LedgerReport_ToDateLabel;
+        var LedgerReport_DescriptionLabel;
+        var LedgerReport_Doc_ID;
+        var LedgerReport_Doc_Category;
+        var LedgerReport_MasterRowRecID;
+        var LedgerReport_MasterRowMID;
+        var LedgerReport_NestedRowMapID;
+        var LedgerReport_reason;
+        var LedgerReport_Attachment_RecStatus;
+        var LedgerReport_RecID_ForAttachment;
+        var LedgerReport_TR_M_ID;
+        var LedgerReport_REC_ID;
+        var LedgerReport_NestedRowReasonID;
+        var LedgerReport_NestedRowKeyValue;
+
+        function LedgerReportListGrid_PerformCallBack()
+        {
+            if (typeof window !== 'undefined')
+            {
+                if (typeof window.LedgerReportListGrid !== 'undefined')
+                {
+                    if (typeof window.LedgerReportListGrid.PerformCallback !== 'undefined')
+                    {
+                        if (typeof LedgerReportListGrid.PerformCallback == 'function')
+                        {
+                            LedgerReportListGrid.PerformCallback();
+                        }
+                        else
+                        {
+                            alert("PerformCallback is not a function");
+                        }
+                    }
+                    else
+                    {
+                        ShowLoader();
+                        setTimeout(function ()
+                        {
+                            LedgerReportListGrid_PerformCallBack();
+                            HideLoader();
+                        }, Timeout100);
+                    }
+                }
+                else
+                {
+                    alert('grid undefined')
+                }
+            }
+            else
+            {
+                alert('window undefined')
+            }
+        }
+
+        function LedgerR_VouchingSwitch_ValueChange(e)
+        {
+            LedgerReport_IsVouchingMode = e.value;
+            if (LedgerRep_SetVouchingModeOn == true)
+            {
+                LedgerRep_SetVouchingModeOn = false;
+            }
+            else
+            {
+                 LedgerReportPrf_FAB.SetVisible(false);
+            }
+            if (LedgerReport_IsVouchingMode == true)
+            {
+                OpenRightPane();
+                ClearLeftPane();
+                OpenLeftPane();
+            }
+            else
+            {
+                LedgerReportPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+            LedgerReportListGrid_CollapseAllDetailRows();
+        }
+
+    function LedgerReportListGrid_CollapseAllDetailRows() {
+        if (typeof window !== 'undefined') {
+            if (typeof window.LedgerReportListGrid !== 'undefined') {
+                if (typeof window.LedgerReportListGrid.CollapseAllDetailRows !== 'undefined') {
+                    if (typeof LedgerReportListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        LedgerReportListGrid.SetFocusedRowIndex(-1);
+                        LedgerReportListGrid.CollapseAllDetailRows();
+                    }
+                    else {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function () {
+                        LedgerReportListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else {
+                alert('LedgerReportListGrid is undefined')
+            }
+        }
+        else {
+            alert('window is undefined')
+        }
+    }
+        function LedgerRep_ViewSwitch_ValueChange(e)
+        {
+            LedgerRep_ViewMode = e.value == false ? "Default" : "Compact";
+            if (LedgerRep_SetVouchingModeOn == true)
+            {
+                $("#ledgerRVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            }
+            else
+            {
+                LedgerReportListGrid.CollapseAllDetailRows();
+            }
+        }
+    $(document).ready(function () {
+        if ("@LedgerReport_ExportRight" == "False")
+        {
+	        $("#btnLedgerPrintExport").hide();
+        }
+            IsLedgerReportSucessPopup = false;
+        IsLedgerReportViewPopup = false;
+
+        if (LedgerReport_IsVouchingMode == true) {
+            $(".LedgerReportListGrid_PreviewRow").hide();
+        }
+        else {
+            $(".LedgerReportListGrid_PreviewRow").show();
+        }
+        GetSessionStorage("LedgerReportListGrid");
+          //  SetLedgerReportGroupPanelFooterVisible();
+            //if ($("input[name=LedgerSelection]").val().length > 0) { showLedger(); }
+            //$("#LedgerReportListGrid").hover(function () {
+            //    LedgerReportListGrid.Focus()
+            //})
+        if (LedgerRep_SetVouchingModeOn == true)
+        {
+            $("#LedgerRepViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/LedgerReport/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_LedgerReport();
+    });
+
+        function ClearAllReferences_LedgerReport()
+        {
+            IsLedgerReportSucessPopup = null;
+            IsLedgerReportViewPopup = null;
+            LedgerReport_ShowHorizontalBar = null;
+            LedgerReport_IsVouchingMode = null;
+            LedgerRep_SetVouchingModeOn = null;
+            LedgerRep_ViewMode = null;
+            LedgerReportID = null;
+            LedgerReport_EditDate = null;
+            LedgerReport_AddDate = null;
+            LedgerReport_AddBy = null;
+            LedgerReport_EditBy = null;
+            LedgerReport_ActionStatus = null;
+            LedgerReport_Showclick = null;
+            LedgerReport_ColumnToBeShownIndex = null;
+            LedgerReport_ColumnToBeHidddenIndex = null;
+            LedgerID_LedgerRpt = null;
+            LedgerName_LedgerRpt = null;
+            SubLedID_LedgerRpt = null;
+            LedgerReport_IsDetailRowExpanded = null;
+            LedgerReport_NestedRecord_FocusedRowIndex = null;
+            LedgerReport_NestedGrid_AccessID = null;
+            LedgerReport_AtachmentID = null;
+            LedgerReport_FileName = null;
+            LedgerReport_ParamMandatory = null;
+            LedgerReport_FromDateLabel = null;
+            LedgerReport_ToDateLabel = null;
+            LedgerReport_DescriptionLabel = null;
+            LedgerReport_Doc_ID = null;
+            LedgerReport_Doc_Category = null;
+            LedgerReport_MasterRowRecID = null;
+            LedgerReport_MasterRowMID = null;
+            LedgerReport_NestedRowMapID = null;
+            LedgerReport_reason = null;
+            LedgerReport_Attachment_RecStatus = null;
+            LedgerReport_RecID_ForAttachment = null;
+            LedgerReport_TR_M_ID = null;
+            LedgerReport_REC_ID = null;
+            LedgerReport_NestedRowReasonID = null;
+            LedgerReport_NestedRowKeyValue = null;
+
+            ClearAllReferences("LedgerReport_ClearReferences");
+        }
+
+        function LedgerReport_OnInit(s, e) {
+            LedgerReport_AdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                LedgerReport_AdjustSize();
+            });
+            document.getElementById("LedgerReportListGrid").addEventListener('keydown', function (evt) {
+                if (evt.repeat) { return };
+                if (evt.keyCode == 35) {
+                    evt.preventDefault();
+                    //$("#btnLedgerLinkAttachment").click();
+                    OnLedgerReportLinkAttachmentSrNo();
+                    return false;
+                }
+                else if (evt.keyCode == 36) {
+                    evt.preventDefault();
+                    //$("#btnLedgerLinkAttachment").click();
+                    OnLedgerReportLinkAttachmentFileName();
+                    return false;
+                }
+            });
+        }
+
+        //function OnEndCallback(s, e) {
+        //    AdjustSize();
+        //}
+
+        function LedgerReport_AdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try{LedgerReportListGrid.SetHeight(height);} catch (err) { }
+        }
+        function LedgerReport_changeMode() {
+            ShowLoader();
+            if (LedgerReport_ShowHorizontalBar == 0) {
+                LedgerReport_ShowHorizontalBar = 1;
+                $("#LedgerToggleScrollBar").find("span").text("Default Data");
+                $("#LedgerToggleScrollBar").width(110);
+            }
+            else {
+                LedgerReport_ShowHorizontalBar = 0;
+                $("#LedgerToggleScrollBar").find("span").text("Full Data");
+                $("#LedgerToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: '@Url.Action("Frm_Ledger_Report_Grid", "LedgerReport")',
+                type: "GET",
+                data: { ShowHorizontalBar: LedgerReport_ShowHorizontalBar, VouchingMode: LedgerReport_IsVouchingMode, ViewMode: LedgerRep_ViewMode, ColumnToBeHidddenIndex: LedgerReport_ColumnToBeHidddenIndex, ColumnToBeShownIndex: LedgerReport_ColumnToBeShownIndex  },
+                success: function (res) {
+                    $("#LedgerReportreloadPartialView").html(res);
+                    if (LedgerReport_IsVouchingMode == true) {
+                        $(".LedgerReportListGrid_PreviewRow").hide();
+                    }
+                    else {
+                        $(".LedgerReportListGrid_PreviewRow").show();
+                    }
+                    GetSessionStorage("LedgerReportListGrid");
+                }
+            });
+            HideLoader();
+        }
+        //function PartyLedgerReportAjaxSuccessForm(data) {
+        //    if (data.result == false) {
+        //        DevExpress.ui.dialog.alert(data.Message, "Error");
+        //    }
+        //    else {
+        //        IsPartyLedgerReportSucessPopup = true;
+        //        DevExpress.ui.dialog.alert(data.Message, "Success");
+        //        $("#popup_frm_Property_Window").dxPopup("hide");
+        //        PropertyListGrid.Refresh();
+        //        IsPropertySucessPopup = false;
+        //    }
+        //}
+
+
+    function OnLedgerReportGridFocusedRowChanged(s, e) {
+            var key = s.GetRowKey(s.GetFocusedRowIndex());
+            LedgerReportListGrid.GetValuesOnCustomCallback({ key: key }, LedgerReportOnGetRowValues);
+        }
+
+        function LedgerReportOnGetRowValues(LedgerReportData) {
+            var values = LedgerReportData.split("![");
+            LedgerReportID = values[0];
+            LedgerReport_EditDate = values[1];
+            LedgerReport_AddDate = values[2];
+            LedgerReport_AddBy = values[3];
+            LedgerReport_EditBy = values[4];
+            LedgerReport_ActionStatus = values[5];
+            LedgerReport_UpdateFooterDetail(LedgerReportID, LedgerReport_ActionStatus, LedgerReport_AddDate, LedgerReport_AddBy,
+            '', '', LedgerReport_EditDate, LedgerReport_EditBy);
+        }
+
+        function LedgerReport_UpdateFooterDetail(LedgerReportID, LedgerReport_Action_Status, LedgerReport_Add_Date, LedgerReport_Add_By, LedgerReport_Action_Date, LedgerReport_Action_By, LedgerReport_Edit_Date, LedgerReport_Edit_By) {
+            LedgerReport_Action_Date = LedgerReport_Action_Date != "" && LedgerReport_Action_Date != null ? LedgerReport_Action_Date : LedgerReport_Action_Date;
+            LedgerReport_Edit_Date = LedgerReport_Edit_Date != "" && LedgerReport_Edit_Date != null ? LedgerReport_Edit_Date : LedgerReport_Edit_Date;
+            LedgerReport_Add_Date = LedgerReport_Add_Date != "" && LedgerReport_Add_Date != null ? LedgerReport_Add_Date : LedgerReport_Add_Date;
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/ItemList/CreationDetail",
+                data: {
+                    Xrow: LedgerReportID, Action_Status: LedgerReport_Action_Status, Add_Date: LedgerReport_Add_Date,
+                    Add_By: LedgerReport_Add_By, Action_Date: LedgerReport_Action_Date, Action_By: LedgerReport_Action_By, Edit_Date: LedgerReport_Edit_Date, Edit_By: LedgerReport_Edit_By
+                },
+                cache: false,
+                success: function (LedgerReportLbl_result) {
+                    $('#LedgerReportLbl_Status').text(LedgerReportLbl_result.Lbl_Status);
+                    $('#LedgerReportLbl_Create').text(LedgerReportLbl_result.Lbl_Create);
+                    $('#LedgerReportLbl_Modify').text(LedgerReportLbl_result.Lbl_Modify);
+                    if (LedgerReportLbl_result.Lbl_Status_Color != "") {
+                        $('#LedgerReportLbl_Status').css('color', LedgerReportLbl_result.Lbl_Status_Color);
+                    }
+                    if (LedgerReportLbl_result.Pic_Status != "") {
+                        $('#LedgerReport_LockICON').css('class', LedgerReportLbl_result.Pic_Status);
+                    }
+
+                }
+            });
+        }
+
+    function OnLedgerReportListPreviewClick()
+    {
+        if ("@LedgerReport_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("LedgerReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "LedgerReport", new { @area = "Reports" })", "auto", "auto", false, null);
+    }
+
+        function GetSelectedFieldValuesCallback(values) {
+            SelectedRows.BeginUpdate();
+            try {
+                SelectedRows.ClearItems();
+                for (var i = 0; i < values.length; i++) {
+                    SelectedRows.AddItem(values[i]);
+                }
+            } finally {
+                SelectedRows.EndUpdate();
+            }
+            $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+        }
+
+        function LedgerReportContextMenuFunction(s, e) {
+            if (e.item.name == 'Close') {
+                btnCloseActiveTab();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnLedgerReportListPreviewClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                LedgerReportListGrid.Refresh();
+            }
+        }
+
+        function LedgerReportChangeColWidthClick() {
+            LedgerReportListGrid.settings.Columns[0].Width = 500;
+        }
+
+    function OnGridLedgerReportListGrid_EndCallback(s, e) {
+        LedgerReport_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        LedgerReport_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/LedgerReport/GetLedgerBalance",
+                data: {
+                    // xFr_DateSelected: $("input[name=PeriodSelection]").val()
+                },
+                cache: false,
+                success: function (result)
+                {
+                    if (LedgerReport_IsVouchingMode == true) {
+                        $(".LedgerReportListGrid_PreviewRow").hide();
+                    }
+                    else {
+                        $(".LedgerReportListGrid_PreviewRow").show();
+                    }
+                    GetSessionStorage("LedgerReportListGrid");
+                    $("#lbl_Party_Ledger_Balance").text(result.LedgerBalance);
+                }
+            });
+        if (e.command == "CUSTOMCALLBACK")
+        {
+            if (LedgerReport_Showclick == true)
+            {
+                if (s.GetPageIndex() > 0)
+                {
+                    s.GotoPage(0);
+                }
+            }
+        }
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function LedgerReport_OnbegincallBack(s, e)
+    {
+        var _fromDate = $("#hdfxFr_Date").val();
+        var _toDate = $("#hdfxTo_Date").val();
+        LedgerName_LedgerRpt = $("#LedgerSelection").dxSelectBox("option", "text")// $("input[ID=LedgerSelection]").val();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = LedgerReport_ShowHorizontalBar;
+        e.customArgs["Fr_Date"] = _fromDate;
+        e.customArgs["To_Date"] = _toDate;
+        e.customArgs["ledgerid"] = LedgerID_LedgerRpt;
+        e.customArgs["Ledger_Name"] = LedgerName_LedgerRpt;
+        e.customArgs["sub_led_id"] = SubLedID_LedgerRpt;
+        e.customArgs["VouchingMode"] = LedgerReport_IsVouchingMode
+        e.customArgs["ViewMode"] = LedgerRep_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = LedgerReport_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = LedgerReport_ColumnToBeHidddenIndex;
+    }//Bug #131445 fixed
+
+
+
+        function showLedger() {
+            var _fromDate = $("#hdfxFr_Date").val();
+            var _toDate = $("#hdfxTo_Date").val();
+            LedgerName_LedgerRpt = $("input[ID=LedgerSelection]").val();
+            if (LedgerID_LedgerRpt.length == 0)
+            { DevExpress.ui.dialog.alert("Please select Ledger."); return; }
+            LedgerReport_Showclick = true;
+            LedgerReportListGrid.PerformCallback({ "Fr_Date": _fromDate, "To_Date": _toDate, "ledgerid": LedgerID_LedgerRpt, "command": "REFRESH", "Ledger_Name": LedgerName_LedgerRpt });
+        }
+        function PeriodSelectionChange() {
+
+            // $("LedgerReportreloadPartialView").hide();
+            if ($("input[name=PeriodSelection]").val() == "Specific Period") {
+                $("#popup_frm_Voucher_Specific_Period").dxPopup("show");
+                $("#From_Date").dxDateBox({
+                    applyValueMode: "useButtons",
+                    value: $("#hdfxFr_Date").val()
+
+                });
+                $("#To_Date").dxDateBox({
+                    applyValueMode: "useButtons",
+                    value: $("#hdfxTo_Date").val()
+                });
+                $("#btnChangePeriod").dxButton({
+                    disabled: false
+                });
+            }
+            else {
+
+                xFr_DateSelected = $("input[name=PeriodSelection]").val();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Reports/LedgerReport/GetSelectPeriod",
+                    data: {
+                        xFr_DateSelected: $("input[name=PeriodSelection]").val()
+                    },
+                    cache: false,
+                    success: function (result) {
+                        $("#BE_View_Period").text(result.returnPeriod);
+                        $("#hdfxFr_Date").val(result.xFr_Date);
+                        $("#hdfxTo_Date").val(result.xTo_Date);
+                    }
+                });
+                $("#btnChangePeriod").dxButton({
+                    disabled: true
+                });
+
+            }
+        }
+        function CallForSpecificPeriod() {
+            var fromDate = $("input[name=From_Date]").val();
+            var toDate = $("input[name=To_Date]").val();
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/LedgerReport/GetSelectPeriod",
+                data: {
+                    xFr_DateSelected: fromDate,
+                    xTo_DateSelected: toDate
+                },
+                cache: false,
+                success: function (result) {
+                    $("#BE_View_Period").text(result.returnPeriod);
+                }
+            });
+        }
+        function ChangePeriodClick() {
+            $("#popup_frm_Voucher_Specific_Period").dxPopup("show");
+            $("#From_Date").dxDateBox({
+                applyValueMode: "useButtons",
+                value: $("#hdfxFr_Date").val()
+            });
+            $("#To_Date").dxDateBox({
+                applyValueMode: "useButtons",
+                value: $("#hdfxTo_Date").val()
+            });
+        }
+        function popup_frm_Specific_Period_OnShowing() {
+            var docWidth = (document.documentElement.clientWidth);
+            $("#popup_frm_Voucher_Specific_Period").dxPopup("instance").option("maxHeight", (docWidth > 990) ? 145 : 205);
+        }
+        function popup_frm_Specific_Period_OnHiding() {
+            if (ledger_return_cancel == 0) {
+                $("#BE_View_Period").text(specific_period_return_period);
+                $("#hdfxFr_Date").val(specific_period_fromDate);
+                $("#hdfxTo_Date").val(specific_period_toDate);
+            }
+    }
+    function GLookUp_LedgerList_EditValueChanged_LedgerReport(e)
+    {
+        if (e.value)
+        {
+            if (e.value.length > 0)
+            {
+                LedgerID_LedgerRpt = e.value.split(';')[0];
+                if (e.value.split(';').length > 1)
+                {
+                    SubLedID_LedgerRpt = e.value.split(';')[1];
+                }
+                else
+                {
+                    SubLedID_LedgerRpt = "";
+                }
+            }
+        }
+        else
+        {
+            LedgerID_LedgerRpt = "";
+            LedgerName_LedgerRpt = "";
+            SubLedID_LedgerRpt = "";
+        }
+    }
+</script>
+
+    <script>
+
+    function On_LedgerReport_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (LedgerReport_ParamMandatory == 1)
+            {
+                AddAttachment(LedgerReport_RecID_ForAttachment, "Accounts_CashBook", LedgerReport_Doc_ID, LedgerReport_Doc_Category, LedgerReport_ParamMandatory, LedgerReport_FromDateLabel, LedgerReport_ToDateLabel, LedgerReport_DescriptionLabel, "LedgerReportAttachment", null, "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(LedgerReport_RecID_ForAttachment, "Accounts_CashBook", LedgerReport_Doc_ID, "LedgerReportAttachment", "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (LedgerReport_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(LedgerReport_RecID_ForAttachment, "Accounts_CashBook", LedgerReport_AtachmentID, LedgerReport_ParamMandatory, LedgerReport_FromDateLabel, LedgerReport_ToDateLabel, LedgerReport_DescriptionLabel, "LedgerReportAttachment", null, "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(LedgerReport_RecID_ForAttachment, "Accounts_CashBook", LedgerReport_AtachmentID, LedgerReport_ParamMandatory, LedgerReport_FromDateLabel, LedgerReport_ToDateLabel, LedgerReport_DescriptionLabel, null, "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID, LedgerReport_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(LedgerReport_AtachmentID, LedgerReport_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(LedgerReport_RecID_ForAttachment, "Accounts_CashBook", "Ledger Report", "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (LedgerReport_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(LedgerReport_RecID_ForAttachment, LedgerReport_NestedRowMapID, "Accounts_CashBook", "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(LedgerReport_RecID_ForAttachment, LedgerReport_NestedRowMapID, "Accounts_CashBook", "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID, LedgerReport_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(LedgerReport_RecID_ForAttachment, LedgerReport_NestedRowMapID, "LedgerReportListGrid", LedgerReport_NestedGrid_AccessID);
+        }
+        else if (e.actionName == "AuditAction") {
+            s.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit") {
+
+            if (LedgerReport_Nested_Doc_Status == "") {
+                s.SetActionContext("AutoItemContext", true);
+            }
+            if (LedgerReport_Nested_Doc_Status == "NO") {
+                s.SetActionContext("EditItemContext", true);
+            }
+            if (LedgerReport_Nested_Doc_Status == "YES") {
+                s.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept") {
+            OnLedgerReport_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject") {
+            OnLedgerReport_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks") {
+            OnLedgerReport_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+    }
+
+    function LedgerReportOnGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() > -1) {
+            if (LedgerReport_IsVouchingMode) {
+                LedgerReportPrf_FAB.SetVisible(true);
+                LedgerReportPrf_FAB.SetActionContext("VouchingActionContext", true);
+            }
+
+            s.GetRowValues(s.GetFocusedRowIndex(), 'TR_M_ID;REC_ID;iTR_TEMP_ID', OnLedgerReport_GetMainGridRowValues);
+        }
+        else
+        {
+            LedgerReport_TR_M_ID = null;
+            LedgerReport_REC_ID = null;
+            LedgerReport_iTR_TEMP_ID = null;
+        }
+    }
+
+        function OnLedgerReport_GetMainGridRowValues(MainGridRowValues) {            
+        LedgerReport_TR_M_ID = MainGridRowValues[0];
+        LedgerReport_REC_ID = MainGridRowValues[1];
+            LedgerReport_iTR_TEMP_ID = MainGridRowValues[2];
+            if (LedgerReport_iTR_TEMP_ID == "Opening_Balance")
+            {
+                LedgerReport_REC_ID = LedgerReport_iTR_TEMP_ID;
+            }
+        if (LedgerReport_IsVouchingMode == true) {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Reports", "LedgerReport", "LeftPaneContent", LedgerReport_REC_ID, LedgerReport_IsVouchingMode, LedgerReport_TR_M_ID == LedgerReport_REC_ID ? "" : LedgerReport_TR_M_ID);
+        }
+    }
+
+    function OnLedgerReportListGridNestedFocusedRowChange(s, e)
+    {
+        if (LedgerReport_IsDetailRowExpanded || LedgerReport_IsVouchingMode == true)
+        {
+            LedgerReport_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (LedgerReport_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                //var key = s.GetRowKey(s.GetFocusedRowIndex());
+                //s.GetValuesOnCustomCallback({ key: key }, OnLedgerReport_GetGridRowValues)
+                LedgerReport_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnLedgerReport_GetGridRowValues);
+            }
+            else
+            {
+                LedgerReportPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+
+    function OnLedgerReport_GetGridRowValues(values)
+    {
+
+        if (values[14] != null)
+        {
+            LedgerReportPrf_FAB.SetVisible(true);
+            LedgerReport_Nested_Doc_Status = values[0];
+            if (LedgerReport_IsVouchingMode == true) {
+                LedgerReportPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (LedgerReport_Nested_Doc_Status == "") {
+                    LedgerReportPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (LedgerReport_Nested_Doc_Status == "NO") {
+                    LedgerReportPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (LedgerReport_Nested_Doc_Status == "YES") {
+                    LedgerReportPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+
+            LedgerReport_ParamMandatory = values[1];
+            LedgerReport_FromDateLabel = values[2];
+            LedgerReport_ToDateLabel = values[3];
+            LedgerReport_DescriptionLabel = values[4];
+            LedgerReport_Doc_Category = values[5];
+            LedgerReport_Doc_ID = values[6];
+            LedgerReport_AtachmentID = values[7];
+            IndexAttachmentID = LedgerReport_AtachmentID;
+            LedgerReport_MasterRowRecID = values[8];
+            LedgerReport_MasterRowMID = values[9];
+            LedgerReport_NestedRowMapID = values[10];
+            LedgerReport_reason = values[11];
+            LedgerReport_FileName = values[12];
+            LedgerReport_Attachment_RecStatus = values[13];
+            LedgerReport_NestedRowKeyValue = values[14];
+            LedgerReport_NestedRowReasonID = values[15];
+            IndexAttachmentReasonID = LedgerReport_NestedRowReasonID;
+
+            HideLoader();
+            if (LedgerReport_MasterRowMID != null && LedgerReport_MasterRowMID != "") {
+                LedgerReport_RecID_ForAttachment = LedgerReport_MasterRowMID;
+            }
+            else if (LedgerReport_MasterRowRecID != null && LedgerReport_MasterRowRecID != "") {
+                LedgerReport_RecID_ForAttachment = LedgerReport_MasterRowRecID;
+            }
+
+        }
+    }
+
+    function LedgerReportListGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = LedgerReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = LedgerReport_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function LedgerReport_DetailRowExpanding(s, e)
+    {
+        LedgerReport_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (LedgerReport_IsVouchingMode == true) {
+            pane.Expand();
+        }
+        else {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function LedgerReport_DetailRowCollapsing(s, e)
+    {
+        LedgerReport_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (LedgerReport_IsVouchingMode == true) {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false) {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else {
+            LedgerReportPrf_FAB.SetVisible(false);
+        }
+    }
+    function OnLedgerReportLinkAttachmentFileName()
+    {
+        OnLedgerReportLinkAttachmentSrNo(false);
+    }
+    function OnLedgerReportLinkAttachmentSrNo(BySrNo=true)
+    {
+        var FocusedRowIndex = LedgerReportListGrid.GetFocusedRowIndex();
+        if (FocusedRowIndex < 0)
+        {
+            DevExpress.ui.dialog.alert("Select A Main Grid Row ", "Info");
+            return;
+        }
+        ShowLoader();
+        var RowIDs = LedgerReportListGrid.cpRowdata[LedgerReportListGrid.GetFocusedRowIndex() - LedgerReportListGrid.GetTopVisibleIndex()];
+        var MID = RowIDs[0];
+        var XID = RowIDs[1];
+        var RefID;
+        if (MID != null && MID != "") {
+            RefID = MID;
+        }
+        else if (XID != null && XID != "") {
+            RefID = XID;
+        }
+        HideLoader();
+        LinkAttachmentBySrNo(RefID, "Accounts_CashBook", "LedgerReportListGrid", LedgerReportListGrid.GetFocusedRowIndex(), "", BySrNo);
+        //ShowLoader();
+        //LedgerReportListGrid.GetRowValues(FocusedRowIndex, "TR_M_ID;REC_ID", function (result) { GetRowsValuesLinkAttachmentSrno(result, BySrNo) });
+
+    }
+    function GetRowsValuesLinkAttachmentSrno(value, BySrNo)
+    {
+        var RefID;
+        var MID = value[0];
+        var XID = value[1];
+        if (MID != null && MID != "")
+        {
+            RefID = MID;
+        }
+        else if (XID != null && XID != "")
+        {
+            RefID = XID;
+        }
+        HideLoader();
+        LinkAttachmentBySrNo(RefID, "Accounts_CashBook", "LedgerReportListGrid", LedgerReportListGrid.GetFocusedRowIndex(), "", BySrNo)
+    }
+
+
+    </script>
+    @*attachment and nested grid*@
+
+    <script>
+
+        function OnLedgerReport_AcceptwithoutRemarks() {
+            var Recid;
+            if (LedgerReport_IsDetailRowExpanded == true || LedgerReport_IsVouchingMode == true)
+            {
+                if (LedgerReport_MasterRowMID == null || LedgerReport_MasterRowMID == "")
+                {
+                    if (LedgerReport_MasterRowRecID == null || LedgerReport_MasterRowRecID == "")
+                    {
+                        Recid = (LedgerReport_TR_M_ID == null || LedgerReport_TR_M_ID == "") ? LedgerReport_REC_ID : LedgerReport_TR_M_ID;
+                    }
+                    else
+                    {
+                        Recid = LedgerReport_MasterRowRecID;
+                    }
+                }
+                else
+                {
+                    Recid = LedgerReport_MasterRowMID;
+                }
+            }
+            else
+            {
+                Recid = (LedgerReport_TR_M_ID == null || LedgerReport_TR_M_ID == "") ? LedgerReport_REC_ID : LedgerReport_TR_M_ID;
+            }
+
+            Entry_AcceptwithoutRemarks(Recid, "Report_LedgerReport", "LedgerReportListGrid", LedgerReport_AtachmentID, LedgerReport_NestedRowReasonID, LedgerReport_NestedRowKeyValue);
+        }
+
+        function OnLedgerReport_AcceptRejectVoucher(_actionMethod) {
+            var Recid;
+            if (LedgerReport_IsDetailRowExpanded == true || LedgerReport_IsVouchingMode == true) {
+                if (LedgerReport_MasterRowMID == null || LedgerReport_MasterRowMID == "") {
+                    if (LedgerReport_MasterRowRecID == null || LedgerReport_MasterRowRecID == "") {
+                        Recid = (LedgerReport_TR_M_ID == null || LedgerReport_TR_M_ID == "") ? LedgerReport_REC_ID : LedgerReport_TR_M_ID;
+                    }
+                    else {
+                        Recid = LedgerReport_MasterRowRecID;
+                    }
+                }
+                else {
+                    Recid = LedgerReport_MasterRowMID;
+                }
+            }
+            else {
+                Recid = (LedgerReport_TR_M_ID == null || LedgerReport_TR_M_ID == "") ? LedgerReport_REC_ID : LedgerReport_TR_M_ID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Report_LedgerReport", "LedgerReportListGrid", LedgerReport_AtachmentID, LedgerReport_NestedRowReasonID, LedgerReport_NestedRowKeyValue);
+        }
+    </script>@* LedgerReport_AuditActionButton_Functions *@
+</div>

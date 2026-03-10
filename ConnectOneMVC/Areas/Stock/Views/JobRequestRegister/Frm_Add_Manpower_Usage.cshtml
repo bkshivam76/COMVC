@@ -1,0 +1,443 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.JobActualManpowerUsage
+@{
+    ViewBag.Test = Model.Job_ManpowerUsage_ActionMethod;
+    bool IsVisible = Model != null && (Model.Job_ManpowerUsage_ActionMethod.ToString().Trim() == "View") ? true : false;    
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+
+    bool Job_personnelNewRight=(bool)ViewData["Job_personnelNewRight"];
+    bool Job_personnelViewRight=(bool)ViewData["Job_personnelViewRight"];
+}
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+    #equalheight {
+        overflow: hidden;
+    }   
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+    .dx-button-block {
+        display: block !important;
+    }
+    .intial {
+        float: initial !important;
+    }
+    .paddR9 {
+        padding-right: 9px !important;
+    }
+    .control-label-text {
+        font-weight: 500;
+        font-size: 14px;
+    }
+    #Frm_Job_Actual_Manpower_Usage_Popup {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    #JobView_Rates_Type >div {
+        padding: 2px 8px !important;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_Job_Actual_Manpower_Usage_Popup" class="col-md-12">
+    @using (Ajax.BeginForm("Frm_Add_Manpower_Usage", "JobRequestRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_Actual_Manpower_Usage_Popup",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "Frm_Job_Manpower_Usage_OnSuccess"
+                       },
+                       new
+                       {
+                           id = "ID_Job_Frm_Usage_Window",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.Job_ManpowerUsage_ActionMethod)
+        @Html.HiddenFor(x => x.Job_ManpowerUsage_REC_ID)
+        @Html.HiddenFor(x => x.Job_PersonName)
+        @Html.HiddenFor(x => x.Job_TotalCost)
+        @Html.HiddenFor(x => x.Job_PersonType)
+        @Html.HiddenFor(x => x.Job_ManpowerUnitsID)
+        @Html.HiddenFor(x => x.Job_ManpowerUsage_sr)
+        @Html.HiddenFor(x => x.jobID)
+        @Html.HiddenFor(x => x.Job_Manpower_ChargeID)//Mantis bug 0000362 fixed
+        @Html.HiddenFor(x => x.Leave_Date)//Mantis bug 0001045 resolved
+        @Html.HiddenFor(x => x.Joined_Date)//Mantis bug 0001045 resolved
+        @Html.HiddenFor(x => x.JobRequestDate)//Mantis bug 0000541 fixed
+        @Html.HiddenFor(x => x.JobStartDate)//Mantis bug 0000541 fixed
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <!-- <div class="full-width-header-bg3">
+                 <div class="row">
+
+                     <div class="col-sm-8 pll">
+                         <h3 class="popuphead"><i class="far fa-edit"></i> Add Manpower </h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div>[Header]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                            <label class="control-label text-red" for="Name"> Person Name:</label>
+                        </div><!--[/leftpart]-->
+                        <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                            <div class="dx-texteditor dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Job_ManpowerID").Name("Job_ManpowerID").Value(Model.Job_ManpowerID).ValueExpr("ID").DisplayExpr("Name")
+                                                                                                  .DataSource(d => d.Mvc().Controller("JobRequestRegister").LoadAction("LookUp_Get_Person_Names").Key("ID"))
+                                                                                                  .Placeholder("Select Name").ReadOnly(IsVisible).Disabled(IsVisible).OnValueChanged("Get_Person_Names_ChangeEvent").OnInitialized("Init_Get_Person_Names_ChangeEvent").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ContentTemplate(@<text> @Html.Partial("LookUp_Get_Person_Names") </text>))
+                                    @Html.ValidationMessageFor(model => model.Job_PersonName, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div><!--[Manpower]-->
+                        <div class="col-sm-6 col-md-6 col-lg-6 prm pll">
+                            @(Html.DevExtreme().Button()
+                                                                                                                                                                                                .ID("Job_Add_Person_Type")
+                                                                                                                                                                                                .Text("Add Person")
+                                                                                                                                                                                                .Disabled(IsVisible)
+                                                                                                                                                                                                .OnClick(@<text>
+                                                                                                                                                                                                    function () {
+                                                                                                                                                                                                    Job_manpower_addpersonnel()
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                </text>))
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[Manpower]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Period From:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().DateBoxFor(model => model.Job_W_PeriodFrom).CustomDateBox().ID("Job_W_PeriodFrom").Name("Job_W_PeriodFrom")
+                                                                                                                                              .OnValueChanged("Get_Units_Rate_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Work Period From") )
+                                        @Html.ValidationMessageFor(model => model.Job_W_PeriodFrom, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Period To:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().DateBoxFor(model => model.Job_W_PeriodTo).CustomDateBox().ID("Job_W_PeriodTo").Name("Job_W_PeriodTo")
+                                                                                                                              .OnValueChanged("Get_Units_Rate_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Work Period To") )
+                                        @Html.ValidationMessageFor(model => model.Job_W_PeriodTo, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!--[WorkPeriodTo]-->
+
+                    </div>
+                </div>
+            </div> <!--[row2]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Work Unit:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Job_ManpowerUnits").Name("Job_ManpowerUnits").Value(Model.Job_ManpowerUnits).MaxLength(20)
+                                                                                                                                              .Placeholder("Unit Of Work").ReadOnly(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Disabled(IsVisible) )
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Rate/Unit:</label>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Job_RatePerUnit").Name("Job_RatePerUnit").Placeholder("Defined Rate/Unit").Value(Model.Job_RatePerUnit).ShowSpinButtons(true).Format("#0.00").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(false) )
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                @(Html.DevExtreme().Button().ID("JobView_Rates_Type").Text("View Rates").Disabled(IsVisible).OnClick(@<text> function () { Job_View_Rates_Click() } </text>))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[row3]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Units Worked:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Job_Units_Worked").Name("Job_Units_Worked").Value(Model.Job_Units_Worked)
+                                                                                                                                              .Placeholder("No. Of Hrs Worked ").OnValueChanged("Actual_Unit_ChangeEvent").ShowSpinButtons(true).Format("#0.00")
+                                                                                                                                              .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(IsVisible).Disabled(IsVisible) )
+                                        @Html.ValidationMessageFor(model => model.Job_Units_Worked, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Total Amount:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Job_TotalCost1").Name("Job_TotalCost1").Value(Model.Job_TotalCost).Placeholder("Total Amount")
+                                                                                                                              .Format("#0.00").ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true) )
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[row4]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Name">Remarks:</label>
+                            </div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Job_ManpowerRemarks").Value(Model.Job_ManpowerRemarks).Placeholder("Enter Remarks").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Name("Job_ManpowerRemarks").MaxLength(8000).ReadOnly(IsVisible).Disabled(IsVisible))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div> <!--[Remarks]-->
+            <div class="row">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @if (Model.Job_ManpowerUsage_ActionMethod.ToString().Trim() == "View")
+                            {
+                                @(Html.DevExtreme().Button().CustomCloseButton().Text("Close").ID("JobUsage_Cancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Jobinnergrid").dxPopup("hide"); } </text>) )
+                            }
+                            @if (Model.Job_ManpowerUsage_ActionMethod.ToString().Trim() == "New" || Model.Job_ManpowerUsage_ActionMethod.ToString().Trim() == "Edit")
+                            {
+                                @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("Usage_Save").FocusStateEnabled(true).UseSubmitBehavior(true) )
+                                @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("JobUsage_SaveCancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Jobinnergrid").dxPopup("hide"); } </text>) )
+                            }
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+            </div><!--[button]-->
+        }
+
+    }
+</div>
+<script type="text/javascript">
+    $(document).ready(function ()
+    {        
+        var form = "ID_Job_Frm_Usage_Window";
+        ShowLoader();
+        AssignIDtoLabel(form, "jobManpowerUsage");
+
+        Job_personnelNewRight = "@Job_personnelNewRight" == "TRUE" ? true : false;
+        Job_personnelViewRight = "@Job_personnelViewRight" == "TRUE" ? true : false;
+
+        if (!Job_personnelNewRight) { $("#Job_Add_Person_Type").hide(); }         
+        if (!Job_personnelViewRight) { $("#JobView_Rates_Type").hide(); } 
+        
+        if (!Job_Context_Menu_AddManpowerUsage) { 
+        if ($("#JobRequestDate").val() == null) { }
+        else { $("#JobRequestDate").val($("#Job_RequestDate").dxDateBox("instance").option("value")); }
+        if ($("#JobStartDate").val() == null) { }
+            else { $("#JobStartDate").val($("#Job_StartDate").dxDateBox("instance").option("value")); }
+        }
+                setTimeout(function ()
+        {
+            Set_Form_View_Delete_Mode(null, form, "@Model.Job_ManpowerUsage_ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.Job_ManpowerUsage_ActionMethod");
+            HideLoader();
+                }, Timeout500);
+    });//Mantis bug 0000541 fixed
+    var Job_manpowerpersonid;
+    var Job_manpowerworkfrom;
+    var Job_manpowerworkto;
+
+    function Init_Get_Person_Names_ChangeEvent(e) {
+         e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length > 0) {
+                    e.component.option("value", "@Model.Job_ManpowerID");
+                }
+            });
+
+    }
+    function Get_Person_Names_ChangeEvent(e) {
+        var dropDownBox = $("#Job_ManpowerID").dxDropDownBox("instance");
+        dropDownBox.close();
+        if (e.previousValue != null && e.previousValue != e.value) {
+            $("#Job_W_PeriodFrom").dxDateBox("instance").reset();
+            $("#Job_W_PeriodTo").dxDateBox("instance").reset();
+            $("#Job_Units_Worked").dxNumberBox("instance").reset();
+            $("#Job_RatePerUnit").dxNumberBox("instance").reset();
+            $("#Job_ManpowerUnits").dxTextBox("instance").reset();
+        }
+        Job_manpowerpersonid = $("#Job_ManpowerID").dxDropDownBox("instance").option("value")[0];
+        Job_manpowerworkfrom = $("#Job_W_PeriodFrom").dxDateBox("instance").option("value");
+        Job_manpowerworkto = $("#Job_W_PeriodTo").dxDateBox("instance").option("value");
+        var dropDownBox = $("#Job_ManpowerID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_Get_Persons");
+        if ($dataGrid.length) {
+            LookUp_Get_Persons
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropDownBox.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                var PersonName = item.Name;
+                var Leave_Date = item.Leaving_Date;
+                var Join_Date = item.Joining_Date;
+
+                $("#Leave_Date").val(Leave_Date);//Mantis bug 0001045 resolved
+                $("#Joined_Date").val(Join_Date);//Mantis bug 0001045 resolved
+                $("#Job_PersonName").val(PersonName);
+                $("#Job_PersonType").val(item["Type"]);
+                if (Job_manpowerpersonid != null && Job_manpowerworkfrom != null && Job_manpowerworkto != null) {
+                    var From_Date = formatDate(Job_manpowerworkfrom);
+                    var To_Date = formatDate(Job_manpowerworkto);
+                    Autocalculate_Rate_per_Unit(Job_manpowerpersonid, From_Date, To_Date);
+                }
+            }
+        }
+    }
+    function Get_Units_Rate_ChangeEvent(e) {
+        var PersonName = $("#Job_ManpowerID").dxDropDownBox("instance").option("text");
+        Job_manpowerworkfrom = $("#Job_W_PeriodFrom").dxDateBox("instance").option("value");
+        Job_manpowerworkto = $("#Job_W_PeriodTo").dxDateBox("instance").option("value");
+        if (PersonName.length > 0 && Job_manpowerworkfrom != null && Job_manpowerworkto != null) {
+            Job_manpowerpersonid = $("#Job_ManpowerID").dxDropDownBox("instance").option("value")[0];
+            var From_Date = formatDate(Job_manpowerworkfrom);
+            var To_Date = formatDate(Job_manpowerworkto);
+            if (!Job_Context_Menu_AddManpowerUsage) {
+                if (Jobfromdate || Jobtodate) {
+                    if (Jobfromdate) {
+                        if (Job_manpowerworkfrom < Jobfromdate) {
+                            DevExpress.ui.dialog.alert("Manpower Work From Date Cannot Be Less Than Job Start Date", 'Inform!');
+                            $("#Job_W_PeriodFrom").dxDateBox("instance").reset();
+                            return;
+                        }
+                        if (Job_manpowerworkto < Jobfromdate) {
+                            DevExpress.ui.dialog.alert("Manpower Work To Date Cannot Be Less Than Job Start Date", 'Inform!');
+                            $("#Job_W_PeriodTo").dxDateBox("instance").reset();
+                            return;
+                        }
+                    }
+                    if (Jobtodate) {
+                        if (Job_manpowerworkfrom > Jobtodate) {
+                            DevExpress.ui.dialog.alert("Manpower Work From Date Cannot Be More Than Job End Date", 'Inform!');
+                            $("#Job_W_PeriodFrom").dxDateBox("instance").reset();
+                            return;
+                        }
+                        if (Job_manpowerworkto > Jobtodate) {
+                            DevExpress.ui.dialog.alert("Manpower Work To Date Cannot Be More Than Job End Date", 'Inform!');
+                            $("#Job_W_PeriodTo").dxDateBox("instance").reset();
+                            return;
+                        }
+                    }
+                }
+            }
+            Autocalculate_Rate_per_Unit(Job_manpowerpersonid, From_Date, To_Date);
+        }
+    }
+    function Autocalculate_Rate_per_Unit(PersonId, From_Date, To_Date) {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/JobRequestRegister/Autocalculate_Rate_per_Unit",
+            data: { PersonId: PersonId, WorkFrom: From_Date, WorkTo: To_Date },
+            cache: false,
+            success: function (data) {
+                if (data.result == "true" || data.result == true) {
+                    $("#Job_RatePerUnit").dxNumberBox("instance").option("value", data.message[0].Rate_per_Unit);
+                    $("#Job_ManpowerUnitsID").val(data.message[0].UnitID);
+                    $("#Job_ManpowerUnits").dxTextBox("instance").option("value", data.message[0].Unit);
+                    $("#Job_Manpower_ChargeID").val(data.message[0].REC_ID);//Mantis bug 0000362 fixed                    
+                }
+                else {
+
+                }
+            }
+        });
+    }
+    function Actual_Unit_ChangeEvent(e) {
+        var Job_RatePerUnit = $("#Job_RatePerUnit").dxNumberBox("instance").option("value");
+        var Job_Units_Worked = $("#Job_Units_Worked").dxNumberBox("instance").option("value");
+        var Total_value = Job_RatePerUnit * Job_Units_Worked;
+        $("#Job_TotalCost1").dxNumberBox("instance").option("value", Total_value);
+        $("#Job_TotalCost").val(Total_value);
+    }
+    function Job_manpower_addpersonnel()
+    {
+        if (!Job_personnelNewRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights")
+            return;
+        }
+        Job_Add_Person_Click("manpowerAddPersonnelSuccess","Job_Add_Person_Type");
+    }
+    function manpowerAddPersonnelSuccess(data)
+    {
+        HideLoader();
+        if (data.result == true)
+        {
+            $("#NPR_Content_popup").dxPopup("hide");
+            $("#LookUp_Get_Persons").dxDataGrid("instance").refresh();           
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+    }
+    function Job_View_Rates_Click() {
+        if (!Job_personnelViewRight) {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights")
+            return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function formatDate(date) {
+        var hours = date.getHours();
+        var minutes = date.getMinutes();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        var strTime = hours + ':' + minutes + ' ' + ampm;
+        return date.getMonth() + 1 + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+    }
+</script>

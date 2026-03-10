@@ -1,0 +1,207 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    var lblmentionedOnVoucher = ViewBag.Amount;
+}
+<style>
+    .negative .dx-texteditor-input {
+        background: lightpink;
+    }
+
+    .positive .dx-texteditor-input {
+        background: white;
+    }
+</style>
+<div id="ITV_TDSsent_Div">
+<div class="row">
+    <div class="">
+        <div id="content" class="col-md-12">
+            <div style="padding-left:0px;" class="col-md-12">
+                <h4>TDS Deduction Entries For TDS being sent to HQ</h4>
+            </div>
+            <div id="pInternalTransferreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_I_Transfer_Tds_Sent_Grid", Model)
+            </div>
+        </div>
+    </div>
+    </div>
+
+<div class="row">
+                <div class="form-group">
+                    @Html.Label("TDS Transfer mentioned in voucher:", htmlAttributes: new { @class = "control-label text-blue col-sm-10", @style="text-align:right" })
+                    <div class="col-sm-2 col-md-2">
+                        @(Html.DevExtreme().NumberBox().Min(0).ID("lblMentionedInvoucher").Name("lblMentionedInvoucher").Value(lblmentionedOnVoucher).Placeholder("").ShowClearButton(true).Format("#0.00").ReadOnly(true) )
+                    </div>
+                </div>
+    </div>
+<div class="row">
+    <div class="form-group">
+        @Html.Label("Nett Difference in Rs :", htmlAttributes: new { @class = "control-label text-blue col-sm-10", @style = "text-align:right" })
+        <div class="col-sm-2 col-md-2">
+            @(Html.DevExtreme().NumberBox().ID("lblNetBalance").Name("lblNetBalance").Placeholder("").ShowClearButton(true).Format("#0.00").ReadOnly(true) )
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="form-group">
+        @Html.Label("TDS Deduction Reference Selected:", htmlAttributes: new { @class = "control-label text-blue col-sm-10", @style = "text-align:right" })
+        <div class="col-sm-2 col-md-2">
+            @(Html.DevExtreme().NumberBox().Min(0).ID("lblOnScreenSelection").Name("lblOnScreenSelection").Placeholder("").ShowClearButton(true).Format("#0.00").ReadOnly(true) )
+        </div>
+    </div>
+</div>
+        <br />
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        @Html.Partial("Drop_Request", "Send Your Request to Madhuban for ( New ~ TDS Deduction Entries For TDS being sent to HQ)...")
+                    </div>
+                    <div class="col-sm-7 col-md-7 col-lg-7">
+                        <div class="styleActionBtn">
+
+                            @(Html.DevExtreme().Button().ID("Tds_BTN_BACK").Text("Go Back").Icon("undo").OnClick(@<text> function() { $("#Frm_I_Transfer_Tds_Sent_popup").dxPopup("hide"); } </text>) )
+                            @(Html.DevExtreme().Button().ID("Tds_BUT_ACCEPT").Text("Save").Icon("check").OnClick(@<text> function () { OnSaveClick(); } </text>) )
+                            @(Html.DevExtreme().Button().ID("Tds_BUT_SKIpSave").Text("Skip & Save").Icon("close").OnClick(@<text> function () { OnSkipAndSaveClick(); } </text>) )@*Redmine Bug #132899 fixed*@
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!--[Buttons]--></div>
+        @(Html.DevExtreme().Popup().CustomPopup().ID("ITR_TDS_report_modal").Title("TDS Deduction Entries For TDS being sent to HQ").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="id_ITR_TDS_Result"></div> </text>))
+        @*Javascript Events*@
+        <script type="text/javascript">
+    $(document).ready(function ()
+    {
+        ASPxClientControl.AdjustControls(document.getElementById("ITV_TDSsent_Div"));
+        $("#lblMentionedInvoucher").find('input').css('color', '#228B22');
+        $("#lblNetBalance").find('input').css('color', '#228B22');
+        $("#lblOnScreenSelection").find('input').css('color', '#228B22');
+        SetBalances();
+    });
+    var TDS_party;
+    var Dr_Amount;
+    var TDS_Deducted;
+    var Remaining_Amount;
+    var TDS_Already_Sent;
+    var TDS_Send;
+    var TDS_REC_ID;
+
+
+    function OnGridTdsSentInternalTransferGrid_EndCallback(s, e) {
+
+    }
+    function OnGridTdsSentInternalTransferGrid_BeginCallback(s, e) {
+        e.customArgs["command"] = e.command;
+    }
+
+    function TdsSentInternalTransferOnGetRowValues(TdsSentInternalTransferData) {
+        var values = TdsSentInternalTransferData.split(',');
+        TDS_party = values[0];
+        Dr_Amount = values[1];
+        TDS_Deducted = values[2];
+        Remaining_Amount = values[3];
+        TDS_Already_Sent = values[4];
+        TDS_Send = values[5];
+        TDS_REC_ID = values[6];
+    }
+
+    function SetBalances()
+    {
+
+        var MentionedInvoucher = $("#lblMentionedInvoucher").dxNumberBox("instance").option("value");
+
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/SetBalances",
+            data:
+            {
+                MentionedInvoucher: MentionedInvoucher
+            },
+            cache: false,
+            success:
+                function (data)
+                {
+                    $("#lblNetBalance").dxNumberBox("instance").option('value', data.NetBalance);
+                    $("#lblOnScreenSelection").dxNumberBox("instance").option('value', data.OnScreenSelection);
+                    $("#lblNetBalance").toggleClass('negative', data.NetBalance > 0);
+                    $("#lblNetBalance").toggleClass('positive', data.NetBalance <= 0);
+                }
+        });
+    }
+
+
+    function OnTDS_Send_ValueChanged(s, fieldName, keyValue)
+    {
+        if (s.GetValue() >= 0)
+        {
+            $("#Tds_BTN_BACK").dxButton("instance").option("disabled", false);//Redmine Bug #132899 fixed
+            $("#Tds_BUT_ACCEPT").dxButton("instance").option("disabled", false);//Redmine Bug #132899 fixed
+            $("#Tds_BUT_SKIpSave").dxButton("instance").option("disabled", false);//Redmine Bug #132899 fixed
+            $.ajax({
+                type: "POST",
+                url: "/Account/InternalTransfer/UpdateTDSValue",
+                data: { key: keyValue, field: fieldName, value: s.GetValue() },
+                success: function (msg) {
+                    SetBalances();
+                }
+            });
+        }
+        else
+        {
+            $("#Tds_BTN_BACK").dxButton("instance").option("disabled", true);//Redmine Bug #132899 fixed
+            $("#Tds_BUT_ACCEPT").dxButton("instance").option("disabled", true);//Redmine Bug #132899 fixed
+            $("#Tds_BUT_SKIpSave").dxButton("instance").option("disabled", true);//Redmine Bug #132899 fixed
+        }
+    }
+
+    function ContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            $("#Frm_I_Transfer_Tds_Sent_popup").dxPopup("hide");
+        }
+        else if (e.item.name == 'ListPreview') {
+            ITR_TDS_PreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            TdsSentInternalTransferListGrid.Refresh();
+        }
+    }
+    function ITR_TDS_PreviewClick()
+    {
+        $("#ITR_TDS_report_modal").dxPopup("show");
+        $("#ITR_TDS_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#id_ITR_TDS_Result").html('');
+        ShowLoader();
+        $("#id_ITR_TDS_Result").load("@Url.Action("Frm_Export_Options_TDS", "InternalTransfer", new { @area = "Account" })", function () {
+            HideLoader();
+        })
+    }
+
+    function OnSkipAndSaveClick() {
+        $("#Frm_I_Transfer_Tds_Sent_popup").dxPopup("hide");
+        $("#ITV_TDS_Open").val(true);
+        $("#FormID_Frm_Voucher_Win_I_Transfer").submit();
+    }
+    function OnSaveClick()
+    {
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Account/InternalTransfer/Frm_I_Transfer_Tds_Sent_SaveClick",
+            cache: false,
+            success:
+                function (data)
+                {
+                    $("#Frm_I_Transfer_Tds_Sent_popup").dxPopup("hide");
+                    $("#ITV_TDS_Open").val(true);
+                    $("#FormID_Frm_Voucher_Win_I_Transfer").submit();
+                }
+        });
+    }
+
+
+        </script>

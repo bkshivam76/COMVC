@@ -1,0 +1,820 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    bool RR_Add_Rights = (bool)ViewData["RR_AddRight"];
+    bool RR_Update_Rights = (bool)ViewData["RR_UpdateRight"];
+    bool RR_View_Rights = (bool)ViewData["RR_ViewRight"];
+    bool RR_Delete_Rights = (bool)ViewData["RR_DeleteRight"];
+    bool RR_Export_Rights = (bool)ViewData["RR_ExportRight"];
+    bool RR_Report_Rights = (bool)ViewData["RR_ReportRight"];
+    bool RR_Approve_Rights = (bool)ViewData["RR_ApproveRight"];
+
+}
+
+
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 padd report_header_div">
+        <label class="report_header_label">Requisition Register</label>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text>function(){RequisitionButton_Click("New");}</text>))
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterEdit").Text("Edit").Icon("edit").OnClick(@<text>function () {RequisitionButton_Click("Edit");}</text>))
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterModelDelete").Text("Delete").Icon("trash").OnClick(@<text>function () {RequisitionButton_Click("Delete");}</text>))
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterModelView").Text("View").Icon("doc").OnClick(@<text>function () {RequisitionButton_Click("View");}</text>))
+        @(Html.DevExtreme().Button().ID("RRToggleScrollBar").Text("Full Data")/*.Width(90)*/.Icon("toolbox").OnClick(@<text>function () {OnRequestRegisterMasterchangeMode();}</text>))
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterListExport").Text("List Export").Icon("save")/*.Width(75)*/.OnClick(@<text>function () {OnRequestRegisterMasterListPreviewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("btnRequisitionExpandAll").Icon("preferences").Text("Expand All").OnClick(@<text> function () { RequisitionMasterExpandAll(); } </text>) )
+        @(Html.DevExtreme().Button().ID("RequestRegisterMasterCLOSE").Text("Close").Icon("clear").OnClick(@<text>function () {$(".TabPanalMenu-tabs .active span").click();}</text>))
+
+        @*would be shown only for smaller devices*@
+        @(Html.DevExtreme().Menu().ID("RRBtnMenu")@*.CssClass("menuBtn")*@
+        .Items(items =>
+        {
+            items.Add().Text("More").Items(moreItems =>
+            {
+                moreItems.Add().Text("Submit for Approval").Option("ID", "123");
+                moreItems.Add().Text("Re-Requisition");
+                moreItems.Add().Text("Reopen");
+                moreItems.Add().Text("Reject").Visible(RR_Approve_Rights);
+                moreItems.Add().Text("Approve").Visible(RR_Approve_Rights);
+                moreItems.Add().Text("Cancel");
+                moreItems.Add().Text("Recommend Changes").Visible(RR_Approve_Rights);
+                moreItems.Add().Text("Complete");
+            });
+        })
+        .HideSubmenuOnMouseLeave(false)
+        .OnItemClick("onMoreBtnClick")
+        )
+    </div>
+</div>
+<div id="dateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("RequestRegisterSelection").Name("RequestRegisterSelection").Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value")                                                             
+                          .DataSource(d => d.Mvc().Controller("RequestRegister").LoadAction("LookUp_Get_ViewType_List_Request").Key("Value")).SearchEnabled(true).ShowClearButton(false).ShowDataBeforeSearch(true)
+                          .ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent_Request")
+                                                               )
+        </div>
+        <div class="col-md-2  no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("RequestRegisterChangeMain").Text("Change Period")
+                                                .Disabled(true).OnClick(@<text>function (){ ChangePeriodinLayout(); } </text>))
+        </div>
+        <div class="col-sm-4 col-md-3 subHead">
+            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Request_View_Period").Name("Request_View_Period")
+                                                 .Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100))
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 padd ">           
+            <div id="RequestRegisterPartialView" class="parent_table">
+                <form>
+                    @Html.Partial("Frm_RequestRegister_Info_Grid", Model)
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="footer-MainBoxdiv full-width-footer margin8-0">
+        <div class="col-md-9">
+            <p id="RequestRegisterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="RequestRegisterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div><!--[Grid Footer]-->
+
+    <div class="col-md-12 requestScreenBtm">
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterSubmitForApproval").Text("Submit RR for Approval").OnClick(@<text>function () {OnRequisitionStatusUpdate("Submit for Approval")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterCancel").Text("Cancel RR").OnClick(@<text>function () {OnRequisitionStatusUpdate("Cancel")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterReopen").Text("Re-open").OnClick(@<text>function () {OnRequisitionStatusUpdate("Reopen")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterApprove").Text("Approve").OnClick(@<text>function () {OnRequisitionStatusUpdate("Approve")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterReject").Text("Reject").OnClick(@<text>function () {OnRequisitionStatusUpdate("Reject")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterRecommendChanges").Text("Recommend Changes").OnClick(@<text>function () {OnRequisitionStatusUpdate("Recommend Changes")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterComplete").Text("Mark as Completed").OnClick(@<text>function () {OnRequisitionStatusUpdate("Complete")}</text>))
+            @(Html.DevExtreme().Button().ID("RequestRegisterMasterReRequisition").Text("Request Re-Requisition").OnClick(@<text>function () {@*OnRequisitionStatusUpdate("Re-Requisition")*@ Requisition_click()}</text>))
+        </div>
+    </div>
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("RequestRegister_report_modal").Title("Requisition Register").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text><div id="RequestRegister_report_modal_Result" class="export_popup"></div></text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("RequestRegister_Button_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true))
+<script>
+    function LookUp_ViewType_ChangeEvent_Request(e)
+    {
+        var SelectBox = $("#RequestRegisterSelection").dxSelectBox("instance").option("value");
+        $("#RequestRegisterChangeMain").dxButton("instance").option("disabled", true);
+        if (SelectBox == "Specific Period")
+        {
+            $("#RequestRegisterChangeMain").dxButton("instance").option("disabled", false);
+            $("#Request_View_Period").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/RequestRegister/LookUp_ViewType_ChangeEvent_Request",
+                data: { Chaval: $("#RequestRegisterSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true)
+                    {
+                        $("#Request_View_Period").dxTextBox("instance").option("value", data.Message.RR_BE_View_Period);                       
+                        ShowLoader();
+                        RequestRegisterListGrid.Refresh();                   
+                        HideLoader();
+                    }
+                }
+            });
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/RequestRegister/SessionClear",
+            cache: false
+        });
+        DeleteCookie("RRCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/RequestRegister/InfoSessionclear",
+            cache: false
+        });
+    });
+    function ChangePeriodinLayout()
+    {
+        ShowLoader();
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_Requisition", "RequestRegister", new { @area = "Stock" })", "auto", "40%", false,null);
+    }
+ </script>@* Period Selection *@
+<script>
+$(document).ready(function ()
+{  
+    var DefaultDateString = '@ViewBag.DefualtDateString';
+    $("#RequestRegisterSelection").dxSelectBox("instance").option("value", DefaultDateString);
+    if ("@RR_Add_Rights" == "False")
+    {        
+        $("#RequestRegisterMasterNew").hide();
+        $("#NewRRMenu").hide();
+    }          
+    if ("@RR_Update_Rights" == "False")
+    {             
+        $("#RequestRegisterMasterEdit").hide();
+        $("#EditRRMenu").hide();
+    }         
+    if ("@RR_Delete_Rights" == "False")
+    {             
+        $("#RequestRegisterMasterModelDelete").hide();
+        $("#DeleteRRMenu").hide();
+    }        
+    if ("@RR_View_Rights" == "False")
+    {           
+        $("#RequestRegisterMasterModelView").hide();
+        $("#ViewRRMenu").hide();
+    }         
+    if ("@RR_Export_Rights" == "False")
+    {      
+        $("#RequestRegisterMasterListExport").hide();
+        $("#ExportRRMenu").hide();
+    }    
+    if ("@RR_Approve_Rights" == "False")
+    {                             
+        $("#RequestRegisterMasterApprove").hide();
+        $("#RequestRegisterMasterReject").hide();
+        $("#RequestRegisterMasterRecommendChanges").hide();
+    }        
+   
+});    //document ready function(setting default date & check rights)
+</script>@* Document.ready *@
+<script>
+    var RR_ID;
+    var RRgrid;
+    var RR_Item_ID;
+    var RRIsAllDetailExpanded = false;
+    var RR_Master_ShowHorizontalBar = 0;
+    var RR_New_Rights = false;
+    var RR_Edit_Rights = false;
+    var RR_Delete_Rights = false;
+    var RR_View_Rights = false;
+    var RR_Export_Rights = false;
+    var RR_Approve_Rights = false;
+    var RR_Date;
+    var RR_Curr_User_Role = "";
+    var RR_Status = "";
+    var RR_Type;
+    var RequisitionID;
+    var isRRGridRefresh = false;
+    var LinkedUO_ID;
+
+    function Request_RegisterAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        RequestRegisterListGrid.SetHeight(height);
+    }
+    function RequestRegisterOnInit(s, e)
+    {
+        Request_RegisterAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            Request_RegisterAdjustSize();
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+    function RequestRegisterGrid_BeginCallBack(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isRRGridRefresh = true;
+        }
+        e.customArgs["ShowHorizontalBar"] = RR_Master_ShowHorizontalBar;//Mantis bug 0000914 fixed
+    }
+    function ItemRequestGrid_BeginCallBack(s, e)
+    {
+        e.customArgs["Command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = RR_Master_ShowHorizontalBar;
+    }    
+    function ItemRequestGrid_Init(s, e)
+    {
+        s.SetFocusedRowIndex(-1);
+    }
+    function RequisitionRegisterGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() < 0)
+        {
+            RR_ID = 0;
+        }
+        else
+        {            
+            RR_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: RR_ID }, RequisitionRegisterGetRowValues);
+            s.CollapseAllDetailRows();
+        }
+    }
+    function RequisitionRegisterGetRowValues(Data)
+    {
+        var values = Data.split("![");
+        RR_Date = values[1];
+        RR_Status = values[2];
+        RR_ID = values[13];
+        RR_Type = values[3];
+        RequisitionID = values[0];
+        var RREditedOn = values[11];
+        var RREditedBy = values[12];
+        var RRAddedBy = values[10];
+        var RRAddedOn = values[9];
+        RR_Curr_User_Role = values[14];
+        LinkedUO_ID = values[15];
+        RequestRegister_UpdateFooterDetail(RR_ID, RRAddedOn, RRAddedBy, RREditedBy, RREditedOn);
+        
+    }
+    function RequestRegister_UpdateFooterDetail(ID, RRAddedOn, RRAddedBy, RREditedBy, RREditedOn)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/RequestRegister/CreationDetail",
+            data: {
+                Xrow: ID, AddOn: RRAddedOn, AddBy: RRAddedBy, EditOn: RREditedOn, EditBy: RREditedBy
+            },
+            cache: false,
+            success: function (RequestRegisterLbl_result)
+            {
+                $('#RequestRegisterLbl_Create').text(RequestRegisterLbl_result.Lbl_Create);
+                $('#RequestRegisterLbl_Modify').text(RequestRegisterLbl_result.Lbl_Modify);
+            }
+        });
+    }
+    function OnItemRequestFocusedRowChange(s, e)
+    {
+        RequestRegisterListGrid.SetFocusedRowIndex(-1);        
+        RR_Item_ID = s.GetRowKey(s.GetFocusedRowIndex());
+        s.GetValuesOnCustomCallback({ key: RR_Item_ID }, ItemRequestedGetData);
+    }
+    function ItemRequestedGetData(Data)
+    {
+        var value = Data.split("![");       
+        var RREditedOn = value[3];
+        var RREditedBy = value[4];
+        var RRAddedBy = value[2];
+        var RRAddedOn = value[1];
+        RequestRegister_UpdateFooterDetail(RR_Item_ID, RRAddedOn, RRAddedBy, RREditedBy, RREditedOn);
+    }
+    function CollapseRequisitionRow(s, e)
+    {
+        s.SetFocusedRowIndex(index);
+    }
+    function ExpandRequisitionRow(s, e)
+    {
+        index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+    }
+    function RequisitionMasterExpandAll()
+    {        
+        if (!RRIsAllDetailExpanded)
+        {
+            RequestRegisterListGrid.ExpandAllDetailRows(); RRIsAllDetailExpanded = true;
+            $("#btnRequisitionExpandAll").find("span").text("Collapse All");
+        }
+        else
+        {
+            RequestRegisterListGrid.CollapseAllDetailRows(); RRIsAllDetailExpanded = false;
+            $("#btnRequisitionExpandAll").find("span").text("Expand All");
+        }
+    }
+    function OnRequestRegisterMasterchangeMode()
+    {
+        ShowLoader();
+        if (RR_Master_ShowHorizontalBar == 0)
+        {
+            RR_Master_ShowHorizontalBar = 1;
+            $("#RRToggleScrollBar").find("span").text("Default Data");
+        }
+        else {
+            RR_Master_ShowHorizontalBar = 0;
+            $("#RRToggleScrollBar").find("span").text("Full Data");
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_RequestRegister_Info_Grid", "RequestRegister")',
+            type: "GET",
+            data: { ShowHorizontalBar: RR_Master_ShowHorizontalBar },
+            success: function (res)
+            {
+                $("#RequestRegisterPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }//full data button click
+    function OnRequestRegisterMasterListPreviewClick()
+    {
+        if ("@RR_Export_Rights" == "False") { devexpress.ui.dialog.alert('not allowed..!!', 'no rights'); return;}
+       
+        ShowLoader();
+
+        OpenPopup("RequestRegister_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "RequestRegister", new { @area = "Stock" })", "auto", "30%", false, null);
+ 
+
+        
+    }//  List Preview
+    function RequestRegisterContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'Edit' || e.item.name == 'Delete' || e.item.name == 'View' || e.item.name == 'DeliverUO' || e.item.name == 'OpenPO' || e.item.name == 'OpenUO' || e.item.name == 'OpenTO' || e.item.name == 'AcceptTO')
+        {
+            if (RR_ID == 'undefined' || RR_ID == undefined || RR_ID == "" || RR_ID == 0)
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+        }
+        if (e.item.name == 'NewRRMenu')
+        {
+            RequisitionButton_Click("New")
+        }
+        if (e.item.name == 'Close')
+        {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'EditRRMenu')
+        {
+            RequisitionButton_Click("Edit")
+        }        
+        else if (e.item.name == 'Refresh')
+        {
+            RequestRegisterListGrid.Refresh();
+        }
+        else if (e.item.name == 'DeleteRRMenu')
+        {
+            RequisitionButton_Click("Delete")
+        }
+        else if (e.item.name == 'ViewRRMenu')
+        {
+            RequisitionButton_Click("View")
+        }
+        else if (e.item.name == 'ExportRRMenu')
+        {
+            OnRequestRegisterMasterListPreviewClick()
+        }
+        else if (e.item.name == 'DeliverUO' || e.item.name == 'OpenPO' || e.item.name == 'OpenUO' || e.item.name == 'OpenTO' || e.item.name == 'AcceptTO')
+        {
+            RR_Linked_ContextItem_Click(e.item.name)
+        }
+    }
+   
+</script>@* Grid Fn *@
+<script>
+    function RequisitionButton_Click(_actionMethod)
+    {
+        $("#RRvalidationForm").remove();
+        if (typeof RR_Curr_User_Role === 'undefined') {
+            alert('Some Error has happened..!!');
+            return;
+        }
+        var User_Roles_Array = RR_Curr_User_Role.split(',');
+        var IsValid = true;
+        if ((_actionMethod == "Edit") && "@RR_Update_Rights" == "False")
+        {
+            devexpress.ui.dialog.alert('not allowed..!!', 'no rights');
+            return;
+        }
+        if ((_actionMethod == "Delete") && "@RR_Delete_Rights" == "False")
+        {
+            devexpress.ui.dialog.alert('not allowed..!!', 'no rights');
+            return;
+        }
+        if (_actionMethod == "New" && "@RR_Add_Rights" == "False")
+        {
+            devexpress.ui.dialog.alert('not allowed..!!', 'no rights');
+            return;
+        }
+        if (_actionMethod == "View" && "@RR_View_Rights" == "False")
+        {
+            devexpress.ui.dialog.alert('not allowed..!!', 'no rights');
+            return;
+        }        
+        if (_actionMethod == "Edit" || _actionMethod == "Delete" || _actionMethod == "View")
+        {
+            if (!RR_ID)
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+        }
+        else
+        {
+            RR_ID = 0;
+        }
+        if (_actionMethod == "Delete")
+        {
+            if (RR_Status != 'New')
+            {
+                DevExpress.ui.dialog.alert('Requisition in ' + RR_Status + ' Status is not allowed to be deleted!!', 'Alert ');
+                return;
+            }
+        }
+        if (_actionMethod == "Edit")
+        {      
+            if (RR_Status == 'Cancelled' || RR_Status == 'Rejected' || RR_Status == 'Approved' || RR_Status == 'Completed')
+            {
+                DevExpress.ui.dialog.alert('Requisition in ' + RR_Status + ' Status is not allowed to be updated!!', 'Alert ');
+                return;
+            }
+            if (User_Roles_Array.indexOf('RR Requestor') == -1 && User_Roles_Array.indexOf('RR Store Keeper') && User_Roles_Array.indexOf('RR Approver') == -1)
+            {
+                DevExpress.ui.dialog.alert('Only Requestor,Store Keeper,Approver Can Edit Requisition Request ', 'Alert ');
+                return;
+            }
+            if (User_Roles_Array.indexOf('RR Approver') == -1 && (RR_Status == "Submitted for Approval"))
+            {
+                DevExpress.ui.dialog.alert('Requisition in ' + RR_Status + ' Status is not allowed to be updated by current role!!', 'Alert ');
+                return;
+            }       
+        }
+        if (_actionMethod == "Edit" || _actionMethod == "Delete")
+        {
+            var DataNavigationCheck = dataNavigation(_actionMethod);
+            if (DataNavigationCheck[0] == false)
+            {
+                DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Alert..');
+                return;
+            }
+        }  
+
+        ShowLoader();   
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/RequestRegister/Frm_NEVD_Requisition",
+            data:
+            {
+                ActionMethod: _actionMethod,
+                ID: RR_ID,
+                CurUserRole: RR_Curr_User_Role
+            },
+            cache: false,
+            success: function (data)
+            {             
+                OpenDynamicPopup(_actionMethod + " ~ Requisition Request", null, "auto", 1150, true, data);               
+            }
+        });   
+    }
+    function dataNavigation(_actionMethod=null)
+    {
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/RequestRegister/DataNavigation",
+            async:false,
+            data:
+            {
+                ActionMethod: _actionMethod,
+                ID: RR_ID,
+                RR_Date: RR_Date,
+                ReqNo: RequisitionID
+            },
+            cache: false,
+            async: false,
+            success: function (data)
+            {             
+                msg = data.Message;
+                result = data.result            
+            }
+        });
+        return [result, msg];
+    }
+    function onMoreBtnClick(data)
+    {
+        var selectedOption = data.itemData.text;
+        if (selectedOption != "More")
+        {
+            OnRequisitionStatusUpdate(selectedOption);
+        }
+    }
+    function OnRequisitionStatusUpdate(updatedStatus)
+    {        
+        if (RR_ID == 'undefined' || RR_ID == undefined || RR_ID == "" || RR_ID == 0)
+        {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+        }
+            //Check User Eligibility
+        var User_Roles_Array = RR_Curr_User_Role.split(',');
+        switch (updatedStatus)
+        {
+                case 'Cancel':
+                    //Approver/Purchaser is not allowed to cancel RR
+                if (User_Roles_Array.indexOf('RR Requestor') == -1 && User_Roles_Array.indexOf('RR Store Keeper') == -1)
+                {
+                    DevExpress.ui.dialog.alert('Requestor/Store Keeper only can Cancel selected Requisition.', 'Alert ');
+                    return;
+                }
+                    //Requestor/Store Keeper can cancel RRs in specific status only
+                if (RR_Status != 'New' && RR_Status != 'Changes Recommended' && RR_Status != 'Re-Requisition Requested')
+                {
+                    DevExpress.ui.dialog.alert('Cancellation not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+            case "Reopen": 
+                switch (RR_Status) {
+                    case 'Cancelled':
+                        
+                        if ((User_Roles_Array.indexOf('RR Requestor') == -1 && User_Roles_Array.indexOf('RR Store Keeper') == -1) )
+                        {
+                            DevExpress.ui.dialog.alert('Requestor/Store Keeper only can Re-open Cancelled Requisition.', 'Alert ');
+                            return;
+                        }
+                        break;
+                    case 'Rejected':
+                        if ((User_Roles_Array.indexOf('RR Approver') == -1))
+                        {
+                            DevExpress.ui.dialog.alert('Approver only can Re-open Rejected Requisition.', 'Alert ');
+                            return;
+                        }
+                        break;
+                    default:
+                        {
+                            DevExpress.ui.dialog.alert('Requisition with Status ' + RR_Status + ' can not be Re-opened.', 'Alert ');
+                            return;
+                        }
+                }
+                break;
+            case 'Reject':
+                    //Approver is allowed to Reject RR
+                if (User_Roles_Array.indexOf('RR Approver') == -1)
+                {
+                    DevExpress.ui.dialog.alert('Approver only can Reject Requisition.', 'Alert ');
+                    return;
+                }
+                    //Approver can cancel RRs in specific status only
+                if (RR_Status != 'Submitted for Approval' && RR_Status != 'Changes Recommended' && RR_Status != 'Re-Requisition Requested')//Mantis bug 0000825 fixed
+                {
+                    DevExpress.ui.dialog.alert('Rejection not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+            case 'Recommend Changes':
+                    //Approver is allowed to Recommend changes in RR
+                if (User_Roles_Array.indexOf('RR Approver') == -1)
+                {
+                    DevExpress.ui.dialog.alert('Approver only can Recommend Changes in Requisition.', 'Alert ');
+                    return;
+                }
+                    //Approver can Recommend changes in RRs in specific status only
+                if (RR_Status != 'Rejected' && RR_Status != 'Submitted for Approval' && RR_Status != 'Approved' && RR_Status != 'Re-Requisition Requested')
+                {
+                    DevExpress.ui.dialog.alert('Recommending Changes not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+            case 'Submit for Approval':
+                    //Approver/Purchaser is not allowed to Submit RR for approval
+                if ((User_Roles_Array.indexOf('RR Requestor') == -1 && User_Roles_Array.indexOf('RR Store Keeper') == -1 && User_Roles_Array.indexOf('Requestor Dept Main Incharge') == -1))
+                {
+                    DevExpress.ui.dialog.alert('Requestor/Store Keeper only can Submit Requisition for Approval.', 'Alert ');
+                    return;
+                }
+                    //RRs can be Submitted for approval in specific status only
+                if (RR_Status != 'New' && RR_Status != 'Re-Requisition Requested' && RR_Status != 'Changes Recommended')
+                {
+                    DevExpress.ui.dialog.alert('Submitting for approval not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+                case 'Approve':
+                    //Approver only is allowed to Approve RR
+                if ((User_Roles_Array.indexOf('RR Approver') == -1))
+                {
+                    DevExpress.ui.dialog.alert('Approver only can Approve Requisition for Approval.', 'Alert ');
+                    return;
+                }
+                    //RRs can be Approved in specific status only
+                if (RR_Status != 'Rejected' && RR_Status != 'Changes Recommended' && RR_Status != 'Submitted for Approval')
+                {
+                    DevExpress.ui.dialog.alert('Approval is not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+                case 'Re-Requisition':
+                    //Purchaser only is allowed to request Re-Requisition on RR
+                if ((User_Roles_Array.indexOf('RR Purchaser') == -1))
+                {
+                    DevExpress.ui.dialog.alert('Purchaser only can Request Re-Requisition.', 'Alert ');
+                    return;
+                }
+                    //RRs can be Re-Requisitioned in specific status only
+                if (RR_Status != 'Approved')
+                {
+                    DevExpress.ui.dialog.alert('Re-Requisition is not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+            case 'Complete':                  
+                if ((RR_Curr_User_Role.length == 0))
+                {
+                    DevExpress.ui.dialog.alert('Sorry you don\'t have a role in selected Requisition.', 'Alert ');
+                    return;
+                }
+                    //RRs can be Completed in specific status only
+                if (RR_Status != 'Approved')
+                {
+                    DevExpress.ui.dialog.alert('Completion is not allowed for Requisition in ' + RR_Status + ' Status', 'Alert');
+                    return;
+                }
+                break;
+        }
+        var additionalComment = "";
+        if (updatedStatus == "Recommend Changes") { additionalComment = " in "; }   
+        var deleteResultDocument = DevExpress.ui.dialog.confirm("Are you sure you want to " + updatedStatus + additionalComment + " selected Requisition ?", "Confirm...");
+        deleteResultDocument.done(function (dialogResult)
+        {
+            if (dialogResult)
+            {
+                ShowLoader();
+                $.ajax({
+                    url: '@Url.Action("Requisition_Update_Status", "RequestRegister")',
+                    type: "GET",                    
+                    data: { UpdatedStatus: updatedStatus, ID: RR_ID },
+                    success: function (res)
+                    {
+                        DevExpress.ui.dialog.alert(res.Message, 'Alert ');
+                        if (res.result == true)
+                        {
+                            RequestRegisterListGrid.SetFocusedRowIndex(-1);
+                            RequestRegisterListGrid.Refresh();
+                        }
+                        HideLoader();
+                    }
+                });            
+            }
+        });
+    }
+    function RR_Linked_ContextItem_Click(contextItem)
+    {
+        var User_Roles_Array = RR_Curr_User_Role.split(',');
+        var ItemAction = "";
+        switch(contextItem)
+        {
+            case "AcceptTO":
+                ItemAction = " Accept Linked Transfer Order ";
+                break;
+            case "OpenTO":
+                ItemAction = " Open Linked Transfer Order ";
+                break;
+            case "OpenUO":
+                ItemAction = " Open Linked User Order ";
+                break;
+            case "DeliverUO":
+                ItemAction = " Deliver To Linked User Order ";
+                break;
+            case "OpenPO":
+                ItemAction = " Open Linked Purchase Order ";
+                break;
+        }
+        if (contextItem == "OpenPO")
+        {
+            if (RR_Type == "Transfer Request")
+            {
+                DevExpress.ui.dialog.alert("RR Type is not Purchase Order..", "Information");
+                return;
+            }
+        }
+        if (contextItem == "AcceptTO" || contextItem == "OpenTO" || contextItem == "OpenUO" || contextItem == "DeliverUO")
+        {
+            if (User_Roles_Array.indexOf('RR Store Keeper') == -1)
+            {
+                DevExpress.ui.dialog.alert("Only 'Store Keeper' Can" + ItemAction, 'Alert ');
+                return;
+            }
+        }
+        else if (contextItem == "OpenPO")
+        {
+            if (User_Roles_Array.indexOf('RR Store Keeper') == -1 && User_Roles_Array.indexOf('RR Purchaser') == -1 && User_Roles_Array.indexOf('RR Approver') == -1)
+            {
+                DevExpress.ui.dialog.alert("Only 'Store Keeper','Purchaser','Approver' Can" + ItemAction, 'Alert ');
+                return;
+            }
+        }
+        if (contextItem == "DeliverUO")
+        {
+            if (RR_Status != "Completed")
+            {
+                DevExpress.ui.dialog.alert("Deliver To Linked UO Is Allowed Only For Completed Status", "Alert ");
+                return;
+            }
+        }
+        if (contextItem == "AcceptTO")
+        {
+            if (RR_Status != "Completed")
+            {
+                DevExpress.ui.dialog.alert("Accept Linked TO Is Allowed Only For Completed Status", "Alert ");
+                return;
+            }
+        }
+        var DataNavigationCheck = dataNavigation(contextItem);
+        if (DataNavigationCheck[0] == false)
+        {
+            DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Alert..');
+            return;
+        }   
+        if (contextItem == "AcceptTO" || contextItem == "OpenTO")
+        {
+            DevExpress.ui.dialog.alert("Coming Soon", "Information");
+        }
+        else if (contextItem == "OpenPO")
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/PurchaseRegister/Frm_PurchaseRegister_Info",
+                data:
+                {
+                    PopupID: "RequestRegister_Button_popup",
+                    RequisitionID: RequisitionID
+                },
+                cache: false,
+                success: function (data) {
+                    OpenPopup("RequestRegister_Button_popup", "Purchase Order", null, 550, 1100, true, data);
+                   
+                }
+            });
+        }
+        else if (contextItem == "OpenUO")
+        {
+            if (RR_ID == 'undefined' || RR_ID == undefined || RR_ID == "" || RR_ID == 0) {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+            if (LinkedUO_ID == null || LinkedUO_ID == "")
+                {
+                DevExpress.ui.dialog.alert('  No UO  is linked to selected Requisition Request', 'Alert ');
+                return;
+            }
+
+              
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/Frm_NEVD_User_Order",
+                data: {
+                    PopUpID: "RR_ViewUoRegister",
+                    ActionMethod: "View",
+                    ID: LinkedUO_ID
+                },
+                cache: false,
+                success: function (data) {
+                    OpenPopup("RR_ViewUoRegister", "View ~ User Order", null, "auto", 1000, true, data);
+
+                }
+            });
+
+        }
+        else if (contextItem == "DeliverUO")
+        {
+            DevExpress.ui.dialog.alert("Coming Soon", "Information");
+        }
+    }
+    function Requisition_click() {
+       
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+</script>@* Buttons*@

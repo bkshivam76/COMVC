@@ -1,0 +1,174 @@
+﻿
+@using DevExtreme.AspNet.Mvc;
+@using DevExpress;
+@using DevExpress.Web.Mvc;
+
+<div id="content" class="col-md-12">
+    <div style="padding-left:0px;" class="col-md-12">
+        <h3>Period Selection</h3>
+    </div>
+</div>
+<div id="content" class="container-fluid">
+    <div class="col-sm-6">
+        <input type="hidden" id="hdfxFr_Date" value="@TempData["xFr_Date"].ToString()" />
+        <input type="hidden" id="hdfxTo_Date" value="@TempData["xTo_Date"].ToString()" />
+        @*Buttons*@
+        <div id="div-dateselection">
+
+            <span style="padding-left:5px">Period:&nbsp;</span>  @(Html.DevExtreme().SelectBox()
+                        .ID("PeriodSelection")
+                        .Name("PeriodSelection")
+                        .DataSource(d => d.Mvc().Controller("LedgerReport").LoadAction("Fill_Change_Period_Items").Key("C_TITLE_ID"))
+                        .DisplayExpr("C_TITLE_NAME")
+                        .ValueExpr("C_TITLE_ID")
+                        .Value(TempData["SelectedPeriodValue"].ToString())
+                        .SearchEnabled(true)
+                        .OnValueChanged(@<text>
+                            function () {
+                            PeriodSelectionChange();
+                            }
+                        </text>)
+            )
+            &nbsp;@(Html.DevExtreme().Button()
+                                    .ID("btnChangePeriod")
+                                    .Text("Change Period")
+                                    .Hint("Change Period")
+                                    .Disabled(true)
+                                    .OnClick(@<text>
+                                        function () {
+                                        ChangePeriodClick();
+                                        }
+                                    </text>)
+            )
+
+        </div>
+    </div>
+    <div class="col-sm-6" style="text-align:right;vertical-align:central">
+        <span id="BE_View_Period"> @TempData["returnPeriod"] </span> &nbsp;&nbsp;
+    </div>
+</div>
+<div>
+    &nbsp; @(Html.DevExtreme().Button()
+                                     .ID("btnOK")
+                                     .Text("Go")
+                                     .Hint("OK")
+                                     .Disabled(false)
+                                     .OnClick(@<text>
+                                        function () {alert('chng');
+                                        $("#popup_Statement").dxPopup("show");
+                                        }
+                                    </text>)
+    )
+    &nbsp; @(Html.DevExtreme().Button()
+                                     .ID("btnCancel")
+                                     .Text("Cancel")
+                                     .Hint("Cancel")
+                                     .Disabled(false)
+                                     .OnClick(@<text>
+                                        function () {
+                                        $("#Dynamic_Content_popup").dxPopup("hide");
+                                        }
+                                    </text>)
+    )
+</div>
+<div class="col-md-12">
+    @*Specific period popup*@
+    @(Html.DevExtreme().Popup().CustomPopup()
+        .ID("popup_frm_Specific_Period").MaxHeight(100).MaxWidth(600).OnShowing("PopupOnShowing").Title("Select specific period").ContentTemplate(  @<text>
+            <div id='popup_frm_Specific_Period_result'>
+                @Html.Partial("frm_Specific_Period")
+            </div>
+        </text>)
+    )
+</div>
+<div id="popup-container" class="col-md-12">
+    @*Specific period popup*@
+    @(Html.DevExtreme().Popup().CustomPopup()
+        .ID("popup_Statement")
+        .OnShowing("PopupOnShowing")
+        .FullScreen(true)
+        .Title(@TempData["Statement"].ToString())
+        .ContentTemplate(  @<text>
+            <div id='popup_Statement_result'>
+                @Html.Partial(@TempData["StatementPath"].ToString())
+            </div>
+        </text>)
+    )
+
+</div>
+@*Javascript Events*@
+<script type="text/javascript">
+    var 
+    function PeriodSelectionChange() {
+        debugger;
+        // $("PartyLedgerReportreloadPartialView").hide();
+        if ($("input[name=PeriodSelection]").val() == "Specific Period") {
+            $("#popup_frm_Specific_Period").dxPopup("show");
+            $("#From_Date").dxDateBox({
+                applyValueMode: "useButtons",
+                value: $("#hdfxFr_Date").val()
+
+            });
+            $("#To_Date").dxDateBox({
+                applyValueMode: "useButtons",
+                value: $("#hdfxTo_Date").val()
+            });
+            $("#btnChangePeriod").dxButton({
+                disabled: false
+            });
+        }
+        else {
+
+            xFr_DateSelected = $("input[name=PeriodSelection]").val();
+            $.ajax({
+                type: 'GET',
+                url: "/Statements/PeriodSelection/GetSelectPeriod",
+                data: {
+                    xFr_DateSelected: $("input[name=PeriodSelection]").val()
+                },
+                cache: false,
+                success: function (result) {
+                    $("#BE_View_Period").text(result.returnPeriod);
+                    $("#hdfxFr_Date").val(result.xFr_Date);
+                    $("#hdfxTo_Date").val(result.xTo_Date);
+                }
+            });
+            $("#btnChangePeriod").dxButton({
+                disabled: true
+            });
+
+        }
+    }
+    function CallForSpecificPeriod() {
+        var fromDate = $("input[name=From_Date]").val();
+        var toDate = $("input[name=To_Date]").val();
+        $.ajax({
+            type: 'GET',
+            url: "/Statements/PeriodSelection/GetSelectPeriod",
+            data: {
+                xFr_DateSelected: fromDate,
+                xTo_DateSelected: toDate
+            },
+            cache: false,
+            success: function (result) {
+                $("#BE_View_Period").text(result.returnPeriod);
+            }
+        });
+    }
+    function ChangePeriodClick() {
+        $("#popup_frm_Specific_Period").dxPopup("show");
+        $("#From_Date").dxDateBox({
+            applyValueMode: "useButtons",
+            value: $("#hdfxFr_Date").val()
+        });
+        $("#To_Date").dxDateBox({
+            applyValueMode: "useButtons",
+            value: $("#hdfxTo_Date").val()
+        });
+    }
+
+    //function PopupOnShowing() {
+    //    $('.dx-overlay-content').adda('popupresponsive');
+    //    $(".dx-popup-content").dxScrollView();
+    //}
+</script>

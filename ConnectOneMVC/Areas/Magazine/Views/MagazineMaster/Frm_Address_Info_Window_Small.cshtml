@@ -1,0 +1,847 @@
+﻿@using DevExtreme.AspNet.Mvc
+@model ConnectOneMVC.Areas.Magazine.Models.MagazineReciptReginfo
+
+<style>
+    .margB3 {
+        margin-bottom:3px !important;
+    }
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+  
+    #equalheight {
+        overflow: hidden;
+    }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .margT4 {
+        margin-top: 4px !important;
+    }
+
+    .buttonMrgTB {
+        margin-bottom: 15px;
+        margin-top: 15px;
+    }
+
+    .d-inline-block {
+        display: inline-block;
+    }
+
+    .radioButtonDiv {
+        border: 1px solid #2b94ef;
+        padding: 2px 9px;
+        max-width: 113px;
+        background: #fff;
+    }
+
+    .name_text {
+        color: #800000;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .margB10 {
+        margin-bottom: 10px !important;
+    }
+
+    .more_details {
+        padding: 0px 8px !important;
+    }
+
+    @@media only screen and (max-width:887px) and (min-width:769px) {
+        .more_details {
+            padding: 0px 0px !important;
+        }
+    }
+
+    @@media only screen and (max-width:768px) and (min-width:300px) {
+        .radio-inline, .checkbox-inline {
+            line-height: 23px !important;
+        }
+    }
+
+    .disabledbutton {
+        pointer-events: none;
+        opacity: 0.4;
+        cursor: default;
+    }
+</style>
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<script>
+    var resCountryCode = "";
+    var resStateCode = "";
+    var CI_REC_ID = "";
+    function onInitialized_AddressBook_R(e) {
+        e.component.option("dataSource").store.load().done(function (d) {
+            if (d.length == 1)
+                e.component.option("value", d[0].R_CO_NAME);
+        });
+
+        var key = e.component.option("value");
+        if(key!=null)
+        {
+            if (e.component.getDataSource()!=null) {
+                e.component.getDataSource().store().byKey(key).done(function (result) {
+                    if (result != null && result != undefined && result != "undefined") {
+
+                        resCountryCode = result.R_CO_CODE;
+                        resCountryId = result.R_CO_REC_ID;
+                        $("#GLookUp_RStateList").dxDropDownBox("instance").repaint();
+                        //$("#Res_StateID").dxDropDownBox("instance").reset("",result.R_CO_CODE);
+                        resStateCode = "@Model.tempStateCode";
+                        $("#Res_DisttID").dxDropDownBox("instance").repaint();
+                        $("#Res_cityID").dxDropDownBox("instance").repaint();
+                    }
+                })
+            }
+        }
+    }
+    function ChangeAddressBookCountry_R(e) {
+        debugger
+        var dropDownBoxonInitialized_AddressBookCountry = $("#GLookUp_RCountryList").dxDropDownBox("instance");
+        dropDownBoxonInitialized_AddressBookCountry.close();
+
+        var $dataGrid = $("#CountryList-datagrid_R");
+
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                resCountryCode = item.R_CO_CODE;
+                resCountryId = item.R_CO_REC_ID;
+                $("#StateList-datagrid_R").dxDataGrid("instance").refresh();
+            }
+        }
+    }
+    function ChangeAddressBookState_R(e) {
+        var dropDownBox = $("#GLookUp_RStateList").dxDropDownBox("instance");
+        dropDownBox.close();
+
+        var $dataGrid = $("#StateList-datagrid-R");
+
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                resStateCode = item.R_ST_CODE;
+                if (resStateCode != "" || resCountryCode != "") {
+                    $("#GLookUp_RStateList").dxDropDownBox("instance").option("readOnly", false);
+                    $("#DistrictList-datagrid_R").dxDataGrid("instance").refresh();
+                }
+                if (resStateCode != "" || resCountryCode != "" || resCountryId != "") {
+                    $("#Res_cityID").dxDropDownBox("instance").option("readOnly", false);
+                    $("#CityList-datagrid").dxDataGrid("instance").refresh();
+                }
+            }
+        }
+    }
+    function onInitialized_AddressBookState_R(e) {
+        e.component.option("dataSource").store.load().done(function (d) {
+            if (d.length == 1)
+                e.component.option("value", d[0].R_ST_NAME);
+        });
+    }
+    function ChangeAddressBookDistrict_R(e) {
+        debugger
+        var dropDownBox = $("#DistrictList-datagrid_R").dxDropDownBox("instance");
+        dropDownBox.close();
+
+        var $dataGrid = $("#DistrictList-datagrid_R");
+
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                resDistrictCode = item.R_DI_CODE;
+                if (resStateCode != "" || resCountryCode != "" || resCountryId != "") {
+                    //$("#CityList-datagrid").dxDataGrid("instance").refresh();
+                }
+            }
+        }
+    }
+    function to_Get_MembersList() {
+        debugger
+        var mamber = $("#PC_City_Name").dxTextBox("instance").option("value");
+        var gLookUp_RStateList = $("#GLookUp_RStateList").dxDropDownBox("instance").option("value");
+         $.ajax({
+             type: "GET",
+             url: "/Magazine/MagazineMaster/Get_Frm_Mapping_List",
+             data: {
+                 Member: mamber,
+                 GLookUp_RStateList: gLookUp_RStateList
+             },
+             success: function (result) {
+                 debugger
+                 $("#ID_City").dxPopup("show");
+                 $("#ID_City").dxPopup("instance").option("maxHeight", "30%")
+                 $("#ID_City").dxPopup("instance").option("maxWidth", "50%")
+                 $("#Id_CityResult").html(result)
+                 //var parsedData = JSON.parse(result);
+                 //$("#toShowGrid").show();
+                 //$("#grid_Container").dxDataGrid({
+                 //    dataSource: parsedData,
+                 //    showBorders: true,
+                 //    paging: {
+                 //        //pageSize: 10
+                 //        enable:false
+                 //    },
+                 //    pager: {
+                 //        showPageSizeSelector: true,
+                 //        allowedPageSizes: [5, 10, 20],
+                 //        showInfo: true
+                 //    },
+                 //    columns: ["City & Area", "District", "State", "Pincode", "Country"]
+                 //});
+             },
+             error: function (error) {}
+         });
+    }
+    function MappingListdblclickEdit(s,e) {
+        debugger
+        var temp = e;
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        s.GetRowValues(s.GetFocusedRowIndex(), 'CityName;StateName;City_REC_ID', AddressOnGetRowValues);
+
+    }
+    function AddressOnGetRowValues(data) {
+        debugger
+        var temp = data;
+        CI_REC_ID = temp[2];
+        $('#PC_City_Name').dxTextBox('instance').option('value', temp[0]);
+        $("#ID_City").dxPopup("hide");
+    }
+    function handleClick(e) {
+        debugger
+        var elementID = e.id;
+        if (elementID == "id_City") {
+            $("#id_City").parent(1).removeClass("opacityClass");
+            $("#id_OthCity").parent(1).addClass("opacityClass");
+            $("#id_CityTxtCButtons").removeClass("opacityClass");
+            $("#id_CityTxtCButtons").removeClass("disabledbutton")
+            $("#id_Search").children(1).replaceWith('<span onclick="to_Get_MembersList();" class="dx-button-text">Search</span>');
+            $("#id_MoreDetails").children(1).replaceWith('<span onclick="to_Get_MembersList()" class="dx-button-text">More Details</span>');
+            $("#Txt_R_Other_City").dxTextBox("instance").option("readOnly", true);
+            $("#Txt_R_Other_City").dxTextBox("instance").option("value", "");
+            $("#PC_City_Name").dxTextBox("instance").option("readOnly", false);
+
+        }
+        if (elementID == "id_OthCity") {
+            $("#id_City").parent(1).addClass("opacityClass");
+            $("#id_OthCity").parent(1).removeClass("opacityClass");
+            $("#id_CityTxtCButtons").addClass("opacityClass");
+            $("#id_Search").children(1).replaceWith('<span class="dx-button-text">Search</span>');
+            $("#id_MoreDetails").children(1).replaceWith('<span class="dx-button-text">More Details</span>');
+            $("#PC_City_Name").dxTextBox("instance").option("readOnly", true);
+            $("#PC_City_Name").dxTextBox("instance").option("value","");
+            $("#Txt_R_Other_City").dxTextBox("instance").option("readOnly", false);
+            //$("#id_CityTxtCButtons").addClass("disabledbutton")
+
+        }
+    }
+
+    function Frm_Address_Info_Window_Small_Success(data) {
+        debugger
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+
+            IsSucessPopup = true;
+            var telephoneSubmitSuccess = DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_Telephone_Window").dxPopup("hide");
+            TelephoneListGrid.Refresh();
+            IsSucessPopup = false;
+            telephoneSubmitSuccess.done(function (alertResult) {
+                if (alertResult) {
+                    if (IsTelephoneNewPopup == true) {
+                        var addmoreTelephoneresult = DevExpress.ui.dialog.confirm("Add More Entry...?", "Telephone");
+                        addmoreTelephoneresult.done(function (dialogResult) {
+                            if (dialogResult) {
+                                OnTelephoneNewClick();
+                            }
+                        });
+                    }
+                }
+            });
+
+        }
+    }
+    function toEditOrNew(XId, Org_RegId, tempActionMethod) {
+        debugger
+        var txt_Name = $('#Txt_Name').dxTextBox('instance').option('value');
+        var txt_R_Add1 = $('#Txt_R_Add1').dxTextBox('instance').option('value');
+        var txt_R_Add2 = $('#Txt_R_Add2').dxTextBox('instance').option('value');
+        var txt_R_Add3 = $('#Txt_R_Add3').dxTextBox('instance').option('value');
+        var txt_R_Add4 = $('#Txt_R_Add4').dxTextBox('instance').option('value');
+        var pC_City_Name = CI_REC_ID;
+        var txt_R_Other_City = $('#Txt_R_Other_City').dxTextBox('instance').option('value');
+        var gLookUp_RStateList = $('#GLookUp_RStateList').dxDropDownBox('instance').option('value');
+        var gLookUp_RDistrictList = $('#GLookUp_RDistrictList').dxDropDownBox('instance').option('value');
+        var gLookUp_RCountryList = $('#GLookUp_RCountryList').dxDropDownBox('instance').option('value');
+        var txt_R_Pincode = $('#Txt_R_Pincode').dxTextBox('instance').option('value');
+        var txt_R_Tel_1 = $('#Txt_R_Tel_1').dxTextBox('instance').option('value');
+        var txt_Mob_1 = $('#Txt_Mob_1').dxTextBox('instance').option('value');
+        var txt_Email1 = $('#Txt_Email1').dxTextBox('instance').option('value');
+
+        var txt_Remark1 = $('#Txt_Remark1').dxTextBox('instance').option('value');
+        var txt_Remark2 = $('#Txt_Remark2').dxTextBox('instance').option('value');
+
+        $.ajax({
+            type: "POST",
+            url: "/Magazine/MagazineMaster/Frm_Address_Info_Window_Small",
+            data: {
+                TempActionMethod: "New",
+                xID: XId,
+                org_RegId: Org_RegId,
+                Txt_Name: txt_Name,
+                Txt_R_Add1:txt_R_Add1,
+                Txt_R_Add2:txt_R_Add2,
+                Txt_R_Add3:txt_R_Add3,
+                Txt_R_Add4:txt_R_Add4,
+                PC_City_Name: pC_City_Name,
+                Txt_R_Other_City: txt_R_Other_City,
+                GLookUp_RStateList: gLookUp_RStateList,
+                GLookUp_RDistrictList: gLookUp_RDistrictList,
+                GLookUp_RCountryList: gLookUp_RCountryList,
+                Txt_R_Pincode: txt_R_Pincode,
+                Txt_R_Tel_1: txt_R_Tel_1,
+                Txt_Mob_1: txt_Mob_1,
+                Txt_Email1:txt_Email1,
+                Txt_Remark1:txt_Remark1,
+                Txt_Remark2:txt_Remark2
+
+            },
+            success: function (data) {
+                debugger
+                if (data.result == true) {
+                    $.ajax({
+                        type: "GET",
+                        url: "/Magazine/MagazineMaster/xPromptWindow",
+                        data: {
+                            PromptMsg: data.Message,
+                            tempActionMethod: data.successParams.tempActionMethod,
+                            xID: data.successParams.XID,
+                            Org_RegId : data.successParams.Org_RegId,
+                            Txt_Name:data.successParams.txt_Name,
+                            Txt_R_Add1:data.successParams.txt_R_Add1,
+                            Txt_R_Add2:data.successParams.txt_R_Add2,
+                            Txt_R_Add3:data.successParams.txt_R_Add3,
+                            Txt_R_Add4:data.successParams.txt_R_Add4,
+                            PC_City_Name: data.successParams.pC_City_Name,
+                            Txt_R_Other_City: data.successParams.txt_R_Other_City,
+                            GLookUp_RStateList: data.successParams.gLookUp_RStateList,
+                            GLookUp_RDistrictList:data.successParams.gLookUp_RDistrictList,
+                            GLookUp_RCountryList:data.successParams.gLookUp_RCountryList,
+                            Txt_R_Pincode:data.successParams.txt_R_Pincode,
+                            Txt_Mob_1:data.successParams.txt_Mob_1,
+                            Txt_Email1:data.successParams.txt_Email1,
+                            Txt_Remark1:data.successParams.txt_Remark1,
+                            Txt_Remark2: data.successParams.txt_Remark2,
+                            Txt_R_Tel_1: data.successParams.txt_R_Tel_1,
+                        },
+                        success: function (data1) {
+                            //if (typeof (data1) != "string")
+                            {
+                                $("#Id_DuplicatePopup").dxPopup("show");
+                                $("#Id_DuplicatePopup").dxPopup("instance").option("maxHeight", "30%")
+                                $("#Id_DuplicatePopup").dxPopup("instance").option("maxWidth", "50%")
+                                $("#Id_DuplicatePopupResult").html(data1)
+                            }
+                        },
+                        error: function (e) {
+                            debugger
+                        }
+                    });
+                }
+            },
+            error: function (e) {
+                debugger
+            }
+        });
+    }
+
+    $("#Txt_R_Tel_1,#Txt_R_Pincode,#Txt_Mob_1").keypress(function (e) {
+        debugger
+        if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
+
+            return false;
+        }
+        return true;
+    });
+    function toSaveRecord(XId, Org_RegId, tempActionMethod) {
+        debugger
+        var txt_Name = $('#Txt_Name').dxTextBox('instance').option('value');
+        var txt_R_Add1 = $('#Txt_R_Add1').dxTextBox('instance').option('value');
+        var txt_R_Add2 = $('#Txt_R_Add2').dxTextBox('instance').option('value');
+        var txt_R_Add3 = $('#Txt_R_Add3').dxTextBox('instance').option('value');
+        var txt_R_Add4 = $('#Txt_R_Add4').dxTextBox('instance').option('value');
+        var pC_City_Name = $('#PC_City_Name').dxTextBox('instance').option('value');
+        var txt_R_Other_City = $('#Txt_R_Other_City').dxTextBox('instance').option('value');
+        var gLookUp_RStateList = $('#GLookUp_RStateList').dxDropDownBox('instance').option('value');
+        var gLookUp_RDistrictList = $('#GLookUp_RDistrictList').dxDropDownBox('instance').option('value');
+        var gLookUp_RCountryList = $('#GLookUp_RCountryList').dxDropDownBox('instance').option('value');
+        var txt_R_Pincode = $('#Txt_R_Pincode').dxTextBox('instance').option('value');
+        var txt_R_Tel_1 = $('#Txt_R_Tel_1').dxTextBox('instance').option('value');
+        var txt_Mob_1 = $('#Txt_Mob_1').dxTextBox('instance').option('value');
+        var txt_Email1 = $('#Txt_Email1').dxTextBox('instance').option('value');
+
+        var txt_Remark1 = $('#Txt_Remark1').dxTextBox('instance').option('value');
+        var txt_Remark2 = $('#Txt_Remark2').dxTextBox('instance').option('value');
+        $.ajax({
+            type: "POST",
+            url: "/Magazine/MagazineMaster/xPromptWindow",
+            data: {
+                //ActionMethod:"",
+                TempActionMethod: "New",
+                xID: XId,
+                org_RegId: Org_RegId,
+                Txt_Name: txt_Name,
+                Txt_R_Add1: txt_R_Add1,
+                Txt_R_Add2: txt_R_Add2,
+                Txt_R_Add3: txt_R_Add3,
+                Txt_R_Add4: txt_R_Add4,
+                PC_City_Name: pC_City_Name,
+                Txt_R_Other_City: txt_R_Other_City,
+                GLookUp_RStateList: gLookUp_RStateList,
+                GLookUp_RDistrictList: gLookUp_RDistrictList,
+                GLookUp_RCountryList: gLookUp_RCountryList,
+                Txt_R_Pincode: txt_R_Pincode,
+                Txt_R_Tel_1: txt_R_Tel_1,
+                Txt_Mob_1: txt_Mob_1,
+                Txt_Email1: txt_Email1,
+                Txt_Remark1: txt_Remark1,
+                Txt_Remark2: txt_Remark2
+            },
+            success: function (data) {
+                debugger
+            },
+            error: function (e) {
+                debugger
+            }
+        });
+    }
+
+</script>
+<div id="Frm_Address_Info_Window_Small_Content">
+    @using (Ajax.BeginForm("Frm_Address_Info_Window_Small", "MagazineMaster",
+                new AjaxOptions
+                {
+                    HttpMethod = "POST",
+                    UpdateTargetId = "Frm_Address_Info_Window_Small_Content",
+                    InsertionMode = InsertionMode.InsertAfter,
+                    OnBegin = "AjaxBeginFormPost",
+                    OnSuccess = "Frm_Address_Info_Window_Small_Success",
+
+
+
+                },
+                new
+                {
+                    id = "TelephonevalidationForm",
+                    @class = "edit_form"
+                }))
+    {
+
+
+
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.PC_City_Tag)
+            @*@Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(M => M.xID)
+            @Html.HiddenFor(m => m.Org_RecID)*@
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg3">
+                <div class="row">
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i> Magazine Member</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align pll" style="text-align:right !important;"><svg class="svg-inline--fa fa-info-circle fa-w-16" aria-hidden="true" data-prefix="fas" data-icon="info-circle" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path></svg><!-- <i class="fas fa-info-circle"></i> --> Red Fields are mandatory</h5>
+                    </div>
+                </div>
+
+            </div><!--[row]-->
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-12 pll">
+                                    <label class="control-label fs14 margB0">Address:</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[]-->
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row margB3">
+                                <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Name:</label>
+                                </div>
+                                <div class="col-xs-10 col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="First Name">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_Name").Name("Txt_Name").Value(Model.Txt_Name))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Line1:</label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type Address Line1...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_R_Add1").Name("Txt_R_Add1").Placeholder("Type Address Line1...").Value(Model.Txt_R_Add1))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Line2:</label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type Address Line2...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_R_Add2").Name("Txt_R_Add2").Value(Model.Txt_R_Add2).Placeholder("Type Address Line2..."))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Line3:</label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type Address Line3...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_R_Add3").Name("Txt_R_Add3").Value(Model.Txt_R_Add3).Placeholder("Type Address Line3..."))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Line4:</label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type Address Line4...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_R_Add4").Name("Txt_R_Add4").Value(Model.Txt_R_Add4).Placeholder("Type Address Line4..."))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="">Country:</label></div>
+                                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                            @*<div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                <div class="dx-texteditor-container">*@
+                                            @*<select name="" class="dx-texteditor-input appear">
+                                                    <option value="0">Select Country...</option>
+                                                </select>*@
+                                            @(Html.DevExtreme().DropDownBox().ID("GLookUp_RCountryList").Name("GLookUp_RCountryList").Value(Model.GLookUp_RCountryList).ValueExpr("R_CO_REC_ID").DisplayExpr("R_CO_NAME")
+                                                                                                                           .DataSource(d => d.Mvc().Controller("MagazineMaster").LoadAction("LookUp_GetCountryList_R").Key("R_CO_REC_ID")).Placeholder("Select Country...")
+                                                                                                                           .ShowClearButton(true)
+                                                                                                                           .OnValueChanged("ChangeAddressBookCountry_R")
+                                                                                                                           .OnInitialized("onInitialized_AddressBook_R")
+                                                                                                                           .DeferRendering(false)
+                                                                                                                           .ContentTemplate(@<text> @Html.Partial("LookUp_GetCountryList_R") </text>))
+                                            @Html.ValidationMessageFor(model => model.GLookUp_RCountryList, "", new { @class = "text-danger" })
+                                            @*</div>
+                                                </div>*@
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="">State:</label></div>
+                                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                            @*<div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                <div class="dx-texteditor-container">*@
+                                            @*<select name="" class="dx-texteditor-input appear">
+                                                    <option value="0">Select state...</option>
+                                                </select>*@
+                                            @(Html.DevExtreme().DropDownBox()
+                                                          .ID("GLookUp_RStateList")
+                                                          .Name("GLookUp_RStateList")
+                                                          .Value(Model.GLookUp_RStateList)
+                                                          .ValueExpr("R_ST_REC_ID")
+                                                          .DisplayExpr("R_ST_NAME")
+                                                          .DataSource(d => d.Mvc().Controller("MagazineMaster").LoadAction("ChangeAddressBookState_R").Key("R_ST_REC_ID").LoadParams(new { selectData = new JS("function (){ return resCountryCode;}") }))
+                                                          .Placeholder("Select State...")
+                                                          .ShowClearButton(true)
+                                                          .OnValueChanged("ChangeAddressBookState_R")
+                                                          .OnInitialized("onInitialized_AddressBookState_R")
+                                                          .DeferRendering(false)
+                                                          .ContentTemplate(@<text>
+                                                            @Html.Partial("LookUp_GetStateList_R") </text>)
+                                            )
+                                            @*@(Html.DevExtreme().DropDownBox().ID("GLookUp_RStateList").Name("GLookUp_RStateList").Value(Model.GLookUp_RStateList).ValueExpr("R_ST_REC_ID").DisplayExpr("R_ST_NAME")
+                                                .DataSource(d => d.Mvc().Controller("MagazineMaster").LoadAction("ChangeAddressBookState_R").Key("R_ST_REC_ID")
+                                                .LoadParams(new { selectData = new JS("function (){return resCountryCode;}") })).ShowClearButton(true)
+                                                .Placeholder("Select state...").OnInitialized("onInitialized_AddressBookState_R")
+                                                .OnValueChanged("ChangeAddressBookState_R").DeferRendering(false)
+                                                .ContentTemplate(@<text> @Html.Partial("LookUp_GetStateList_R") </text>))*@
+                                            @Html.ValidationMessageFor(model => model.GLookUp_RStateList, "", new { @class = "text-danger" })
+                                            @*</div>
+                                                </div>*@
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                            <div class="d-inline-block">
+                                                <label class="radio-inline control-label @(Model.CityOpcityclass)"><input id="id_City" type="radio" onclick="handleClick(this)" name="optradio2" @(Model.CityRadio)>City:</label>
+                                            </div>
+                                        </div>
+                                        <div id="id_CityTxtCButtons">
+                                            <div class="col-sm-2 col-md-2 col-lg-4">
+                                                @*<div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                        <div class="dx-texteditor-container">
+                                                            <select name="" class="dx-texteditor-input appear">
+                                                                <option value="0">Select City...</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>*@
+                                                @(Html.DevExtreme().TextBox().ID("PC_City_Name").Name("PC_City_Name").Value(Model.PC_City_Name).ReadOnly(Model.PC_City_Name_Read_only))
+                                            </div>
+                                            <div class="col-sm-6 col-md-6 col-lg-4 prm">
+                                                <div class="buttonfloatL">
+                                                    <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History" tabindex="0">
+                                                        <a href="javascript:void(0);" class="link-txt">
+                                                            <div id="id_Search" class="dx-button-content more_details" style="">
+                                                                <span class="dx-button-text disabledbutton">Search</span>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                <div class="buttonfloatL">
+                                                    <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History" tabindex="0">
+                                                        <a href="javascript:void(0);" class="link-txt">
+                                                            <div id="id_MoreDetails" class="dx-button-content more_details" style="">
+                                                                <span class="dx-button-text disabledbutton">More Details</span>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="">PinCode:</label></div>
+                                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                <div class="dx-texteditor-container">
+                                                    @*<input class="dx-texteditor-input" type="text" placeholder="Pincode...">*@
+                                                    @(Html.DevExtreme().TextBox().ID("Txt_R_Pincode").Name("Txt_R_Pincode").MaxLength(5).Placeholder("Pincode...")
+                                                                                                                                               .Value(Model.Txt_R_Pincode))
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                            <div class="d-inline-block">
+                                                <label class="radio-inline control-label"><input id="id_OthCity" type="radio" onclick="handleClick(this)" name="optradio2" @(Model.OthCityRadio) />Oth. City:</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-8 col-md-8 col-lg-8">
+                                            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                <div class="dx-texteditor-container">
+                                                    @*<input class="dx-texteditor-input" type="text" placeholder="">*@
+                                                    @(Html.DevExtreme().TextBox().ID("Txt_R_Other_City").Name("Txt_R_Other_City").Value(Model.Txt_R_Other_City).ReadOnly(Model.Txt_R_Other_City_Readonly))
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="">District:</label></div>
+                                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                            @*<div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                    <div class="dx-texteditor-container">
+                                                        <select name="" class="dx-texteditor-input appear">
+                                                            <option value="0"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>*@
+                                            @(Html.DevExtreme().DropDownBox().ID("GLookUp_RDistrictList").Name("GLookUp_RDistrictList").ValueExpr("R_DI_REC_ID").DisplayExpr("R_DI_NAME")
+                                                                                                                         .DataSource(d => d.Mvc().Controller("MagazineMaster").LoadAction("GLookUp_RDistrictList_R").Key("R_DI_REC_ID")
+                                                                                                                         .LoadParams(new { country = new JS("function (){ return resCountryCode;}"), state = new JS("function (){ return resStateCode;}") }))
+                                                                                                                         .Placeholder("Select District...").ShowClearButton(true).OnValueChanged("ChangeAddressBookDistrict_R").DeferRendering(false)
+                                                                                                                         .OnInitialized("onInitialized_AddressBookState_R").Value(Model.GLookUp_RDistrictList)
+                                                                                                                         .ContentTemplate(@<text> @Html.Partial("LookUp_GetDistrictList_R") </text>))
+                                            @Html.ValidationMessageFor(model => model.GLookUp_RDistrictList, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="">
+                                    <div class="col-sm-6 col-md-4 col-lg-4">
+                                        <div class="row">
+                                            <div class="col-sm-4 col-md-6 col-lg-6 pll">
+                                                <label class="control-label" for="Magazine">Tel. No.:</label>
+                                            </div>
+                                            <div class="col-sm-8 col-md-6 col-lg-6 prm">
+                                                <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                    <div class="dx-texteditor-container">
+                                                        @*<input class="dx-texteditor-input" type="text" placeholder="Type Resi. Tel. No">*@
+                                                        @(Html.DevExtreme().TextBox().ID("Txt_R_Tel_1").Name("Txt_R_Tel_1").MaxLength(10).Placeholder("Type Resi. Tel. No")
+                                                                                                                                                   .Value(Model.Txt_R_Tel_1))
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div><!--[1]-->
+                                    <div class="col-sm-6 col-md-4 col-lg-4">
+                                        <div class="row">
+                                            <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                                <label class="control-label" for="Issue_Date">Mobile No.:</label>
+                                            </div>
+                                            <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                                <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                    <div class="dx-texteditor-container">
+                                                        @*<input class="dx-texteditor-input" type="text" placeholder="Type Mobile No.1">*@
+                                                        @(Html.DevExtreme().TextBox().ID("Txt_Mob_1").Name("Txt_Mob_1").MaxLength(10).Placeholder("Type Mobile No.1")
+                                                                                                                                                   .Value(Model.Txt_Mob_1))
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div><!--[2]-->
+                                    <div class="col-sm-12 col-md-4 col-lg-4">
+                                        <div class="row">
+                                            <div class="col-sm-2 col-md-4 col-lg-4 pll">
+                                                <label class="control-label" for="Reg_Seed">Email:</label>
+                                            </div>
+                                            <div class="col-sm-10 col-md-8 col-lg-8 prm pll1">
+                                                <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                                    <div class="dx-texteditor-container">
+                                                        @*<input class="dx-texteditor-input" type="text" placeholder="Type Email ID (1. Primary).">*@
+                                                        @(Html.DevExtreme().TextBox().ID("Txt_Email1").Name("Txt_Email1").Placeholder("Type Email ID (1. Primary).")
+                                                                                                                                      .Value(Model.Txt_Email1))
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div><!--[3]-->
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                    <label class="control-label" for="iten">Remarks:</label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type any Remark 1...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_Remark1").Name("Txt_Remark1").Placeholder("Type any Remark 1...")
+                                                                                                                          .Value(Model.Txt_Remark1))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row margB3">
+                                <div class="col-sm-2 col-md-2 col-lg-2 pll mb_txt_left">
+                                    <label class="control-label" for="iten"></label>
+                                </div>
+                                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" placeholder="Type any Remark 2...">*@
+                                            @(Html.DevExtreme().TextBox().ID("Txt_Remark2").Name("Txt_Remark2").Placeholder("Type any Remark 2...")
+                                                                                                                           .Value(Model.Txt_Remark2))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[]-->
+            </div>
+
+            <div class="row">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="col-sm-8 col-lg-8 col-xs-12">
+                        <div class="form-field wbg brd-bot-none brd-none" style="padding-top:0px !important; padding-left:0px !important;">
+                            <div class="container-fluid">
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-lg-4 col-xs-12 paddR4">
+                        <div class="action-btn-wrap">
+                            <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History" tabindex="0">
+                                <a href="javascript:void(0);" class="link-txt">
+                                    <div class="dx-button-content">
+                                        <i class="fas fa-times-circle btn-icons crossgrey icon-rgt-space5"></i>
+                                        <span class="dx-button-text">Cancel</span>
+                                    </div>
+                                </a>
+                            </div><!--[button]-->
+
+                        </div>
+
+                        <div class="action-btn-sec-wrap">
+                            @*<div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History" tabindex="0">
+                                    <a href="javascript:void(0);" class="link-txt">
+                                        <div class="dx-button-content">
+                                            <i class="fas fa-check-circle btn-icons checkgreen icon-rgt-space5"></i>
+                                            <span class="dx-button-text">Save</span>
+                                            <input type="submit" class="dx-button-submit-input">
+                                        </div>
+                                    </a>
+                                </div>*@<!--[button]-->
+                            @(Html.DevExtreme().Button().ID("Save").Text("Save").Icon("dx-icon fa fa-check-circle fa-w-16 btn-icons checkgreen").UseSubmitBehavior(false).OnClick(@<text> function() { toEditOrNew("@Model.xID","@Model.Org_RecID","@Model.TempActionMethod") } </text>))
+
+                        </div>
+                    </div>
+                    <div class="clear"></div>
+                </div>
+            </div>
+        }
+    }
+    @(Html.DevExtreme().Popup().CustomPopup().ID("ID_City").ShowCloseButton(true).ShowTitle(true).ContentTemplate(@<text> <div id="Id_CityResult"></div> </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("Id_DuplicatePopup").ShowCloseButton(true).ShowTitle(true).ContentTemplate(@<text> <div id="Id_DuplicatePopupResult"></div> </text>))
+</div>
+
+
+
+

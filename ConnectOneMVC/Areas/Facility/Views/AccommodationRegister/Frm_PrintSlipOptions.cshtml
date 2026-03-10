@@ -1,0 +1,138 @@
+﻿<div class="ChartInfo_PrintOptions_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.printparams
+    @using DevExpress.XtraReports.UI;
+    @{
+        var priorities = new[] { "Individual Slips", "Group Slip"/*, "Building Wise"*/ };
+        var names_list = ViewBag.NamesList;
+        var respIds_list = ViewBag.Resp_ID;
+        var printfromscreen = ViewBag.Printfromscreen;
+        var a1 = names_list.Split('|');
+        var a2 = respIds_list.Split('|');
+        string[,] names_respidsList = new string[a1.Length, 2];
+        Model.namesAndrespIdsList = new List<ConnectOneMVC.Areas.Facility.Models.names_respidsList>();
+
+        for (var j = 0; j < a1.Length; j++)
+        {
+            ConnectOneMVC.Areas.Facility.Models.names_respidsList newrow = new ConnectOneMVC.Areas.Facility.Models.names_respidsList();
+            newrow.names = a1[j];
+            newrow.respids = a2[j];
+            Model.namesAndrespIdsList.Add(newrow);
+
+        }
+        names_list = names_list.ToString().Split('|');
+    }
+    <div style="padding-left: 25px; padding-right: 25px;">
+
+        @(Html.DevExtreme().RadioGroup().ID("AccomRegstr_PrintSlipOptions")
+            .Items(priorities)
+            .Value("Individual Slips")
+            .Layout(Orientation.Horizontal).OnValueChanged("printSlipOptionSelection")
+        )
+        <br />
+        <div class="row p-5" id="guideSelection_printSlipOption" style="display:none; padding-bottom:5px;">
+            <label>Please select The Guide Name to be Printed in the Print Slip Before click on OK.</label>
+            @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Event_PrintSlipOptions").ID("Event_PrintSlipOptions").Placeholder("Choose..")
+                .DisplayExpr("names").ValueExpr("respids")
+                .DataSource(Model.namesAndrespIdsList, "respids")
+                .ContentTemplate(@<text>
+                    @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Event_PrintSlipOptions_datagrid")
+                        .Columns(columns =>
+                        {
+                            columns.Add().DataField("names").Caption("Name");
+                            columns.Add().DataField("respids").Visible(false);
+
+                        })
+                        .Selection(s => s.Mode(SelectionMode.Single)).OnSelectionChanged("function(selectedItems)" +
+                                "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}")
+                        )
+                </text>).OnValueChanged("Event_PrintSlipOptions_ValueChange")
+            )
+        </div>
+        <br />
+        <div class="text-right">
+            @(Html.DevExtreme().Button().ID("Accom_Rgstr_printoption_Ok").Text("OK").Icon("save").OnClick("openPrintSlips") )
+            @(Html.DevExtreme().Button().ID("Accom_Rgstr_printoption_close").Text("Close").Icon("clear").OnClick("closePrintSlipOptionsAccom_Register") )
+        </div>
+
+    </div>
+    <script>
+      
+        async function Event_PrintSlipOptions_ValueChange(e) {    
+            var value;
+            var DG = $("#Event_PrintSlipOptions_datagrid").dxDataGrid("instance");
+            if (e) {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    DG.clearSelection();
+                    selectedName_printslipOption = value
+                    return;
+                }
+            }
+            else {
+                value = $("#Event_PrintSlipOptions").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);
+            if (DG.getSelectedRowsData().length > 0) {
+                var item = DG.getSelectedRowsData()[0];
+                selectedName_printslipOption = item['names']
+                selectedRespID_printslipOption = value
+            }
+
+        }
+        function closePrintSlipOptionsAccom_Register() {
+            $("#PrintSlipPopup_AccomRegstr").dxPopup("hide");
+        }
+        var selectedOption = "Individual";
+        var selectedName_printslipOption = "@names_list[0].ToString()";
+        var selectedRespID_printslipOption = "";
+        var chartInstanceID_AccRgstr_po = "@ViewBag.inst_ID";
+        var Chart_Response_ID_AccRgstr_po = "@ViewBag.Resp_ID"; 
+        function printSlipOptionSelection(e) {
+            if (e.value == "Individual Slips") {
+                selectedOption = "Individual";
+                document.getElementById("guideSelection_printSlipOption").style.display = "none";
+            } else if (e.value == "Group Slip") {
+                selectedOption = "Group";
+                document.getElementById("guideSelection_printSlipOption").style.display = "block";
+            }else if (e.value == "Building Wise") {
+                selectedOption = "Building";
+                document.getElementById("guideSelection_printSlipOption").style.display = "none";                        
+            }
+        }
+        function OnselectionChanged_printSlipOption(e) {
+            selectedName_printslipOption = e.selectedItem
+        }
+        function closeprintslipPopup() {
+            $("#PrintSlipOptions").dxPopup("hide");
+        }
+        function openPrintSlips() {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AccommodationRegister/Frm_PrintSlip_AccomRegstr",                        
+                cache: false,
+                data:
+                {
+                    Chart_Inst_ID: chartInstanceID_AccRgstr_po,
+                    Chart_Resp_ID: Chart_Response_ID_AccRgstr_po,
+                    PrintOption: selectedOption,
+                    SelectedName: selectedName_printslipOption,
+                    SelectedRespID: selectedRespID_printslipOption,
+                    PrintFromscreen: "@printfromscreen",
+                },
+                success: function (data) {
+                    HideLoader();
+                    OpenPopup("PrintSlipPopup_AccomRegstr", "Print Slip Options", null, "auto", 380, true, data, "maxheightPrintSlip");
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    HideLoader();
+                    //console.log(jqXHR);
+                    //console.log(textStatus);
+                    //console.log(errorThrown);
+                    DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                }
+            });
+        }
+    </script>
+
+</div>

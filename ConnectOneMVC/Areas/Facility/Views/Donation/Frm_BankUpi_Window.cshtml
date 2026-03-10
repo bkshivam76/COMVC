@@ -1,0 +1,210 @@
+﻿
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Godly Bank</title>
+    <meta name="description" content="" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>   
+    <link rel="stylesheet" href="~/Content/ServiceModule/Donation/css/bootstrap.css" />
+    <link rel="stylesheet" href="~/Content/ServiceModule/Donation/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="~/Content/ServiceModule/Donation/css/main.css" />
+</head>
+<body>
+    <div id="overlay">
+        <div class="loader"></div>    
+        <div class="loadertext">Loading...</div>
+   </div>
+    <!--Banner-->
+    <div class="banner">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>DONATE</h3>
+                    <p>Give your hand of love to God & together we’ll make our world a better place to live!</p>
+                </div>
+                <div class="col-md-6 text-right">
+                    <img src="~/Content/ServiceModule/Donation/images/world.png" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--//Banner-->
+    <!--Select & PDF-->
+    <div class="donation">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="wbox">
+                        <label>Select Institute</label>
+                        <select class="form-control" id="Donation-INS" onchange="Ins_ValueChange(event)">
+                            <option disabled=disabled selected=selected> -- select an option -- </option>
+                            <option>PRAJAPITA BRAHMA KUMARIS ISHWARIYA VISHWA VIDYALAYA</option>
+                            <option>WORLD RENEWAL SPIRITUAL TRUST</option>
+                            <option>RAJYOGA EDUCATION AND RESEARCH FOUNDATION</option>
+                            <option>BRAHMA KUMARIS EDUCATIONAL SOCIETY</option>
+                        </select>
+                        <br />
+                        <label>Select Center</label>
+                        <select class="form-control" id="Donation-Center" onchange="Center_ValueChange(event)">
+                        </select>
+                        <br />
+                        <button class="btn btn-dark" onclick="ViewQRCodeClick(event)"><i class="fa fa-qrcode"></i>&nbsp; View QR Code</button>
+                        &nbsp;
+                        <button type="button" class="btn btn-dark"  data-target="#SendSms_Donation" onclick=OpenSendSms(event)><i class="fa fa-share-alt"></i>&nbsp; Share</button>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="wbox pdfbox">
+                        <embed id="QRCODE_PDF" src="" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--//Select & PDF-->
+    <!-- Modal -->
+    <div class="modal fade" id="SendSms_Donation" tabindex="-1" role="dialog" aria-labelledby="SendSms_DonationTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="SendSms_DonationTitle">Share QR Code Link</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @using (Ajax.BeginForm("ShareQRCodeLink", "Donation", new AjaxOptions { HttpMethod = "POST", OnSuccess = "AjaxSuccess_SendSms", InsertionMode = InsertionMode.InsertAfter }, new { id = "SendSmsForm" }))
+                    {
+                        @*<form>*@
+                        <div class="form-group">
+                            <label for="MobileNoInput" class="text-danger">Mobile No.*</label>
+                            <input type="tel" class="form-control" id="MobileNoInput" name="MobileNoInput" aria-describedby="MobileNoHelp" placeholder="Enter 10 Digit Mobile No." pattern="[0-9]{10}" required="required" title="Enter 10 Digit Mobile No." oninput="MobileNo_OnInput(event)" maxlength="10" />
+                            <small id="MobileNoHelp" class="form-text text-muted">An Sms Will Be Sent To This Number With QR Code Link</small>
+                        </div>
+                        @*</form>*@
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="SendSmsModalCloseBtn">Close</button>
+                    <span aria-hidden="true"></span>
+                    <button type="button" class="btn btn-primary" onclick="SendSmsClick(event)">Send SMS</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+<script>
+    var CenterDD = document.getElementById("Donation-Center");
+    var xmlDoc;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            if (window.DOMParser) {
+                parser = new DOMParser();
+                xmlDoc = parser.parseFromString(xhttp.responseText, "text/xml");
+            }
+        }
+    };
+    xhttp.open("GET", "/Content/ServiceModule/Donation/QRCODE_DATA.xml", true);
+    xhttp.send();
+    function Ins_ValueChange(e) {
+        QrCodePath = "";
+        CenterDD.innerHTML = "";
+        document.getElementById("QRCODE_PDF").src = "";
+        var option = document.createElement("option");
+        option.text = "-- select an option --";
+        option.value = "";
+        option.disabled = true;
+        option.selected = true;
+        CenterDD.options.add(option);
+        var value = e.target.value;
+        var InsRow = xmlDoc.getElementsByTagName("row");
+        var i;
+        var count = InsRow.length;
+        for (i = 0; i < count; i++) {
+            if (InsRow[i].getElementsByTagName("INS_NAME")[0].textContent == value) {
+                var option = document.createElement("option");
+                option.text = InsRow[i].getElementsByTagName("CEN_NAME")[0].textContent;
+                option.value = InsRow[i].getElementsByTagName("CEN_UID")[0].textContent;
+                option.setAttribute('data-cenid', InsRow[i].getElementsByTagName("CEN_ID")[0].textContent);
+                CenterDD.options.add(option);
+            }
+        }
+    }
+    var QrCodePath = "";
+    var Cen_UID = "";
+    var CenID = "";
+    function Center_ValueChange(e) {
+        var target = e.target;
+        Cen_UID = target.value;
+        CenID = target.selectedOptions[0].getAttribute('data-cenid');
+        document.getElementById("QRCODE_PDF").src = "";
+        QrCodePath = "http://accountserver.bkinfo.in/qrcodes/" + Cen_UID.replace(/\//g, "") + "@@barodampayVerified Merchant.pdf"
+    }
+    function ViewQRCodeClick(e) {
+        if (QrCodePath.length == 0) {
+            alert("Please Choose Center")
+            setTimeout(function () { CenterDD.focus() }, 1);
+            return;
+        }
+        document.getElementById("QRCODE_PDF").src = QrCodePath;
+    }
+</script>
+<script>
+    function OpenSendSms(e) {
+        if (QrCodePath.length == 0) {
+            alert("Please Choose Center")
+            setTimeout(function () { CenterDD.focus() }, 1);
+            return;
+        }
+        $('#SendSms_Donation').modal('show');
+    }
+    $('#SendSms_Donation').on('shown.bs.modal', function () {
+        $('#MobileNoInput').focus();
+    })
+    function MobileNo_OnInput(e) {
+        var target = e.target;
+        var data = target.value
+        var dataFull = data.replace(/[^0-9]/gi, '');
+        target.value = dataFull;
+    }
+    function SendSmsClick(e)
+    {
+        if (document.getElementById("MobileNoInput").value.length < 10)
+        {
+            alert("Enter 10 Digit Mobile No.")
+            setTimeout(function () { document.getElementById("MobileNoInput").focus() }, 1);
+            return;
+        }
+        $("#overlay").show();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Donation/ShareQRCodeLink",
+            cache: false,
+            data:
+            {
+                cenid: CenID,
+                MobileNoInput: document.getElementById("MobileNoInput").value
+            },
+            success: function (data)
+            {
+                AjaxSuccess_SendSms(data);
+            }
+        });       
+    }
+    function AjaxSuccess_SendSms(data)
+    {
+        $("#overlay").hide();
+        document.getElementById("SendSmsModalCloseBtn").click();     
+        alert(data.ResultString.replace(/<br>/g, "\n"))       
+    }
+</script>

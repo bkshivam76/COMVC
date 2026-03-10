@@ -1,0 +1,379 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var RequisitionID = (string)ViewData["PO_RequisitionID"];
+    string PurchaseExportGridHeaderLeft = (string)ViewData["PurchaseExportGridHeaderLeft"] != null ? ViewData["PurchaseExportGridHeaderLeft"].ToString() : "";
+    string PurchaseExportGridHeaderRight = (string)ViewData["PurchaseExportGridHeaderRight"] != null ? ViewData["PurchaseExportGridHeaderRight"].ToString() : "";
+    string PurchaseExportGridFooter = (string)ViewData["PurchaseExportGridFooter"] != null ? ViewData["PurchaseExportGridFooter"].ToString() : "";
+
+    bool PO_UpdateRight = (bool)ViewData["PO_UpdateRight"];
+    bool PO_ViewRight = (bool)ViewData["PO_ViewRight"];
+    bool PO_ExportRight = (bool)ViewData["PO_ExportRight"];
+    bool PO_AccResponsibleRight = (bool)ViewData["PO_AccResponsibleRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "PurchaseRegisterGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "PurchaseRegister",
+            Action = "Frm_PurchaseRegister_Info_Grid",
+            SessionGUID = SessionGUID
+            //FromDate = Session["PurchaseFromDate"],
+            //ToDate = Session["PurchaseToDate"]
+        };
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = false;// set false for simultaneous nested grid
+        settings.SettingsDetail.ShowDetailRow = true; //set true for nested grid
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsResizing.ColumnResizeMode = DevExpress.Web.ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = DevExpress.Web.ResizingMode.Live;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.Expanded;
+        settings.SettingsExport.PageHeader.Center = "Purchase Register";
+        settings.SettingsExport.PageHeader.Left = PurchaseExportGridHeaderLeft;
+        settings.SettingsExport.PageHeader.Right = PurchaseExportGridHeaderRight;
+        settings.SettingsExport.PageFooter.Right = PurchaseExportGridFooter;
+        settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) => //bind nested grid
+        {
+            int PO_ID = (int)DataBinder.Eval(e.DataItem, "ID");
+            GridViewExtension griditempurchase = new GridViewExtension(ConnectOneMVC.Areas.Stock.Controllers.PurchaseRegisterController.PurchaseRegisterNestedGridSettings(PO_ID));
+            griditempurchase.Bind(ConnectOneMVC.Areas.Stock.Controllers.PurchaseRegisterController.GetItemPurchase(PO_ID));
+            e.DetailGridViews.Add(griditempurchase);
+        };
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            Html.RenderAction("Frm_PurchaseRegister_ItemPurchase_Grid", new { PO_ID = DataBinder.Eval(c.DataItem, "ID") });
+        });
+
+        settings.CustomDataActionRouteValues = new { Controller = "PurchaseRegister", Action = "PurchaseRegisterCustomDataAction" };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.HtmlRowPrepared = (s, e) =>
+        {
+            if (RequisitionID.Length > 0)
+            {
+                if (e.GetValue("RequisitionID") != null && e.GetValue("RequisitionID").ToString().Trim() == RequisitionID.Trim())
+                {
+                    e.Row.ForeColor = System.Drawing.Color.DeepSkyBlue;
+                }
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var Edit = e.CreateItem("Edit", "Edit");
+                Edit.Image.IconID = "actions_edit_16x16devav";
+                if (PO_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edit);
+
+                var Viewitem = e.CreateItem("View", "View");
+                Viewitem.Image.IconID = "actions_show_16x16gray";
+                if (PO_ViewRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_export_16x16devav";
+                if (PO_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+
+                var PH = e.CreateItem("Show Item Price History", "PriceHistory");
+                // PH.Image.IconID = "actions_driving_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PH);
+
+                var AddDoc = e.CreateItem("Add Documents", "Adddocuments");
+                AddDoc.Image.IconID = "actions_newdoc_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AddDoc);/*Mantis bug 0000896 fixed*/
+
+                var PComplete = e.CreateItem("Mark As Complete", "MarkComplete");
+                PComplete.Image.IconID = "actions_task_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PComplete);
+
+                var ViewRR = e.CreateItem("View Linked Latest RR", "ViewLinkedLatestRR");
+                //AddItemRec.Image.IconID = "actions_productsalesreport_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), ViewRR);
+
+                var AddItemRec = e.CreateItem("Post Delivery Received", "AddItemReceived");
+                //AddItemRec.Image.IconID = "actions_productsalesreport_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AddItemRec);
+
+                var AddItemRet = e.CreateItem("Post Return on Delivery", "AddItemReturned");
+                //Addmachine.Image.IconID = "actions_newproducts_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AddItemRet);
+
+                var AddDeliverytoLinkedUO = e.CreateItem("Post Delivery to Latest Linked UO", "AddDeliverytoLinkedUO");
+                // Adddocuments.Image.IconID = "actions_newdoc_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AddDeliverytoLinkedUO);
+
+                var ViewLinkedUO = e.CreateItem("View Linked Latest UO", "ViewLinkedUO");
+                //Addmanpower.Image.IconID = "actions_newcustomers_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), ViewLinkedUO);
+
+                var mappayment = e.CreateItem("Map Payment to PO", "mappayment");
+                //mappayment.Image.IconID = "scheduling_monthview_16x16gray";
+                if (PO_AccResponsibleRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), mappayment);
+            }
+        };
+        //settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+        settings.KeyFieldName = "ID";
+
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PO_No";
+                column.Caption = "Purchase  Order No.";
+                //column.Width = 75;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PO_Date";
+                column.Caption = "PO Date";
+                //column.Width = 75;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";  //mantis bug  1048
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "RequisitionID";
+                column.Caption = "Requisition ID";
+                //column.Width = 100;
+                // column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PO_Status";
+                column.Caption = "PO Status";
+                //column.Width = 80;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "DeliveryStatus";
+                column.Caption = "Delivery Status";
+                //column.Width = 110;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PaymentStatus";
+                column.Caption = "Payment Status";
+                //column.Width = 100;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Req_Dest_Location";
+                column.Caption = "Requisition Destination";
+                //column.Width = 105;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "TotalAmount";
+                column.Caption = "Total Amount";
+                //column.Width = 125;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Supplier";
+                column.Caption = "Supplier";
+                //column.Width = 125;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Project";
+                column.Caption = "Project Name";
+                //column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Job";
+                column.Caption = "Job Name";
+                //column.Width = 125;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requestor_Dept";
+                column.Caption = "Requestor Department Name";
+                //column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requestor";
+                column.Caption = "Requestor’s Name";
+                //column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedOn";
+                column.Caption = "Rec.Add On";
+                //column.Width = 175;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedBy";
+                column.Caption = "Rec.Add by";
+                //column.Width = 175;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "EditedOn";
+                column.Caption = "Rec.Edit On";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "EditedBy";
+                column.Caption = "Rec.Edit By";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ID";
+                column.Caption = "ID";
+                column.Visible = false;
+                //column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "CurrUserRole";
+                column.Caption = "Current User Role";
+                column.Visible = false;
+            }
+        });
+        settings.PreRender = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            grid.FilterExpression = "";
+        };
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        settings.SettingsCookies.Enabled = true;
+        settings.SettingsCookies.CookiesID = "POCookie";
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+        }
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        //settings.Settings.ShowGroupedColumns = ShowGroupedColumns;
+        settings.Settings.ShowFooter = false;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.ClientSideEvents.Init = "PurchaseRegisterOnInit";
+        settings.ClientSideEvents.ContextMenuItemClick = "PurchaseRegisterContextMenuFunction";
+        settings.ClientSideEvents.FocusedRowChanged = "PurchaseRegisterGridFocusedRowChanged";
+        settings.ClientSideEvents.DetailRowExpanding = "ExpandPurchaseRow";
+        settings.ClientSideEvents.DetailRowCollapsing = "CollapsePurchaseRow";
+        settings.ClientSideEvents.BeginCallback = "PurchaseRegisterGrid_BeginCallBack";
+        settings.ClientSideEvents.EndCallback = "PurchaseRegisterGrid_EndCallBack";
+        settings.ClientSideEvents.RowDblClick = "PurchaseRegister_EditClick";
+
+    }).Bind(Model).GetHtml()

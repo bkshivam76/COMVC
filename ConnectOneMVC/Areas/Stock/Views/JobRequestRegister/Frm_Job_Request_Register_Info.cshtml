@@ -1,0 +1,1189 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@*@model ConnectOneMVC.Areas.Stock.Models.JobRequestRegister_Info*@
+    
+@{ 
+    bool Job_AddRight= (bool) ViewData["Job_AddRight"];
+    bool Job_UpdateRight = (bool) ViewData["Job_UpdateRight"];
+    bool Job_ViewRight = (bool) ViewData["Job_ViewRight"];
+    bool Job_DeleteRight = (bool) ViewData["Job_DeleteRight"];
+    bool Job_ExportRight = (bool) ViewData["Job_ExportRight"];
+    bool Job_ReportRight = (bool) ViewData["Job_ReportRight"];
+    bool Job_personnelNewRight = (bool) ViewData["Job_personnelNewRight"];
+    bool Job_storemasterNewRight = (bool) ViewData["Job_storemasterNewRight"];
+    bool Job_ProjectScreenNewright = (bool) ViewData["Job_ProjectScreenNewright"];
+    bool Job_personnelViewRight = (bool) ViewData["Job_personnelViewRight"];
+    bool Job_AccVouPayNewRight = (bool) ViewData["Job_AccVouPayNewRight"];
+}
+<style>
+    .dx-toolbar-after .dx-button-content {
+        padding-right: 0px !important;
+    }
+
+    .padd {
+        padding-left: 10px !important;
+    }
+
+    .padd15 {
+        padding-left: 15px !important;
+    }
+
+    .dx-texteditor-container {
+        overflow: visible
+    }
+
+    .dx-state-disabled .dx-texteditor-input {
+        color: darkgoldenrod;
+    }
+
+    .padd70 {
+        padding-left: 70px !important;
+    }
+
+    /*.dx-icon {
+        line-height: 14px !important;
+        font-size: 18px !important;
+    }*/
+
+    /*#JobMore > div {
+        padding: 2px 8px;
+        min-width: auto;
+        height: 26px;
+    }
+
+    #JobMore > div > span {
+        vertical-align: baseline;
+        margin-left: 0 !important;
+    }*/
+
+    /*#More_Btn {
+        display: inline-flex;
+        padding: 2px 0 !important;
+        margin: 0 5px 0px 5px;
+        height: 26px !important;
+        background: #ceefff;
+        width: 30px;
+        min-height: 20px !important;
+        border: 1px solid #9fcdfc;
+    }
+    #More_Btn input {
+        background: linear-gradient(to bottom, #fbfdff 0%,#9fcdfc 64%,#ceefff 140%);
+        padding-bottom: 16px !important;
+    }
+    #More_Btn .dx-placeholder {
+        display: none;
+    }
+    .dx-dropdowneditor-overlay .dx-overlay-content {
+        width: 165px !important;
+        right: -30px !important;
+        left: auto !important;
+    }*/
+</style>
+<script>
+    function LookUp_ViewType_ChangeEvent_JRR(e)
+    {
+        var SelectBox = $("#JobRRPeriodSelection").dxSelectBox("instance").option("value");
+        $("#JobRRChangePeriodMain").dxButton("instance").option("disabled", true);
+        if (SelectBox == "Specific Period") {
+            $("#JobRRChangePeriodMain").dxButton("instance").option("disabled", false);
+            $("#JobRR_View_Period").dxTextBox("instance").option("value", "");
+            JobChangePeriodinLayout();
+        }
+        else {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/JobRequestRegister/LookUp_ViewType_ChangeEvent_JRR",
+                data: { Chaval: $("#JobRRPeriodSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == true)
+                    {
+                        $("#JobRR_View_Period").dxTextBox("instance").option("value", data.Message.JobRR_BE_View_Period);
+
+                        var fromdate = ConvertJsonDateToString(data.Message.JobRR_Fromdate);
+                        var todate = ConvertJsonDateToString(data.Message.JobRR_Todate);
+
+                        ShowLoader();
+                        JobRequestRegisterListGrid.Refresh();
+                        @*$("#JobRRPartialView").load("@Url.Action("Frm_Job_Request_Register_Info", "JobRequestRegister", new { @area = "Stock" })?FromDate=" +fromdate + "&Todate=" + todate + "&ChangeStatus=False", function () {
+                            HideLoader();
+                        });*@
+                        HideLoader();
+                    }
+                }
+            });
+            HideLoader();
+        }
+    }//Period Selection
+    function JobChangePeriodinLayout()
+    {
+   
+        ShowLoader();
+ 
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_JRR", "JobRequestRegister", new { @area = "Stock" })", "auto", "45%", false, null);
+    }
+
+</script>
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-3 report_header_div">
+        <label class="report_header_label">Job Request Register</label>
+    </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("JobCostComparison").Text("Job Cost Comparison Report").Icon("columnchooser").OnClick(@<text> function() { jobrrJobCost(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobQuickJob").Text("Add Quick Job").Icon("runner").OnClick(@<text> function() { jobrrQuickjob();   } </text>))
+        @(Html.DevExtreme().Button().ID("JobNew").Text("New").Icon("add").OnClick(@<text> function () { jRR_NEVD_Click_New(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobEdit").Text("EDIT").Icon("edit").OnClick(@<text> function () { jRR_NEVD_Click_Edit(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { jRR_NEVD_Click_Delete(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobView").Text("View").Icon("doc").OnClick(@<text> function () { jRR_NEVD_Click_View(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobListPreview").Text("List Export").Icon("save").OnClick(@<text>function(){ JobRequestRegisterPreviewClick();} </text>))
+        @(Html.DevExtreme().Button().ID("JobRR_MasterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {JobRR_MasterchangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("JobCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+        @*<div class="dropdown moreBtns">
+                <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown"><b class="caret"></b> More </a>
+                <ul class="dropdown-menu">
+                    <li>option 1</li>
+                    <li>option 2</li>
+                </ul>
+            </div>*@
+    </div><!--[Buttons]-->
+</div>
+<div id="jobdateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().ID("JobRRPeriodSelection").Name("JobRRPeriodSelection").Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).DataSource(d => d.Mvc().Controller("JobRequestRegister").LoadAction("LookUp_Get_ViewType_List_JRR").Key("Value")).SearchEnabled(true).ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent_JRR") )
+        </div><!--[Select Date]-->
+        <div class="col-md-2 no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("JobRRChangePeriodMain").Text("Change Period").Disabled(true).OnClick(@<text> function (){ JobChangePeriodinLayout(); } </text>))
+        </div><!--[Change Period]-->
+        <div class="col-sm-4 col-md-3 subHead">
+            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                <div class="">
+                    @(Html.DevExtreme().TextBox().ID("JobRR_View_Period").Name("JobRR_View_Period").Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100) )
+                </div>
+            </div>
+        </div><!--[View Period TextBox]-->
+    </div>
+    <div class="row">
+        <div class="col-md-12 padd15">
+            <div id="JobRRPartialView" class="parent_table">
+                <form>
+                    @Html.Partial("Frm_Job_Request_Register_Grid", Model)
+                </form>
+            </div>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer">
+            <div class="list_footer_left_margin">
+                <p id="JobRRLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                <p id="JobRRLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+            </div>
+        </div><!--[Grid Footer]-->
+    </div>
+    <div class="row margin10">
+        <div class="row pad-lft-20">
+            <form>
+
+                @(Html.DevExtreme().Button().ID("JobIDAssEstSub").Text("Assign for Estimate Submission").OnClick(@<text> function () { UpDateJobStatus("Estimation_Submission") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDReOpen").Text("Re-Open Job").OnClick(@<text> function () { UpDateJobStatus("Reopen_Job") } </text>) )
+                @(Html.DevExtreme().Button().ID("JobIDSubEstApr").Text("Submit for Estimate Approval").OnClick(@<text> function () { UpDateJobStatus("Estimate_Approval") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDChngRecom").Text("Change Recommended").OnClick(@<text> function () { UpDateJobStatus("Changes Recommended") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDApr").Text("Approve").OnClick(@<text> function () { UpDateJobStatus("Approve") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDRej").Text("Reject").OnClick(@<text> function () { UpDateJobStatus("Reject") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDCnclJob").Text("Cancel Job").OnClick(@<text> function () { UpDateJobStatus("Cancel") } </text>))
+                @(Html.DevExtreme().Button().ID("JobIDMrkAsCmpltd").Text("Mark as Complete").OnClick(@<text> function(){ UpDateJobStatus("Complete");} </text>))
+            </form>
+        </div>
+    </div>
+
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("JobRequestRegister_report_modal").Title("Job Request Register").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="id_JobRequestRegister_Result"></div> </text>))
+@*@(Html.DevExtreme().Popup().CustomPopup().ID("Jobinnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").MaxHeight(600).MaxWidth(1400).ContentTemplate(@<text> <div id="result_Jobinnergrid">  </div> </text>))*@@*//Mantis bug 0000421 fixed*@
+@(Html.DevExtreme().Popup().CustomPopup().ID("NPR_Content_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true))
+@(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_quick_JRR").Title("Quick Job").OnShowing("PopupOnShowing").OnHidden("QJ_PopupOnHidden").DragEnabled(true).Height(250).Width(850).ShowCloseButton(true).ContentTemplate(@<text> <div id="popup_frm_quick_result_JRR"> </div> </text>))
+<script type="text/javascript">
+    var hiddenEventHandler1 = function (e) {
+        $("#result_Dynamic_Content_popupJRR").html(null); // We need to clear all inner div content before we close each popup
+    };
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/JobRequestRegister/SessionClear",
+            cache: false
+        });
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/JobRequestRegister/InfoSessionclear",
+            cache: false
+        });        
+        DeleteCookie("Stock_JobCookie");
+    });
+        function jRR_NEVD_Click_New()
+        {
+            if (!JobRRNewright)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+                return;
+            }      
+            ShowLoader();
+            $.ajax({
+                type: "Get",
+                url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+                data: {
+                    ActionMethod: "New"
+                },
+                success: function (data)
+                {                   
+                        OpenDynamicPopup("New ~ Job Request", null, "auto", "90%", true, data);
+                }
+            });
+        }
+    function jRR_NEVD_Click_Edit() {
+        if (!JobRREditright) {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+            }
+
+        if (JobStatus == "Completed") {
+            DevExpress.ui.dialog.alert("Completed Job Cannot Be Edited..!!", "Error");
+            return;
+        }
+        var check = Job_datanavigation();
+        if (check[1] == false)
+        {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+            var statusflowcheck = Job_StatusFlowCheck("Edit");
+            if (statusflowcheck[1] == false) {
+                DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+                return;
+            }
+            JobIsEditPopup = true;
+ 
+            ShowLoader();
+            $.ajax({
+                type: "Get",
+                url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+                data: {
+                    ActionMethod: "Edit",
+
+                    ID: Job_ID
+
+                },
+                success: function (data)
+                {                    
+                        OpenDynamicPopup("Edit ~ Job Request", null, "auto", "90%", true, data);
+                }
+            });
+    }
+        function jRR_NEVD_Click_Delete()
+        {
+            if (!JobRRDeleteright) {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+                return;
+            }
+            if (!Job_ID)
+            {
+                DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+                return;
+            }
+            if (JobStatus == "Completed")
+            {
+                DevExpress.ui.dialog.alert("Completed Job Cannot Be Deleted..!!", "Error");
+                return;
+            }
+
+            var check = Job_datanavigation("Delete");
+            if (check[1] == false)
+            {
+                DevExpress.ui.dialog.alert(check[0], "Error");
+                return;
+            }
+            var statusflowcheck = Job_StatusFlowCheck("Delete");
+            if (statusflowcheck[1] == false) {
+                DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+                return;
+            }     
+            ShowLoader();
+            $.ajax({
+                type: "Get",
+                url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+                data: {
+                    ActionMethod: "Delete",
+
+                    ID: Job_ID
+                },
+                success: function (data)
+                {
+                    OpenDynamicPopup("Delete ~ Job Request", null, "auto", "90%", true, data);
+                }
+            });
+        }
+        function jRR_NEVD_Click_View()
+        {
+            if (!JobRRViewright) {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+                return;
+            }
+            if (!Job_ID) {
+                DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+                return;
+            }
+      
+            ShowLoader();
+            $.ajax({
+                type: "GET",
+                url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+                data: {
+                    ActionMethod: "View",
+
+                    ID: Job_ID
+                },
+                success: function (data)
+                {
+                    OpenDynamicPopup("View ~ Job Request", null, "auto", "90%", true, data);
+                }
+            });
+    }
+
+        function jobrrQuickjob()
+        {
+            if (!JobRRNewright)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+                return;
+            }   
+            $("#quickJobvalidationForm").remove();
+        ShowLoader();
+        $.ajax({
+            type: "GET",
+            url: "/Stock/JobRequestRegister/Job_Request_Requestor_Quick",
+            data: {},
+            success: function (data) {
+                if (data.result == "NoAddRights") {
+                    $("#JobQuickJob").hide();
+                    DevExpress.ui.dialog.alert(data.Message, "Warning");
+                }
+                else {
+                    OpenPopup("popup_frm_quick_JRR","New ~ Quick Job Request", null, "auto", "90%", true, data);     
+                  
+                }
+            }
+        });
+    }
+    function JobRequestRegisterPreviewClick() {
+        if (!JobRRExportright) {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        $("#JobRequestRegister_report_modal").dxPopup("show");
+        $("#JobRequestRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#id_JobRequestRegister_Result").html('');
+        ShowLoader();
+        $("#id_JobRequestRegister_Result").load("@Url.Action("Frm_Export_Options", "JobRequestRegister", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }//preview click
+    
+    function JobRegisterContextMenuFunction(s, e)
+        {
+          if (e.item.name == 'New')
+          {
+              jRR_NEVD_Click_New();
+          }
+          else if (e.item.name == 'Close')
+          {
+              btnCloseActiveTab();
+          }
+         else if (e.item.name == 'Edit')
+         {
+              jRR_NEVD_Click_Edit();
+         }
+         else if (e.item.name == 'Delete')
+          {
+              jRR_NEVD_Click_Delete();
+         }
+          else if (e.item.name == 'View')
+          {
+              jRR_NEVD_Click_View();
+          }
+         else if (e.item.name == 'ListPreview')
+         {
+                JobRequestRegisterPreviewClick();
+         }
+          else if (e.item.name == 'QuickJob') {
+              jobrrQuickjob();
+          }
+          else if (e.item.name == 'MarkComplete')
+          {
+              UpDateJobStatus("Complete");
+          }
+          else if (e.item.name == 'Addexp')
+          {
+              jobrrAddExpenses();
+          }
+          else  if (e.item.name == 'Addmachine')
+          {
+              jobrrAddMachine();
+          }
+          else if (e.item.name == 'Adddocuments')
+          {
+              jobrrAddDocuments();
+          }
+          else if (e.item.name == 'Addmanpower')
+          {
+              Job_Context_Menu_AddManpowerUsage = true;//Mantis bug 0000541 fixed
+              jobrrAddManpower();
+          }
+          else if (e.item.name == 'postmanhr')
+          {
+              jobrrPostmanhr();
+          }
+          else if (e.item.name == 'jobcard')
+          {
+              jobrrJobCard();
+          }
+          else if (e.item.name == 'jobcost')
+          {
+              jobrrJobCost();
+          }
+         else if (e.item.name == 'Refresh')
+         {
+           JobRequestRegisterListGrid.Refresh();
+         }
+
+    }
+    function jobrrPostmanhr()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        if (JobStatus == "Completed") {
+            DevExpress.ui.dialog.alert("Manpower Hour Cannot Be Posted To Completed Job..!!", "Error");
+            return;
+        }
+        var check = Job_StatusFlowCheck("Post Manpower Hour");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function jobrrJobCard()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var check = Job_StatusFlowCheck("Generate Job Card");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function jobrrJobCost()
+    {
+        if (!JobRRReportright) {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var check = Job_StatusFlowCheck("Generate Job Cost Compare Report");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function QJ_PopupOnHidden(e)
+    {
+        $("#quickJobvalidationForm").remove();
+    }
+    function OnJobRequestRegisterAjaxSuccessForm(data) {
+
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == true) {
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            if (JobIsEditPopup == true) {
+                JobIsEditPopup = false;
+                if (JobStatus == "Changes Recommended") {
+                    if (data.isRequestor == true) {
+                        var result = DevExpress.ui.dialog.confirm("Do You Want To Re-open The Job", "Change Status");
+                        result.done(function (dialogResult) {
+                            if (dialogResult) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Stock/JobRequestRegister/JobStatusToNew",
+                                    cache: false,
+                                    async: false,
+                                    data: {
+                                        jobid: Job_ID
+                                    },
+                                    success: function (check) {
+                                        if (check.result == false) {
+                                            DevExpress.ui.dialog.alert(check.message, "Error")
+                                        }
+                                        else {
+                                            DevExpress.ui.dialog.alert(check.message, "Inform")
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        );
+                    }
+                }
+            }
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            $("#result_Dynamic_Content_popupJRR").html(null);
+            $("#popup_frm_quick_JRR").dxPopup("hide");
+            $("#jobvalidationForm").remove();
+            $("#quickJobvalidationForm").remove();
+                    JobRequestRegisterListGrid.Refresh();
+
+                }
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Inform");
+                }
+            }
+
+
+    function jobrrAddDocuments()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = Job_StatusFlowCheck("Documents");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = Job_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+            $("#ID_Frm_Help_Document_Attach").remove();
+            ShowLoader();
+
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/Frm_Attachment_Window",
+                data: {
+                    AM: "New",
+                    PostSucessFunctionName: "Frm_InnerGrid_DirectAdd_OnSuccess",
+                    Post_action_Name: "Job_Documents_Attachment",
+                    Post_Controller_Name: "JobRequestRegister",
+                    Post_Area_Name: "Stock",
+                    Document_Grid_PopupName: "Jobinnergrid",
+                    ByteSessionVariable: "JobDocument",
+                    Refrecid: Job_ID.toString()
+                },
+                cache: false,
+                success: function (data) {
+                    
+                    OpenPopup("Jobinnergrid","New ~ Documents", null, "auto", 900, true, data);     
+                  
+                }
+            });
+           
+    }//Mantis 0000213 bug fixed
+    function jobrrAddManpower()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = Job_StatusFlowCheck("Manpower Usage");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        if (JobStatus == "Completed")
+        {
+            DevExpress.ui.dialog.alert("Manpower Cannot Be Added To Comlpeted Job..!!", "Error");
+            return;
+        }
+
+        var check = Job_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/JobRequestRegister/Frm_Add_Manpower_Usage",
+                data: {
+                    ActionMethod: "New",
+                    jobid: Job_ID,
+                },
+                cache: false,
+                success: function (data) {
+                 
+                    OpenPopup("Jobinnergrid", "New ~ Manpower Usage", null, "auto", 900, true, data);  
+                  
+                }
+            });
+
+
+    }
+    function jobrrAddMachine()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = Job_StatusFlowCheck("Machine Usage");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        if (JobStatus == "Completed") {
+            DevExpress.ui.dialog.alert("Machine Cannot Be Added To Comlpeted Job..!!", "Error");
+            return;
+        }
+
+        var check = Job_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/JobRequestRegister/Frm_Job_Machinery_Used",
+                data: {
+                    ActionMethod: "New",
+                    jobid: Job_ID
+                },
+                cache: false,
+                success: function (data)
+                {
+                  
+                    OpenPopup("Jobinnergrid", "New ~ Machine Usage", null, "auto", 1024, true, data);
+                 
+                }
+            });
+    }
+    function jobrrAddExpenses()
+    {
+        if (!Job_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = Job_StatusFlowCheck("Expenses");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        if (JobStatus == "Completed") {
+            DevExpress.ui.dialog.alert("Expenses Cannot Be Added To Comlpeted Job..!!", "Error");
+            return;
+        }
+
+        var check = Job_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+        $("#Jobinnergrid").dxPopup("show");
+        $("#Jobinnergrid").dxPopup("instance").option("title", "New ~ Expenses");
+        $("#Jobinnergrid").dxPopup("instance").option("width", "65%");
+        $("#Jobinnergrid").dxPopup("instance").option("height", "65%");
+        $("#result_Jobinnergrid").html(null);
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/JobRequestRegister/Frm_Job_Expense_Details",
+            data: {
+                Job_ID: Job_ID,
+                CallingPage:"Info"
+            },
+            cache: false,
+            success: function (data) {
+               
+                OpenPopup("Jobinnergrid", "New ~ Expenses", null, "auto", 900, true, data);
+               
+            }
+        });
+    }
+    function Frm_InnerGrid_DirectAdd_OnSuccess(data)
+        {
+            if (data.result == true) {
+                $("#Jobinnergrid").dxPopup("hide");
+                DevExpress.ui.dialog.alert(data.message, "Inform");
+                JobRequestRegisterListGrid.Refresh();
+                HideLoader();
+            }
+            if (data.result == false) {
+                $("#Jobinnergrid").dxPopup("hide");
+                DevExpress.ui.dialog.alert(data.message, "Inform");
+                HideLoader();
+            }
+    }
+    function Frm_Job_Manpower_Usage_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+            $("#Jobinnergrid").dxPopup("hide");
+            JobActual_ManPower_Usage_Grid.SetFocusedRowIndex(-1);
+            JobActual_ManPower_Usage_Grid.Refresh();
+        }
+        else
+        {
+            $("#Jobinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            JobRequestRegisterListGrid.Refresh();
+            HideLoader();
+        }
+    }
+    function Frm_Job_Machine_Window_OnSuccess(data)
+    {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+            $("#Jobinnergrid").dxPopup("hide");
+            Job_Machine_Usage_Window_Grid.SetFocusedRowIndex(-1);
+            Job_Machine_Usage_Window_Grid.Refresh();
+        }
+        else
+        {
+            $("#Jobinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            JobRequestRegisterListGrid.Refresh();
+            HideLoader();
+        }
+    }
+    function Job_datanavigation(_actionmethod)
+    {
+        if (!_actionmethod) { _actionmethod = null; }
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            async:false,
+            url: "/Stock/JobRequestRegister/DataNavigation",
+            data: {
+                jobid: Job_ID,
+                actionmethod: _actionmethod
+            },
+            cache: false,
+            success: function (data)
+            {
+                msg = data.Message;
+                result = data.result;
+            }
+        });
+
+        return [msg, result];
+    }
+    function Job_StatusFlowCheck(Status)
+    {        
+        var msg;
+        var result;
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/JobRequestRegister/JobRequestStatusFlow",
+            data: {
+                JobId: Job_ID,
+                StatusButton: Status,
+                CurrUserRole: JobCurrUserRole
+            },
+            async: false,
+            cache: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+        return [msg, result];
+    }
+
+</script>
+<script type="text/javascript">
+        var JobRRAddedBy = "";
+        var JobRRAddedOn = "";
+        var JobRREditedBy = "";
+        var JobRREditedOn = "";
+        var JobStatus;
+        var Job_ID;
+        var JobRR_Master_ShowHorizontalBar = 0;
+        var JobRRNewright;
+        var JobRREditright;
+        var JobRRDeleteright;
+        var JobRRViewright;
+        var JobRRExportright;
+    var JobRRReportright;
+    var Job_personnelNewRight;
+    var Job_storemasterNewRight;
+    var Job_ProjectScreenNewright;
+    var JobCurrUserRole=[];
+    var JobRequestor;
+    var JobIsEditPopup = false;
+    var isJobGridRefresh = false;
+    var Job_Context_Menu_AddManpowerUsage = false;//Mantis bug 0000541 fixed
+
+        $(document).ready(function ()
+        {
+            @*if ('@ViewBag.Change' != "Change")
+                {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/JobRequestRegister/SetDate",
+                    cache: false,
+                    success: function (data) {
+                        $("#JobRRPeriodSelection").dxSelectBox("instance").option("value", data.Message);
+                    }
+                });
+            }*@
+
+            var DefaultDateString = '@ViewBag.DefualtDateString';
+            $("#JobRRPeriodSelection").dxSelectBox("instance").option("value", DefaultDateString);
+
+            JobRRNewright = ("@Job_AddRight" == "True") ? true : false;
+            JobRREditright = ("@Job_UpdateRight" == "True") ? true : false;
+            JobRRDeleteright = ("@Job_DeleteRight" == "True") ? true : false;
+            JobRRViewright = ("@Job_ViewRight" == "True") ? true : false;
+            JobRRExportright = ("@Job_ExportRight" == "True") ? true : false;
+            JobRRReportright = ("@Job_ReportRight" == "True") ? true : false;
+            Job_personnelNewRight = ("@Job_personnelNewRight" == "True") ? true : false;
+            Job_storemasterNewRight = ("@Job_storemasterNewRight" == "True") ? true : false;
+            Job_ProjectScreenNewright = ("@Job_ProjectScreenNewright" == "True") ? true : false;
+            Job_personnelViewRight = ("@Job_personnelViewRight" == "True") ? true : false;
+
+            if (JobRRNewright != true)
+            {
+                $("#JobNew").hide();
+                $("#JobQuickJob").hide();
+            }
+            if (JobRREditright != true)
+            {
+                $("#JobEdit").hide();
+            }
+            if (JobRRDeleteright != true)
+            {
+                $("#JobDelete").hide();
+            }
+            if (JobRRViewright != true)
+            {
+                $("#JobView").hide();
+            }
+            if (JobRRExportright != true)
+            {
+                $("#JobListPreview").hide();
+            }
+            if (JobRRReportright != true)
+            {
+                $("#JobCostComparison").hide();
+            }
+            if(Job_personnelNewRight != true)
+            {
+                $("#ID_Add_Assignee").hide();
+                $("#JobAddrequestor").hide();
+                $("#Job_Add_Person_Type").hide();
+            }//Mantis bug 0000441 fixed            
+            if (Job_storemasterNewRight != true)
+            { 
+                $("#Job_Add_Dept").hide();
+            }//Mantis bug 0000441 fixed
+            if (Job_ProjectScreenNewright != true)
+            { 
+                $("#Job_AddProject").hide();
+            }//Mantis bug 0000441 fixed
+        
+        var SelectBox = $("#JobRRPeriodSelection").dxSelectBox("instance").option("value");
+            if (SelectBox == "Specific Period")
+            {
+            $("#JobRRChangePeriodMain").dxButton("instance").option("disabled",false);
+        }
+        });//document ready function(setting default date & check rights)
+    $("#JobRequestRegisterListGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                jRR_NEVD_Click_New();
+                break;
+            case 13: //enter key
+                jRR_NEVD_Click_Edit();
+                break;
+            case 32: //space bar
+                //jRR_NEVD_Click_View();//mantis #1398
+                break;
+            case 46://delete key
+                jRR_NEVD_Click_Delete();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            jRR_NEVD_Click_New();
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            jRR_NEVD_Click_Edit();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            //jRR_NEVD_Click_View(); //mantis #1398
+        }
+    });
+        function Job_RegisterAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            JobRequestRegisterListGrid.SetHeight(height);
+        }
+        function JobRegisterOnInit(s, e)
+        {
+           Job_RegisterAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+            {
+                Job_RegisterAdjustSize();
+            });
+            s.SetFocusedRowIndex(-1);
+    }
+    var JobGridFocusedIndex;
+        function JobRegisterGrid_BeginCallBack(s, e)
+        {
+            e.customArgs["command"] = e.command;
+            if (e.command == "REFRESH")
+            {
+                isJobGridRefresh = true;//1253 bug fix
+                JobGridFocusedIndex = s.GetFocusedRowIndex();//1253 bug fix
+            }
+            e.customArgs["ShowHorizontalBar"] = JobRR_Master_ShowHorizontalBar;
+        }
+        function JobRegisterGrid_EndCallBack(s, e)
+        {
+            Job_RegisterAdjustSize();
+            if (isJobGridRefresh)//1253 bug fix
+            {
+                isJobGridRefresh = false;//1253 bug fix
+                s.SetFocusedRowIndex(-1);//1253 bug fix
+                s.SetFocusedRowIndex(JobGridFocusedIndex);//1253 bug fix
+            }
+            SendCustomArgs_FilterControl(s, e);
+        }
+        function JobRegisterGridFocusedRowChanged(s, e)
+        {          
+            if (s.GetFocusedRowIndex() == -1)
+            {
+                Job_ID = 0;
+                JobRRAddedBy = null;
+                JobRRAddedOn = null;
+                JobRREditedBy = null;
+                JobRREditedOn = null;
+                JobStatus = null;
+                JobCurrUserRole = null;
+            }
+            else
+            {
+                Job_ID = s.GetRowKey(s.GetFocusedRowIndex());
+                s.GetValuesOnCustomCallback({ key: Job_ID }, Job_Request_RegisterGetRowValues);
+            }
+        }
+    function Job_Request_RegisterGetRowValues(Data) {
+        //mantis #1499
+        if (Data != "") { 
+            var values = Data.split("![");
+            JobRRAddedBy = values[2];
+            JobRRAddedOn = values[3];
+            JobRREditedBy = values[0];
+            JobRREditedOn = values[1];
+            JobStatus = values[4];
+            if (values[5] != "") //mantis #1499
+            {
+                JobCurrUserRole = (values[5].split(','));
+                for (var i = 0; i < JobCurrUserRole.length; i++) {
+                    JobCurrUserRole[i] = JobCurrUserRole[i].trim();
+                }
+            }
+            JobRequestor = values[6];
+            JobRegister_UpdateFooterDetail(JobRRAddedOn, JobRRAddedBy, JobRREditedBy, JobRREditedOn);
+        }
+    }
+        function JobRegister_UpdateFooterDetail(Addon, Addby, Editby, Editon)
+            {
+                var Lbl_Create = "";
+                var Lbl_Modify = "";
+            if (Addon) {
+                    Lbl_Create = "Add On: " + Addon + ", Add By: " + Addby;
+                }
+                else {
+                    Lbl_Create = "Add On: " + "?, Add By: " + Addby;
+                }
+            if (Editon) {
+                    Lbl_Modify = "Edit On: " + Editon + ", Edit By: " + Editby;
+                }
+                else {
+                    Lbl_Modify = "Edit On: " + "?, Edit By: " + Editby;
+                }
+            $('#JobRRLbl_Create').text(Lbl_Create);
+            $('#JobRRLbl_Modify').text(Lbl_Modify);
+            }
+        function JobRR_MasterchangeMode()
+            {
+         ShowLoader();
+            if (JobRR_Master_ShowHorizontalBar == 0) {
+                JobRR_Master_ShowHorizontalBar = 1;
+                $("#JobRR_MasterToggleScrollBar").find("span").text("Default Data");
+                //$("#JobRR_MasterToggleScrollBar").width(110);
+          }
+            else {
+                JobRR_Master_ShowHorizontalBar = 0;
+                $("#JobRR_MasterToggleScrollBar").find("span").text("Full Data");
+                //$("#JobRR_MasterToggleScrollBar").width(90);
+         }
+         $.ajax({
+            url: '@Url.Action("Frm_Job_Request_Register_Grid", "JobRequestRegister")',
+            type: "GET",
+             data: { ShowHorizontalBar: JobRR_Master_ShowHorizontalBar},
+            success: function (res) {
+                $("#JobRRPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }// full data button click
+</script>
+<script>
+
+    function UpDateJobStatus(Status_Button)
+    {        
+
+        if (!Job_ID)
+        {
+            DevExpress.ui.dialog.alert("Please Select A Job...!", 'alert!');
+            return;
+        }
+        else
+        {
+            var statusflowcheck = Job_StatusFlowCheck(Status_Button);
+            if (statusflowcheck[1] == false) {
+                DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+                return;
+            }
+
+            var Status_Msg = "";
+
+            switch (Status_Button) {
+                case "Estimation_Submission":
+                    Status_Msg = "Do You Want To Assign For Estimate Submission ?";
+                    break;
+                case "Reopen_Job":
+                    Status_Msg = "Do You Want To Re-Open The Job ?";
+                    break;
+                case "Estimate_Approval":
+                    Status_Msg = "Do You Want To Submit For Estimate_Approval ?";
+                    break;
+                case "Changes Recommended":
+                    Status_Msg = "Do You Want To Suggest Changes ?";
+                    break;
+                case "Approve":
+                    Status_Msg = "Do You Want To Approve The Job Or Estimate ?";
+                    break;
+                case "Reject":
+                    Status_Msg = "Do You Want To Reject The Job ?";
+                    break;
+                case "Cancel":
+                    Status_Msg = "Do You Want To Cancel The Job?";
+                    break;
+                case "Complete":
+                    Status_Msg = "Do You Want To Mark Job As Completed ?";
+                    break;
+                default:
+                    Status_Msg = "";
+                    break;
+            }
+            if (Status_Msg != "") {
+                var result = DevExpress.ui.dialog.confirm(Status_Msg, "Confirm Changes");
+                result.done(function (dialogResult) {
+                    if (dialogResult) {
+                        if (Status_Button != "Approve" && Status_Button != "Estimation_Submission" && Status_Button != "Estimate_Approval" && Status_Button != "Reopen_Job") {
+                            $.ajax({
+                                type: "POST",
+                                url: "/Stock/JobRequestRegister/Job_StatusChange_Check",
+                                data: {
+                                    JobId: Job_ID,
+                                    StatusButton: Status_Button
+                                },
+                                async: false,
+                                success: function (data) {
+
+
+                                    if (data.result == true) {                                    
+                                        ShowLoader();
+                                        $.ajax({
+                                            type: 'GET',
+                                            url: "/Stock/JobRequestRegister/Job_StatusChange_Window",
+                                            cache: false,
+                                            data:
+                                            {
+                                                JobId:Job_ID,
+                                                StatusButton: Status_Button
+                                            },
+                                            success: function (data)
+                                            {
+                                                OpenDynamicPopup("Job ~ " + Status_Button, null, "auto", "40%", true, data);     
+                                                HideLoader();
+                                            }
+                                        });//0000148 Bug fixed
+                                        HideLoader();
+                                    }
+                                    else {
+                                        DevExpress.ui.dialog.alert(data.message, 'Error');
+                                    }
+                                }
+                            });
+                        }
+                        else {
+                            ShowLoader();
+                            $.ajax({
+                                type: "POST",
+                                url: "/Stock/JobRequestRegister/Job_StatusChange",
+                                data: {
+                                    JobId: Job_ID,
+                                    StatusButton: Status_Button,
+                                    userRole:JobCurrUserRole
+                                },
+                                success: function (data)
+                                {                                    
+                                    if (data.result == true)
+                                    {
+                                        HideLoader();
+                                        DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                                        JobRequestRegisterListGrid.Refresh();
+                                    }
+                                    else if (data.result == false)
+                                    {
+                                        HideLoader();
+                                        DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    }
+</script>

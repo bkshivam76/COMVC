@@ -1,0 +1,317 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var isApprover=(bool)ViewData["RR_ApproveRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "RequisitionItemRequestedGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "RequestRegister",
+            Action = "RequisitionItemRequestedGridData",
+            //  ActionMethodName = "_View",
+            SessionGUID = SessionGUID
+        };
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = false;// set false for simultaneous nested grid
+        settings.SettingsDetail.ShowDetailRow = true; //set true for nested grid
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.VerticalScrollableHeight = 100;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.NextColumn;
+        settings.SettingsResizing.Visualization = ResizingMode.Live;
+        settings.SettingsBehavior.AllowEllipsisInText = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.CommandColumn.Visible= true;
+        if (isApprover == true)
+        {
+            settings.CommandColumn.ShowSelectCheckbox = true;
+        }
+        settings.CommandColumn.Width = 30;
+        settings.CustomJSProperties = (sender, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)sender;
+            e.Properties["cpVisibleRowCount"] = grid.VisibleRowCount;
+        };
+        if (isApprover == false)
+        {
+            settings.SettingsBehavior.AllowFocusedRow = false;
+            settings.SettingsBehavior.AllowSelectSingleRowOnly = false;
+            settings.SettingsBehavior.AllowSelectByRowClick = true;
+        }
+        settings.ClientSideEvents.SelectionChanged = "OnRequisitionItemRequestedGridSelectionChanged";
+        settings.ClientSideEvents.FocusedRowChanged = "OnRequisitionItemRequestedGridFocusedRowChanged";
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled =false;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.ClientSideEvents.RowDblClick = "OnFrm_RequisitionItemRequested_Edit_Click";
+        settings.ClientSideEvents.BeginCallback = "OnFrm_RequisitionItemRequested_Begincallback_Click";
+
+
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) => //bind nested grid
+        {
+            int Requested_Item_ID = (int)DataBinder.Eval(e.DataItem, "ID");
+            int MainSr = (int)DataBinder.Eval(e.DataItem, "Sr");
+
+            if (Requested_Item_ID == 0)
+            {
+
+                GridViewExtension griditemTax = new GridViewExtension(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.RequestRegisterItemTaxNestedGridSettings(MainSr));
+                griditemTax.Bind(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.GetItemRequestTax(MainSr));
+                e.DetailGridViews.Add(griditemTax);
+            }
+            else
+            {
+                GridViewExtension griditemTax = new GridViewExtension(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.RequestRegisterItemTaxNestedGridSettings(Requested_Item_ID));
+                griditemTax.Bind(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.GetItemRequestTax(Requested_Item_ID));
+                e.DetailGridViews.Add(griditemTax);
+            }
+
+        };
+        
+        settings.SetDetailRowTemplateContent(c =>
+        {
+        
+
+            Html.RenderAction("Frm_RequestRegister_ItemRequestedTax_Grid", new { Requested_Item_ID = DataBinder.Eval(c.DataItem, "ID") , MainSr = DataBinder.Eval(c.DataItem, "Sr") });
+        });
+
+
+        settings.PreRender = (sender, e) =>
+        {
+            ASPxGridView grid = (ASPxGridView)sender;
+            grid.FocusedRowIndex = -1;
+        };
+
+        settings.KeyFieldName = "ID";
+
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Sr";
+            column.Caption = "Sr No";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Item_Name";
+            column.Caption = "Item Name";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Item_Code";
+            column.Caption = "Item Code";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Head";
+            column.Caption = "Head";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Make";
+            column.Caption = "Make";
+            column.Visible = true;
+            //column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Model";
+            column.Caption = "Model";
+            column.Visible = true;
+            //column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Requested_Qty";
+            column.Caption = "Requested Qty";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Approved_Qty";
+            column.Caption = "Approved Qty";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Delivered_Qty";
+            column.Caption = "Delivered Qty";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Returned_Qty";
+            column.Caption = "Returned Qty";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Supplier";
+            column.Caption = "Supplier";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Unit";
+            column.Caption = "Unit";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Destination_Location";
+            column.Caption = "Destination Location";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "RRI_Priority";
+            column.Caption = "Priority";
+            column.Visible = true;
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Rate";
+            column.Caption = "Rate";
+            column.Visible = true;
+            column.PropertiesEdit.DisplayFormatString = "#.##";
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Tax";
+            column.Caption = "Tax";
+            column.Visible = true;
+            //column.PropertiesEdit.DisplayFormatString = "#.00";
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Discount";
+            column.Caption = "Discount(%)";
+            column.Visible = true;
+            //column.PropertiesEdit.DisplayFormatString = "#.00";
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Amount";
+            column.Caption = "Amount";
+            column.Visible = true;
+            //column.PropertiesEdit.DisplayFormatString = "#.00";
+            // column.Width = 210;
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Required_Delivery_Date";
+                column.Caption = "Reqd. Delivery Date";
+                column.Visible = true;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+                // column.Width = 210;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Unit_ID";
+                column.Caption = "Unit_ID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "SubItemID";
+                column.Caption = "SubItemID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "LocationID";
+                column.Caption = "LocationID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "SupplierID";
+                column.Caption = "SupplierID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "UO_ID";
+                column.Caption = "UO_ID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "UO_Item_ID";
+                column.Caption = "UO_Item_ID";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Remarks";
+                column.Caption = "Remarks";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedBy";
+                column.Caption = "Added By";
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedOn";
+                column.Caption = "Added On";
+                column.Visible = false;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+
+    }).Bind(Model).GetHtml()
+

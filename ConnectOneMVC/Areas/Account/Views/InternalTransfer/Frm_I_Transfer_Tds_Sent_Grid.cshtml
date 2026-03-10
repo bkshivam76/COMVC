@@ -1,0 +1,202 @@
+﻿@{
+    bool FilterVisible = ViewBag.FilterVisible == null ? false : ViewBag.FilterVisible;
+    bool SearchVisible = ViewBag.SearchVisible == null ? false : ViewBag.SearchVisible;
+    bool ShowGroupedColumns = ViewBag.ShowGroupedColumns == null ? false : ViewBag.ShowGroupedColumns;
+    string xMID = ViewBag.ITR_TDS_xMID;
+    var SessionGUID = Request.QueryString["SessionGUID"];
+}
+@using DevExtreme.AspNet.Mvc;
+@helper TDS_SendNumberBox()
+{
+    @(Html.DevExtreme().NumberBox().ID("TDS_Send_NumberBox").Name("TDS_Send_NumberBox").Placeholder("").Format("#0.00").OnValueChanged("TDS_Send_value_change"))
+}
+
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "TdsSentInternalTransferListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "InternalTransfer",
+            Action = "Frm_I_Transfer_Tds_Sent_Grid",
+            xMID= xMID,
+            SessionGUID= SessionGUID
+        };
+
+
+        settings.ClientSideEvents.EndCallback = "OnGridTdsSentInternalTransferGrid_EndCallback";
+        settings.ClientSideEvents.BeginCallback = "OnGridTdsSentInternalTransferGrid_BeginCallback";
+
+        settings.HtmlDataCellPrepared = (sender, e) =>
+        {
+            if (e.DataColumn.FieldName == "TDS_Send")
+            {
+                e.Cell.BackColor = System.Drawing.Color.Yellow;
+            }
+        };
+
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var PrintView = e.CreateItem("List Preview", "ListPreview");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintView);
+                var Close = e.CreateItem("Close", "Close");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Close);
+            }
+        };
+
+        settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+        settings.KeyFieldName = "REC_ID";
+
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Txn_Date";
+            column.Caption = "Txn_Date";
+            column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Party";
+            column.Caption = "Party";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(30);
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Dr_Amount";
+            column.Caption = "Dr Amount";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+            column.PropertiesEdit.DisplayFormatString = "#0.00";
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Remaining_Amount";
+            column.Caption = "Remaining Amount";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+            column.PropertiesEdit.DisplayFormatString = "#0.00";
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "TDS_Deducted";
+            column.Caption = "TDS Deducted";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+            column.PropertiesEdit.DisplayFormatString = "#0.00";
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "TDS_Already_Sent";
+            column.Caption = "TDS Already Sent to HQ";
+            column.EditFormSettings.Visible = DefaultBoolean.False;
+            column.PropertiesEdit.DisplayFormatString = "#0.00";
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "TDS_Send";
+            column.Caption = "TDS Being Sent";
+            column.PropertiesEdit.DisplayFormatString = "#0.00";
+            column.SetDataItemTemplateContent(c =>
+            {
+                Html.DevExpress().SpinEdit(txtSettings =>
+                {
+                    txtSettings.Name = "txt" + c.KeyValue;
+                    txtSettings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+                    txtSettings.Properties.SpinButtons.ShowIncrementButtons = false;
+                    txtSettings.Properties.AllowMouseWheel = false;
+                    txtSettings.ControlStyle.BackColor = System.Drawing.Color.Yellow;
+                    txtSettings.ControlStyle.Border.BorderStyle = BorderStyle.None;
+                    txtSettings.Properties.MinValue = 0;
+                    txtSettings.Properties.NumberType = SpinEditNumberType.Float;
+                    txtSettings.Properties.AllowNull = false;
+                    txtSettings.Properties.DisplayFormatString = "#0.00";
+                    txtSettings.Properties.DisplayFormatInEditMode = true;
+                    txtSettings.Properties.ValidationSettings.SetFocusOnError = true;
+                    txtSettings.Properties.ValidationSettings.ErrorText = "Please enter Valid TDS Sent amount!!";
+                    txtSettings.Properties.ValidationSettings.ValidateOnLeave = true;
+                    txtSettings.Properties.ShowOutOfRangeWarning = true;
+                    txtSettings.Properties.DecimalPlaces = 2;
+                    txtSettings.Properties.FocusedStyle.BackColor = System.Drawing.Color.White;
+                    txtSettings.Properties.ClientSideEvents.ValueChanged = String.Format("function (s, e) {{ OnTDS_Send_ValueChanged(s, '{0}', '{1}'); }}",
+                        c.Column.FieldName, c.KeyValue);
+                    txtSettings.Properties.ClientSideEvents.Validation= @"function (s, e) {                                                                           
+                                                e.isValid = s.GetValue()>=0;  
+                                        } ";
+                }).Bind(DataBinder.Eval(c.DataItem, c.Column.FieldName)).Render();
+            });
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(15);
+        });
+        settings.Columns.Add("REC_ID").Visible=false;
+
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.False;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.Refresh = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+
+        settings.Settings.ShowFilterRow = true;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.Settings.ShowGroupedColumns = ShowGroupedColumns;
+        settings.Settings.ShowFooter = true;
+
+        //grid export settings
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "TDS Sent to HQ Breakup";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+
+        //pager settings
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.PageSize = 25;
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+    }).Bind(Model).GetHtml()

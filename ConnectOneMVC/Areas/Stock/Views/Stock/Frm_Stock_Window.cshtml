@@ -1,0 +1,785 @@
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.ADDStockProfile
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+    bool Stock_ListRights = (bool)ViewData["Stock_ListRight"];
+    bool Stock_Add_Rights = (bool)ViewData["Stock_AddRight"];
+    bool Stock_Update_Rights = (bool)ViewData["Stock_UpdateRight"];
+    bool Stock_View_Rights = (bool)ViewData["Stock_ViewRight"];
+    bool Stock_Delete_Rights = (bool)ViewData["Stock_DeleteRight"];
+    bool Stock_Export_Rights = (bool)ViewData["Stock_ExportRight"];
+    bool Stock_Report_Rights = (bool)ViewData["Stock_ReportRight"];
+    bool Stock_Profile_Core_AddRights = (bool)ViewData["Stock_Profile_Core_AddRight"];
+}
+<style>
+    .demo { 
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    .popuphead {
+        margin: 0 0 5px 9px !important;
+    }
+
+    .LH-15 {
+        line-height: 15px;
+    }
+
+    [type="radio"]:checked,
+    [type="radio"]:not(:checked) {
+        position: absolute;
+        left: -9999px;
+    }
+
+        [type="radio"]:checked + label,
+        [type="radio"]:not(:checked) + label {
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+            line-height: 15px;
+            display: inline-block;
+            color: #666;
+        }
+
+            [type="radio"]:checked + label:before,
+            [type="radio"]:not(:checked) + label:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #ddd;
+                border-radius: 100%;
+                background: #fff;
+            }
+
+            [type="radio"]:checked + label:after,
+            [type="radio"]:not(:checked) + label:after {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: #337ab7;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 100%;
+                -webkit-transition: all 0.2s ease;
+                transition: all 0.2s ease;
+            }
+
+            [type="radio"]:not(:checked) + label:after {
+                opacity: 0;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            [type="radio"]:checked + label:after {
+                opacity: 1;
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="maglistdata" class="edit_form">
+    @using (Ajax.BeginForm("Frm_Stock_Window", "Stock",
+                                                           new AjaxOptions
+                                                           {
+                                                               HttpMethod = "POST",
+                                                               UpdateTargetId = "StockWindow",
+                                                               InsertionMode = InsertionMode.InsertAfter,
+                                                               OnBegin = "AjaxBeginFormPost",
+                                                               OnSuccess = "StockAjaxSuccessForm"
+                                                           },
+                                                                new
+                                                                {
+                                                                    id = "stockvalidationForm",
+                                                                    @class = "edit_form"
+                                                                }))
+    {
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.Head)
+        @Html.HiddenFor(x => x.Item_Type)
+        @Html.HiddenFor(x => x.Item_Code)
+        @Html.HiddenFor(x => x.Unit)
+        @Html.HiddenFor(x => x.UnitID)
+        @Html.HiddenFor(x => x.Store_Id)
+        @Html.HiddenFor(x => x.Rec_ID)
+        @Html.HiddenFor(x => x.Item_ID)
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <!-- <div class="full-width-header-bg3">
+                 <div class="row">
+
+                     <div class="col-sm-8 pll">
+                         <h3 class="popuphead"><i class="far fa-edit"></i>Stock Details </h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red fields are mandatory</h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div>  [popup heading] -->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                            <label class="control-label text-red" for="Name">Store:</label>
+                        </div><!--[/leftpart]-->
+                        <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                                                                            .ID("Store_Name")
+                                                                                                                                            .Name("Store_Name")
+
+                                                                                                                                            .Placeholder("Choose Store & Dept")
+                                                                                                                                            .ValueExpr("StoreId")
+                                                                                                                                            .DisplayExpr("StoreName")
+                                                                                                                                            .DataSource(d => d.Mvc().Controller("Stock").LoadAction("LookUp_GetStoreList").Key("StoreId"))
+
+                                                                                                                                            .ReadOnly(IsVisible)
+                                                                                                                                            .Disabled(IsVisible)
+                                                                                                                                            .OnValueChanged("LookUp_GetStoreList_ChangeEvent")
+
+                                                                                                                                            .OnInitialized("onInitialized_LookUp_GetStoreList")
+                                                                                                                                            .ContentTemplate(@<text>
+                                                                                                                                                @Html.Partial("LookUp_GetStoreList")
+                                                                                                                                            </text>)@*Mantis bug 0000338 fixed*@
+                            )
+                            @Html.ValidationMessageFor(model => model.Store_Name, "", new { @class = "text-danger" })
+                        </div><!--[right part]-->
+                        <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                            <label class="control-label text-red" for="Name">Item Name:</label>
+                        </div><!--[/leftpart]-->
+                        <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                                                                            .ID("Item_Name")
+                                                                                                                                            .Name("Item_Name")
+                                                                                                                                            .HoverStateEnabled(true)
+
+                                                                                                                                            .Placeholder("Choose Name of Item")
+                                                                                                                                            .ValueExpr("ItemId")
+                                                                                                                                            .DisplayExpr("ItemName")
+                                                                                                                                            .DataSource(d => d.Mvc().Controller("Stock").LoadAction("LookUp_GetStockItems").Key("ItemId"))
+
+                                                                                                                                            .ReadOnly(IsVisible)
+                                                                                                                                            .Disabled(IsVisible)
+                                                                                                                                            .OnValueChanged("LookUp_GetItemList_ChangeEvent")
+
+                                                                                                                                            .OnInitialized("onInitialized_GLookUp_GetItemList")
+                                                                                                                                            .ContentTemplate(@<text>
+                                                                                                                                                @Html.Partial("LookUp_GetStockItems")
+                                                                                                                                            </text>)@*Mantis bug 0000338 fixed*@
+                            )
+                            @Html.ValidationMessageFor(model => model.Item_Name, "", new { @class = "text-danger" })
+                        </div><!--[right part]-->
+                    </div>
+
+                </div>
+            </div> <!--[/row1]-->
+
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Code">Item Code:</label>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                        .ID("LblItem_Code")
+                                                                        .Name("LblItem_Code")
+                                                                        .Value(Model.Item_Code)
+                                                                        .Placeholder("Code")
+                                                                        .ReadOnly(IsVisible)
+                                                                        .Disabled(IsVisible)
+                                                                        .MaxLength(255)
+                                                                        .Height(20)
+                                )
+                                @*@Html.Label("LblItem_Code", new { @id = "LblItem_Code" })*@
+                            </div>
+
+                            <div class="col-sm-1 col-md-1 col-lg-1 paddLR5">
+                                <label class="control-label" for="Type">Type:</label>
+                            </div>
+                            <div class="col-sm-3 col-md-3 col-lg-3 paddLR5">
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                        .ID("LblItem_Type")
+                                                                        .Name("LblItem_Type")
+                                                                        .Value(Model.Item_Type)
+                                                                        .Placeholder("Type")
+                                                                        .ReadOnly(IsVisible)
+                                                                        .Disabled(IsVisible)
+                                                                        .MaxLength(255)
+                                                                        .Height(20)
+                                )
+                                @*@Html.Label("LblItem_Type", new { @id = "LblItem_Type" })*@
+                            </div>
+                            <div class="col-sm-1 col-md-1 col-lg-1 paddLR5">
+                                <label class="control-label" for="Head">Head:</label>
+                            </div>
+                            <div class="col-sm-3 col-md-3 col-lg-3 paddLR5">
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                .ID("LblHead")
+                                                                .Name("LblHead")
+                                                                .Value(Model.Head)
+                                                                .Placeholder("Head")
+                                                                .ReadOnly(IsVisible)
+                                                                .Disabled(IsVisible)
+                                                                .MaxLength(255)
+                                                                .Height(20)
+                                )
+                                @*@Html.Label("LblHead", new { @id = "LblHead" })*@
+                            </div>
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Make">Make:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                      .ID("Make")
+                                                                                                      .Name("Make")
+                                                                                                      .Value(Model.Make)
+                                                                                                      .Placeholder("Make")
+                                                                                                      .ReadOnly(IsVisible)
+                                                                                                      .Disabled(IsVisible)
+                                                                                                      .MaxLength(255)
+                                )
+
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Model">Model:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                     .ID("Model")
+                                                                                                     .Name("Model")
+                                                                                                     .Value(Model.Model)
+                                                                                                     .Placeholder("Model")
+                                                                                                     .ReadOnly(IsVisible)
+                                                                                                     .Disabled(IsVisible)
+                                                                                                     .MaxLength(255)
+                                )
+
+                            </div>
+
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Name">Serial No/ Lot No:</label>
+                            </div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                      .ID("Serial_Lot_No")
+                                                                                                                                      .Name("Serial_Lot_No")
+                                                                                                                                      .Value(Model.Serial_Lot_No)
+                                                                                                                                      .Placeholder("Enter the Lot No...")
+                                                                                                                                      .ReadOnly(IsVisible)
+                                                                                                                                      .Disabled(IsVisible)
+                                                                                                                                      .MaxLength(50)
+                                )
+                                @Html.ValidationMessageFor(model => model.Serial_Lot_No, "", new { @class = "text-danger" })
+                            </div>
+
+
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Warranty">Warranty:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                       .ID("Warranty")
+                                                                                                                                       .Name("Warranty")
+                                                                                                                                       .Value(Model.Warranty)
+                                                                                                                                       .Placeholder("Enter Warranty")
+                                                                                                                                       .ReadOnly(IsVisible)
+                                                                                                                                       .Disabled(IsVisible)
+                                                                                                                                       .MaxLength(50)
+                                )
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Unit">Unit:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                            .ID("LblUnit")
+                                            .Name("LblUnit")
+                                            .Value(Model.Unit)
+                                            .Placeholder("Unit")
+                                            .ReadOnly(IsVisible)
+                                            .Disabled(IsVisible)
+                                            .MaxLength(255)
+                                            .Height(20)
+                                )
+                                @*@Html.Label("LblUnit", new { @id = "LblUnit" })*@
+                            </div>
+
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="DatePurchase">Date of Purchase:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                @*<div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            <select name="" class="dx-texteditor-input appear" disabled="disabled">
+                                                <option value="0">DD-MM-YYYY</option>
+                                            </select>
+                                        </div>
+                                    </div>*@
+                                @(Html.DevExtreme().DateBoxFor(model => model.Date_of_Purchase).CustomDateBox()
+                                                                                       .ID("Date_of_Purchase")
+                                                                                       .Name("Date_of_Purchase")
+                                                                                       .ReadOnly(IsVisible)
+                                                                                       .Disabled(IsVisible)
+                                )
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Location">Location:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                                                                           .ID("Location")
+                                                                                                                                           .Name("Location")
+                                                                                                                                           .Value(Model.Location)
+                                                                                                                                           .ValueExpr("LocId")
+                                                                                                                                           .DisplayExpr("LocationName")
+                                                                                                                                           .DataSource(d => d.Mvc().Controller("Stock").LoadAction("LookUp_GetLocations").Key("LocId").LoadParams(new { stockstoreid = new JS("function (){ return MainDeptID;}") }))
+
+                                                                                                                                           .ReadOnly(IsVisible)
+                                                                                                                                           .Disabled(IsVisible)
+                                                                                                                                           .OnValueChanged("LookUp_GetLocation_ChangeEvent")
+
+                                                                                                                                           .OnInitialized("onInitialized_LookUp_GetLocation")
+                                                                                                                                           .ContentTemplate(@<text>
+                                                                                                                                            @Html.Partial("LookUp_GetLocations")
+                                                                                                                                        </text>)
+                                )
+                                @Html.ValidationMessageFor(model => model.Location, "", new { @class = "text-danger" })
+                            </div>
+
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Quantity">Opening Quantity:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                        .ID("Opening_Qty")
+                                                                                                                                        .Name("Opening_Qty")
+                                                                                                                                        .Value(Model.Opening_Qty.ToString())
+                                                                                                                                        .ReadOnly(IsVisible)
+                                                                                                                                        .Disabled(IsVisible)
+                                                                                                                                        .Placeholder("Enter the opening stock")
+                                                                                                                                        .MaxLength(11)
+                                )
+                                @Html.ValidationMessageFor(model => model.Opening_Qty, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label text-red" for="Unit">Total Value:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                       .ID("Total_Value")
+                                                                                                                                       .Name("Total_Value")
+                                                                                                                                       .Value(Model.Total_Value.ToString())
+                                                                                                                                       .ReadOnly(IsVisible)
+                                                                                                                                       .Disabled(IsVisible)
+                                                                                                                                       .Placeholder("Enter the total value")
+                                                                                                                                       .MaxLength(11)
+                                )
+                                @Html.ValidationMessageFor(model => model.Total_Value, "", new { @class = "text-danger" })
+                            </div>
+
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Quantity">Allocated Project:</label>
+                            </div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 paddLR5">
+
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                                                                       .ID("Project")
+                                                                                                                                       .Name("Project")
+                                                                                                                                       //.HoverStateEnabled(true)
+                                                                                                                                       .Value(Model.Project)
+                                                                                                                                       .ValueExpr("ProjectId")
+                                                                                                                                       .DisplayExpr("ProjectName")
+                                                                                                                                       .DataSource(d => d.Mvc().Controller("Stock").LoadAction("LookUp_GetProjects").Key("ProjectId"))
+
+                                                                                                                                       .ReadOnly(IsVisible)
+                                                                                                                                       .Disabled(IsVisible)
+                                                                                                                                       .OnValueChanged("LookUp_Project_ChangeEvent")
+
+                                                                                                                                       .OnInitialized("onInitialized_LookUp_Project")
+                                                                                                                                       .ContentTemplate(@<text>
+                                                                                                                                        @Html.Partial("LookUp_GetProjects")
+                                                                                                                                    </text>)
+                                )
+                                @*</div>*@
+                            </div>
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+                    </div>
+                </div>
+            </div> <!--[/row1]-->
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Quantity">Remarks:</label>
+                            </div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 paddLR5">
+
+                                @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                       .ID("Stock_Remarks")
+                                                                                                                                       .Name("Stock_Remarks")
+                                                                                                                                       .Value(Model.Stock_Remarks)
+                                                                                                                                       .Placeholder("Enter remarks")
+                                                                                                                                       .ReadOnly(IsVisible)
+                                                                                                                                       .Disabled(IsVisible)
+                                                                                                                                       .MaxLength(8000)
+                                )
+                            </div>
+
+                        </div><!--[/leftpart]-->
+                        <!--[right part]-->
+
+                    </div>
+
+                </div>
+
+            </div> <!--[/row1]-->
+
+
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="styleActionBtn">
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("Stock_Save").Text(Model.TempActionMethod == "Delete" ? "Delete" : "Save").FocusStateEnabled(true).UseSubmitBehavior(true).Visible(Model.TempActionMethod== "View" ? false : true))
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("StockviewCancel").Text(Model.TempActionMethod == "View" ? "Close" : "Cancel").FocusStateEnabled(true).OnClick(@<text> function () {  $("#popup_frm_StockProfile_Window").dxPopup("hide");  } </text>))
+                    </div>
+                </div>
+            </div><!--[Buttons]-->           
+        }
+    }
+</div>
+
+<script>
+    var form = "stockvalidationForm";
+    var MainDeptID;
+    $(document).ready(function ()
+    {
+        ShowLoader();
+        AssignIDtoLabel(form, "StockMaster");
+        //initially empty Label values
+        $("#LblHead").text("");
+        $("#LblItem_Type").text("");
+        $("#LblItem_Code").text("");
+        $("#LblUnit").text("");
+        var model = $("#TempActionMethod").val();
+        var itemID = $("#Item_ID").val();
+        if (model == "Edit" || model == "Delete" || model == "View") {
+
+            //$("#Item_Name").dxDropDownBox("instance").option("value", "");
+            //$("#Item_Name").dxDropDownBox("instance").option("value", itemID);
+        }
+
+        if ("@Model.Store_Name".length > 0) $("#Store_Name").dxDropDownBox("instance").option("value", parseInt("@Model.Store_Name"));//Mantis bug 0000338 fixed
+
+        if ("@Model.Item_Name".length > 0) $("#Item_Name").dxDropDownBox("instance").option("value", parseInt("@Model.Item_Name"));//Mantis bug 0000338 fixed
+
+        setTimeout(function ()
+        {
+            if ("@Model.ActionMethod" == "_View")
+            {
+                Set_Form_View_Delete_Mode("#000080", form);
+            }
+            else if ("@Model.ActionMethod" == "_Delete")
+            {
+                Set_Form_View_Delete_Mode("#696969", form);
+            }
+            else
+            {
+                Focus_FirstEditable_Field(form);
+            }
+            HideLoader();
+        }, Timeout500);
+    });
+    $('#Make').keypress(function (e) {
+        var regex = new RegExp("^[a-zA-Z0-9]+$");
+        var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);
+        if (regex.test(str)) {
+            return true;
+        }
+
+        e.preventDefault();
+        return false;
+    });
+    $('#Model').keypress(function (e) {
+        var regex = new RegExp("^[a-zA-Z0-9]+$");
+        var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);
+        if (regex.test(str)) {
+            return true;
+        }
+
+        e.preventDefault();
+        return false;
+    });
+    $('#Warranty').keypress(function (e) {
+        var regex = new RegExp("^[a-zA-Z0-9]+$");
+        var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);
+        if (regex.test(str)) {
+            return true;
+        }
+
+        e.preventDefault();
+        return false;
+    });
+    $("#Opening_Qty").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        var value = e.target.value;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9.]/;
+        if (value.indexOf('.') > -1) {
+            var splitdot = value.split('.');
+            if (splitdot[1].length >= 2)
+                e.preventDefault();
+        }
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Total_Value").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        var value = e.target.value;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9.]/;
+        if (value.indexOf('.') > -1) {
+            var splitdot = value.split('.');
+            if (splitdot[1].length >= 2)
+                e.preventDefault();
+        }
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+</script>
+<script>
+    //Drop down change events Start
+    function LookUp_GetItemList_ChangeEvent(e) {
+        var dropDownBox = $("#Item_Name").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_GetStockItems_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                $("#LblHead").text(item["ItemCategory"]);
+                $("#LblItem_Type").text(item["ItemType"]);
+                $("#LblItem_Code").text(item["ItemCode"]);
+                $("#LblUnit").text(item["Unit"]);
+                //Hidden values Through model binding
+                $("#Head").val(item["ItemCategory"]);
+                $("#Item_Type").val(item["ItemType"]);
+                $("#Item_Code").val(item["ItemCode"]);
+                $("#Unit").val(item["Unit"]);
+                $("#UnitID").val(item["UnitID"]);
+                //Hidden values Through model binding
+            }
+        }
+    }
+    function LookUp_GetStoreList_ChangeEvent(e) {     
+        var dropDownBox = $("#Store_Name").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_GetStoreList_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                $("#Store_Id").val(item["StoreId"]);
+                MainDeptID = item.StoreId;
+                if (MainDeptID != 0) {
+                    $("#LookUp_GetLocations_datagrid").dxDataGrid("instance").refresh();
+                }
+            }
+        }
+    }
+
+    function LookUp_GetLocation_ChangeEvent(e) {
+        var dropDownBox = $("#Location").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_GetLocations_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+
+            }
+        }
+    }
+
+    function LookUp_Project_ChangeEvent(e) {
+        var dropDownBox = $("#Project").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_GetProjects_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+            }
+        }
+    }
+    //Drop down change events End
+    function onInitialized_LookUp_Project(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+
+                    e.component.option("value", d[0].ProjectId);
+            });
+        }
+    }
+
+    function onInitialized_GLookUp_GetItemList(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+                    e.component.option("value", d[0].ItemId);
+
+            });
+        }
+    }
+    function onInitialized_LookUp_GetLocation(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+                    e.component.option("value", d[0].LocId);
+
+            });
+        }
+    }
+    function onInitialized_LookUp_GetStoreList(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+                    MainDeptID = d[0].StoreId;
+                    e.component.option("value", d[0].StoreId);
+            });
+        }         
+    }
+    </script>

@@ -1,0 +1,269 @@
+﻿<div class="BulkAllotment_Facility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        long instanceid = ViewBag.instanceid;
+        Int32 totalReg = Convert.ToInt32(ViewBag.TotalRegCount);
+        DateTime fromdate = ViewBag.fromdate == null? null : ViewBag.fromdate;
+        DateTime todate = ViewBag.todate == null ? null : ViewBag.todate;
+    }
+
+    <div class="row"></div><br />
+    <div class="row right">
+        <div class="col-sm-3"></div>
+        <div class="col-sm-3"></div>
+        <div class="col-sm-6">
+            
+            @(Html.DevExtreme().Button().ID("BtnAdd_BlkAllot").Text("New").OnClick("AddBulkAllotment_BlkAllot").Width("23%"))
+            @(Html.DevExtreme().Button().ID("BtnEdit_BlkAllot").Text("Edit").OnClick("EditBulkAllotment_BlkAllot").Width("23%"))
+            @(Html.DevExtreme().Button().ID("BtnDelete_BlkAllot").Text("Delete").OnClick("DeleteBulkAllotment_BlkAllot").Width("23%"))
+            @(Html.DevExtreme().Button().ID("BtnClose_BlkAllot").Text("Close").OnClick("CloseBulkAllotment_BlkAllot").Width("25%"))
+            <br />
+            <script>
+                function CloseBulkAllotment_BlkAllot() {
+                    $("#Dynamic_Content_popup").dxPopup("hide")
+                }
+                function AddBulkAllotment_BlkAllot(e) {
+                    
+                    var gridInstance = $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance")
+                    //gridInstance.getDataSource()._store.__rawData[0]['BEDCOUNT_BLK']
+                    var len = gridInstance.getDataSource()._store.__rawData.length
+                    var alreadyallottedCount = 0;
+                    for (var i = 0; i < len; i++) {
+                        alreadyallottedCount = alreadyallottedCount + gridInstance.getDataSource()._store.__rawData[i]['BEDCOUNT_BLK'];
+                    }
+
+                    $.ajax({
+                    type: 'GET',
+                    url: "/Facility/Chart/Frm_Add_BulkAllotment_window",
+                    cache: false,
+                    data:
+                    {
+                        Instanceid: "@instanceid",
+                        TotalRegistrations:"@totalReg",
+                        AlreadyAllottedTotal: alreadyallottedCount,
+                        fromdate: "@fromdate" == null ? null : "@fromdate",
+                        todate: "@todate" == null ? null : "@todate",
+                        ActionMethod: "_Add"
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        OpenPopup("Add_BlkAllot_Popup", "New Bulk Allottment", null, "auto", 460, true, data, "maxheightblukallotment");
+
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        HideLoader();
+
+                        DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                    }
+                });
+                }
+
+                function EditBulkAllotment_BlkAllot(e) {
+                    
+                    var gridInstance = $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance")
+                    var len = gridInstance.getSelectedRowKeys().length
+                    if (len <= 0) {
+                        DevExpress.ui.dialog.alert("Please Select any record to Edit")
+
+                        return;
+                    }
+                    var len2 = gridInstance.getDataSource()._store.__rawData.length
+                    var alreadyallottedCount = 0;
+                    for (var i = 0; i < len2; i++) {                        
+                        alreadyallottedCount = alreadyallottedCount + gridInstance.getDataSource()._store.__rawData[i]['BEDCOUNT_BLK'];
+                    }
+
+                    var data = gridInstance.getSelectedRowsData()[0];
+                    if (data) {
+                        selectedRecID_BlkInfo = data.RECID_BLK;
+                        selected_buildingid_BlkInfo = data.BUILDINGID_BLK
+                        selected_ac_nonac_BlkInfo = data.AC_R_NONAC_BLK
+                        selected_category_BlkInfo = data.CATEGORY_BLK
+                        selected_room_capacity_BlkInfo = data.ROOMCAPACITY_BLK
+                        selected_bed_count_BlkInfo = data.BEDCOUNT_BLK
+                        selected_fromdate_BlkInfo = data.FROMDATE_BLK
+                        selected_todate_BlkInfo = data.TODATE_BLK
+                    }
+
+                    $.ajax({
+                    type: 'GET',
+                    url: "/Facility/Chart/Frm_Add_BulkAllotment_window",
+                    cache: false,
+                    data:
+                    {
+                        Instanceid: "@instanceid",
+                        TotalRegistrations:"@totalReg",
+                        ActionMethod: "_Edit",
+                        Recid: selectedRecID_BlkInfo,
+                        AlreadyAllottedTotal: alreadyallottedCount,
+                        BuildingID: selected_buildingid_BlkInfo,
+                        AC_NONAC: selected_ac_nonac_BlkInfo,
+                        Category: selected_category_BlkInfo,
+                        RoomCapacity: selected_room_capacity_BlkInfo,
+                        BedCount: selected_bed_count_BlkInfo,
+                        fromdate: selected_fromdate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_fromdate_BlkInfo),
+                        todate: selected_todate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_todate_BlkInfo),
+                        fromtime: selected_fromdate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_fromdate_BlkInfo),
+                        totime: selected_todate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_todate_BlkInfo),
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        OpenPopup("Add_BlkAllot_Popup", "Edit Bulk Allottment", null, "auto", 460, true, data, "maxheightblukallotment");
+
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        HideLoader();
+                        DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                    }
+                });
+                }
+                function DeleteBulkAllotment_BlkAllot(e) {
+                    
+                    var gridInstance = $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance")
+                    var len = gridInstance.getSelectedRowKeys().length
+                    if (len <= 0) {                        
+                        DevExpress.ui.dialog.alert('Please Select any Row to Delete', "alert");
+                        return;
+                    }
+                    var len2 = gridInstance.getDataSource()._store.__rawData.length
+                    var alreadyallottedCount = 0;
+                    for (var i = 0; i < len2; i++) {
+                        alreadyallottedCount = alreadyallottedCount + gridInstance.getDataSource()._store.__rawData[i]['BEDCOUNT_BLK'];
+                    }
+
+                    //var gridInstance = $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance")
+                    var data = gridInstance.getSelectedRowsData()[0];
+                    if (data) {
+                        selectedRecID_BlkInfo = data.RECID_BLK;
+                        selected_buildingid_BlkInfo = data.BUILDINGID_BLK
+                        selected_ac_nonac_BlkInfo = data.AC_R_NONAC_BLK
+                        selected_category_BlkInfo = data.CATEGORY_BLK
+                        selected_room_capacity_BlkInfo = data.ROOMCAPACITY_BLK
+                        selected_bed_count_BlkInfo = data.BEDCOUNT_BLK
+                        selected_fromdate_BlkInfo = data.FROMDATE_BLK
+                        selected_todate_BlkInfo = data.TODATE_BLK
+                    }
+
+
+                    $.ajax({
+                    type: 'GET',
+                    url: "/Facility/Chart/Frm_Add_BulkAllotment_window",
+                    cache: false,
+                    data:
+                    {
+                        Instanceid: "@instanceid",
+                        TotalRegistrations:"@totalReg",
+                        ActionMethod: "_Delete",
+                        AlreadyAllottedTotal: alreadyallottedCount,
+                        Recid: selectedRecID_BlkInfo,
+                        BuildingID: selected_buildingid_BlkInfo,
+                        AC_NONAC: selected_ac_nonac_BlkInfo,
+                        Category: selected_category_BlkInfo,
+                        RoomCapacity: selected_room_capacity_BlkInfo,
+                        BedCount: selected_bed_count_BlkInfo,
+                        fromdate: selected_fromdate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_fromdate_BlkInfo),
+                        todate: selected_todate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_todate_BlkInfo),
+                        fromtime: selected_fromdate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_fromdate_BlkInfo),
+                        totime: selected_todate_BlkInfo == null ? null : JS_Json_Date_To_ddMMyyyy(selected_todate_BlkInfo),
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        OpenPopup("Add_BlkAllot_Popup", "Delete Bulk Allottment", null, "auto", 460, true, data, "maxheightblukallotment");
+
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        HideLoader();
+                        //console.log(jqXHR);
+                        //console.log(textStatus);
+                        //console.log(errorThrown);
+                        DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                    }
+                });
+                }
+            </script>
+        </div>
+    </div>
+    <div class="row" style="padding:15px 0 0 15px;">
+        @(Html.DevExtreme().DataGrid().ID("LookUp_Get_BulkAllotment_datagrid")
+            .ColumnAutoWidth(true)
+            .ShowBorders(true).Width("100%")
+            .Columns(columns =>
+            {
+                columns.Add().DataField("INSTANCEID_BLK").Caption("Form Name").Visible(false);
+                columns.Add().DataField("RECID_BLK").Caption("RECID_BLK").Visible(false);
+                columns.Add().DataField("BUILDINGNAME").Caption("Building Name").Visible(true);
+                //columns.Add().DataField("FROMDATE_BLK").Caption("From Date").Visible(true);
+                //columns.Add().DataField("TODATE_BLK").Caption("To Date").Visible(true);
+                columns.Add().DataField("BUILDINGID_BLK").Caption("Building ID").Visible(false);
+                columns.Add().DataField("ROOMCAPACITY_BLK").Caption("Room Capacity").Visible(true);
+                columns.Add().DataField("BEDCOUNT_BLK").Caption("Bed Count").Visible(true);
+                columns.Add().DataField("RoomCount").Caption("Room Count")
+                               .CalculateCellValue(@<text>function CalculateRoomCount(e) {
+                                              return Math.round(e.BEDCOUNT_BLK/e.ROOMCAPACITY_BLK);
+                                  }</text>).Visible(true);
+                columns.Add().DataField("AC_R_NONAC_BLK").Caption("AC or Non-AC").Visible(true);
+                columns.Add().DataField("CATEGORY_BLK").Caption("Category").Visible(true);
+                columns.Add().DataField("CI_CHARTNAME").Caption("Form Name").Visible(true);
+
+            }).FocusedRowEnabled(false).OnSelectionChanged("onSelectionChanged_BlkAlltoment")
+            .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_BulkAllotmentsList").LoadMode(DataSourceLoadMode.Raw).Key("RECID_BLK")
+            .LoadParams(
+                new
+                {
+                    DDRefresh = new JS("function (){ return Look_BulkAllotment_DDrefresh;}"),
+                    instanceid = instanceid
+                }).LoadMode(DataSourceLoadMode.Raw)
+                ).Selection(s => s.Mode(SelectionMode.Single))
+        )
+    </div>
+    @*<div class="row">
+        <div class="col-sm-4"></div>
+        <div class="col-sm-4"></div>
+        <div class="col-sm-4">@(Html.DevExtreme().Button().ID("BtnOpenForm_LiveForm").Text("OK").OnClick("OpenForm_LiveForms").Width("100%"))</div>
+    </div>*@
+
+    <script>
+        $(document).ready(function () {
+            
+            
+            
+        });
+        var Look_BulkAllotment_DDrefresh = false;
+        var selectedRecID_BlkInfo;
+        var selected_buildingid_BlkInfo;
+        var selected_ac_nonac_BlkInfo;
+        var selected_category_BlkInfo;
+        var selected_room_capacity_BlkInfo;
+        var selected_bed_count_BlkInfo;
+        var selected_fromdate_BlkInfo;
+        var selected_todate_BlkInfo;
+        function onSelectionChanged_BlkAlltoment(e) {
+
+            var data = e.selectedRowsData[0];
+            if (data) {
+                selectedRecID_BlkInfo = data.RECID_BLK;
+                selected_buildingid_BlkInfo = data.BUILDINGID_BLK
+                selected_ac_nonac_BlkInfo = data.AC_R_NONAC_BLK
+                selected_category_BlkInfo = data.CATEGORY_BLK
+                selected_room_capacity_BlkInfo = data.ROOMCAPACITY_BLK
+                selected_bed_count_BlkInfo = data.BEDCOUNT_BLK
+                selected_fromdate_BlkInfo = data.FROMDATE_BLK
+                selected_todate_BlkInfo = data.TODATE_BLK
+            }
+        }
+        function OpenForm_LiveForms() {
+
+            var gridInstance = $("#LookUp_Get_BulkAllotment_datagrid").dxDataGrid("instance")
+            
+            var len = gridInstance.getSelectedRowKeys().length;
+            if (len > 0) {
+                @*selectedInstanceID_liveforms = gridInstance.getSelectedRowKeys()[0]
+                var url = "@servicePath" +"form/" + selectedInstanceID_liveforms;
+                window.open(url, '_blank')*@
+            } else {
+                DevExpress.ui.dialog.alert("Please select any form and Press OK button to open form in new window", "Alert");
+            }
+
+        }
+    </script>
+</div>

@@ -1,0 +1,742 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using System.Web.Mvc.Html;
+
+@{
+    Layout = null;
+}
+@*<meta charset="utf-8">
+    <title>Feedback and Query Management</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">*@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+@*<link href="css/base.css" rel="stylesheet">*@
+<link href="~/Content/ServiceModule/FeedbackQueryMgmt/css/feedback.css" rel="stylesheet">
+<style>
+    #Frm_FeedQuery_DetailsSection {
+        width: 100%;
+        /*width: -webkit-fill-available*/
+    }
+    
+    .dx-fileuploader-upload-button {
+        display: none !important;
+    }
+
+    .capitalize {
+        text-transform: capitalize;
+    }
+
+</style>
+<body>
+    <div class="feedsec">
+        <br />
+        <div class="feeds firstPane">
+            <div class="feed-hd events-hd"><h5>Events<a><b class="pull-right refresh" onclick="refreshpage()">&#x21bb;</b></a></h5></div>
+            @Html.Action("Frm_FeedQuery_EventsCardView")
+        </div>
+
+        <div class="feeds secondPane">
+            <div class="feed-hd users-hd"><h5>Contributors</h5></div>
+            @Html.Action("Frm_FeedQuery_ContributorsCardView")
+        </div>
+
+        <div class="feeds thirdPane">
+            <div class="feed-hd feedback-hd"><h5>All Feedback & Query Details</h5></div>
+            <div class="message-chat">
+                @Html.Action("Frm_FeedQuery_DetailsCardView")
+            </div>
+        </div>
+
+        <!-- feedback modal -->
+        <div class="modal fade pt-5" id="showAllAttachments" style="opacity: 1; background: rgba(0,0,0,.7); padding-top: 100px">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title">Attachments</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div id="galleryContainerShow_fq" class="up-box clearfix">
+                            <a>
+                                <img src="images/event1.jpg">
+                                <p>event1.jpg</p>
+                            </a>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        @*<button type="button" class="btn btn-danger"><i class="fa fa-download"></i> Download All</button>*@
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /end feedback modal -->
+        <!--Attachment modal-->
+        <form id="FeedQueryMgmtForm">
+            <div class="modal" tabindex="-1" role="dialog" id="attachMdl" data-backdrop="static" style="padding-top: 100px">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Response & Upload Attachments</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <b>Please Enter Your Response Below</b>
+                            <textarea name='post' id="txtBox" placeholder='Please enter your reply here....' rows='4' class='form-control'></textarea>
+                            @*<label>Please upload your attachments here</label>*@
+                            @(Html.DevExtreme().FileUploader().SelectButtonText("Choose File").ID("FeedQueryMgmt_myFile")
+                            .Name("FeedQueryMgmt_myFile").Multiple(true).Accept("*").UploadMode(FileUploadMode.UseButtons)
+                            .ShowFileList(false).Visible(false).OnValueChanged("AttachmentsOnValueChange_fq")
+                        )
+                            <a class='badge badge-primary' onclick="UploadFiles_FQM()"><i class='bx bx-paperclip'></i> Upload</a>
+                            <div id="galleryContainer_fq" class="up-box clearfix">
+                                @*<div>
+                                    <img src="images/event4.jpg" />
+                                    <input class="form-control" type="textarea" placeholder="Caption..." />
+                                    <i class="bx bxs-trash"></i>
+                                </div>
+                                <div>
+                                    <img src="images/event5.jpg" />
+                                    <input class="form-control" type="textarea" placeholder="Caption..." />
+                                    <i class="bx bxs-trash"></i>
+                                </div>
+                                <div>
+                                    <img src="images/event6.jpg" />
+                                    <input class="form-control" type="textarea" placeholder="Caption..." />
+                                    <i class="bx bxs-trash"></i>
+                                </div>
+                                <div>
+                                    <img src="images/event7.jpg" />
+                                    <input class="form-control" type="textarea" placeholder="Caption..." />
+                                    <i class="bx bxs-trash"></i>
+                                </div>*@
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+
+                            <a class="btn btn-default" onclick="makeSbtbtn_empty()" data-dismiss="modal">Cancel</a>
+                            @*<a id="submitbtn" class="btn btn-red">Submit</a>*@
+                            @(Html.DevExtreme().Button().ID("submitbtn").Text("Submit"))
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <!--//Attachment modal-->
+        <!--<div class="modal" tabindex="-1" role="dialog" id="showAllAttachments">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">All Files</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="galleryContainerShow_fq" class="up-box clearfix">-->
+        @*<div>
+            <img src="images/event4.jpg" />
+        </div>
+        <div>
+            <img src="images/event5.jpg" />
+        </div>
+        <div>
+            <img src="images/event6.jpg" />
+        </div>
+        <div>
+            <img src="images/event7.jpg" />
+        </div>*@
+        <!--</div>
+    </div>
+    <div class="modal-footer">-->
+        @*<button type="button" class="btn btn-red">Done</button>*@
+        <!--<button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>-->
+    </div>
+</body>
+
+<script>
+    $(document).ready(function () {
+        $('.user-details').removeClass('active');
+        //$('.user-details').first().addClass('active')
+
+        //var badge = $('.user-details').first().find('.badge').text();
+        //var evbadge = $('.evt-details.active .badge').text();
+        //evbadge = evbadge - badge;
+        //$('.evt-details.active .badge').text(evbadge);
+        //$('.user-details').first().find('.badge').text('')
+        //if (evbadge <= 0) { $('.evt-details.active .badge').text('') }
+    });
+</script>
+@*//First Section*@
+<script>
+    var eventrec_id_Contr, first_userid_Contr, feed_qry_recid_Contr, username_contr, referenceName_contr, referenceRecid_contr;
+    var refreshEventRecid, refreshtag = 0;
+    function getfeedQueryList(eventrecid, reference_name, reference_recid) { //This function is to get the contributions list of the selected event.
+        //debugger;
+        eventrec_id_Contr = eventrecid;
+        referenceName_contr = reference_name;
+        referenceRecid_contr = reference_recid;
+        //Frm_FeedQuery_EventsSection.Refresh();
+        Frm_FeedQuery_ContributorsSection.Refresh();
+        $('.evt-details').first().addClass('active')
+        $('.evt-details').click(function () { $('.evt-details').removeClass('active'); $(this).addClass('active') })
+    }
+
+    function FeedQueryEventSec_Init(s, e) {
+
+    }
+    function FeedQueryEventSec_EndCallback(s, e) {
+        //debugger;
+        refreshEventRecid = s.cpfirstEventRecid;
+        referenceName_contr = s.cpreferenceName;
+        referenceRecid_contr = s.cpreferenceRecid;
+        if (refreshEventRecid != null && refreshEventRecid.length > 0) {
+            getfeedQueryList(refreshEventRecid);
+        }
+    }
+    function FeedQueryEventSec_BeginCallback(s, e) {
+
+    }
+    $('.evt-details').first().addClass('active')
+    $('.evt-details').click(function () { $('.evt-details').removeClass('active'); $(this).addClass('active') })
+</script> @*First section*@
+<script>
+    function refreshpage() {
+        //debugger;
+        refreshtag = 1;
+        Frm_FeedQuery_EventsSection.Refresh();
+    }
+
+</script>
+@*//Second Section*@
+<script>
+    var eventrec_id_det, userid_det, feed_qry_recid_det, username_det, isanonymous_det, referenceName_det, referenceRecid_det;
+    var User_Ab_ID_det;
+    function FeedQueryContrSec_Init(s, e) {
+
+    }
+    function FeedQueryContrSec_EndCallback(s, e) {
+        //debugger;
+        HideLoader();
+        first_userid_Contr = s.cpfirstuserid;
+        feed_qry_recid_Contr = s.cpfeed_qry_recid;
+        username_contr = s.cpusername;
+        isanonymous_contr = s.cpisanonymous;
+        referenceName_det = s.cpreferenceName;
+        referenceRecid_det = s.cpreferenceRecid;
+        //username_contr = username_contr.replace(/[^a-zA-Z0-9]/g, '_');
+
+        //getdetailrecords(eventrec_id_Contr, first_userid_Contr, feed_qry_recid_Contr, username_contr, isanonymous_contr)
+        getdetailrecords("a", 0, "b", "a", isanonymous_contr, "", "", "") //The parameters are intentionally set to return empty data for details section.
+
+        //$('.user-details').first().addClass('active')
+        //$('.user-details').removeClass('active'); $(this).addClass('active')
+        //var badge = $(this).find('.badge').text();
+        //var evbadge = $('.evt-details.active .badge').text();
+        //evbadge = evbadge - badge;
+        //$('.evt-details.active .badge').text(evbadge);
+        //$(this).find('.badge').text('')
+        //if (evbadge <= 0) { $('.evt-details.active .badge').text('') }
+
+    }
+    function FeedQueryContrSec_BeginCallback(s, e) {
+        //debugger;
+        ShowLoader();
+        e.customArgs["command"] = e.command;
+        e.customArgs["eventrecid"] = eventrec_id_Contr;
+        e.customArgs["referenceName"] = referenceName_contr;
+        e.customArgs["referenceRecid"] = referenceRecid_contr;
+    }
+
+    function getdetailrecords(eventrecid, userid, feed_qry_recid, username, isanonymous, User_Ab_ID, reference_Name, reference_recid) { //this function is to Refresh the third section.
+        //debugger;
+        eventrec_id_det = eventrecid;
+        userid_det = userid;
+        User_Ab_ID_det = User_Ab_ID;
+        feed_qry_recid_det = feed_qry_recid;
+        username_det = username;
+        isanonymous_det = isanonymous;
+        referenceName_det = reference_Name;
+        referenceRecid_det = reference_recid;
+        Frm_FeedQuery_DetailsSection.Refresh();
+        //event.srcElement.parentElement.getElementsByClassName('badge-danger').innerText = ''
+        //event.srcElement.parentElement.getElementsByClassName('badge-danger').textContent = ''
+        //event.srcElement.parentElement.getElementsByClassName('badge-danger').innerHtml = ''
+        if (eventrecid != "a") {
+            unreadcountMinus();
+        }
+    }
+    function unreadcountMinus() {
+        //debugger;
+        $('.user-details').first().addClass('active')
+        $('.user-details').click(function () { $('.user-details').removeClass('active'); $(this).addClass('active') })
+
+        $('.user-details').click(function (
+        ) {
+            //debugger;
+            var badge = $(this).find('.badge').text();
+            var evbadge = $('.evt-details.active .badge').text();
+            evbadge = evbadge - badge;
+            $('.evt-details.active .badge').text(evbadge);
+            $(this).find('.badge').text('')
+            if (evbadge <= 0) { $('.evt-details.active .badge').text('') }
+        })
+    }
+</script> @*Contribution Section - second section*@
+
+@*Third Section*@
+<script>
+    function FeedQueryDetailsSec_Init(s, e) {
+
+    }
+    function FeedQueryDetailsSec_EndCallback(s, e) {
+        HideLoader();
+        if (refreshtag == 1) {
+            //debugger;
+            //$('.user-details').removeClass('active');
+            //$('.user-details').first().addClass('active')
+
+            //var badge = $('.user-details').first().find('.badge').text();
+            //var evbadge = $('.evt-details.active .badge').text();
+            //evbadge = evbadge - badge;
+            //$('.evt-details.active .badge').text(evbadge);
+            //$('.user-details').first().find('.badge').text('')
+            //if (evbadge <= 0) { $('.evt-details.active .badge').text('') }
+            refreshtag = 0;
+        }
+    }
+    function FeedQueryDetailsSec_BeginCallback(s, e) {
+        //debugger;
+        ShowLoader();
+        e.customArgs["command"] = e.command;
+        e.customArgs["eventrecid"] = eventrec_id_det;
+        e.customArgs["userid"] = userid_det;
+        e.customArgs["user_AB_ID"] = User_Ab_ID_det;
+        e.customArgs["feed_qry_recid"] = feed_qry_recid_det;
+        e.customArgs["username"] = username_det;
+        if (isanonymous_det == 0 || isanonymous_det == "False") {
+            e.customArgs["isanonymous"] = false; //isanonymous_det;
+        }
+        else if (isanonymous_det == 1 || isanonymous_det == "True") {
+            e.customArgs["isanonymous"] = true; //isanonymous_det;
+        }
+        e.customArgs["referenceName"] = referenceName_det;
+        e.customArgs["referenceRecid"] = referenceRecid_det;
+    }
+
+    
+
+    function submitresponse(eventrecid, feedback_query_recid, userid, username, isanonymous, user_ab_id, reference_Name, reference_recid) {
+        //debugger;
+        var responseText = document.getElementById("txtBox").value;
+        if (responseText.length == 0 || responseText == '') {
+            alert('Please enter your response');            
+        }
+        else if (responseText.length > 0)
+        {
+            //formdata code starts from here onwards
+            var formdata = new FormData($('#FeedQueryMgmtForm').get(0));
+
+            //Below code is to append captions to the formdata
+            const inputvalues = document.querySelectorAll('#galleryContainer_fq .form-control')
+            for (var i = 0; i < inputvalues.length; i++) {
+                formdata.append("file_captions[]", inputvalues[i].value);
+            }
+            uploadControl = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+            formdata.set("FeedQueryMgmt_myFile", null); // dxFileUploader's "Name" option value
+            for (var i = 0; i < uploadControl._files.length; i++) { //This for loop is important to the whole logic of userButtons and shifting files to fromdata to work as form submit.
+                formdata.append("File" + i.toString(), uploadControl._files[i].value);               
+            }
+            formdata.set('Help_uploadMethod', "fileCollection");        
+            formdata.set('responseText', responseText);
+            formdata.set('feed_Query_Response_RecId', feedback_query_recid);
+            formdata.set('userid', userid);
+            formdata.set('isanonymous', isanonymous);        
+            formdata.set('eventrecid', eventrecid);
+            formdata.set('User_Ab_ID', user_ab_id);
+            formdata.set('referenceName', reference_Name);
+            formdata.set('referenceRecid', reference_recid);            
+            formdata.set('Help_Document_FileName', FeedQueryMgmt_Attached_FileName);            
+            formdata.set('Help_Byte_SessionName', "FeedQueryMgmtAttachment");
+            formdata.set('Help_Post_Area_Name', "Help");
+            formdata.set('Help_Post_Controller_Name', "Attachment");
+            formdata.set('Help_REF_REC_ID', FeedQueryMgmt_Attach_RefRecId); //I need to find out this
+            formdata.set('Help_REF_SCREEN', FeedQueryMgmt_Attach_RefScreen);
+            formdata.set('Help_Document_Description', 'FeedQueryMgmtPage');
+            formdata.set('Help_Checked', false);
+            formdata.set('Help_uploadControlName', "FeedQueryMgmt_myFile");
+            formdata.set('Help_uploadControlActionMethod', "New");
+            //formdata code ends here
+        
+            $.ajax({
+                url: "/Facility/Feedback_Query_Mgmt/SubmitResponse",
+                type: "post",
+                data:formdata,
+                //{
+                //    'responseText': responseText, 'feed_Query_Response_RecId': feedback_query_recid, 'isanonymous': isanonymous,
+                //    'userid': userid, 'eventrecid': eventrecid, 'User_Ab_ID': user_ab_id, 'referenceName': reference_Name, 'referenceRecid': reference_recid
+                //},
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                    debugger;
+                    if (data.message == "success") {
+                        //alert('Thankyou for your valuable Response!');
+                        makeSbtbtn_empty();
+                        captions_array_fq = []
+                        getdetailrecords(eventrecid, userid, feedback_query_recid, username, isanonymous, user_ab_id, reference_Name, reference_recid); //This is to refresh third section after response given.-Working fine
+                        document.getElementById("galleryContainer_fq").innerHTML = "";
+                    }
+                    else {
+                        Alert('Some error occured. Please try again.');
+                        captions_array_fq = [];
+                    }
+                }
+            });
+        }
+
+    }
+    function Cancelresponse(feedback_query_recid) {
+
+        document.getElementById(feedback_query_recid).style.display = "block";
+        event.srcElement.parentElement.style.display = 'none'
+        event.srcElement.parentElement.previousElementSibling.style.display = 'none';
+    }
+    var onEditfilenames_fq = ""; var onEditfile_aliattachmentids_fq = ""; var onEditfileCaptions_fq = "";
+    function getattachments_fq(Fqr_recid) {
+        $.ajax({
+            url: "/Facility/Feedback_Query_Mgmt/getAttachments",
+            type: "post",
+            data: {
+                'fqr_recid': Fqr_recid
+            },
+            success: function (data) {
+                if (data.message == "success") {
+                    onEditfilenames_fq = data.filenames
+                    onEditfile_aliattachmentids_fq = data.filerecids
+                    onEditfileCaptions_fq = data.filecaptions
+                    openattachments_fq(onEditfilenames_fq, onEditfile_aliattachmentids_fq, onEditfileCaptions_fq);
+
+                }
+                else {
+                    Alert('Some error occured. Please try again.');
+                }
+            }
+        });
+    }
+    var contenttype_fq = "";
+    function openattachments_fq(filenames, fileids, filecaptions) {
+        debugger;
+        var filenames_array = filenames.split(',');
+        var fileids_array = fileids.split(',');
+        var filecaptions_array = filecaptions.split('!_(')
+        document.getElementById("galleryContainerShow_fq").innerHTML = "";
+        $('#showAllAttachments').modal('show');
+        var str_array = filenames.split(',');
+        
+
+        for (var i = 0; i < filenames_array.length; i++) {
+            var fileURL = str_array[i];
+            var new_a = document.createElement("a")
+            new_a.setAttribute('href', fileURL)
+            new_a.setAttribute('target', '_blank')
+
+            //*******below xhr related code is to find the content type of the attachment
+            contenttype_fq = "";
+            getContenttype_fq(fileURL)
+            //*******
+
+            var new_img;
+            if (contenttype_fq == "" || contenttype_fq == null || contenttype_fq == undefined) {
+                new_img = document.createElement("img")
+                new_img.src = fileURL;
+            }
+            else {
+                if (contenttype_fq.includes("video") || contenttype_fq.includes("mp4")) {
+                    new_img = document.createElement("video")
+                    new_img.src = fileURL;
+                }
+                else if (contenttype_fq.includes("pdf")) {
+                    new_img = document.createElement("img")
+                    new_img.src = "/Content/Events/images/pdficon.jpg";
+                }
+                else if (contenttype_fq.includes("document")) {
+                    new_img = document.createElement("img")
+                    new_img.src = "/Content/Events/images/docxicon.jpg";
+                }
+                else if (contenttype_fq.includes("image") || contenttype_fq.includes("jpeg") || contenttype_fq.includes("png")) {
+                    new_img = document.createElement("img")
+                    new_img.src = fileURL;
+                }
+                else {
+                    new_img = document.createElement("img")
+                    new_img.src = fileURL;
+                }
+            }
+            new_a.appendChild(new_img)
+            var new_input = document.createElement("textarea")
+            new_input.className = "form-control"
+            new_input.placeholder = "Caption..."
+            new_input.value = filecaptions_array[i]
+            new_a.appendChild(new_input)
+            var MainCardviewDiv = document.getElementById("galleryContainerShow_fq")
+            MainCardviewDiv.appendChild(new_a)
+
+        }
+    }
+</script>
+
+<script>
+    //from here onwards the uploading of the images functions are there.
+    function openBrowserPopup() {
+        /*document.getElementById("attachmentPaperclick").showModal();*/
+        $('#attachMdl').modal('show');
+    }
+    //var imgSrcs = [];
+    var files = [];
+    var captions_array_fq = [];
+    var fromremovefile_fq = false;
+    function countcaptions_fq() {
+        const inputvalues = document.querySelectorAll('#galleryContainer_fq .form-control')
+        for (var i = 0; i < inputvalues.length; i++) {
+            if (i == 0) {
+                captions_array_fq = [];
+            }
+            captions_array_fq.push(inputvalues[i].value)
+        }
+    }
+    function AttachmentsOnValueChange_fq(e) {
+        debugger;
+        //var uploadControl = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+        const inputvalues = document.querySelectorAll('#galleryContainer_fq .form-control')
+        if (!fromremovefile_fq) {
+            for (var i = 0; i < inputvalues.length; i++) {
+                if (i == 0) {
+                    captions_array_fq = [];
+                }
+                captions_array_fq.push(inputvalues[i].value)
+            }
+        } else {
+            fromremovefile_fq = false;
+        }
+
+        //Validations******************************
+        var files = e.value;
+        FeedQueryMgmt_FilesSelectedCount = files.length;
+        if (FeedQueryMgmt_FilesSelectedCount > 25) {
+            FeedQueryMgmt_uploadErrorDuetoFileCount = true;
+            DevExpress.ui.dialog.alert("You Have Selected " + FeedQueryMgmt_FilesSelectedCount + " Files To Upload<br><b>More Than 25 Files Cannot Be Uploaded At Once<b>", 'Upload Error..');
+            var fileUploader = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+            fileUploader.reset();
+            return;
+        }
+        if (files.length > 0) {
+            var totalContent = 0;         
+            var NotAllowedFilePresent = false;
+            var filenames = "";
+            for (var i = 0; i < files.length; i++) {                
+                var ErrMsg = PreventFileUpload(files[i])
+                if (ErrMsg != null && ErrMsg.length > 0)
+                {
+                    NotAllowedFilePresent = true;
+                    DevExpress.ui.dialog.alert(ErrMsg, 'Upload Error..');
+                    break;
+                }           
+                else {
+                    totalContent = totalContent + files[i].size
+                    filenames = filenames + files[i].name
+                    //document.getElementById("attached_filenames").innerHTML = filenames;
+                }
+            }
+            if (totalContent > 524288000) {
+                NotAllowedFilePresent = true;
+                DevExpress.ui.dialog.alert("You Have In Total Selected <b>" + formatBytes(totalContent) + "</b> To Upload<br><b>Upto 500 MB Can Be Uploaded At Once<b>", 'Upload Error..');
+            }
+            if (NotAllowedFilePresent == true) {
+                $("#FeedQueryMgmt_myFile").dxFileUploader("instance").reset();
+                return;
+            }
+            FeedQueryMgmt_Attached_FileName = files[0].name;
+        }
+        else {
+            FeedQueryMgmt_Attached_FileName = "";
+        }
+        FeedQueryMgmt_uploadErrorDuetoFileCount = false;
+        //Validations ends here.****************************
+        insertimages_fq(e.value)
+
+
+    }
+    function insertimages_fq(e) {
+        //debugger;
+        document.getElementById("galleryContainer_fq").innerHTML = "";
+        files = [];
+        //imgSrcs = [];
+        var i = 0
+        for (i = 0; i < e.length; i++) {
+            //https://www.youtube.com/watch?v=h8jGcKE33ME
+            var fileURL = ""; var fname = ""; var ftype = "";            
+            fileURL = window.URL.createObjectURL(e[i]);
+            ftype = e[i].type
+            fname = e[i].name
+            //imgSrcs.push({ imageSrc: fileURL, name: e[i].name });
+            files.push(fname);
+            var new_a = document.createElement("a")
+            var new_img;
+            if (ftype.includes("video") || ftype.includes("mp4")) {
+                new_img = document.createElement("video")
+                new_img.src = fileURL;
+            }
+            else if (ftype.includes("pdf")) {
+                new_img = document.createElement("img")
+                new_img.src = "/Content/Events/images/pdficon.jpg";
+            }
+            else if (ftype.includes("document")) {
+                new_img = document.createElement("img")
+                new_img.src = "/Content/Events/images/docxicon.png";
+            }
+            else if (ftype.includes("image") || ftype.includes("jpeg") || ftype.includes("png")) {
+                new_img = document.createElement("img")
+                new_img.src = fileURL;
+            }
+            else {
+                new_img = document.createElement("img")
+                new_img.src = fileURL;
+            }
+            //new_img.src = fileURL;
+            new_a.appendChild(new_img)
+            var new_input = document.createElement("textarea")
+            new_input.className = "form-control"
+            new_input.placeholder = "Caption..."
+            if (captions_array_fq.length > 0 && i <= captions_array_fq.length) {
+                if (captions_array_fq[i] != "" && captions_array_fq[i] != undefined) {
+                    new_input.value = captions_array_fq[i]
+                }
+            }
+            new_a.appendChild(new_input)
+            var new_i = document.createElement("i")
+            new_i.className = "bx bxs-trash"
+            new_i.role = "button"
+            new_i.setAttribute("onclick", "remove_file_fq('" + e[i].name + "')")
+            new_a.appendChild(new_i)
+            var MainCardviewDiv = document.getElementById("galleryContainer_fq")
+            MainCardviewDiv.appendChild(new_a)
+            
+        }
+    }
+    var uploadControl;
+    //Below code removes the file with specified index
+    function remove_file_fq(file_name)
+    {
+        //debugger;
+        countcaptions_fq()
+        uploadControl = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+        var files = uploadControl.option('value')
+        for (i = 0; i < files.length; i++) {
+            if (files[i]['name'] == file_name) {
+                files.splice(i, 1);
+                captions_array_fq.splice(i, 1)
+                fromremovefile_fq = true;
+                index = i;
+                break;
+            }
+        }
+        uploadControl.reset();
+        uploadControl.option('value', files);        
+        if (files.length > 0) {
+            FeedQueryMgmt_Attached_FileName = files[0]['name']
+        }
+    }
+
+
+    var Calling_Gallery = '';
+    var FeedQueryMgmt_Attached_FileName;
+    var FeedQueryMgmt_Attach_RefRecId; @*= "@Model.xID_GSR";*@
+    var FeedQueryMgmt_Attach_RefScreen = "FeedQueryMgmt";
+    var FeedQueryMgmt_Attach_DocName_ID; @*= "@Model.DocumentNameID";*@
+    var FeedQueryMgmt_Attach_uploadErrorDuetohtml = false;
+    var FeedQueryMgmt_uploadErrorDuetoFileCount = false;
+    var FeedQueryMgmt_DocumentDescription;
+    var FeedQueryMgmt_Is_Document_Attached = false;
+    var FeedQueryMgmt_FilesSelectedCount = 0;
+    var FeedQueryMgmt_FileUploadSuccessCount = 0;
+    var FeedQueryMgmt_FileUploadStart = false;
+    var FeedQueryMgmt_ServiceUserID = userid_det;
+    var FeedQueryMgmt_Service_User_AB_ID = User_Ab_ID_det;
+    var FeedQueryMgmt_selectedRecid = "";
+
+    function UploadFiles_FQM() {        
+        var fileUploader = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+        //fileUploader.reset();
+        fileUploader._isCustomClickEvent = true;
+        fileUploader._$fileInput.click();
+    }
+    function displayResponseBox(eventrecid, feedback_query_recid, userid, username, isanonymous, user_ab_id, reference_Name, reference_recid) {
+        //debugger;
+        //event.srcElement.style.display = 'none';
+        //event.srcElement.nextElementSibling.style.display = 'block';
+        //event.srcElement.nextElementSibling.nextElementSibling.style.display = 'block';
+        document.getElementById("galleryContainer_fq").innerHTML = "";
+        var fileUploader = $("#FeedQueryMgmt_myFile").dxFileUploader("instance");
+        fileUploader.reset();
+        
+        document.getElementById("txtBox").value = "";
+        openBrowserPopup();
+        
+        var sbtbtn = document.getElementById("submitbtn");
+        sbtbtn.setAttribute("onclick", "");
+        sbtbtn.setAttribute("onclick", "submitresponse('" + eventrecid + "', '" + feedback_query_recid + "', '" + userid + "', '" + username + "', '" + isanonymous + "', '" +
+            user_ab_id + "', '" + reference_Name + "', '" + reference_recid + "')")
+
+    }
+    function makeSbtbtn_empty() {
+        var sbtbtn = document.getElementById("submitbtn");
+        sbtbtn.setAttribute("onclick", "");
+        $('#attachMdl').modal('hide')
+    }
+
+    function showinpublic(e, fqrrecid) {
+        
+        $.ajax({
+            url: '@Url.Action("updateShowinPublic", "Feedback_Query_Mgmt")',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            data: { 'fqrrecid': fqrrecid, 'trueorfalse': e.checked },
+            success: function (results) {
+
+            },
+            error: function () {
+                
+            }
+        });
+    }
+
+    function getContenttype_fq(fileURL) {
+        var ext = fileURL.split(".")?.at(-1)
+        var allimageexts = "jpg,jpeg,jfi,jpe,jif,jfif,heif,heic,png,gif,svg,svgz,eps,tif,tiff,bmp,raw,cr2,nef,orf,sr2,zip";
+        var allvideoexts = "mp4,mp3,webm,mpg,ogg,avi,mov,mp3,mpeg-4,divx,mp2,mpe,mpv,ogg,m4p,m4v,wmv,qt,flv,swf,avchd"
+        var alldocx = "docx,doc,txt,xlsx,xlsm,xls,csv,docm,dot,dotx,ppt,pptm,pptx"
+        if (allimageexts.includes(ext.toLowerCase())) {
+            contenttype_fq = "image";
+        }
+        else if (allvideoexts.includes(ext.toLowerCase())) {
+            contenttype_fq = "video"
+        }
+        else if (alldocx.includes(ext.toLowerCase())) {
+            contenttype_fq = "document"
+        }
+        else if (ext.toLowerCase() == "pdf") {
+            contenttype_fq = "pdf"
+        }
+        else {
+            contenttype_fq="image"
+        }       
+    }
+</script>
+

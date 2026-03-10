@@ -1,0 +1,399 @@
+﻿@{ 
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    var Layout = ViewData["Layout"];
+    bool Report_AddressSearch_ExportRight = (bool)ViewData["Report_AddressSearch_ExportRight"];
+}
+@Html.DevExpress().GridView(
+    settings=>
+    {
+        settings.Name = "GlobalAddressReportListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "GlobalAddressReport",
+            Action = "Frm_Global_Address_Report_Info_Grid",
+            SessionGUID = SessionGUID
+        };
+        settings.Theme = "Aqua";
+        settings.Styles.FocusedRow.BackColor = System.Drawing.Color.FromArgb(0, 114, 198);
+        settings.Styles.FocusedRow.ForeColor = System.Drawing.Color.White;
+        settings.Styles.AlternatingRow.BackColor= System.Drawing.Color.Linen;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.Settings.UseFixedTableLayout = true;
+
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.Refresh = false;
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_export_16x16devav";
+                if (Report_AddressSearch_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+            }
+        };
+
+
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.AllButton.Visible = true;
+
+        //Export Settings
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "Address Book Search Report";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        //Nested Grid
+        settings.SettingsDetail.ShowDetailRow = true;
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            Html.RenderAction("Frm_GlobalAddress_Info_DetailGrid", new { RecID = DataBinder.Eval(c.DataItem, "REC_ID"), MID = "", command = "REFRESH" });
+        });
+
+        //Nested Grid Export Settings
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+        {
+            string RecID = (string)DataBinder.Eval(e.DataItem, "REC_ID");
+            //Nested Grid structure path
+            GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Reports.Controllers.GlobalAddressReportController.NestedGridExportSettings(RecID));
+            //Nested Grid Data path
+            grid.Bind(ConnectOneMVC.Areas.Reports.Controllers.GlobalAddressReportController.NestedGridExportData(RecID));
+            e.DetailGridViews.Add(grid);
+        };
+
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+        }
+
+        settings.CustomJSProperties = (s, e) => //Layout saving.
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            e.Properties["cpClientLayout"] = gridView.SaveClientLayout();
+        };
+
+        settings.PreRender = (sender, e) => //Layout reload which already saved.
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            if (gridView != null)
+            {
+                if (Layout != null)
+                {
+                    gridView.LoadClientLayout(Layout.ToString());
+                }
+            }
+        };
+        settings.KeyFieldName = "REC_ID";
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "CEN_UID";
+            column.Caption = "UID";
+            column.Visible = true;
+            column.MinWidth = 100;
+            column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_NAME";
+            column.Caption = "Name";
+            column.Visible = true;
+            column.MinWidth = 100;
+            column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_ADD1";
+            column.Caption = "Address Line1";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_ADD2";
+            column.Caption = "Address Line2";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_ADD3";
+            column.Caption = "Address Line3";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_ADD4";
+            column.Caption = "Address Line4";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_CITY";
+            column.Caption = "City";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_DISTRICT";
+            column.Caption = "District";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_STATE";
+            column.Caption = "State";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_COUNTRY";
+            column.Caption = "Country";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_R_PINCODE";
+            column.Caption = "PinCode";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_EMAIL_ID_1";
+            column.Caption = "Email Id1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_EMAIL_ID_2";
+            column.Caption = "Email Id2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TEL_NO_R_1";
+            column.Caption = "Telephone Residence No.1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TEL_NO_R_2";
+            column.Caption = "Telephone Residence No.2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_FAX_NO_R_1";
+            column.Caption = "Fax Residence No.1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_FAX_NO_R_2";
+            column.Caption = "Fax Residence No.2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TEL_NO_O_1";
+            column.Caption = "Telephone Office No.1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TEL_NO_O_2";
+            column.Caption = "Telephone Office No.2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_FAX_NO_O_1";
+            column.Caption = "Fax Office No.1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_FAX_NO_O_2";
+            column.Caption = "Fax Office No.2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_MOB_NO_1";
+            column.Caption = "Mobile No.1";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_MOB_NO_2";
+            column.Caption = "Mobile No.2";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_CST_TIN_NO";
+            column.Caption = "CST TIN Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_DL_NO";
+            column.Caption = "Driving Licence No";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_GST_TIN_NO";
+            column.Caption = "GST TIN Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_PAN_NO";
+            column.Caption = "PAN Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_PASSPORT_NO";
+            column.Caption = "Passport Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_RATION_NO";
+            column.Caption = "Ration Card Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_STR_NO";
+            column.Caption = "Service Tax Registration No.";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TAN_NO";
+            column.Caption = "TAN Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_TAX_ID_NO";
+            column.Caption = "Tax Id Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_UID_NO";
+            column.Caption = "Aadhar Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_VAT_TIN_NO";
+            column.Caption = "VAT TIN Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "C_VOTER_ID_NO";
+            column.Caption = "Voter ID Number";
+            column.Visible = true;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "REC_ID";
+            column.Caption = "Record Id";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+
+        settings.ClientSideEvents.Init = "GlobalAddressOnInit";
+        settings.ClientSideEvents.BeginCallback = "GlobalAddress_BeginCallBack";
+        settings.ClientSideEvents.EndCallback = "OnGridGlobalAddress_EndCallback";
+        settings.ClientSideEvents.ContextMenuItemClick = "GlobalAddressContextMenuFunction";
+
+        //settings.ClientSideEvents.FocusedRowChanged = "OnPropertyGridFocusedRowChanged";
+
+        //settings.ClientSideEvents.DetailRowCollapsing = "PropertyGrid_DetailRowCollapsing";
+        //settings.ClientSideEvents.DetailRowExpanding = "PropertyGrid_DetailRowExpanding";
+        //MyExtensions.GridViewHelper.Custom_HeaderFilterFillItems_All(settings);
+
+    }).Bind(Model).GetHtml()

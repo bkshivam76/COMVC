@@ -1,0 +1,84 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Production
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("ProductionExpensesGridData", "ProductionRegister", new { ActionMethodName =Model.ActionMethod, Prod_ID =Model.Prod_ID})
+    </div>
+</div>
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-md-12 btnsDiv">
+                    @(Html.DevExtreme().Button().ID("BUT_Actual_ExpensesNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_Actual_Expenses_New_Click() } </text>))
+                    @(Html.DevExtreme().Button().ID("BUT_Actual_ExpensesDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_Actual_Expenses_Delete_Click() } </text>))
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var Actual_Expenses_Rec_Id;
+    var expensessr;
+    $("#ProductionExpensesGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                OnFrm_Actual_Expenses_New_Click();
+                break;
+            case 46://delete key
+                OnFrm_Actual_Expenses_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            OnFrm_Actual_Expenses_New_Click();
+        }
+
+    });
+    function ProductionActualExpensesIncurredGridFocusedRowChanged(s, e) {
+            s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Sr', Actual_Expenses_GridRowValues);
+        }
+    function Actual_Expenses_GridRowValues(values) {
+        Actual_Expenses_Rec_Id = values[0];
+        expensessr = values[1];
+        }
+        function OnFrm_Actual_Expenses_New_Click()
+        { if ("@IsDisabled"=="true") { return; }
+
+            ShowLoader();
+          
+            OpenPopup("Productioninnergrid", "New ~ Expenses", "@Url.Action("Frm_Production_Expense_Details", "ProductionRegister", new {@area= "Stock" })?Prod_ID=@Model.Prod_ID", "auto", 1024, false, null);
+        }// new click
+    function OnFrm_Actual_Expenses_Delete_Click()
+        { if ("@IsDisabled"=="true") { return; }
+            if (expensessr == 'undefined' || expensessr == undefined || expensessr == null || expensessr  == "") {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+            deleteResultPaymentDetail.done(function (dialogResult) {
+
+                if (dialogResult) {
+                    incurredDelete();
+                }
+            });
+        }       
+    function incurredDelete() {
+        $.ajax({
+            type: "POST",
+            url: "/Stock/ProductionRegister/IncurredDelete",
+            data: {
+                ID: Actual_Expenses_Rec_Id,
+                SR: expensessr},
+            success: function (data) {
+            
+                ProductionExpensesGrid.SetFocusedRowIndex(-1);
+                ProductionExpensesGrid.Refresh();
+            },
+            error: function (e) {
+            }
+        });
+    }
+</script>

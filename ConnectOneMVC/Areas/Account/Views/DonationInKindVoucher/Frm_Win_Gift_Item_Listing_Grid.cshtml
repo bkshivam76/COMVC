@@ -1,0 +1,289 @@
+﻿@{ 
+    var SessionGUID = Request.QueryString["SessionGUID"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "Win_Gift_Item_Grid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "DonationInKindVoucher",
+            Action = "Frm_Win_Gift_Item_Listing_Grid",
+            SessionGUID = SessionGUID
+        };
+
+        settings.ClientVisible = true;
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.VerticalScrollableHeight = 150;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Auto;
+
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+        settings.EnableRowsCache = false;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.Hidden;
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+
+        settings.Settings.ShowHeaderFilterButton = false;
+
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        //settings.SetEmptyDataRowTemplateContent(c =>
+        //{
+        //    ViewContext.Writer.Write("<span style='font-size: 10pt'>~: P r e s s   K e y :~</br>INSERT=New :: ENTER=Edit :: DELETE=Remove :: VIEW=Spacebar</span>");
+        //});
+
+        settings.Settings.ShowPreview = true;
+        settings.PreviewFieldName = "Remarks";
+        settings.Styles.PreviewRow.CssClass = "customPreviewRow_DNK";
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            var Remarks =(Convert.IsDBNull(DataBinder.Eval(c.DataItem, "Remarks")) || DataBinder.Eval(c.DataItem, "Remarks") == null) ? "" : DataBinder.Eval(c.DataItem, "Remarks").ToString();
+            ViewContext.Writer.Write("<span style='color: blue'> <i>" + Remarks + "</i></span>");
+        });
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            if (e.RowType == GridViewRowType.Preview)
+            {
+                if (Convert.IsDBNull(e.GetValue("Remarks")) || e.GetValue("Remarks") == null || (string)e.GetValue("Remarks") == "")
+                {
+                    e.Row.Visible = false;
+                }
+                e.Row.BackColor = System.Drawing.Color.Transparent;
+            }
+
+        };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            e.Properties["cpTxt_SubTotal_DNK"] = Convert.ToDouble(ViewData["Txt_SubTotal"]);
+            int startIndex = (grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? 0 : grid.PageIndex) * grid.SettingsPager.PageSize;
+            int endIndex = grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? grid.VisibleRowCount : Math.Min(grid.VisibleRowCount, startIndex + grid.SettingsPager.PageSize);
+            object[] Rowdata = new object[endIndex - startIndex];
+            for (int n = startIndex; n < endIndex; n++)
+            {
+                Rowdata[n - startIndex] = grid.GetRowValues(n, new string[] { "Sr.", "Item_ID" });
+            }
+            e.Properties["cpPagedata"] = Rowdata;
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var Additem = e.CreateItem("New", "New");
+                Additem.Image.IconID = "actions_new_16x16gray";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+                var Edititem = e.CreateItem("Edit", "Edit");
+                Edititem.Image.IconID = "actions_edit_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+                var Deleteitem = e.CreateItem("Delete", "Delete");
+                Deleteitem.Image.IconID = "actions_delete_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                var Viewitem = e.CreateItem("View", "View");
+                Viewitem.Image.IconID = "actions_show_16x16gray";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+            }
+        };
+
+
+
+        settings.KeyFieldName = "Sr.";
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Sr.";
+                column.Caption = "Sr.";
+                column.Width = 50;
+                column.SortAscending();
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Item Name";
+                column.Caption = "Item Name";
+                column.Width = 270;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Head";
+                column.Caption = "Head";
+                column.Width = 205;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Qty.";
+                column.Caption = "Qty.";
+                column.Width = 70;
+                column.Visible = true;
+
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Unit";
+                column.Caption = "Unit";
+                column.Width = 80;
+                column.Visible = true;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Rate";
+                column.Caption = "Rate";
+                column.Width = 100;
+                column.Visible = true;
+                column.PropertiesEdit.DisplayFormatString = "#0.00";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Amount";
+                column.Caption = "Amount";
+                column.Width = 135;
+                column.Visible = true;
+                column.PropertiesEdit.DisplayFormatString = "#0.00";
+            }
+        });
+
+        settings.Columns.Add("Item_ID").Visible = false;
+        settings.Columns.Add("Item_Led_ID").Visible = false;
+        settings.Columns.Add("Item_Trans_Type").Visible = false;
+        settings.Columns.Add("Item_Party_Req").Visible = false;
+        settings.Columns.Add("Item_Profile").Visible = false;
+        settings.Columns.Add("ITEM_VOUCHER_TYPE").Visible = false;
+        settings.Columns.Add("Remarks").Visible = false;
+        settings.Columns.Add("Pur_ID").Visible = false;
+        settings.Columns.Add("LOC_ID").Visible = false;
+        //---Gold/Silver-----
+        settings.Columns.Add("GS_DESC_MISC_ID").Visible = false;
+        settings.Columns.Add("GS_ITEM_WEIGHT").Visible = false;
+        //---Other Asset-----
+        settings.Columns.Add("AI_TYPE").Visible = false;
+        settings.Columns.Add("AI_MAKE").Visible = false;
+        settings.Columns.Add("AI_MODEL").Visible = false;
+        settings.Columns.Add("AI_SERIAL_NO").Visible = false;
+        settings.Columns.Add("AI_PUR_DATE").Visible = false;
+        settings.Columns.Add("AI_WARRANTY").Visible = false;
+        settings.Columns.Add("AI_IMAGE").Visible = false;
+        settings.Columns.Add("AI_INS_AMT").Visible = false;
+        //---Livestock-----
+        settings.Columns.Add("LS_NAME").Visible = false;
+        settings.Columns.Add("LS_BIRTH_YEAR").Visible = false;
+        settings.Columns.Add("LS_INSURANCE").Visible = false;
+        settings.Columns.Add("LS_INSURANCE_ID").Visible = false;
+        settings.Columns.Add("LS_INS_POLICY_NO").Visible = false;
+        settings.Columns.Add("LS_INS_AMT").Visible = false;
+        settings.Columns.Add("LS_INS_DATE").Visible = false;
+        //---Vehicles------
+        settings.Columns.Add("VI_MAKE").Visible = false;
+        settings.Columns.Add("VI_MODEL").Visible = false;
+        settings.Columns.Add("VI_REG_NO_PATTERN").Visible = false;
+        settings.Columns.Add("VI_REG_NO").Visible = false;
+        settings.Columns.Add("VI_REG_DATE").Visible = false;
+        settings.Columns.Add("VI_OWNERSHIP").Visible = false;
+        settings.Columns.Add("VI_OWNERSHIP_AB_ID").Visible = false;
+        settings.Columns.Add("VI_DOC_RC_BOOK").Visible = false;
+        settings.Columns.Add("VI_DOC_AFFIDAVIT").Visible = false;
+        settings.Columns.Add("VI_DOC_WILL").Visible = false;
+        settings.Columns.Add("VI_DOC_TRF_LETTER").Visible = false;
+        settings.Columns.Add("VI_DOC_FU_LETTER").Visible = false;
+        settings.Columns.Add("VI_DOC_OTHERS").Visible = false;
+        settings.Columns.Add("VI_DOC_NAME").Visible = false;
+        settings.Columns.Add("VI_INSURANCE_ID").Visible = false;
+        settings.Columns.Add("VI_INS_POLICY_NO").Visible = false;
+        settings.Columns.Add("VI_INS_EXPIRY_DATE").Visible = false;
+        //----Land&Building-----
+        settings.Columns.Add("LB_PRO_TYPE").Visible = false;
+        settings.Columns.Add("LB_PRO_CATEGORY").Visible = false;
+        settings.Columns.Add("LB_PRO_USE").Visible = false;
+        settings.Columns.Add("LB_PRO_NAME").Visible = false;
+        settings.Columns.Add("LB_PRO_ADDRESS").Visible = false;
+        settings.Columns.Add("LB_OWNERSHIP").Visible = false;
+        settings.Columns.Add("LB_OWNERSHIP_PARTY_ID").Visible = false;
+        settings.Columns.Add("LB_SURVEY_NO").Visible = false;
+        settings.Columns.Add("LB_TOT_P_AREA").Visible = false;
+        settings.Columns.Add("LB_CON_AREA").Visible = false;
+        settings.Columns.Add("LB_CON_YEAR").Visible = false;
+        settings.Columns.Add("LB_RCC_ROOF").Visible = false;
+        settings.Columns.Add("LB_DEPOSIT_AMT").Visible = false;
+        settings.Columns.Add("LB_PAID_DATE").Visible = false;
+        settings.Columns.Add("LB_MONTH_RENT").Visible = false;
+        settings.Columns.Add("LB_MONTH_O_PAYMENTS").Visible = false;
+        settings.Columns.Add("LB_PERIOD_FROM").Visible = false;
+        settings.Columns.Add("LB_PERIOD_TO").Visible = false;
+        settings.Columns.Add("LB_DOC_OTHERS").Visible = false;
+        settings.Columns.Add("LB_DOC_NAME").Visible = false;
+        settings.Columns.Add("LB_OTHER_DETAIL").Visible = false;
+        settings.Columns.Add("LB_REC_ID").Visible = false;
+        settings.Columns.Add("LB_ADDRESS1").Visible = false;
+        settings.Columns.Add("LB_ADDRESS2").Visible = false;
+        settings.Columns.Add("LB_ADDRESS3").Visible = false;
+        settings.Columns.Add("LB_ADDRESS4").Visible = false;
+        settings.Columns.Add("LB_STATE_ID").Visible = false;
+        settings.Columns.Add("LB_DISTRICT_ID").Visible = false;
+        settings.Columns.Add("LB_CITY_ID").Visible = false;
+        settings.Columns.Add("LB_PINCODE").Visible = false;
+        //--WIP--
+        settings.Columns.Add("REF_REC_ID").Visible = false;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.Refresh = false;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Hidden;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+
+        settings.ClientSideEvents.ContextMenuItemClick = "Win_Gift_GridContextMenuFunction";
+        settings.ClientSideEvents.RowDblClick = "Win_Gift_GridDoubleClickEdit";
+        settings.ClientSideEvents.FocusedRowChanged = "Win_Gift_GridFocusedRowChanged_DNK";
+        settings.ClientSideEvents.BeginCallback = "Win_Gift_Grid_BeginCallBack_DNK";
+        settings.ClientSideEvents.EndCallback = "Win_Gift_Grid_EndCallback_DNK";
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+    }).Bind(Model).GetHtml()

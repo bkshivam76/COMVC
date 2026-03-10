@@ -1,0 +1,230 @@
+﻿@{ 
+    var SessionGUID = Request.QueryString["SessionGUID"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "UO_Delivered_Stock_Grid";
+
+        settings.CallbackRouteValues = new
+        {
+            Controller = "UserOrder",
+            Action = "UO_GoodsDelivery_Form_Grid",
+            ItemID = ViewData["ItemID"],
+            Rec_ID = ViewData["Rec_ID"],
+            SessionGUID = SessionGUID
+        };
+        // settings.ClientSideEvents.BeginCallback = "function(s, e) {   e.customArgs['ItemID'] = ItemID}";
+        //settings.CustomDataActionRouteValues = new { Controller = "UserOrder", Action = "UO_GoodsDelivery_Form_Grid" };
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.CommandColumn.Visible = false; //Mantis 1585 bug fixed
+        //settings.CommandColumn.SetFooterTemplateContent(column =>
+        //{
+        //    var sum = column.Grid.GetTotalSummaryValue(column.Grid.TotalSummary["Del_qty"]);
+        //    ViewContext.Writer.Write(sum);
+        //});
+        settings.CommandColumn.ShowSelectCheckbox = false;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsText.EmptyDataRow = "Item not selected / No Stocks Available in store for selected item";
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpVisibleRowCount"] = gridView.VisibleRowCount;
+            gridView.JSProperties["cpSummary"] = gridView.GetTotalSummaryValue(gridView.TotalSummary["Del_qty"]);
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(column => !column.Visible).ToDictionary(column => column.ToString(), column => column.Index);
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.SortMode = DevExpress.XtraGrid.ColumnSortMode.Custom;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+        };
+        settings.KeyFieldName = "ID";
+
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Make";
+                column.Caption = "Make";
+                column.Width = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Model";
+                column.Caption = "Model";
+                column.Width = 100;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Stock_Lot_Serial_no";
+                column.Caption = "Serial Lot No";
+                column.Width = 80;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Avlb_Qty";
+                column.Caption = "Available Quantity";
+                column.Width = 110;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Del_qty";
+            column.Caption = "Delivered Quantity";
+            column.ColumnType = MVCxGridViewColumnType.TextBox;
+            column.UnboundType = DevExpress.Data.UnboundColumnType.Decimal;
+            column.PropertiesEdit.DisplayFormatString = "column";
+            var textBoxProperties = column.PropertiesEdit as TextBoxProperties;
+            textBoxProperties.ValidationSettings.ErrorDisplayMode = ErrorDisplayMode.ImageWithText;
+            textBoxProperties.ValidationSettings.SetFocusOnError = true;
+            // column.Width = System.Web.UI.WebControls.Unit.Pixel(100);
+            column.Settings.AllowHeaderFilter = DefaultBoolean.False;
+            textBoxProperties.ClientInstanceName = "focus";
+
+            ASPxSummaryItem summaryItem = new ASPxSummaryItem(column.FieldName, DevExpress.Data.SummaryItemType.Sum);
+            summaryItem.Tag = column.FieldName + "_Sum";
+            summaryItem.DisplayFormat = "{0}";
+            settings.TotalSummary.Add(summaryItem);
+
+            //column.SetFooterTemplateContent(c => {
+
+            //    Html.DevExpress().Label(lbSettings =>
+            //    {
+            //        string fieldName = (c.Column as GridViewDataColumn).FieldName;
+            //        lbSettings.Name = "label" + fieldName;
+            //        lbSettings.Properties.EnableClientSideAPI = true;
+            //        ASPxSummaryItem summaryItem1 = c.Grid.TotalSummary.First(i => i.Tag == (fieldName + "_Sum"));
+            //        lbSettings.Text = c.Grid.GetTotalSummaryValue(summaryItem1).ToString();
+            //    }).Render();
+            //});
+
+            column.SetDataItemTemplateContent(c =>
+            {
+                Html.DevExpress().TextBox(txtsettings =>
+                {
+                    //txtsettings.Name = "Del_qty";
+                    txtsettings.Name = "Textbox" + c.VisibleIndex;
+                    txtsettings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+                    // txtsettings.Text = DataBinder.Eval(c.DataItem, "Del_qty") as string;
+                    txtsettings.Properties.EnableClientSideAPI = true;
+
+                    txtsettings.Properties.ClientSideEvents.ValueChanged = string.Format("function(s,e) {{OnValueChanged(s,'{0}', '{1}','{2}','{3}');}}", c.Column.FieldName, c.KeyValue, c.DataItem, c.VisibleIndex );
+
+                    txtsettings.Properties.ClientSideEvents.Init = string.Format("function(s,e) {{OnFormLoad( );}}");
+                    txtsettings.Properties.ClientSideEvents.TextChanged = string.Format("function(s,e) {{OnFormLoad( );}}");
+
+                    //   txtsettings.Properties.ClientSideEvents.ValueChanged = string.Format("function(s,e) {{OnChangeDelievryinnergrid(s);}}");
+
+                    // txtsettings.Properties.ClientSideEvents.TextChanged = "function(s, e) {OnTextChangedHandler(s);}"; // text changed event
+
+                }).Bind(DataBinder.Eval(c.DataItem, "Del_qty")).Render();
+            });
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Stk_Location";
+                column.Caption = "Location";
+                column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PurchaseDate";
+                column.Caption = "Date of Purchase";
+                column.Width = 175;
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+                column.SortOrder = DevExpress.Data.ColumnSortOrder.Ascending;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ID";
+                column.Caption = "ID";
+                column.Visible = false;
+                column.Width = 175;
+            }
+        });
+        //settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Del_qty").DisplayFormat = "column";
+        //settings.CustomUnboundColumnData = (s, e) =>
+        //{
+        //    if (e.Column.FieldName == "Del_qty")
+        //    {
+        //        int total = Convert.ToInt32(e.GetListSourceFieldValue("Del_qty"));
+        //    };
+        //};
+        //settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Del_qty").DisplayFormat = "c";
+        //  settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Org_Qty").DisplayFormat = "c";
+        // settings.Settings.ShowGroupPanel = true;
+        //settings.Settings.ShowFooter = true;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = false;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.SettingsResizing.ColumnResizeMode = DevExpress.Web.ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = DevExpress.Web.ResizingMode.Live;
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = false;
+        settings.SettingsBehavior.AllowSort = true;
+
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        //Client Events  
+        //settings.ClientSideEvents.FocusedRowChanged = "OnDelFocusedRowChanged";
+        // settings.ClientSideEvents.BeginCallback = "OnBeginCallback";
+
+        //settings.ClientSideEvents.EndCallback =";
+        // settings.ClientSideEvents.Init = "onpaymentmapgridinit";
+        //settings.CustomColumnSort += (s, e) =>
+        //{
+        //    MVCxGridView gv = (MVCxGridView)s;
+        //    bool isRow1Selected = gv.Selection.IsRowSelectedByKey(e.GetRow1Value(gv.KeyFieldName));
+        //    bool isRow2Selected = gv.Selection.IsRowSelectedByKey(e.GetRow2Value(gv.KeyFieldName));
+        //    e.Handled = isRow1Selected != isRow2Selected;
+        //    if (e.Handled)
+        //    {
+        //        e.Result = isRow1Selected ? 1 : -1;
+        //    }
+
+    }).Bind(Model).GetHtml()
+

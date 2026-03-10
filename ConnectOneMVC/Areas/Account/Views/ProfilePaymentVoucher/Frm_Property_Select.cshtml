@@ -1,0 +1,153 @@
+﻿<div class="VoucherPropertySelect_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    bool From_DNK = (bool)ViewBag.FromDNK;
+    var LB_REC_ID=ViewBag.LB_REC_ID;
+}
+<style>
+    .disabledDiv {
+        pointer-events: none;
+        opacity: 0.4;
+    }
+</style>
+<div id="Payment_PropertySelect_ParentDiv">
+    <div class="full-width-header-bg2">
+        <div class="row">
+            <div class="col-sm-8 pll10">
+                <h3 class="popuphead pll10"><i class="far fa-edit"></i>Select Property</h3>
+            </div>
+        </div>
+    </div><!--[Header]-->
+    <fieldset id="PropertyList_Grid_Div">
+        <div id="VoucherPropertyListGridPartialView">
+            @Html.Partial("Frm_Property_Select_Grid", Model)
+        </div>
+    </fieldset>
+    <br />
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="styleActionBtn">
+                @(Html.DevExtreme().Button().CustomSaveButton().ID("PropertySelectGridItemOk").Text("Ok").OnClick(@<text> function () { OnPropertyListOkClick() } </text>) )
+                @(Html.DevExtreme().Button().CustomCloseButton().ID("PropertySelectGridItemCancel").Text("Cancel").OnClick("ClosePropertySelectDetail"))
+            </div>
+        </div>
+    </div>
+    </div>
+    <script type="text/javascript">
+    $(document).ready(function ()
+    {
+        ASPxClientControl.AdjustControls(document.getElementById("Payment_Property_content"));
+        if ("@From_DNK" == "True") //from DNK
+        {
+
+        }
+        else
+        {
+            if ($("#AllowAmountEdit").val() == "False") // From Payment //Redmine Bug #134914 fix
+            {
+                document.getElementById("PropertyList_Grid_Div").disabled = true;
+                $("#PropertyList_Grid_Div").addClass("disabledDiv");
+                DevExpress.ui.dialog.alert('Referenced Property has been sold/transferred', "Information");
+            };
+        }
+        setTimeout(function () { PropertyListGrid_PaymentVoucher.Focus(); }, Timeout500); /*RedmineBug#134913*/
+        HideLoader();
+    });
+    var Property_LB_REC_ID;
+    var Property_Rec_Edit_on;
+    var Property_ClosingValue;
+    var Property_Name;
+
+    function OnPropertyListGridFocusedRowChanged(s, e) {
+        s.Focus();
+        if (s.GetFocusedRowIndex() < 0) {
+            Property_LB_REC_ID = null;
+            Property_Rec_Edit_on = null;
+            Property_ClosingValue = null;
+            Property_Name = null;
+        }
+
+        // Details: Values of the row will be fetched in OK button click [ RedminBug#134912 ]
+    }
+    function PropertyListOnGetRowValues(Data) {
+        var PropertyData = Data.split('![');
+        Property_LB_REC_ID = PropertyData[0];
+        Property_Rec_Edit_on = PropertyData[1];
+        Property_ClosingValue = PropertyData[2];
+        Property_Name = PropertyData[3];
+
+        OnPropertyListOkClick_AfterFetchingRowValue();
+    }
+
+    function OnPropertyListGridInit(s, e) {
+        if (!("@LB_REC_ID" == null || "@LB_REC_ID" == "")) {
+            for (var i = 0; i < s.GetVisibleRowsOnPage(); i++) {
+                var key = s.GetRowKey(i);
+                if (key == "@LB_REC_ID") {
+                    s.SetFocusedRowIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+    function OnPropertyListOkClick_AfterFetchingRowValue() { // RedminBug#134912
+
+        if ("@From_DNK" == "True") // From DNK
+        {
+            $("#LB_REC_ID_DNK_Itm").val(Property_LB_REC_ID);
+            Fill_Item_Grid_DonationInKindVoucher();
+        }
+        else // From Payment
+        {
+            if (!($("#Txt_Amt").dxNumberBox("instance").option("readOnly")))
+            {
+                $("#LB_REC_ID").val(Property_LB_REC_ID);
+            }
+            $("#LB_REC_EDIT_ON").val(Property_Rec_Edit_on);
+            if ((Property_ClosingValue + $("#Txt_Amt").dxNumberBox("instance").option("value")) < 0)
+            {
+                DevExpress.ui.dialog.alert('Sorry !  Updating of Construction Amount creates a Negative Closing Balance in Current Year for Property( ' + Property_Name + ' )', 'Incomplete Information!');
+                $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                $("#Txt_Amt").dxNumberBox("instance").focus();
+                return;
+            }
+            Fillgrid1_PaymentVoucher();
+        }
+    }
+
+    function OnPropertyListOkClick()
+    {
+        HideLoader();
+        if (PropertyListGrid_PaymentVoucher.GetFocusedRowIndex() < 0)
+        {
+            DevExpress.ui.dialog.alert('Data Not Found...!<br/> Select A Row</div>', 'Inform!');
+            PropertyListGrid_PaymentVoucher.Focus();
+            return;
+        }
+        // RedminBug#134912
+        Property_LB_REC_ID = PropertyListGrid_PaymentVoucher.GetRowKey(PropertyListGrid_PaymentVoucher.GetFocusedRowIndex());
+        PropertyListGrid_PaymentVoucher.GetValuesOnCustomCallback({ key: Property_LB_REC_ID }, PropertyListOnGetRowValues);
+    }
+
+
+
+
+    </script>
+    <script>
+    function ClosePropertySelectDetail()
+    {
+        if ("@From_DNK" == "True")
+        {
+            $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+        }
+        else
+        {
+            $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+            //$("#Frm_Voucher_Item_popup").dxPopup("hide");
+        }
+    }
+    </script>
+    </div>

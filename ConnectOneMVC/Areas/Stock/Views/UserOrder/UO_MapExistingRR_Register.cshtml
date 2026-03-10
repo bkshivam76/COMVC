@@ -1,0 +1,173 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.UORRMap
+
+
+<div id="ExtRemark" class="tab-pane fade in">
+    <div class="row">
+        <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+
+            @Html.Action("UO_MapExistingRRGridData", "UserOrder", new { UOID = Model.UO_ID })
+           
+            
+                   @*// @Html.Partial("UO_MapExistingRRGridData", Session["UO_MapUserOrderData"])*@
+           
+    
+
+        </div>
+    </div>
+</div>
+    <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-md-12">
+
+                            <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" tabindex="0">
+                                @(Html.DevExtreme().Button()
+.ID("But_UOMapExistingRR")
+.Text("MAP")
+.Icon("fas fa-file btn-icons newfile icon-rgt-space5")
+.Disabled(false)
+.OnClick(@<text>
+                            function () {
+                            OnFrm_UOMapRR_Click()
+                            }
+                        </text>))
+                            </div><!--[button]-->
+
+                            <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" tabindex="0">
+                                @(Html.DevExtreme().Button()
+                                                                                                            .ID("But_UOMapExistingRRClose")
+                                                                                                            .Text("Close")
+                                                                                                            .Icon("fas fa-file btn-icons newfile icon-rgt-space5")
+                                                                                                            .Disabled(false)
+                                                                                                            .OnClick(@<text>
+                                                                                                                function(){
+                                                                                                                @*OnFrm_UOMapRR_Close_Click()*@
+                                                                                                                $("#UserOrderinnergrid").dxPopup("hide");
+                                                                                                                }
+                                                                                                            </text>))
+                            </div><!--[button]-->
+                        </div>
+                    </div>
+                </div>
+    </div>
+    <script>
+        var finalvalue;
+        var MapItemID ;
+        var isUOMergeGridRefresh = false;
+        $(document).ready(function () {
+            sessionclearpath = "/Stock/UserOrder/UOSessionclear";
+        });
+    
+
+       
+
+
+        function OnValueChanged(s, FieldName, IndexValue, KeyValue, GridCount, Grid) {
+            debugger
+            var data = { Index: IndexValue, FieldName: FieldName, Key: KeyValue, GridCount: GridCount, Grid: Grid };
+            if (s.GetValueString() != null) {
+                data.value = s.GetValueString();
+            }
+            Key = data.Index;
+
+            finalvalue = Key;
+
+        }
+        function UOMergeListGrid_BeginCallBack(s, e) {
+            e.customArgs["command"] = e.command;
+            e.customArgs["UOID"] = "@Model.UO_ID";
+
+
+            if (e.command == "REFRESH") {
+                isUOMergeGridRefresh = true;
+
+            }
+        }
+        
+
+        function UOMergeUORRinit() {
+            $.ajax({
+                type: "Get",
+                url: "/Stock/UserOrder/FindItemGridKeyValueUORR",
+                success: function (value) {
+                    if (value.result == true) {
+                        UO_MapRRGrid.SelectRowsByKey(value.data);
+                    }
+                }
+            });
+        }
+        function OnFrm_UOMapRR_Click() {
+            debugger
+
+         
+            var Prev_RRID = 0;
+             var UOID = "@Model.UO_ID";
+          
+
+            var UO_selectedrowsarrayformap = UO_MapRRGrid.GetSelectedKeysOnPage();
+            var UO_selectedrowsarrayformap = finalvalue;
+         
+
+          
+            //$.ajax({
+            //    type: 'POST',
+            //    url: "/Stock/UserOrder/CheckPreviousMapping",
+            //    data: {
+
+            //    },
+            //    cache: false,
+            //    success: function (data1) {
+            //        debugger
+            //        if (data1.result == true) {
+            //            Prev_RRID = data1.value;
+
+            //        }
+
+           
+            var UO_map_arrlen = UO_selectedrowsarrayformap.length;
+            if (UO_map_arrlen == 0) {
+
+                DevExpress.ui.dialog.alert("Please select atleast one RR to Map ...!", "Error");
+            }
+            else {
+                $.ajax({
+                    type: 'POST',
+                    url: "/Stock/UserOrder/UO_MapExistingRRSaveRegister",
+                    data: {
+                        RR_ID: UO_selectedrowsarrayformap, UO_ID: UOID,
+
+                    },
+                    success: function (data) {
+
+                        if (data.result == true) {
+                            DevExpress.ui.dialog.alert(data.message, "Inform");
+                            $("#UserOrderinnergrid").dxPopup("hide");
+                            UserOrderListGrid.SetFocusedRowIndex(-1);
+                            UO_MapRRGrid.Refresh();
+                            UserOrderListGrid.Refresh();
+                        }
+                        if (data.result == false) {
+                            DevExpress.ui.dialog.alert(data.message, "Error");
+                        }
+                    },
+
+                });
+            }
+
+        }
+
+
+
+
+
+        function OnFrm_UOMapRR_Close_Click() {
+            //if (uomaprrsr == 'undefined' || uomaprrsr == undefined || uomaprrsr == null) {
+            //    DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            //    return;
+            //}
+            $("#UserOrderinnergrid").dxPopup("hide");
+        }
+
+    </script>
+    

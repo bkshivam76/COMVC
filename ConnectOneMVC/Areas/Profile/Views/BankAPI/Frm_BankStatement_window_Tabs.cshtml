@@ -1,0 +1,614 @@
+﻿<div class="bankstatement_ClearReferences">
+    @using DevExtreme.AspNet.Mvc
+    @{
+        var accno = ViewBag.acccount_no;
+        var account_ID = ViewBag.acccount_ID;
+        var exportRight = ViewData["Bank_ExportRight"];
+        string bankName = ViewBag.bankName;
+        string StoredTo = DateTime.Today.AddDays(-(DateTime.Today.Day)).ToString("yyyy-MM-dd");
+        string StoredToddMM = DateTime.Today.AddDays(-(DateTime.Today.Day)).ToString("dd-MM-yyyy");
+    }
+    <style>
+        .stcontainer {
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+    </style>
+    <div class="full-width-header-bg">
+        <div class="row">
+            <div class="col-sm-4">
+                <h3 class="popuphead"><i class="far fa-edit"></i>Account Statement</h3>
+            </div>
+            <div class="col-sm-8">
+                <h5>@bankName  A/c No.: @accno</h5>
+            </div>
+        </div>
+    </div><!--[Header]-->
+    <div class="stcontainer">
+        <div class="row" style="text-align:right;margin-right: 1px">
+            @(Html.DevExtreme().Button().ID("BankStatment_Tab_ListPreview").Text("Export").Icon("save").Width(80).OnClick("BankStatment_Tab_ListPreviewClick"))
+            @(Html.DevExtreme().Button().ID("BankStatment_Tab_ToggleScrollBar").Text("Default Data").Width(110).Icon("toolbox").OnClick("BankStatement_Tab_changeMode"))
+            @(Html.DevExtreme().Button().ID("BankStatment_Tab_CLOSE").Text("Close").Icon("clear").OnClick("Bank_Statment_Close_Click"))
+        </div>
+
+        @(Html.DevExtreme().TabPanel().ID("tabPanel_bankStatement").DeferRendering(false)
+            .Items(items =>
+            {
+                items.Add().Title("Live Data").Template(@<text>
+                    @LiveDataView()
+                </text>);
+                items.Add().Title("Stored Data").Template(@<text>
+                    @StoredDataView()
+                </text>);
+
+            }).OnSelectionChanged("BankStatementTabPanelSelectionChanged")
+        )
+        @helper LiveDataView()
+        {
+            @Html.Partial("Frm_BankStatement_LiveData_Tab");
+        }
+        @helper StoredDataView()
+        {
+            @Html.Partial("Frm_BankStatement_StoredData_Tab");
+        }
+
+    </div>
+</div>
+<script>
+    var Accno_bnkStatement = "@accno"
+    var account_ID_bnkStatement = "@account_ID"
+    var bankName_bnkStatement = "@bankName"
+    var BankStmt_ShowHorizontalBar_dx = 1
+    $(document).ready(function ()
+    {
+        var tabpanel = $("#tabPanel_bankStatement").dxTabPanel("instance")
+        if (bankName_bnkStatement.toLowerCase().startsWith("state bank of")) {
+           // tabpanel.option("items[1].visible", false);
+        }
+    })
+    function formatAmountToTwoDecimals(amount) {
+        let numberAmount = parseFloat(amount)
+        return numberAmount.toFixed(2);
+    }
+    function BankStatementGrid_OnContentReady(e) {
+        DxGrid_OnContentReady(e, BankStmt_ShowHorizontalBar_dx);
+    }
+</script>
+<script>
+    function BankStatment_Tab_ListPreviewClick()
+    {
+        if ("@exportRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        const tabPanel = $("#tabPanel_bankStatement").dxTabPanel("instance");
+        const selectedIndex = tabPanel.option("selectedIndex");
+        const selectedItem = tabPanel.option("items")[selectedIndex];
+        if (selectedItem)
+        {
+            const selectedTitle = selectedItem.title;
+            var Grid = ""
+            var FromDate = ""
+            var ToDate=""
+            if (selectedTitle === "Live Data")
+            {
+                var instance = $("div[id='BankStatementLiveDataGrid']").data("dxDataGrid")
+                if (instance == void 0)
+                {
+                    DevExpress.ui.dialog.alert("Generate Statement First", "Information");
+                    return;
+                }
+                Grid = "BankStatementLiveDataGrid";
+                FromDate = $("#LiveData_fromdate_bankstmt").dxDateBox("instance").option("value")
+                ToDate = $("#LiveData_todate_bankstmt").dxDateBox("instance").option("value");
+            }
+            else if (selectedTitle === "Stored Data")
+            {
+                var instance = $("div[id='BankStatementStoredDataGrid']").data("dxDataGrid")
+                if (instance == void 0)
+                {
+                    DevExpress.ui.dialog.alert("Generate Statement First", "Information");
+                    return;
+                }               
+                Grid = "BankStatementStoredDataGrid";
+                FromDate = $("#StoredData_fromdate_bankstmt").dxDateBox("instance").option("value")
+                ToDate = $("#StoredData_todate_bankstmt").dxDateBox("instance").option("value");
+            }
+            FromDate = JS_Json_Date_To_ddMMyyyy(FromDate, "DD-MM-YYYY")
+            ToDate = JS_Json_Date_To_ddMMyyyy(ToDate, "DD-MM-YYYY")
+            ShowLoader();
+            $.ajax({
+                type: 'Get',
+                url: '/Profile/BankAPI/Frm_Export_Options_BankStatement',
+                cache: false,
+                data: {
+                    GridID: Grid,
+                    AccNo: Accno_bnkStatement,
+                    FromDate: FromDate,
+                    Todate: ToDate,
+                },
+                success: function (data)
+                {
+                    HideLoader();
+                    OpenPopup("Bank_statement_export_modal", "Export Option", null, "auto", 125, true, data);
+                }
+            });
+        }
+    }
+    function BankStatement_Tab_changeMode()
+    {
+        var LiveInstance = $("div[id='BankStatementLiveDataGrid']").data("dxDataGrid")
+        var StoredInstance = $("div[id='BankStatementStoredDataGrid']").data("dxDataGrid")
+        if (BankStmt_ShowHorizontalBar_dx == 0)
+        {
+            BankStmt_ShowHorizontalBar_dx = 1;
+            $("#BankStatment_Tab_ToggleScrollBar").find("span").text("Default Data");
+            $("#BankStatment_Tab_ToggleScrollBar").width(110);
+            if (LiveInstance)
+            {
+                LiveInstance.beginUpdate();
+                LiveInstance.option("columnHidingEnabled", false);
+                LiveInstance.option("allowColumnResizing", true);
+                LiveInstance.endUpdate();
+            }
+            if (StoredInstance) {
+                StoredInstance.beginUpdate();
+                StoredInstance.option("columnHidingEnabled", false);
+                StoredInstance.option("allowColumnResizing", true);
+                StoredInstance.endUpdate();
+            }
+        }
+        else
+        {
+            BankStmt_ShowHorizontalBar_dx = 0;
+            $("#BankStatment_Tab_ToggleScrollBar").find("span").text("Full Data");
+            $("#BankStatment_Tab_ToggleScrollBar").width(90);
+            if (LiveInstance) {
+                LiveInstance.beginUpdate();
+                LiveInstance.option("columnHidingEnabled", true);
+                LiveInstance.option("allowColumnResizing", false);
+                LiveInstance.endUpdate();
+            }
+            if (StoredInstance) {
+                StoredInstance.beginUpdate();
+                StoredInstance.option("columnHidingEnabled", true);
+                StoredInstance.option("allowColumnResizing", false);
+                StoredInstance.endUpdate();
+            }         
+        } 
+    }
+    function Bank_Statment_Close_Click()
+    {
+        BankStmt_ShowHorizontalBar_dx = null
+        $("#popup_BankStatement_Window").dxPopup("hide");
+    }   
+    function BankStatementTabPanelSelectionChanged(e)
+    {
+        if (e.addedItems[0].title == "Live Data")
+        {     
+        }
+        else if (e.addedItems[0].title == "Stored Data")
+        {
+        }
+    }   
+</script>
+<script>
+    function LiveData_fromdate_bankstmt_Valuechanged(e) {
+    }
+    function LiveData_todate_bankstmt_Valuechanged(e) {
+    }
+    function LiveData_bankStatment_btnClick() {
+        let fromdate = $("#LiveData_fromdate_bankstmt").dxDateBox("instance").option("value");
+        let todate = $("#LiveData_todate_bankstmt").dxDateBox("instance").option("value");
+        if (fromdate == null) {
+            DevExpress.ui.dialog.alert("Please select from Date", "Alert").done(function () {
+                $("#LiveData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (todate == null) {
+            DevExpress.ui.dialog.alert("Please select To Date", "Alert").done(function () {
+                $("#LiveData_todate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (fromdate > todate) {
+            DevExpress.ui.dialog.alert("From Date should not be greater than To Date", "Alert").done(function () {
+                $("#LiveData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        fromdate = JS_Json_Date_To_ddMMyyyy(fromdate, "DD-MM-YYYY")
+        todate = JS_Json_Date_To_ddMMyyyy(todate, "DD-MM-YYYY")
+        if (bankName_bnkStatement.toLowerCase() == "bank of baroda") {
+            getBankStatement_LiveData_BOB(fromdate, todate)
+        }
+        else if (bankName_bnkStatement.toLowerCase().startsWith("state bank of")) {
+            getBankStatement_LiveData_SBI(fromdate, todate)
+        }
+    }
+
+    function getBankStatement_LiveData_BOB(fromdt, todt) {
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: '/Profile/BankAPI/Get_Authentication_Statement',
+            cache: false,
+            data:
+            {
+                accountNumber: Accno_bnkStatement,
+                fromDate: fromdt,
+                toDate: todt
+            },
+            success: function (data)
+            {
+                plotStatementGrid_BOB([], "BankStatementLiveDataGrid")
+                HideLoader();
+                var jsonData = JSON.parse(data)
+                debugger
+                if (jsonData.responseState)
+                {
+                    if (jsonData.status == "S")
+                    {
+                        var statmentStr = jsonData.accountStatment.replace(/\x00/g, '')
+                        var statmentJsonData = JSON.parse(statmentStr)         
+                        plotStatementGrid_BOB(statmentJsonData, "BankStatementLiveDataGrid")                                          
+                    }
+                    else if (jsonData.status == "F")
+                    {
+                        var failstatus = jsonData.status;
+                        var failedMessage = jsonData.message;
+                        var failencData = jsonData.encData;
+                        failedMessage = failedMessage.trim();
+                        if (failedMessage == "Bad Gateway") {
+                            DevExpress.ui.dialog.alert(failedMessage + "<br> Please try after some time", "No Statement Received Alert");
+                        }
+                        else if (failedMessage.toLowerCase() == "NO TRANSACTIONS FETCHED".toLowerCase()) {
+                            DevExpress.ui.dialog.alert(failedMessage, "No Statement Received Alert");
+                        }
+                        else if (failedMessage == "Invalid Account Number") {
+                            DevExpress.ui.dialog.alert(failedMessage + "<br> or Your Bank Account is not Activated for this facility.<br>  Please contact Madhuban",
+                                "No Statement Received Alert");
+                        }
+                        else
+                        {
+                            DevExpress.ui.dialog.alert(failedMessage, "Information");
+                        }
+                    }
+                    else
+                    {
+                        if (jsonData.responseMessage == "Received Response")
+                        {
+                            DevExpress.ui.dialog.alert(jsonData.message, "Response Received. Some Problem")
+                        }
+                    }
+                }
+                else
+                {
+                    if (jsonData.responseMessage == "Request timed out") //exception
+                    {
+                        DevExpress.ui.dialog.alert(jsonData.message, "Response Not Received")
+                    }
+                    else if (jsonData.responseMessage == "no response") //exception
+                    {
+                        DevExpress.ui.dialog.alert(jsonData.message, "Response Not Received")
+                    }
+                    else
+                    {
+                        var faildata = JSON.parse(jsonData.FailRequestContent)
+                        if (faildata)
+                        {
+                            var failstatus = faildata.status;
+                            var failedMessage = faildata.message; //'Plain text request body is incorrect. Please refer specification.'
+                            var failencData = faildata.encData;
+                            if (failedMessage == "Gateway Timeout")
+                            {
+                                DevExpress.ui.dialog.alert(failedMessage, "Timeout");
+                            }
+                            else
+                            {
+                                DevExpress.ui.dialog.alert(failedMessage + "<br> or Your Bank Account is not Activated for this facility.<br> Please contact Madhuban", "No Response");
+                            }
+                        }
+                    }
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown)
+            {
+                plotStatementGrid_BOB(null, "BankStatementLiveDataGrid")
+                HideLoader();
+                DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+            }
+        });
+    }
+    function plotStatementGrid_BOB(statementData, GridID) {
+        debugger
+        if (statementData && statementData.length>0) {
+            statementData = statementData.reverse()
+            statementData.forEach(item => {
+                if (item.tranAmt !== undefined) {
+                    item.tranAmt = formatAmountToTwoDecimals(item.tranAmt);
+                }
+            });
+        }
+        var instance = $("div[id='" + GridID + "']").data("dxDataGrid");
+        if (instance)
+        {
+            instance.option("dataSource", statementData)
+        }
+        else
+        {
+            $("#" + GridID).dxDataGrid({
+                dataSource: statementData,
+                columns: [
+                    { dataField: "tranDate", caption: "Date", maxWidth: 70, minWidth: 70, dataType: "date", format: "dd-MM-yyyy" },
+                    { dataField: "tranType", caption: "Type", maxWidth: 60 },
+                    { dataField: "tranId", caption: "Transaction ID", maxWidth: 120 },
+                    { dataField: "narration", caption: "Narration", minWidth: 350 },
+                    { dataField: "tranAmt", caption: "Amount", maxWidth: 100, format: { type: "fixedPoint", precision: 2 }, alignment: "right" },
+                    { dataField: "balance", caption: "Balance", maxWidth: 100, alignment: "right" }
+                ],
+                height: 500,
+                width: "100%",
+                onContentReady: BankStatementGrid_OnContentReady,
+            });
+            instance = $("div[id='" + GridID + "']").dxDataGrid("instance");
+            DxGrid_CustomDataGridListing(GridID, BankStmt_ShowHorizontalBar_dx, instance)
+        }
+    }
+
+    async function getBankStatement_LiveData_SBI(fromdt, todt)
+    {
+        ShowLoader();
+        var Reference = await CheckIfReferenceExist(Accno_bnkStatement, fromdt, todt)
+        Reference = Reference.Refno       
+        if (Reference == null || Reference.length == 0) {
+            $.ajax({
+                type: 'POST',
+               url: '/Profile/BankAPI/GenerateStatement_SBI',            
+                cache: false,
+                data:
+                {
+                    AccNo: Accno_bnkStatement,
+                    FromDate: fromdt,
+                    ToDate: todt
+                },
+                success: function (data) {
+                    plotStatementGrid_SBI([], "BankStatementLiveDataGrid")
+                    HideLoader();
+                    if (data.jsonParam.result == false) {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, "Information")
+                    }
+                    else {
+                        if (data.jsonParam.responseData != null && data.jsonParam.responseData.length > 0) {
+                            plotStatementGrid_SBI(data.jsonParam.responseData, "BankStatementLiveDataGrid")
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, "Information")
+                        }
+                    }
+                }
+            });
+        }
+        else {
+            $.ajax({
+                type: 'POST',
+                url: '/Profile/BankAPI/DownloadStatement_SBI',
+                cache: false,
+                data:
+                {
+                    AccNo: Accno_bnkStatement,
+                    RefNo: Reference,
+                },
+                success: function (data) {
+                    plotStatementGrid_SBI([], "BankStatementLiveDataGrid")
+                    HideLoader();
+                    if (data.jsonParam.result == false) {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, "Information")
+                    }
+                    else {
+                        if (data.jsonParam.responseData != null && data.jsonParam.responseData.length > 0) {
+                            plotStatementGrid_SBI(data.jsonParam.responseData, "BankStatementLiveDataGrid")
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, "Information")
+                        }
+                    }
+                }
+            });
+        }
+    }
+    function plotStatementGrid_SBI(statementData, GridID)
+    {
+        if (statementData && statementData.length>0)
+        {
+            statementData = $.parseJSON(statementData);
+            statementData.reverse();
+            console.log(statementData)
+        }
+        var instance = $("div[id='" + GridID + "']").data("dxDataGrid");
+        if (instance)
+        {
+            instance.option("dataSource", statementData)
+        }
+        else
+        {
+            $("#" + GridID).dxDataGrid({
+                dataSource: statementData,
+                height: 500,
+                columns: [
+                    { dataField: "ACCOUNT NO", caption: "Account No",visible:false },
+                    { dataField: "tranDate", caption: "Transaction Date",dataType:"date",format:"dd-MM-yyyy" },
+                    { dataField: "VALUEDATE", caption: "Value Date", dataType: "date", format: "dd-MM-yyyy" },
+                    { dataField: "narration", caption: "Description" },
+                    { dataField: "REFERENCENOCHEQUENO", caption: "Reference No/Cheque No" },
+                    { dataField: "BRANCHCODE", caption: "Branch Code" },
+                    { dataField: "DEBIT", caption: "Debit" },
+                    { dataField: "CREDIT", caption: "Credit" },
+                    { dataField: "balance", caption: "Balance" }
+                ],
+                width: "100%",
+                onContentReady: BankStatementGrid_OnContentReady,
+            });
+            var instance = $("div[id='" + GridID + "']").dxDataGrid("instance");
+            DxGrid_CustomDataGridListing(GridID, BankStmt_ShowHorizontalBar_dx, instance)
+        }
+    }
+    async function CheckIfReferenceExist(Accno, fromdt, todt) {
+        return $.ajax({
+            type: 'GET',
+            url: "/Profile/BankAPI/CheckReferenceNumber",
+            data:
+            {
+                accountNumber: Accno,
+                FromDate: fromdt,
+                ToDate: todt
+            },
+            cache: false
+        });
+    }
+
+</script>
+<script>
+    function StoredData_fromdate_bankstmt_Valuechanged(e) {
+
+    }
+    function StoredData_todate_bankstmt_Valuechanged(e) {
+
+    }
+    function StoredData_bankStatment_btnClick(e) {
+        debugger
+        let fromdate = $("#StoredData_fromdate_bankstmt").dxDateBox("instance").option("value")
+        let todate = $("#StoredData_todate_bankstmt").dxDateBox("instance").option("value")
+        if (fromdate == null) {
+            DevExpress.ui.dialog.alert("Please select from Date.", "Alert").done(function () {
+                $("#StoredData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (todate == null) {
+            DevExpress.ui.dialog.alert("Please select To Date.", "Alert").done(function () {
+                $("#StoredData_todate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        //var FromDateMoment = JS_Json_DateToMomentDate(fromdate, "DD/MM/YYYY")
+        //var ToDateMoment = JS_Json_DateToMomentDate(todate, "DD/MM/YYYY")
+
+        @*if (FromDateMoment.isBefore(JS_Json_DateToMomentDate("2024-04-01", "DD/MM/YYYY")))
+        {
+            DevExpress.ui.dialog.alert("From Date should not be less than 01-04-2024", "Alert").done(function () {
+                $("#StoredData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (ToDateMoment.isAfter(JS_Json_DateToMomentDate("@StoredTo", "DD/MM/YYYY")))
+        {
+            DevExpress.ui.dialog.alert("To Date should not be greater than @StoredToddMM", "Alert").done(function () {
+                $("#StoredData_todate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (FromDateMoment.isAfter(ToDateMoment))
+        {
+            DevExpress.ui.dialog.alert("From Date should not be greater than To Date", "Alert").done(function () {
+                $("#StoredData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }*@
+
+        if (fromdate < new Date("2024-04-01").setHours(0, 0, 0, 0))
+        {
+            DevExpress.ui.dialog.alert("From Date should not be less than 01-04-2024", "Alert").done(function () {
+                $("#StoredData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (todate > new Date("@StoredTo").setHours(0, 0, 0, 0))
+        {
+            DevExpress.ui.dialog.alert("To Date should not be greater than @StoredToddMM", "Alert").done(function () {
+                $("#StoredData_todate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        if (fromdate > todate)
+        {
+            DevExpress.ui.dialog.alert("From Date should not be greater than To Date", "Alert").done(function () {
+                $("#StoredData_fromdate_bankstmt").dxDateBox("instance").focus();
+            });
+            return
+        }
+        //fromdate = JS_Json_Date_To_ddMMyyyy(fromdate, "YYYY-MM-DD")
+        //todate = JS_Json_Date_To_ddMMyyyy(todate, "YYYY-MM-DD")
+        fromdate = JS_Json_Date_To_ddMMyyyy(fromdate, "DD-MM-YYYY")
+        todate = JS_Json_Date_To_ddMMyyyy(todate, "DD-MM-YYYY")
+        if (bankName_bnkStatement.toLowerCase() == "bank of baroda")
+        {
+            getStoredData_bankStatement(fromdate, todate,"bob")
+        }
+        else if (bankName_bnkStatement.toLowerCase().startsWith("state bank of")) {
+            getStoredData_bankStatement(fromdate, todate, "sbi")
+        }
+    }
+    function getStoredData_bankStatement(fromdt, todt, bankShort)
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: '/Profile/BankAPI/Frm_BankStatement_StoredData',
+            cache: false,
+            data:
+            {
+                date_from: fromdt,
+                date_to: todt,
+                accno: Accno_bnkStatement,
+                account_ID: account_ID_bnkStatement
+            },
+            success: function (data)
+            {
+                if (bankShort == "sbi")
+                {
+                    plotStatementGrid_SBI([], "BankStatementStoredDataGrid")
+                }
+                else
+                {
+                    plotStatementGrid_BOB([], "BankStatementStoredDataGrid")
+                }
+                HideLoader();
+                if (data.jsonParam.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, "Information")
+                }
+                else
+                {
+                    if (data.MaxDate == null || data.MaxDate.length == 0)
+                    {
+                        DevExpress.ui.dialog.alert("Transactions have not been downloaded for the account yet<br> Or Your Bank Account is not yet Activated for this facility. Please contact Madhuban", "Information")
+                    }
+                    else if (DateStringToJsDate(todt) > DateStringToJsDate(data.MaxDate))
+                    {
+                        DevExpress.ui.dialog.alert("Transactions for the account have only been downloaded till " + data.MaxDate + "<br> To Date cannot be more than " + data.MaxDate, "Information")
+                    }
+                    else if (data.jsonParam.responseData != null && data.jsonParam.responseData.length > 0)
+                    {
+                        if (bankShort == "sbi")
+                        {
+                            plotStatementGrid_SBI(data.jsonParam.responseData, "BankStatementStoredDataGrid")
+                        }
+                        else
+                        {
+                            plotStatementGrid_BOB(JSON.parse(data.jsonParam.responseData), "BankStatementStoredDataGrid")
+                        }                      
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert("There are no transactions for the selected period.", "Information")
+                    }
+                }
+            }
+        });
+    }
+</script>

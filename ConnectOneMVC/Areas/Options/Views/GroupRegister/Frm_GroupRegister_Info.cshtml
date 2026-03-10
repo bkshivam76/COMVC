@@ -1,0 +1,545 @@
+﻿<div class="GroupRegisterOptions_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+
+        bool GroupReg_AddRight = (bool)ViewData["GroupReg_AddRight"];
+        bool GroupReg_UpdateRight = (bool)ViewData["GroupReg_UpdateRight"];
+        bool GroupReg_ViewRight = (bool)ViewData["GroupReg_ViewRight"];
+        bool GroupReg_DeleteRight = (bool)ViewData["GroupReg_DeleteRight"];
+        bool GroupReg_ExportRight = (bool)ViewData["GroupReg_ExportRight"];
+        bool GroupReg_ListRight = (bool)ViewData["GroupReg_ListRight"];
+        bool GroupReg_MngPrivilegeRight = (bool)ViewData["GroupReg_MngPrivilegeRight"];
+        bool GroupReg_AddPrivilegeRight = (bool)ViewData["GroupReg_AddPrivilegeRight"];
+    }
+
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Group Register Screen</label>
+        </div>
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button().ID("GroupRegisterAdUsrGrp").Text("Add User to Group").Visible(true).Disabled(false).OnClick(@<Text> function () { GroupRegister_AdUsrtoGrp(); } </Text>))
+            @(Html.DevExtreme().Button()
+            .ID("GroupRegisterAddPrivileges")
+            .Text("Add Privileges")
+            .Visible(true).Disabled(false)
+            .OnClick("GroupRegister_AddPrivileges")
+        )
+            @(Html.DevExtreme().Button().ID("GroupRegisterManagPrivileges").Text("Manage Privileges").Visible(true).Disabled(false).OnClick(@<Text> function () { GroupRegister_ManagPrivileges(); } </Text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<Text> function () { GroupRegister_NEW(); } </Text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text> function () { GroupRegisterEditClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { GroupRegisterDeleteClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () {GroupRegisterViewClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text> function () { GroupRegisterchangeMode(); } </text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterListPreview").Text("List Export").Icon("save").OnClick(@<text> function () { GroupRegister_Preview(); } </text>))
+            @(Html.DevExtreme().Button().ID("GroupRegisterCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+        </div><!--[Buttons]-->
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="GroupRegisterreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_GroupRegister_Info_Grid", Model)
+            </div>
+        </form>
+    </div><!--[Grid]-->
+
+    <div class="footer-MainBoxdiv full-width-footer margin4-0">
+        <div class="col-md-10">
+            <p id="GroupRegisterLbl_Add" style="margin:0px" class="left_footertext_top"></p>
+            <p id="GroupRegisterLbl_Edit" style="margin:0px" class="left_footertext_bottom"></p>
+        </div><!--[Footer]-->
+        @(Html.DevExtreme().Popup().CustomPopup().ID("GrpReg_ManagPrivileg_report_modal").Title("GroupRegister List Preview").FullScreen(false).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='GroupRegister_ManagPrivileg_report_modal_result'> </div> </text>))
+    </div>
+
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+
+    var GroupRegister_ShowHorizontalBar = 0;
+    var GroupRegisterEditright;
+    var GroupRegisterNewright ;
+    var GroupRegisterDeleteright;
+    var GroupRegisterViewright;
+    var GroupRegisterExportright;
+    var GroupRegisterListingright;
+    var flag = "Group";
+    var GroupGridFocusedIndex;
+    var isGroupregisterGridRefresh = false;
+
+    $(document).ready(function () {
+        HideLoader();
+
+        GroupRegisterNewright = "@GroupReg_AddRight" == "True" ? true : false;
+        GroupRegisterEditright = "@GroupReg_UpdateRight" == "True" ? true : false;
+        GroupRegisterViewright = "@GroupReg_ViewRight" == "True" ? true : false;
+        GroupRegisterDeleteright = "@GroupReg_DeleteRight" == "True" ? true : false;
+        GroupRegisterExportright = "@GroupReg_ExportRight" == "True" ? true : false;
+        GroupRegisterListingright = "@GroupReg_ListRight" == "True" ? true : false;
+
+
+        if (GroupRegisterNewright != true)
+        {
+            $("#GroupRegisterNew").hide();
+        }
+        if (GroupRegisterEditright != true)
+        {
+            $("#GroupRegisterEdit").hide();
+            $("#GroupRegisterAdUsrGrp").hide();
+        }
+        if (GroupRegisterViewright != true)
+        {
+            $("#GroupRegisterView").hide();
+        }
+        if (GroupRegisterDeleteright != true)
+        {
+            $("#GroupRegisterDelete").hide();
+        }
+        if (GroupRegisterExportright != true)
+        {
+            $("#GroupRegisterListPreview").hide();
+        }
+        if ("@GroupReg_MngPrivilegeRight" == "False")
+        {
+            $("#GroupRegisterManagPrivileges").hide();
+        }
+        if ("@GroupReg_AddPrivilegeRight" == "False")
+        {
+            $("#GroupRegisterAddPrivileges").hide();
+        }
+
+    });
+
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_GroupRegisterOptions();
+    });
+     function ClearAllReferences_GroupRegisterOptions()
+       {
+        GroupRegister_ShowHorizontalBar = null;
+        GroupRegisterEditright = null;
+        GroupRegisterNewright = null;
+        GroupRegisterDeleteright = null;
+        GroupRegisterViewright = null;
+        GroupRegisterExportright = null;
+        GroupRegisterListingright = null;
+        flag = null;
+        GroupGridFocusedIndex = null;
+        isGroupregisterGridRefresh = null;
+        GroupAddedBy = null;
+        GroupAddedOn = null;
+        GroupEditedBy = null;
+        GroupEditedOn = null;
+        GroupID = null;
+        UserID = null;
+        isGroupNestedRefresh = null;
+
+        ClearAllReferences("GroupRegisterOptions_ClearReferences");
+
+    }
+
+    function GroupRegisterOnInit(s, e) {
+        GroupRegister_MasterAdjustSize(s,e);
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            GroupRegister_MasterAdjustSize(s,e);
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+
+
+    function GroupRegisterGrid_EndCallback(s, e) {
+        GroupRegister_MasterAdjustSize(s,e);
+        if (isGroupregisterGridRefresh) {
+            isGroupregisterGridRefresh = false;
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(GroupGridFocusedIndex);
+        }
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function GroupRegister_MasterAdjustSize(s,e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        GroupRegisterListGrid.SetHeight(height);
+    }
+
+    function GroupRegisterNested_MasterAdjustSize(s,e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        s.SetHeight(height);
+    }
+
+    function GroupRegisterGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            GroupID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: GroupID }, GroupRegisterOnGetRowValues);
+           // s.CollapseAllDetailRows();
+        }
+        else { GroupID = 0; }
+    }
+
+    function GroupRegisterNestedGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            //var key = s.GetRowKey(s.GetFocusedRowIndex());
+           // s.GetValuesOnCustomCallback({ key: key }, UserNameOnGetRowValues);
+            s.SetFocusedRowIndex(-1);
+        }
+        else  { UserID = null; }
+    }
+
+   var GroupAddedBy;
+   var GroupAddedOn;
+   var GroupEditedBy;
+   var GroupEditedOn;
+   var GroupID;
+   var UserID;
+    var isGroupNestedRefresh = false;
+
+    function GroupRegisterOnGetRowValues(FDData){
+        //debugger;
+        var values = FDData.split("![");
+
+        GroupAddedBy = values[0];
+        GroupAddedOn = values[1];
+        GroupEditedBy = values[2];
+        GroupEditedOn = values[3];
+        GroupID = values[4];
+        GroupRegister_UpdateFooterDetail(GroupAddedBy, GroupAddedOn, GroupID, GroupEditedOn, GroupEditedBy);
+    }
+
+    function UserNameOnGetRowValues(FDData) {
+
+        var values = FDData.split("![");
+
+        GroupAddedBy = values[0];
+        GroupAddedOn = values[1];
+        GroupEditedBy = values[2];
+        GroupEditedOn = values[3];
+        UserID = values[4];
+        GroupRegister_UpdateFooterDetail(GroupAddedBy, GroupAddedOn, UserID, GroupEditedOn, GroupEditedBy);
+    }
+
+    function GroupRegister_UpdateFooterDetail(AddedBy, AddedOn, ID, EditedOn, EditedBy) {
+
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+
+        if (AddedOn) {
+            Lbl_Create = "Add On: " + AddedOn + ", Add By: " + AddedBy;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, Add By: " + AddedBy;
+        }
+
+        if (EditedOn) {
+            Lbl_Modify = "Edit On: " + EditedOn + ", Edit By: " + EditedBy;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, Edit By: " + EditedBy;
+        }
+
+        $('#GroupRegisterLbl_Add').text(Lbl_Create);
+        $('#GroupRegisterLbl_Edit').text(Lbl_Modify);
+
+    }
+
+    function GroupRegisterdblclickEdit(s, e) {
+
+        if (GroupID) {
+            GroupRegisterEditClick();
+        }
+        else {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+        }
+    }
+
+    function GroupRegisterContextMenuFunction(s, e) {
+
+        if (e.item.name == 'New') {
+            GroupRegister_NEW();
+        }
+        if (e.item.name == 'Close')
+        {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit')
+        {
+            GroupRegisterEditClick();
+        }
+        else if (e.item.name == 'Delete')
+        {
+            GroupRegisterDeleteClick();
+        }
+        else if (e.item.name == 'View')
+        {
+            GroupRegisterViewClick();
+        }
+        else if (e.item.name == 'ListPreview')
+        {
+            GroupRegister_Preview();
+        }
+        else if (e.item.name == 'Refresh')
+        {
+            GroupRegisterListGrid.Refresh();
+        }
+        else if (e.item.name == 'AdUsrtoGrp')
+        {
+            GroupRegister_AdUsrtoGrp();
+        }
+        else if (e.item.name == 'ManagPrivileges')
+        {
+            GroupRegister_ManagPrivileges();
+        }
+        else if (e.item.name == 'AddPrivileg')
+        {
+            GroupRegister_AddPrivileges();
+        }
+    }
+
+    function GroupRegisterGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isGroupregisterGridRefresh = true;
+            GroupGridFocusedIndex = s.GetFocusedRowIndex();
+        }
+        e.customArgs["ShowHorizontalBar"] = GroupRegister_ShowHorizontalBar;
+
+    }
+
+    function GroupRegisterNestedGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isGroupNestedRefresh = true;
+        }
+    }
+
+    //Nested Grid related Function
+    function OnGroupPrivilegesListGridNestedFocusedRowChange(s, e) {
+        s.SetFocusedRowIndex(-1);
+    }
+
+    //Nested Grid Related Function
+    function GroupPrivileges_Grid_Nested_BeginCallBack(s, e) {
+        //debugger;
+        //e.customArgs["ShowHorizontalBar"] = MembershipWow_ShowHorizontalBar;
+        //e.customArgs["VouchingMode"] = MembershipWow_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+        e.customArgs["RecID"] = GroupID;
+    }
+
+
+
+    function GroupRegisterchangeMode() {
+        ShowLoader();
+        if (GroupRegister_ShowHorizontalBar == 0) {
+            GroupRegister_ShowHorizontalBar = 1;
+            $("#GroupRegisterToggleScrollBar").find("span").text("Default Data");
+            $("#GroupRegisterToggleScrollBar").width(110);
+        }
+        else {
+            GroupRegister_ShowHorizontalBar = 0;
+            $("#GroupRegisterToggleScrollBar").find("span").text("Full Data");
+            $("#GroupRegisterToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_GroupRegister_Info_Grid", "GroupRegister")',
+            type: "GET",
+            data: { ShowHorizontalBar: GroupRegister_ShowHorizontalBar },
+            success: function (res) {
+                $("#GroupRegisterreloadPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }// full data button click
+
+    function UserRegisterAjaxSuccessForm(data) {
+        HideLoader();
+        //dontaskpopupcloseconfirmation = true;
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+                UserRegisterListGrid.SetFocusedRowIndex(-1);
+                UserRegisterListGrid.Refresh();
+        }
+    }
+
+    function GroupRegister_NEW()
+    {
+        $("#GroupRegistervalidationForm").remove();
+        if (!GroupRegisterNewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        ShowLoader();
+        OpenDynamicPopup("New ~ Group", "@Url.Action("Frm_GroupRegister_Window", "GroupRegister", new { @area = "Options" })?ActionMethod=New" + "&PopupName=Dynamic_Content_popup" + "&PostSucessFunction=GroupRegisterAjaxSuccessForm", "auto", "30%", false, null);
+        HideLoader();
+    } //Group Addition new click
+
+    function GroupRegisterEditClick()
+    {
+        $("#GroupRegistervalidationForm").remove();
+        if (!GroupRegisterEditright)
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!GroupID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert'); return;
+        }
+        ShowLoader();
+        OpenDynamicPopup("Edit ~ Group", "@Url.Action("Frm_GroupRegister_Window", "GroupRegister", new { @area = "Options" })?ActionMethod=Edit&ID=" + GroupID + "&PopupName=Dynamic_Content_popup" + "&PostSucessFunction=GroupRegisterAjaxSuccessForm", "auto", "30%", false, null);
+        HideLoader();
+    } //edit click
+
+    function GroupRegisterViewClick()
+    {
+        $("#GroupRegistervalidationForm").remove();
+        if (!GroupRegisterViewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (!GroupID) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+        ShowLoader();
+        OpenDynamicPopup("View ~ Group", "@Url.Action("Frm_GroupRegister_Window", "GroupRegister", new { @area = "Options" })?ActionMethod=View&ID=" + GroupID + "&PopupName=Dynamic_Content_popup" + "&PostSucessFunction=GroupRegisterAjaxSuccessForm", "auto", "30%", false, null);
+        HideLoader();
+    }//view click
+
+    function GroupRegisterDeleteClick()
+    {
+        $("#GroupRegistervalidationForm").remove();
+        if (!GroupRegisterDeleteright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (!GroupID) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');  return; }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/DataNavigation",
+
+            data: { ActionMethod: "Delete", ID: GroupID },
+            cache: false,
+            async: false,
+            success: function (GroupRegisterDelete_ButtonClick_result)
+            {
+                if (GroupRegisterDelete_ButtonClick_result.result == true)
+                {
+                    ShowLoader();
+                    OpenDynamicPopup("Delete ~ Group", "@Url.Action("Frm_GroupRegister_Window", "GroupRegister", new { @area = "Options" })?ActionMethod=Delete&ID=" + GroupID + "&PopupName=Dynamic_Content_popup" + "&PostSucessFunction=GroupRegisterAjaxSuccessForm", "auto", "30%", false, null);
+                    HideLoader();
+                }
+                else if (GroupRegisterDelete_ButtonClick_result.result == "NoDeleteRights") {
+                    $('#GroupRegisterDelete').hide();
+                    DevExpress.ui.dialog.alert(GroupRegisterDelete_ButtonClick_result.message, 'Warning!');
+                    HideLoader();
+                }
+                else { DevExpress.ui.dialog.alert(GroupRegisterDelete_ButtonClick_result.message, 'Warning!');}
+            }
+        });
+    }//delete click
+
+
+    function GroupRegister_Preview()
+    {
+        if (GroupRegisterExportright == false) { DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights'); return; }
+        ShowLoader();
+        OpenDynamicPopup("List Export", "@Url.Action("Frm_GroupRegister_Export_Options", "GroupRegister", new { @area = "Options" })", "auto", "auto", false, null);
+        HideLoader();
+    }//list preview
+
+    function GroupRegister_AdUsrtoGrp()
+    {
+        if (GroupRegisterEditright == false)
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights'); return;
+        }
+        if (!GroupID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return;
+        }
+        ShowLoader();
+
+        OpenDynamicPopup("User Group Mapping","@Url.Action("Frm_GroupRegister_UserGroupMapping", "GroupRegister", new { @area = "Options" })?UgFLAG=Group&GroupID=" + GroupID, "auto", "60%", false, null);
+        HideLoader();
+    }
+
+    function GroupRegister_ManagPrivileges()
+    {
+        //debugger;
+        if ("@GroupReg_MngPrivilegeRight" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights'); return;
+        }
+        if (!GroupID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return;
+        }
+        $("#ManagePrivileges_Form").remove();//If we don't write this code, the window screen will not load 2nd time.
+        ShowLoader();
+        var PopupID;
+        PopupID = "MngPrvlgUsrAndGrpPopup_rpt_modal";
+        OpenPopup(PopupID,"Group Privileges Screen","@Url.Action("Frm_GroupRegister_ManagPrivileges", "GroupRegister", new { @area = "Options" })?GroupID=" + GroupID +"&UGFlag=Group" + "&PopupID=" + PopupID, "auto", "87%", false, null);
+        HideLoader();
+    }//0000244 bug fixed.
+
+
+
+    //This code is added as part of new task of "Add Priviliges" button in the User Registration Screen to open add user priviliges screen.
+
+    function GroupRegister_AddPrivileges() {
+        //debugger;
+        ShowLoader();
+        $("#AdUserPrivilegesvalidationForm").remove();
+        //if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value"))
+        //{
+        //    Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        //}
+        //else
+        //{
+        //GroupRegister_Privileg_GroupID = null;
+        //}
+        //if ($("#ManPri_UserID").dxDropDownBox("instance").option("value"))
+        //{
+        //    Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+        //    ManPrivilegUserName = (ManPrivilegUserName == null || ManPrivilegUserName == "" || ManPrivilegUserName == "undefined" || ManPrivilegUserName == undefined) ? ManPrivilegUserName = UserName : ManPrivilegUserName;
+        //}
+        //else
+        //{
+        //    Manag_Privileg_UserID = "";
+        //}
+
+        if ("@GroupReg_AddPrivilegeRight" == "False") {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            HideLoader();
+            return;
+        }
+        if (!GroupID) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            HideLoader();
+            return;
+        }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+            data: {
+                ActionMethod: "New",
+                GroupID: Number(GroupID),
+                UserID: String(UserID),
+                UserName: "",
+                PopupID: "Dynamic_Content_popup"
+            },
+            cache: false,
+            success: function (data) {
+                ShowLoader();
+                OpenDynamicPopup("Add Group Privileges", null, "auto", 900, true, data);
+                HideLoader();
+                //OpenDynamicPopup("New ~ Service Places", null, "auto", 900, true, data);
+            }
+        });
+        HideLoader();
+    } //new click
+    </script>
+</div>

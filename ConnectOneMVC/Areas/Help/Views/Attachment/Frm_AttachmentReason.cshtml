@@ -1,0 +1,121 @@
+﻿<div class="AttachmentReason_ClearReference">
+@using DevExtreme.AspNet.Mvc;
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+    var ActionMethod = ViewBag.ActionMethod==null?null:(string)ViewBag.ActionMethod;
+    var Reason = ViewBag.Reason==null?null:(string)ViewBag.Reason;
+    var RefRecID= ViewBag.RefRecID==null?null:(string)ViewBag.RefRecID;
+    var MappingID= ViewBag.MappingID==null?(int?)null:(int)ViewBag.MappingID;
+    var screen= ViewBag.screen==null?null:(string)ViewBag.screen;
+    var NestedGridName= ViewBag.NestedGridName==null?null:(string)ViewBag.NestedGridName;
+    var MainGridName = ViewBag.MainGridName==null?null:(string)ViewBag.MainGridName;
+}
+<div>
+    <form>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 md-12">
+                            <label class="control-label text-red" for="user">Why don't you have this Document ?</label>
+                        </div>
+                        <div class="col-sm-12 md-12">
+                            @(Html.DevExtreme().TextArea().ID("Attachment_Reason").Name("Attachment_Reason").Value(Reason)
+                                                .Height(150).Placeholder("Enter Reason") )
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("Attachment_Reason_Ok").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("AttachmentReasonOkClick"))
+
+                            @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Attachment_Reason_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { HidePopup('Attachment_Reason_popup');} </Text>))
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]--> 
+        </form>
+</div><!--[Form Div]-->
+<script>
+    function AttachmentReasonOkClick()
+    {
+        var Reason = $("#Attachment_Reason").dxTextArea("instance").option("value");
+        if (Reason == null || Reason.length < 1)
+        {
+            DevExpress.ui.dialog.alert("Please Enter The Reason", "Error");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Help/Attachment/Frm_AttachmentReason_Save",
+            cache: false,
+            data:
+            {
+                ActionMethod: "@ActionMethod",
+                Reason: Reason,
+                RefRecID: "@RefRecID",
+                MappingID: "@MappingID",
+                screen: "@screen",
+              },
+            success: function (data)
+            {
+                HideLoader();
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                else
+                {
+                    if ("@NestedGridName" != null)
+                    {
+                        if (ASPxClientControl.GetControlCollection().GetByName("@NestedGridName") != null)
+                        {
+                            if (typeof ASPxClientControl.GetControlCollection().GetByName("@NestedGridName") !== 'undefined')
+                            {
+                                ASPxClientControl.GetControlCollection().GetByName("@NestedGridName").SetFocusedRowIndex(-1);
+                            }
+                        }
+                        else
+                        {
+                            var GridInstance = $("div[id = '" + "@NestedGridName" + "']").data("dxDataGrid")
+                            if (GridInstance !== void 0) {
+
+                                //GridInstance.refresh().done(function () {
+
+                                //});
+                            }
+                        }
+                    }
+                    var GridInstance = $('#' + "@MainGridName").data("dxDataGrid")
+                    if (GridInstance !== void 0)
+                    {
+                        var selectedkey = GridInstance.getSelectedRowKeys()
+                        GridInstance.refresh().done(function ()
+                        {
+                            if (selectedkey != null)
+                            {
+                                GridInstance.clearSelection()
+                                GridInstance.selectRows(selectedkey)
+                            }
+                        });
+                    }
+                    else
+                    {
+                        ASPxClientControl.GetControlCollection().GetByName("@MainGridName").Refresh();
+                    }
+                    $("#Attachment_Reason_popup").dxPopup("hide");
+                }
+            }
+        });
+
+    }
+</script>
+    </div>

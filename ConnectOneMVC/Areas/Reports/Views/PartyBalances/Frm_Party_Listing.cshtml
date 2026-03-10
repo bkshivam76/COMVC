@@ -1,0 +1,318 @@
+﻿<div class="PartyBalancesReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool PartyBalances_ExportRight = (bool)ViewData["PartyBalances_ExportRight"];
+        bool PartyBalances_Auto_Vouching_Mode = (bool)ViewData["PartyBalances_Auto_Vouching_Mode"];
+    }
+
+    <style>
+        @@media (max-width:768px) {
+            #PartyBalancesReportListGrid, #PartyBalancesReportListGrid .dxgvHSDC > div, #PartyBalancesReportListGrid .dxgvCSD, #PartyBalancesReportListGrid_DXFilterBar { width: calc(100vw - 5%) !important }
+        }
+    </style>
+
+
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Party Balances Report</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("PartyRVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("PartyReport_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Switch().ID("PartyBalancesViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("PartyBalances_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                                                        .ID("PartyBalancesReportsShowLedger")
+                                                        .Text("Show Ledger")
+                                                        .Icon("doc")
+                                                        .Visible(false)
+                                                        .Disabled(true)
+                                                        .Width(70)
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            OnPartyBalancesReportShowLedgerClick();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("PartyBalancesReportToggleScrollBar")
+                                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                        .Icon("toolbox")
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            PartyBalancesReportchangeMode();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("PartyBalancesReportsModelListPreview")
+                                                        .Text("Export")
+                                                        .Icon("save")
+                                                         .Width(80)
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            OnPartyBalancesReportListPreviewClick();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("PartyBalancesReportModelCLOSE")
+                                                        .Text("Close")
+                                                        .Icon("clear")
+                                                        .OnClick(@<text>
+                                                            function (){
+                                                            $(".TabPanalMenu-tabs .active span").click()
+                                                            }
+                                                        </text>)
+
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="PartyBalancesReportreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Party_Listing_Grid", Model)
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                .ID("PartyBalancesReport_report_modal")
+                 .OnShowing("PopupOnShowing")
+                .Title("Party Balances Report Preview")
+               .FullScreen(false)
+                .MaxWidth(125)
+                .Height("auto")
+                .ShowCloseButton(true)
+                .ContentTemplate(@<text>
+                    <div id='PartyBalancesReport_report_modal_result'>
+                    </div>
+                </text>)
+    )
+        @(Html.DevExtreme().Popup().CustomPopup()
+        .ID("popup_frm_Party_Report")
+        .OnShowing("PopupOnShowing")
+        .Title("Party Ledger")
+        .MaxHeight(640)
+        .MaxWidth(950)
+        .ContentTemplate(  @<text>
+            <div id='popup_frm_Party_Report_result'>
+            </div>
+        </text>)
+    )
+
+    </div>
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+    var IsPartyBalancesReportSucessPopup = false;
+    var IsPartyBalancesReportViewPopup = false;
+    var PartyBalancesReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var PartyR_IsVouchingMode = false;
+    var PartyBalances_SetVouchingModeOn = "@PartyBalances_Auto_Vouching_Mode" == "True" ? true : false;
+    var PartyBalances_ViewMode = "Default";
+    var Partyreport_ColumnToBeShownIndex = "";
+    var Partyreport_ColumnToBeHidddenIndex = "";
+
+    function PartyReport_VouchingSwitch_ValueChange(e)
+    {
+        PartyR_IsVouchingMode = e.value;
+        PartyBalancesReportListGrid_PerformCallBack();
+    }
+    function PartyBalancesReportListGrid_PerformCallBack()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.PartyBalancesReportListGrid !== 'undefined')
+            {
+                if (typeof window.PartyBalancesReportListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof PartyBalancesReportListGrid.PerformCallback == 'function')
+                    {
+                        PartyBalancesReportListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        PartyBalancesReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function PartyBalances_ViewSwitch_ValueChange(e)
+    {
+        PartyBalances_ViewMode = e.value == false ? "Default" : "Compact";
+        if (PartyBalances_SetVouchingModeOn == true)
+        {
+            PartyBalances_SetVouchingModeOn = false;
+            $("#PartyRVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            PartyBalancesReportListGrid.CollapseAllDetailRows();
+        }
+    }
+
+    $(document).ready(function () {
+        IsPartyBalancesReportSucessPopup = false;
+        IsPartyBalancesReportViewPopup = false;
+        //SetPartyBalancesReportGroupPanelFooterVisible();
+        $("#PartyBalancesReportListGrid").hover(function () {
+            PartyBalancesReportListGrid.Focus()
+
+            $(".PartyBalancesReportListGrid_PreviewRow").hide();
+            GetSessionStorage("PartyBalancesReportListGrid");
+            if ("@PartyBalances_ExportRight" == "False")
+            {
+                $("#PartyBalancesReportsModelListPreview").hide();
+            }
+            if (PartyBalances_SetVouchingModeOn == true)
+            {
+                $("#PartyBalancesViewModeSwitch").dxSwitch("instance").option("value", true);
+            }
+        })
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/PartyBalances/SessionClear",
+            cache: false
+        });
+        DeleteCookie("PartyCookie");//Redmine Bug #133148 fixed
+
+        ClearAllReferences_PartyBalancesReport();
+    });
+
+    function ClearAllReferences_PartyBalancesReport()
+    {
+        IsPartyBalancesReportSucessPopup = null;
+        IsPartyBalancesReportViewPopup = null;
+        PartyBalancesReport_ShowHorizontalBar = null;
+        PartyR_IsVouchingMode = null;
+        PartyBalances_SetVouchingModeOn = null;
+        PartyBalances_ViewMode = null;
+        Partyreport_ColumnToBeShownIndex = null;
+        Partyreport_ColumnToBeHidddenIndex = null;
+
+
+        ClearAllReferences("PartyBalancesReport_ClearReferences");
+    }
+
+    function OnGridPartyBalancesReportListGrid_BeginCallback(s, e)
+    {
+        e.customArgs["VouchingMode"] = PartyR_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = PartyBalancesReport_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = PartyBalances_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Partyreport_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Partyreport_ColumnToBeHidddenIndex;
+    }
+    function OnGridPartyBalancesReportListGrid_EndCallback(s,e)
+    {
+        Partyreport_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Partyreport_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        $(".PartyBalancesReportListGrid_PreviewRow").hide();
+        GetSessionStorage("PartyBalancesReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function PartyBalancesReportOnInit(s, e) {
+        $(".PartyBalancesReportListGrid_PreviewRow").hide();
+        GetSessionStorage("PartyBalancesReportListGrid");
+
+        PartyBalancesReportAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            PartyBalancesReportAdjustSize();
+        });
+    }
+
+    function OnEndCallback(s, e) {
+        PartyBalancesReportAdjustSize();
+    }
+
+    function PartyBalancesReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{PartyBalancesReportListGrid.SetHeight(height);} catch (err) { }
+    }
+    function PartyBalancesReportchangeMode() {
+        ShowLoader();
+        if (PartyBalancesReport_ShowHorizontalBar == 0) {
+            PartyBalancesReport_ShowHorizontalBar = 1;
+            $("#PartyBalancesReportToggleScrollBar").find("span").text("Default Data");
+            $("#PartyBalancesReportToggleScrollBar").width(110);
+        }
+        else {
+            PartyBalancesReport_ShowHorizontalBar = 0;
+            $("#PartyBalancesReportToggleScrollBar").find("span").text("Full Data");
+            $("#PartyBalancesReportToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Party_Listing_Grid", "PartyBalances")',
+            type: "GET",
+            data: { ShowHorizontalBar: PartyBalancesReport_ShowHorizontalBar, VouchingMode: PartyR_IsVouchingMode, ViewMode: PartyBalances_ViewMode, ColumnToBeHidddenIndex: Partyreport_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Partyreport_ColumnToBeShownIndex  },
+            success: function (res) {
+                $("#PartyBalancesReportreloadPartialView").html(res);
+                $(".PartyBalancesReportListGrid_PreviewRow").hide();
+                GetSessionStorage("PartyBalancesReportListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function OnPartyBalancesReportListPreviewClick()
+    {
+        if ("@PartyBalances_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("PartyBalancesReport_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "PartyBalances", new { @area = "Reports" })", "auto", "auto", false, null);
+    }
+
+    function OnPartyBalancesReportShowLedgerClick() {
+        // ShowLoader();
+        $("#popup_frm_Party_Report").dxPopup("show");
+        $("#popup_frm_Party_Report").dxPopup("instance").option("title", "Party Ledger");
+        $("#popup_frm_Party_Report_result").load("@Url.Action("Frm_Party_Report", "PartyLedger", new { @area = "Reports" })?partyid=" + PartyBalancesReportID, function () {
+            //  HideLoader();
+        });
+    }
+
+    function PartyBalancesReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnPartyBalancesReportListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            PartyBalancesReportListGrid.Refresh();
+        }
+    }
+
+    </script>
+</div>

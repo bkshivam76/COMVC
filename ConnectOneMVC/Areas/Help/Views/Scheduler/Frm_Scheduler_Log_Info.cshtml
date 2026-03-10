@@ -1,0 +1,198 @@
+﻿<div class="SchedulerLogHelp_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string UserType = (string)ViewBag.UserType;
+        @*bool SchedulerLog_AddRight = (bool)ViewData["SchedulerLog_AddRight"];
+            bool SchedulerLog_UpdateRight = (bool)ViewData["SchedulerLog_UpdateRight"];
+            bool SchedulerLog_DeleteRight = (bool)ViewData["SchedulerLog_DeleteRight"];
+            bool SchedulerLog_ReportRight = (bool)ViewData["SchedulerLog_ReportRight"];
+            bool SchedulerLog_ListRight = (bool)ViewData["SchedulerLog_ListRight"];
+            bool SchedulerLog_ExportRight = (bool)ViewData["SchedulerLog_ExportRight"];
+            bool Help_Attachment_AddRight = ViewData["Help_Attachment_AddRight"] == null ? false : (bool)ViewData["Help_Attachment_AddRight"];//attachment
+            bool Help_Attachment_EditRight = ViewData["Help_Attachment_EditRight"] == null ? false : (bool)ViewData["Help_Attachment_EditRight"];//attachment
+            bool Help_Attachment_ViewRight = ViewData["Help_Attachment_ViewRight"] == null ? false : (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+            bool Help_Attachment_DeleteRight = ViewData["Help_Attachment_DeleteRight"] == null ? false : (bool)ViewData["Help_Attachment_DeleteRight"];//attachment*@
+    }
+    <div id="SchedulerLog_ParentDiv">
+        <div id="SchedulerLog_content" class="report_header_div_main">
+            <div>
+                <div class="report_header_div_main">
+                    <label class="report_header_label">Scheduled Job Log</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="report_button_div">
+                        @(Html.DevExtreme().Button().ID("SchedulerLogModelListPreview").Text("List Preview").Icon("save").OnClick("OnSchedulerLogListPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("SchedulerLogModelCLOSE").Text("Close").Icon("clear").OnClick("closeSchedulerLog") )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="SchedulerLog_gridDiv">
+            <form>
+                <div id="SchedulerLogGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Scheduler_Log_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="SchedulerLog_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SchedulerLog_Create" class="right_footertext_top"></p>
+                            <p id="SchedulerLog_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var SchedulerLog_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var SchedulerLog_ID = null;
+    var SchedulerLog_ViewMode = null;
+    var REC_ID = null;
+    var SchedulerLog_Select_xid = null;
+    var SchedulerLogFocusedRowIndexBeforeRefresh;
+    var SchedulerLog_ColumnToBeShownIndex = "";
+    var SchedulerLog_ColumnToBeHidddenIndex = "";
+    var SchedulerLogGridLayout = null;
+    var SchedulerLogInfo_NestedRecord_FocusedRowIndex = -1;
+    var SchedulerLogInfo_NestedGrid_AccessID;
+</script>
+<script>
+    function OnSchedulerLogListPreviewClick()
+    {
+        @*if (!"@SchedulerLog_ExportRight")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }*@
+        ShowLoader();
+        OpenPopup("SchedulerLogExport_modal", "Export Option", "@Url.Action("Frm_LogExport_Options", "Scheduler", new { @area = "Help" })", "auto", 130);
+    }
+    function closeSchedulerLog() {
+        $("#SchedulerLog_modal").dxPopup("hide");
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Scheduler/LogSessionClear",
+            cache: false
+        });
+        ClearAllReferences_SchedulerLog();
+    }
+    function Get_SchedulerLog_Row_Data(RowIndex = null) {
+        var focusedrow = RowIndex == null ? SchedulerLogListGrid.GetFocusedRowIndex() : RowIndex;
+        var topindex = SchedulerLogListGrid.GetTopVisibleIndex();
+        var Index = focusedrow - topindex;
+        SchedulerLog_PageData = SchedulerLogListGrid.cpPagedata;
+        if (SchedulerLog_PageData != null && SchedulerLog_PageData.length > 0 && Index < SchedulerLog_PageData.length) {
+            SchedulerLog_Type = SchedulerLog_PageData[Index][0];
+            SchedulerLog_Title = SchedulerLog_PageData[Index][1];
+            SchedulerLog_ExecutionTime = SchedulerLog_PageData[Index][2];
+            SchedulerLog_SchedulerName = SchedulerLog_PageData[Index][3];
+            //SchedulerLog_Action_Status = SchedulerLog_PageData[Index][5];
+            //SchedulerLog_Action_By = SchedulerLog_PageData[Index][6];
+            //SchedulerLog_Action_Date = SchedulerLog_PageData[Index][7];
+        }
+    }
+    function OnSchedulerLogGridFocusedRowChanged(s, e) {
+        var focusIndex = s.GetFocusedRowIndex();
+        if (focusIndex > -1) {
+            SchedulerLog_ID = s.GetRowKey(focusIndex);
+            Get_SchedulerLog_Row_Data(focusIndex);
+        }
+        else {
+            SchedulerLog_ID = null;
+        }
+    }
+    function SchedulerLogListGrid_BeginCallback(s, e) {
+        SchedulerLogFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = SchedulerLog_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = SchedulerLog_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = SchedulerLog_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = SchedulerLog_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = SchedulerLog_Select_xid;
+    }
+    function SchedulerLogOnInit(s, e) {
+        SchedulerLogAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            SchedulerLogAdjustSize();
+        });
+    }
+    function SchedulerLogAdjustSize() {
+
+        var height = (document.documentElement.clientHeight * 80) / 100;
+        try {
+            SchedulerLogListGrid.SetHeight(height);
+        }
+        catch (err) {
+        }
+    }
+    function SchedulerLogListGrid_BeginCallback(s, e) {
+        SchedulerLogFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = SchedulerLog_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = SchedulerLog_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = SchedulerLog_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = SchedulerLog_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = SchedulerLog_Select_xid;
+    }
+    function OnGridSchedulerLogListGrid_EndCallback(s, e) {
+        SchedulerLog_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        SchedulerLog_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        SchedulerLogGridLayout = s.cpClientLayout;
+        $(".SchedulerLogListGrid_PreviewRow").hide();
+        GetSessionStorage("SchedulerLogListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH") 
+        {
+            if (SchedulerLogFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) 
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(SchedulerLogFocusedRowIndexBeforeRefresh);
+            }
+			SchedulerLog_Select_xid = "";
+        }
+    }
+    function ClearAllReferences_SchedulerLog() {
+        SchedulerLog_ShowHorizontalBar = null;
+        SchedulerLog_ID = null;
+        SchedulerLog_AddRight = null;
+        SchedulerLog_EditRight = null;
+        SchedulerLog_DeleteRight = null;
+        SchedulerLog_ExportRight = null;
+        SchedulerLog_ListRight = null;
+        SchedulerLog_ViewMode = null;
+        SchedulerLog_ColumnToBeShownIndex = null;
+        SchedulerLog_ColumnToBeHidddenIndex = null;
+        SchedulerLogGridLayout = null;
+        SchedulerLogInfo_NestedRecord_FocusedRowIndex = null;
+        SchedulerLogInfo_NestedGrid_AccessID = null;
+        SchedulerLog_Select_xid = null;
+        SchedulerLogFocusedRowIndexBeforeRefresh = null;
+        ClearAllReferences("SchedulerLogHelp_ClearReferences")
+    }
+    function SchedulerLogdblclickEdit(s, e) {
+        DataNavigation_Scheduler("QUEUE");
+    }
+    function SchedulerLogContextMenuFunction(s, e) {
+        if (e.item.name == 'ListPreview') {
+            OnSchedulerLogListPreviewClick();
+        }
+        else if (e.item.name == 'Close') {
+            closeSchedulerLog();
+        }
+        else if (e.item.name == 'Refresh') {
+            SchedulerLogListGrid.Refresh();
+        }
+    }
+</script>

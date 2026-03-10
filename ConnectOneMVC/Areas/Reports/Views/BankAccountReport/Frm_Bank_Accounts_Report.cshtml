@@ -1,0 +1,183 @@
+﻿<div class="BankAccountReport_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@using DevExpress;
+@using DevExpress.Web.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    var UserType = ViewBag.UserType;
+    bool BankAccountReport_ExportRight = (bool)ViewData["BankAccountReport_ExportRight"];
+}
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Institution Bank Accounts List</label>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button()
+                                        .ID("Bank_ReportToggleScrollBar")
+                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                        .Icon("toolbox")
+                                        .OnClick(@<text>
+                                            function () {
+                                                Bank_ReportchangeMode();
+                                            }
+                                        </text>)
+        )
+        @(Html.DevExtreme().Button()
+                                        .ID("Bank_ReportsModelListPreview")
+                                        .Text("Export")
+                                        .Icon("save")
+                                         .Width(80)
+                                        .OnClick(@<text>
+                                            function () {
+                                            OnBank_ReportListPreviewClick();
+                                            }
+                                        </text>)
+        )
+        @(Html.DevExtreme().Button()
+                                        .ID("Bank_ReportModelCLOSE")
+                                        .Text("Close")
+                                        .Icon("clear")
+                                        .OnClick(@<text>
+                                            function (){
+                                            $(".TabPanalMenu-tabs .active span").click()
+                                            }
+                                        </text>)
+
+        )
+    </div>
+</div>
+<div class="col-md-12 no-padding">
+    <form>
+        <div id="Bank_ReportreloadPartialView" class="parent_table">
+            @Html.Partial("Frm_Bank_Accounts_Report_Grid", Model)
+        </div>
+    </form>
+</div>
+
+<div class="col-md-12">
+    @*Add/Edit Popup*@
+    @(Html.DevExtreme().Popup().CustomPopup()
+                .ID("Bank_Report_report_modal")
+                 .OnShowing("PopupOnShowing")
+                .Title("Bank Report Preview")
+                .FullScreen(false)
+                .MaxWidth(125)
+               .Height("auto")
+                .ShowCloseButton(true)
+                .ContentTemplate(@<text>
+                    <div id='Bank_Report_report_modal_result'>
+                    </div>
+                </text>)
+    )
+
+</div>
+
+@*Javascript Events*@
+<script type="text/javascript">
+    var IsBank_ReportSucessPopup = false;
+    var IsBank_ReportViewPopup = false;
+    var Bank_Report_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    $(document).ready(function () {
+        if ("@BankAccountReport_ExportRight" == "False")
+        {
+	        $("#Bank_ReportsModelListPreview").hide();
+        }
+        IsBank_ReportSucessPopup = false;
+        IsBank_ReportViewPopup = false;
+
+        $(".Bank_ReportListGrid_PreviewRow").hide();
+        GetSessionStorage("Bank_ReportListGrid");
+       // SetBank_ReportGroupPanelFooterVisible();
+        $("#Bank_ReportListGrid").hover(function () {
+            Bank_ReportListGrid.Focus()
+        })
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/BankAccountReport/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_BankAccountReport();
+    });
+
+    function ClearAllReferences_BankAccountReport()
+    {
+        IsBank_ReportSucessPopup = null;
+        IsBank_ReportViewPopup = null;
+        Bank_Report_ShowHorizontalBar = null;
+
+        ClearAllReferences("BankAccountReport_ClearReferences");
+    }
+    function Bank_ReportOnInit(s, e) {
+        Bank_ReportAdjustSize();
+        $(".Bank_ReportListGrid_PreviewRow").hide();
+        GetSessionStorage("Bank_ReportListGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Bank_ReportAdjustSize();
+        });
+    }
+
+    function OnGridBank_ReportListGrid_EndCallback(s, e) {
+        $(".Bank_ReportListGrid_PreviewRow").hide();
+        GetSessionStorage("Bank_ReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function Bank_ReportAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{Bank_ReportListGrid.SetHeight(height);} catch (err) { }
+    }
+    function Bank_ReportchangeMode() {
+        ShowLoader();
+        if (Bank_Report_ShowHorizontalBar == 0) {
+            Bank_Report_ShowHorizontalBar = 1;
+            $("#Bank_ReportToggleScrollBar").find("span").text("Default Data");
+            $("#Bank_ReportToggleScrollBar").width(110);
+        }
+        else {
+            Bank_Report_ShowHorizontalBar = 0;
+            $("#Bank_ReportToggleScrollBar").find("span").text("Full Data");
+            $("#Bank_ReportToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Bank_Accounts_Report_Grid", "BankAccountReport")',
+            type: "GET",
+            data: { ShowHorizontalBar: Bank_Report_ShowHorizontalBar },
+            success: function (res) {
+                $(".Bank_ReportListGrid_PreviewRow").hide();
+                GetSessionStorage("Bank_ReportListGrid");
+                $("#Bank_ReportreloadPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }
+    function OnBank_ReportListPreviewClick() {
+        if ("@BankAccountReport_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+
+        OpenPopup("Bank_Report_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "BankAccountReport", new { @area = "Reports" })", "auto", "auto", false, null);
+    }
+
+    function Bank_ReportContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnBank_ReportListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Bank_ReportListGrid.Refresh();
+        }
+    }
+
+</script>
+
+</div>

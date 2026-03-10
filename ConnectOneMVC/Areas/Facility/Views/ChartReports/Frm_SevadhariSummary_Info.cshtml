@@ -1,0 +1,285 @@
+﻿<div class="SevadhariSummary_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        var centreId = (string)ViewBag.CentreId;
+        if (String.IsNullOrWhiteSpace(centreId) == false)
+        {
+            Layout = "~/Views/Shared/_NoLoginAllLayout.cshtml";
+        }
+        string chartInstanceID = (string)ViewBag.chartInstanceID;
+        string summary_type = (string)ViewBag.summary_type;
+        string Theme = (string)ViewBag.Theme;
+    }
+    <style>
+        #refreshInterval_SevadhariSummr {
+            max-width: 40px;
+            display: inline-block
+        }
+
+            #refreshInterval_SevadhariSummr + b {
+                display: inline-block
+            }
+
+        .show_Btn {
+            padding: 16px 0 0 0;
+            margin-right: 20px;
+            max-width: 80px;
+        }
+
+            .show_Btn .form-field {
+                border-right: 1px solid #ddd
+            }
+
+        @@media (max-width:768px) {
+            .show_Btn {
+                padding: 0 13px
+            }
+
+                .show_Btn .form-field {
+                    border-right: none;
+                }
+
+            #sevadhariSummary_Filters_Div > div {
+                margin-bottom: 5px;
+            }
+
+                #sevadhariSummary_Filters_Div > div.set_Interval {
+                    padding: 2px 17px
+                }
+        }
+    </style>
+    <script>
+        $(document).ready(function ()
+        {
+            if ("@centreId" != "")
+            {
+                $('#Close_Btn_SevadhariSummary').hide();
+            }
+        });
+        function ListPreview_Btn_SevadhariSummary_Click()
+        {
+            ShowLoader();
+            OpenPopup("ExportOptions_modal", "Export Option", "@Url.Action("Frm_Export_Options", "ChartReports", new { @area = "Facility" })?GridName=SevadhariSummaryListGrid", "auto",130);
+        }
+        function Close_Btn_SevadhariSummary_Click()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ChartReports/SessionClearChartReports",
+                cache: false,
+                data: { SummaryType:"@summary_type"}
+            });
+        });
+        function SevadhariSummary_ChartReports_Init(s, e) {
+            //s.ExpandAll();
+            SevadhariSummary_ChartReports_AdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                SevadhariSummary_ChartReports_AdjustSize();
+            });
+        }
+        function SevadhariSummary_ChartReports_AdjustSize()
+        {
+            var height = (document.documentElement.clientHeight * 80) / 100;
+            try
+            {
+                SevadhariSummaryListGrid.SetHeight(height);
+            }
+            catch (err)
+            {
+            }
+        }
+        function SevadhariSummary_ChartReports_FocusedRowChanged(s, e) {
+
+        }
+        function SevadhariSummary_ChartReports_BeginCallback(s, e)
+        {
+            e.customArgs["command"] = e.command;
+            e.customArgs["Chart_Instance_ID"] = "@chartInstanceID";
+            e.customArgs["summary_type"] = "@summary_type";
+        }
+        function SevadhariSummary_ChartReports_ContextMenuFunction(s, e) {
+            e.handled = true;
+            if (e.item.name == "Refresh") {
+                ShowSevadhariSummary();
+            }
+            if (e.item.name == "Close") {
+                Close_Btn_SevadhariSummary_Click();
+            }
+        }
+    </script>
+    <div>
+        <div class="report_header_div_main">
+            <div class="clearfix">
+                <div class="report_header_div">
+                    <label class="report_header_label">@ViewBag.summary_type</label>
+                </div>
+                <div class="report_button_div">
+                    @(Html.DevExtreme().Button().ID("ListPreview_Btn_SevadhariSummary").Text("List Preview").Icon("save").OnClick("ListPreview_Btn_SevadhariSummary_Click").Visible(false))
+                    @(Html.DevExtreme().Button().ID("Close_Btn_SevadhariSummary").Text("Close").Icon("clear").OnClick("Close_Btn_SevadhariSummary_Click") )
+                </div>
+            </div>
+            <div class="col-md-12 no-padding" id="SevadhariSummary_gridDiv">
+                <form>
+                    <div id="sevadhariSummary_Filters_hdr" class="filhdr" onclick="sevadhariSummary_FilterToggle()">
+                        <span>Click to Hide Filters</span>
+                        <i class="bx bx-up-arrow-alt"></i>
+                    </div>
+                    <script>
+                        function sevadhariSummary_FilterToggle() {
+                            var div = document.getElementById("sevadhariSummary_Filters_Div");
+                            if (div.style.display !== "none") {
+                                div.style.display = "none";
+                                $("#sevadhariSummary_Filters_hdr").find('span').text("Click to Show Filters");
+                                $("#sevadhariSummary_Filters_hdr").find('i').removeClass('bx-up-arrow-alt').addClass('bx-down-arrow-alt');
+                            }
+                            else {
+                                div.style.display = "block";
+                                $("#sevadhariSummary_Filters_hdr").find('span').text("Click to Hide Filters")
+                                $("#sevadhariSummary_Filters_hdr").find('i').removeClass('bx-down-arrow-alt').addClass('bx-up-arrow-alt');
+                            }
+
+                        }
+                    </script>
+                    <div class="row" style="padding:10px;" id="sevadhariSummary_Filters_Div">
+                        <div class="col-sm-2">
+                            <div class="form-field">
+                                <label class="control-label text-red" for="user">Date:</label>
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("fromdate_SevadhariSummr").Name("fromdate_SevadhariSummr").OnValueChanged("fromdate_SevadhariSummr_valueChange").Value(ViewBag.fromdate)
+                                .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))
+                            )
+                            </div>
+                        </div>
+                        <div class="col-sm-2" style="display:none">
+                            <div class="form-field">
+                                <label class="control-label text-red" for="user">To Date:</label>
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_SevadhariSummr").Name("todate_SevadhariSummr").ShowClearButton(true).Value(ViewBag.todate)
+                                    .Type(DateBoxType.Date).Placeholder("To Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))
+                                )
+                            </div>
+                        </div>
+                        <div class="col-sm-3" style="display:none">
+                            <label>Service Report/Event</label>
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Event_SevadhariSummr").ID("Event_SevadhariSummr").Placeholder("Choose..").DisplayExpr("Name").ValueExpr("ID")
+                                   .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_EventsList").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                            .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Event_SevadhariSummr_datagrid")
+                                    .Columns(columns =>
+                                    {
+                                        columns.Add().DataField("Name").Caption("Name");
+                                        columns.Add().DataField("ID").Visible(false);
+                                        columns.Add().DataField("ProjID").Visible(false);
+                                        columns.Add().DataField("Type");
+                                        columns.Add().DataField("FromDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("ToDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("Venue");
+                                    })
+                                    .Selection(s => s.Mode(SelectionMode.Single))
+                                    .FilterRow(s=>s.Visible(false))
+                                    .OnSelectionChanged("function(selectedItems)" +
+                                    "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                            </text>).OnValueChanged("Event_SevadhariSummr_ValueChange").Value(ViewBag.eventid)
+                        )
+                        </div>
+                        <script>
+                            function fromdate_SevadhariSummr_valueChange(e) {
+                                //if (e.value != null) {
+                                //    var todate = new Date(e.value)
+                                //    todate.setDate(todate.getDate() + 1)
+                                //    $("#todate_SevadhariSummr").dxDateBox("option", "value", todate)
+                                //}
+                            }
+                            async function Event_SevadhariSummr_ValueChange(e, FirstCall = false) {
+                                var value;
+                                var DG = $("#Event_SevadhariSummr_datagrid").dxDataGrid("instance");
+                                if (e) {
+                                    value = e.value;
+                                    if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                        DG.clearSelection();
+                                        return;
+                                    }
+                                }
+                                else {
+                                    value = $("#Event_SevadhariSummr").dxDropDownBox("option", "value");
+                                }
+                                await DG.selectRows(value);
+                            }
+                        </script>
+                        <div class="col-sm-1 show_Btn">
+                            <div class="form-field">
+                                <label class="control-label text-white" for="user"></label>
+                                @(Html.DevExtreme().Button().ID("btnShowSummary_SevadhariSummr").Text("Show").OnClick("ShowSevadhariSummary"))
+                            </div>
+                        </div>
+                        <script>
+                            function ShowSevadhariSummary() {
+                            var fromDate = $("#fromdate_SevadhariSummr").dxDateBox("instance").option("value");
+                            var toDate = $("#todate_SevadhariSummr").dxDateBox("instance").option("value");
+                            if (fromDate == null || fromDate == "" || fromDate == undefined) {
+                                DevExpress.ui.notify({ message: 'From Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            if (toDate == null || toDate == "" || toDate == undefined) {
+                                DevExpress.ui.notify({ message: 'To Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            //if (fromDate > toDate) {
+                            //    DevExpress.ui.notify({ message: 'From Date should not be greater than To Date', width: 300, shading: true, position: 'center' }, "error", 2000);
+                            //    return;
+                            //}
+                            var eventid = $("#Event_SevadhariSummr").dxDropDownBox("option", "value");
+                            fromDate = JS_Json_Date_To_ddMMyyyy(fromDate);
+                            toDate = JS_Json_Date_To_ddMMyyyy(toDate);
+                            var summary_type_SevadhariSummry = "@summary_type"
+                            SevadhariSummaryListGrid.PerformCallback({ "fromdate": fromDate, "todate": toDate, "EventID": eventid, "summary_type": summary_type_SevadhariSummry,  "command": "REFRESH" });
+                        }
+                        </script>
+                        @if (Theme == "")
+                        {
+                            <div class="pull-left set_Interval" style="">
+                                <div class="form-field">
+                                    <label class="control-label text-white" for="user">Set Interval</label><br />
+                                    @(Html.DevExtreme().NumberBox().ID("refreshInterval_SevadhariSummr").Value(5).Format("#0"))
+                                    <b>Seconds</b>
+                                </div>
+                            </div>
+                            <div class="col-sm-2" style="margin-top:4px;">
+                                <div class="form-field">
+                                    <label class="control-label text-white" for="user"></label><br />
+                                    @(Html.DevExtreme().Button().ID("StartAutoRefresh_SevadhariSummr").Text("Start Auto Refresh").OnClick("StartAutoRefresh_SevadhariSummr"))
+                                    @(Html.DevExtreme().Button().ID("StopAutoRefresh_SevadhariSummr").Text("Stop").OnClick("StopAutoRefresh_SevadhariSummr"))
+                                </div>
+                            </div>}
+                        <div class="col-sm-1">
+                            <div class="form-field">
+                                <label class="control-label text-white" for="user"></label><br />
+
+                            </div>
+                        </div>
+                        <script>
+                            var timer_SevadhariSummr;
+                            function StartAutoRefresh_SevadhariSummr(fn, timeout, interval) {
+                                timer_SevadhariSummr = setInterval(function () {
+                                    if ($("#contact_Frm_SevadhariSummary_Info").hasClass('active') || "@centreId".length>0) {
+                                        ShowSevadhariSummary()
+                                    } else {
+                                        StopAutoRefresh_SevadhariSummr()
+                                    }
+                                }, parseInt($("#refreshInterval_SevadhariSummr").dxNumberBox("instance").option("value")) * 1000)
+                            }
+                            function StopAutoRefresh_SevadhariSummr() {
+                                clearInterval(timer_SevadhariSummr)
+                            }
+                        </script>
+                    </div>
+                    <div class="parent_table">
+                        @Html.Partial("Frm_SevadhariSummary_Info_Grid", Model)
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

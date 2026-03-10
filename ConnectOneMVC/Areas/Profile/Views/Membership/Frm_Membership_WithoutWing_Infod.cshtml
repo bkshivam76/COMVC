@@ -1,0 +1,806 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    string UserType = (string)ViewBag.UserType;
+    bool Membership_AddRight=(bool)ViewData["Membership_AddRight"];
+    bool Membership_UpdateRight=(bool)ViewData["Membership_UpdateRight"];
+    bool Membership_ViewRight=(bool)ViewData["Membership_ViewRight"];
+    bool Membership_DeleteRight=(bool)ViewData["Membership_DeleteRight"];
+    bool Membership_ExportRight=(bool)ViewData["Membership_ExportRight"];
+    bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+    bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+    bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+    bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+    bool Membership_WW_Auto_Vouching_Mode = (bool)ViewData["Membership_WW_Auto_Vouching_Mode"];
+}
+<style>
+    .dx-icon {
+        line-height:14px !important;
+        font-size:18px !important;
+    }
+</style>
+<div id="Membership_ParentDiv" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Membership Information</label>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+        @(Html.DevExtreme().Switch().ID("MembrshipVouchingModeSwitch").SwitchedOnText("Vouching On")
+        .SwitchedOffText("Vouching Off")
+        .OnValueChanged("Membrship_VouchingSwitch_ValueChange")
+        .Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+
+        @(Html.DevExtreme().Switch().ID("MembershipViewModeSwitch")
+        .SwitchedOnText("Compact").SwitchedOffText("Default")
+        .OnValueChanged("Membership_ViewSwitch_ValueChange")
+        .Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+
+        @(Html.DevExtreme().Button()
+            .ID("WingMemberToggleScrollBar")
+            .Text("Full Data")
+            .Width(90)
+            .Icon("toolbox")
+            .OnClick(@<text> function () { WingMemberchangeMode(); }  </text>)
+        )
+        @(Html.DevExtreme().Button()
+            .ID("WingMemberModelListPreview")
+            .Text("Export")
+            .Icon("save")
+            .Width(80)
+            .OnClick(@<text> function () { OnWingMemberListPreviewClick(); } </text>)
+        )
+        @(Html.DevExtreme().Button()
+            .ID("WingMemberModelCLOSE")
+            .Text("Close")
+            .Icon("clear")
+            .OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()}  </text>)
+        )
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-1 pll text-right">
+        <label class="control-label text-red">Listing By:</label>
+    </div>
+    <div class="col-md-2 prm">
+        @(Html.DevExtreme().SelectBox()
+            .ID("Cmb_PlaceType_ServicePlaces")
+            .Name("Cmb_PlaceType_ServicePlaces")
+            .DataSource(new[]
+            { "WING WISE", "MEMBERSHIP NO.",
+                "MEMBER NAME", "CENTRE NAME", "CENTRE UID", "DISCONTINUED MEMBER" })
+            //.Value(Model.Cmb_PlaceType_ServicePlaces)
+            //.OnValueChanged("Cmb_PlaceType_ServicePlaces_SelectedIndexChanged")
+            .SearchEnabled(true)
+        )
+        @*@Html.ValidationMessageFor(model => model.Cmb_PlaceType_ServicePlaces, "", new { @class = "text-red" })*@
+    </div>
+
+    @* Dropdown will come here.*@
+    <div class="col-md-1 pll text-right">
+        <label class="control-label text-red">Membership:</label>
+    </div>
+    <div class="col-md-2 prm">
+        @(Html.DevExtreme().SelectBox()
+            .ID("Cmb_PlaceType_ServicePlaces")
+            .Name("Cmb_PlaceType_ServicePlaces")
+            .DataSource(new[]
+            { "ALL", "ANNUAL", "LIFE" })
+            //.Value(Model.Cmb_PlaceType_ServicePlaces)
+            //.OnValueChanged("Cmb_PlaceType_ServicePlaces_SelectedIndexChanged")
+            .SearchEnabled(true)
+        )
+        @*@Html.ValidationMessageFor(model => model.Cmb_PlaceType_ServicePlaces, "", new { @class = "text-red" })*@
+    </div>
+
+</div>
+<div class="col-md-12 no-padding">
+    <form>
+        <div id="WingMemberreloadPartialView" class="parent_table">
+            @Html.Partial("Frm_Membership_WithoutWing_Info_Grid", Model)
+        </div>
+    </form>
+</div>
+<div class="footer-MainBoxdiv full-width-footer">
+    <div class="list_footer_left_margin col-md-9">
+        <div>
+            @*class="footer_new_left"*@
+            <div>
+                <div style="float:left;margin-top:5px">
+                    @(Html.DevExtreme().Button()
+                    .ID("btnMembershipExpandAll")
+                    .ElementAttr("style", "padding-right:0px;margin-right:5px;")
+                    .Icon("preferences")
+                    .Hint("Expand/Collapse All")
+                    .OnClick(@<text> function () { MembershipExpandAll(); } </text>)
+                    )
+                </div>
+                <div class="list_footer_left_margin">
+                    <div class="footer-locktext">
+                        <div id="WingMember_Lbl_ActionOn" class="left_footertext_top"></div>
+                        <div id="WingMember_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                    </div>
+                    @*<div class="footer-locktext">
+                        <div id="WingMemberLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                    </div>*@
+                </div>
+                <div class="list_footer_left_margin">
+                    <p id="WingMemberLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                    <p id="WingMemberLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="list_footer_right_margin_consistent col-md-1">
+        @*<i id="WingMember_LockICON" class="fa fa-lock lock_symbol"></i>*@
+    </div>
+    @*</div>
+        <div class="col-lg-4 listing_footer_filter_buttons_div">
+    </div>*@
+</div>
+@Html.Partial("AttachmentFAB", "MembershipPrf_FAB, Membership_ParentDiv, Type1, Membership,"+UserType) @*fab buttons*@
+<div class="col-md-12">
+    @*Add/Edit Popup*@
+    @(Html.DevExtreme().Popup().CustomPopup()
+        .ID("WingMember_report_modal")
+        .OnShowing("PopupOnShowing")
+        .Title("WingMember List Preview")
+        .FullScreen(false)
+        .MaxWidth(125)
+        .Height("auto")
+        .ShowCloseButton(true)
+        .ContentTemplate(@<text> <div id="WingMember_report_modal_result"> </div> </text>)
+    )
+</div>
+
+@*Javascript Events*@
+<script type="text/javascript">
+    var IsAllDetailExpanded = false;
+    var WingMember_ShowHorizontalBar = 0;
+    var Membership_WW_SetVouchingModeOn = "@Membership_WW_Auto_Vouching_Mode" == "True" ? true : false;
+    //var IsSucessPopup = false;
+    //var IsViewPopup = false;
+    var UserType_WingMemberPrf = "@UserType".toUpperCase();
+    var Membrship_IsVouchingMode = false;
+    var Membrship_FocusedRowBeforeRefresh;
+    var Membership_ViewMode = "Default";
+    $(document).ready(function () {
+        if ("@Membership_ExportRight" == "False")
+        {
+	        $("#WingMemberModelListPreview").hide();
+        }
+        ////IsSucessPopup = false;
+        //IsViewPopup = false;
+        //SetWingMemberGroupPanelFooterVisible();
+        //SetWingMemberFooterVisible();
+        $("#WingMemberListGrid").hover(function () {
+            WingMemberListGrid.Focus()
+        })
+        $(".WingMemberListGrid_PreviewRow").hide();
+        GetSessionStorage("WingMemberListGrid");
+        if (Membership_WW_SetVouchingModeOn == true)
+        {
+            $("#MembershipViewModeSwitch").dxSwitch("instance").option("value", true);            
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Membership/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+    });    
+    function OnWingMemberCellClick(event, cell,col, row)
+    {
+        if (UserType_WingMemberPrf == "AUDITOR" || UserType_WingMemberPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function Membership_ViewSwitch_ValueChange(e)
+    {
+        Membership_ViewMode = e.value == false ? "Default" : "Compact";
+        if (Membership_WW_SetVouchingModeOn == true)
+        {           
+            $("#MembrshipVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            WingMemberListGrid.CollapseAllDetailRows();
+        }        
+    }
+    function Membrship_VouchingSwitch_ValueChange(e)
+    {
+        Membrship_IsVouchingMode = e.value;
+        WingMemberListGrid.SetFocusedRowIndex(-1);
+        MembershipPrf_FAB.SetVisible(false);
+        if (Membrship_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            MembershipPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        WingMemberListGrid_CollapseAllDetailRows();        
+    }
+    function WingMemberListGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.WingMemberListGrid !== 'undefined')
+            {
+                if (typeof window.WingMemberListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof WingMemberListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        WingMemberListGrid.SetFocusedRowIndex(-1);
+                        WingMemberListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        WingMemberListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function WingMemberOnInit(s, e) {
+        WingMemberAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            WingMemberAdjustSize();
+        });
+    }
+    var Wing_ColumnToBeShownIndex = "";
+    var Wing_ColumnToBeHidddenIndex = "";
+    function OnGridWingMemberListGrid_EndCallback(s, e)
+    {
+        Wing_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Wing_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        //WingMemberAdjustSize();
+       $(".WingMemberListGrid_PreviewRow").hide();
+        GetSessionStorage("WingMemberListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH" && Membrship_IsVouchingMode == true)
+        {
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(Membrship_FocusedRowBeforeRefresh);
+        }
+    }
+    function WingMemberAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{WingMemberListGrid.SetHeight(height);}catch(err){}
+    }
+
+    function WingMemberAjaxSuccessForm(data) {
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            //IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_WingMember_Window").dxPopup("hide");
+            WingMemberListGrid.Refresh();
+            //IsSucessPopup = false;
+        }
+    }
+    function WingMemberchangeMode() {
+        ShowLoader();
+        if (WingMember_ShowHorizontalBar == 0) {
+            WingMember_ShowHorizontalBar = 1;
+            $("#WingMemberToggleScrollBar").find("span").text("Default Data");
+            $("#WingMemberToggleScrollBar").width(110);
+        }
+        else {
+            WingMember_ShowHorizontalBar = 0;
+            $("#WingMemberToggleScrollBar").find("span").text("Full Data");
+            $("#WingMemberToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Membership_WithoutWing_Info_Grid", "Membership")',
+            type: "GET",
+            data: { ShowHorizontalBar: WingMember_ShowHorizontalBar, VouchingMode: Membrship_IsVouchingMode, ViewMode: Membership_ViewMode, ColumnToBeHidddenIndex: Wing_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Wing_ColumnToBeShownIndex  },
+            success: function (res) {
+                $("#WingMemberreloadPartialView").html(res);
+                $(".WingMemberListGrid_PreviewRow").hide();
+                GetSessionStorage("WingMemberListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function MembershipExpandAll()
+    {
+        if (!IsAllDetailExpanded)
+        { WingMemberListGrid.ExpandAllDetailRows(); IsAllDetailExpanded = true;}
+        else
+        { WingMemberListGrid.CollapseAllDetailRows(); IsAllDetailExpanded = false; }
+    }
+
+    var WingMemberID;
+    var WingMember_EditDate;
+    var WingMember_AddDate;
+    var WingMember_AddBy;
+    var WingMember_EditBy;
+    var WingMember_ActionStatus;
+    var WingMember_ActionDate;
+    var WingMember_ActionBy;
+
+    function WingMemberGrid_BeginCallBack(s, e) {
+        Membrship_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["VouchingMode"] = Membrship_IsVouchingMode;
+        e.customArgs["ViewMode"] = Membership_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Wing_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Wing_ColumnToBeHidddenIndex;
+    }
+
+    function OnWingMemberGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+
+            if (Membrship_IsVouchingMode)
+            {
+                MembershipPrf_FAB.SetVisible(true);
+                MembershipPrf_FAB.SetActionContext("VouchingActionContext", true);
+            }
+            s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By', WingMemberOnGetRowValues);
+        }
+        else
+        {
+            WingMemberID = null;
+        }
+    }
+
+    function WingMemberOnGetRowValues(values) {
+        WingMemberID = values[0];
+        WingMember_EditDate = values[1];
+        WingMember_AddDate = values[2];
+        WingMember_AddBy = values[3];
+        WingMember_EditBy = values[4];
+        WingMember_ActionStatus = values[5];
+        WingMember_ActionDate = values[6];
+        WingMember_ActionBy = values[7];
+        WingMember_UpdateFooterDetail(WingMemberID, WingMember_ActionStatus, WingMember_AddDate, WingMember_AddBy,
+            WingMember_ActionDate, WingMember_ActionBy, WingMember_EditDate, WingMember_EditBy);
+        if (Membrship_IsVouchingMode == true) {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Membership", "LeftPaneContent", WingMemberID, Membrship_IsVouchingMode, "");
+        }
+    }
+
+    function WingMember_UpdateFooterDetail(WingMemberID, WingMember_Action_Status, WingMember_Add_Date, WingMember_Add_By, WingMember_Action_Date, WingMember_Action_By, WingMember_Edit_Date, WingMember_Edit_By) {
+        WingMember_Action_Date = WingMember_Action_Date != "" && WingMember_Action_Date != null ? WingMember_Action_Date : WingMember_Action_Date;
+        WingMember_Edit_Date = WingMember_Edit_Date != "" && WingMember_Edit_Date != null ? WingMember_Edit_Date : WingMember_Edit_Date;
+        WingMember_Add_Date = WingMember_Add_Date != "" && WingMember_Add_Date != null ? WingMember_Add_Date : WingMember_Add_Date;
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Membership/CreationDetail",
+            data: {
+                Xrow: WingMemberID, Action_Status: WingMember_Action_Status, Add_Date: WingMember_Add_Date,
+                Add_By: WingMember_Add_By, Action_Date: WingMember_Action_Date, Action_By: WingMember_Action_By, Edit_Date: WingMember_Edit_Date, Edit_By: WingMember_Edit_By
+            },
+            cache: false,
+            success: function (WingMemberLbl_result) {
+                $('#WingMember_Lbl_ActionOn').text(WingMemberLbl_result.Lbl_StatusOn);
+                $('#WingMember_Lbl_ActionBy').text(WingMemberLbl_result.Lbl_StatusBy);
+                $('#WingMemberLbl_Status').text(WingMemberLbl_result.Lbl_Status);
+                $('#WingMemberLbl_Create').text(WingMemberLbl_result.Lbl_Create);
+                $('#WingMemberLbl_Modify').text(WingMemberLbl_result.Lbl_Modify);
+                if (WingMemberLbl_result.Lbl_Status_Color != "") {
+                    $('#WingMemberLbl_Status').css('color', WingMemberLbl_result.Lbl_Status_Color);
+                }
+                if (WingMemberLbl_result.Pic_Status != "") {
+                    $('#WingMember_LockICON').css('class', WingMemberLbl_result.Pic_Status);
+                }
+
+            }
+        });
+    }
+
+    function OnWingMemberListPreviewClick() {
+        if ("@Membership_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        $("#WingMember_report_modal").dxPopup("show");
+        $("#WingMember_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#WingMember_report_modal").html('');
+        ShowLoader();
+        $("#WingMember_report_modal_result").load("@Url.Action("Frm_Export_Options", "Membership", new { @area = "Profile" })", function () {
+            HideLoader();
+        });
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function WingMemberContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnWingMemberListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            WingMemberListGrid.Refresh();
+        }
+    }
+    function CollapseDonationRow(s, e)
+    {  }
+    function ExpandDonationRow(s, e)
+    {  }
+</script>
+
+<script>
+    var MembershipWing_IsDetailRowExpanded = false;
+    var MembershipWing_NestedRecord_FocusedRowIndex = -1;
+    var MembershipWing_NestedGrid_AccessID;
+    var MembershipWing_AtachmentID;
+    var MembershipWing_FileName;
+    var MembershipWing_ParamMandatory;
+    var MembershipWing_FromDateLabel;
+    var MembershipWing_ToDateLabel;
+    var MembershipWing_DescriptionLabel;
+    var MembershipWing_Doc_ID;
+    var MembershipWing_Doc_Category;
+    var MembershipWing_MasterRowRecID;
+    var MembershipWing_MasterRowMID;
+    var MembershipWing_NestedRowMapID;
+    var MembershipWing_reason;
+    var MembershipWing_Attachment_RecStatus;
+    var MembershipWing_NestedRowReasonID;
+    var MembershipWing_NestedRowKeyValue;
+
+    function On_Membership_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (MembershipWing_ParamMandatory == 1)
+            {
+                AddAttachment(MembershipWing_MasterRowRecID, "Profile_Membership", MembershipWing_Doc_ID, MembershipWing_Doc_Category, MembershipWing_ParamMandatory, MembershipWing_FromDateLabel, MembershipWing_ToDateLabel, MembershipWing_DescriptionLabel, "MembershipProfileAttachment", null, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(MembershipWing_MasterRowRecID, "Profile_Membership", MembershipWing_Doc_ID, "MembershipProfileAttachment", "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (MembershipWing_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(MembershipWing_MasterRowRecID, "Profile_Membership", MembershipWing_AtachmentID, MembershipWing_ParamMandatory, MembershipWing_FromDateLabel, MembershipWing_ToDateLabel, MembershipWing_DescriptionLabel, "MembershipProfileAttachment", null, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(MembershipWing_MasterRowRecID, "Profile_Membership", MembershipWing_AtachmentID, MembershipWing_ParamMandatory, MembershipWing_FromDateLabel, MembershipWing_ToDateLabel, MembershipWing_DescriptionLabel, null, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID, MembershipWing_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(MembershipWing_AtachmentID, MembershipWing_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(MembershipWing_MasterRowRecID, "Profile_Membership", "Wing Membership Information", "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (MembershipWing_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(MembershipWing_MasterRowRecID, MembershipWing_NestedRowMapID, "Profile_Membership", "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(MembershipWing_MasterRowRecID, MembershipWing_NestedRowMapID, "Profile_Membership", "WingMemberListGrid", MembershipWing_NestedGrid_AccessID, MembershipWing_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(MembershipWing_MasterRowRecID, MembershipWing_NestedRowMapID, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            MembershipPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (MembershipWing_Nested_Doc_Status == "")
+            {
+                MembershipPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (MembershipWing_Nested_Doc_Status == "NO")
+            {
+                MembershipPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (MembershipWing_Nested_Doc_Status == "YES")
+            {
+                MembershipPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            MembershipWing_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            MembershipWing_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            MembershipWing_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnMembershipWing_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnMembershipWing_RejectDoc();
+        }
+    }
+    function OnMembershipWing_RejectDoc() {
+        if (MembershipWing_AtachmentID == null || MembershipWing_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(MembershipWing_AtachmentID, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+    }
+    function OnMembershipWing_AcceptDoc() {
+        if (MembershipWing_AtachmentID == null || MembershipWing_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(MembershipWing_AtachmentID, "WingMemberListGrid", MembershipWing_NestedGrid_AccessID);
+    }
+    function MembershipWing_AcceptwithoutRemarks()
+    {       
+        MembershipWing_MasterRowMID;
+        var Recid;
+        if (MembershipWing_IsDetailRowExpanded == true || Membrship_IsVouchingMode == true)
+        {
+            if (MembershipWing_MasterRowRecID == null || MembershipWing_MasterRowRecID == "")
+            {
+                Recid = WingMemberID;
+            }
+            else
+            {
+                Recid = MembershipWing_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = WingMemberID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_Membership", "WingMemberListGrid", MembershipWing_AtachmentID, MembershipWing_NestedRowReasonID, MembershipWing_NestedRowKeyValue);
+    }
+    function MembershipWing_AcceptRejectVoucher(_actionMethod)
+    {
+        debugger;
+        MembershipWing_MasterRowMID;
+        var Recid;
+        if (MembershipWing_IsDetailRowExpanded == true || Membrship_IsVouchingMode == true)
+        {
+            if (MembershipWing_MasterRowRecID == null || MembershipWing_MasterRowRecID == "")
+            {
+                Recid = WingMemberID;
+            }
+            else
+            {
+                Recid = MembershipWing_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = WingMemberID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_Membership", "WingMemberListGrid", MembershipWing_AtachmentID, MembershipWing_NestedRowReasonID, MembershipWing_NestedRowKeyValue);
+    }
+    function OnWingMemberListGridNestedFocusedRowChange(s, e)
+    {        
+        if (MembershipWing_IsDetailRowExpanded == true || Membrship_IsVouchingMode == true)
+        {
+            MembershipWing_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (MembershipWing_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                MembershipWing_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnMembershipWing_GetGridRowValues);
+            }
+            else
+            {
+                MembershipPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnMembershipWing_GetGridRowValues(values)
+    {      
+        HideLoader();
+        if (values[14] != null)
+        {
+            MembershipPrf_FAB.SetVisible(true);
+            MembershipWing_Nested_Doc_Status = values[0];   
+            if (Membrship_IsVouchingMode == true)
+            {
+                MembershipPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (MembershipWing_Nested_Doc_Status == "")
+                {
+                    MembershipPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (MembershipWing_Nested_Doc_Status == "NO")
+                {
+                    MembershipPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (MembershipWing_Nested_Doc_Status == "YES")
+                {
+                    MembershipPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            MembershipWing_ParamMandatory = values[1];
+            MembershipWing_FromDateLabel = values[2];
+            MembershipWing_ToDateLabel = values[3];
+            MembershipWing_DescriptionLabel = values[4];
+            MembershipWing_Doc_Category = values[5];
+            MembershipWing_Doc_ID = values[6];
+            MembershipWing_AtachmentID = values[7];
+            IndexAttachmentID = MembershipWing_AtachmentID;
+            MembershipWing_MasterRowRecID = values[8];
+            MembershipWing_MasterRowMID = values[9];
+            MembershipWing_NestedRowMapID = values[10];
+            MembershipWing_reason = values[11];
+            MembershipWing_FileName = values[12];
+            MembershipWing_Attachment_RecStatus = values[13];
+            MembershipWing_NestedRowKeyValue = values[14];
+            if (Membrship_IsVouchingMode == true)
+            {
+                if (MembershipWing_FileName != null && MembershipWing_FileName.length > 0)
+                {
+                    ViewDocument(MembershipWing_AtachmentID, MembershipWing_FileName, "MembershipPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        MembershipWing_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = MembershipWing_NestedRowReasonID;
+
+    }
+    function WingMemberGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = WingMember_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Membrship_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function WingMemberGrid_DetailRowExpanding(s, e)
+    {
+        MembershipWing_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Membrship_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+        IsAllDetailExpanded = true;
+    }
+    function WingMemberGrid_DetailRowCollapsing(s, e)
+    {
+        MembershipWing_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Membrship_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            MembershipPrf_FAB.SetVisible(false);
+        }
+        IsAllDetailExpanded = false;
+    }
+</script>@*attachment and nested grid*@

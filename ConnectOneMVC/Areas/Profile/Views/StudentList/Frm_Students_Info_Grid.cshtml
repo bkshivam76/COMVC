@@ -1,0 +1,193 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    // bool FilterVisible = ViewBag.FilterVisible == null ? false : ViewBag.FilterVisible;
+    //bool SearchVisible = ViewBag.SearchVisible == null ? false : ViewBag.SearchVisible;
+    //bool ShowGroupedColumns = ViewBag.ShowGroupedColumns == null ? false : ViewBag.ShowGroupedColumns;
+    bool DBData = ViewBag.DBData == null ? true : ViewBag.DBData;
+
+    bool StudentList_AddRight = (bool)ViewData["StudentList_AddRight"];
+    bool StudentList_UpdateRight = (bool)ViewData["StudentList_UpdateRight"];
+    bool StudentList_ViewRight = (bool)ViewData["StudentList_ViewRight"];
+    bool StudentList_DeleteRight = (bool)ViewData["StudentList_DeleteRight"];
+    bool StudentList_ExportRight = (bool)ViewData["StudentList_ExportRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "StudentsListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "StudentList",
+            Action = "Frm_Students_Info_Grid",
+            FilterVisible = false,
+            SearchVisible = false,
+            ShowGroupedColumns = false,
+            DBData = DBData,
+            SessionGUID = SessionGUID
+        };
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+
+        settings.HtmlDataCellPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+           @* string colIdx = e.DataColumn.Index.ToString();
+            string rowIdx = e.VisibleIndex.ToString();
+            e.Cell.Attributes.Add("onclick", "OnStudentCellClick(event,this, '" + colIdx + "', '" + rowIdx + "');");
+            e.Cell.CssClass += " col" + colIdx + " row" + rowIdx;*@
+        };
+
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        //settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        settings.SettingsCookies.Enabled = true;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+        }
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "Students Listing";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        //settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+
+        //settings.CustomDataActionRouteValues = new { Controller = "Students", Action = "StudentsCustomDataAction" };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        // settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                //var Additem = e.CreateItem("New", "New");
+                //if(StudentList_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+                //var Edititem = e.CreateItem("Edit", "Edit");
+                //if(StudentList_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+                //var Deleteitem = e.CreateItem("Delete", "Delete");
+                //if(StudentList_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                //var Viewitem = e.CreateItem("View", "View");
+                //if(StudentList_ViewRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if(StudentList_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+            }
+        };
+        settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+        // DXCOMMENT: Specify the grid's key field name and define grid columns in accordance with data model fields
+
+        //------------------------------------------------//------------------------------------------------//------------------------------------------------//------------------------------------------------
+        settings.KeyFieldName = "ID";
+
+        //settings.PreRender = (sender, e) =>
+        //{
+        //    MVCxGridView gridView = sender as MVCxGridView;
+        //    if (gridView != null)
+        //        gridView.FilterExpression = "[ITEM_NAME] Is Not Null";
+        //};
+        settings.Columns.Add("Name").Caption = "Name";
+        settings.Columns.Add("Occupation").Caption = "Occupation";
+        settings.Columns.Add("BK_Title").Caption = "BK Title";
+        settings.Columns.Add("Lokik_Date_Of_Birth").Caption = "Lokik Date of Birth";
+        settings.Columns.Add("Alokik_Date_Of_Birth").Caption = "Alokik Date of Birth";
+        settings.Columns.Add("MobileNo").Caption = "Mobile No";
+
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        settings.Settings.ShowFooter = false;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.Settings.ShowGroupedColumns = true;
+        settings.ClientSideEvents.Init = "StudentsOnInit";
+        //settings.ClientSideEvents.CustomizationWindowCloseUp = "Studentsgrid_CustomizationWindowCloseUp";
+        settings.ClientSideEvents.ContextMenuItemClick = "StudentsContextMenuFunction";
+        //settings.ClientSideEvents.RowDblClick = "Students_dblclickEdit";
+        //settings.ClientSideEvents.BeginCallback = "StudentsGrid_BeginCallBack";
+        //settings.ClientSideEvents.FocusedRowChanged = "OnStudentsGridFocusedRowChanged";
+        //settings.ClientSideEvents.EndCallback = "OnGridStudentsListGrid_EndCallback";
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

@@ -1,0 +1,1742 @@
+﻿<div class="WIPProfile_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool WIP_AddRight = (bool)ViewData["WIP_AddRight"];
+        bool WIP_UpdateRight = (bool)ViewData["WIP_UpdateRight"];
+        bool WIP_ViewRight = (bool)ViewData["WIP_ViewRight"];
+        bool WIP_DeleteRight = (bool)ViewData["WIP_DeleteRight"];
+        bool WIP_ExportRight = (bool)ViewData["WIP_ExportRight"];
+        bool WIP_ReportRight = (bool)ViewData["WIP_ReportRight"];
+        bool WIP_LockUnlockRight = (bool)ViewData["WIP_LockUnlockRight"];
+        bool WIP_ManageRemarks = (bool)ViewData["WIP_ManageRemarks"];
+        bool WIP_ViewRemarks = (bool)ViewData["WIP_ViewRemarks"];
+
+        bool WIP_Payment_UpdateRight = (bool)ViewData["AccVou_Payment_UpdateRight"];
+        bool WIP_Payment_ViewRight = (bool)ViewData["AccVou_Payment_ViewRight"];
+        bool WIP_Payment_DeleteRight = (bool)ViewData["AccVou_Payment_DeleteRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool WIPInfo_Auto_Vouching_Mode = (bool)ViewData["WIPInfo_Auto_Vouching_Mode"];
+
+        bool WIP_SpecialGrouping = (bool)ViewData["WIP_SpecialGrouping"];
+
+    }
+    <div id="WIPProfile_ParentDiv">
+        <div id="WIPcontent" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">WIP Information</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("WIPVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("WIP_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("WIPViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("WIP_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @if (ViewBag.LockUnlock != false)
+                {
+                    @(Html.DevExtreme().Button().ID("WIPModelUnlock").Text("Unlock").Icon("fa fa-unlock").Visible(true).Disabled(false).OnClick(@<text>function(){datanavigation_WIP("UNLOCK");}</text>))
+                    @(Html.DevExtreme().Button().ID("WIPModelLock").Text("Lock").Icon("fa fa-lock").Visible(true).Disabled(false).OnClick(@<text>function(){datanavigation_WIP("LOCK");}</text>))
+                }
+
+                @(Html.DevExtreme().Button().ID("WIPModelTxnReport").Text("Txn. Report").Icon("product").Visible(true).Disabled(false).OnClick(@<text>function () {datanavigation_WIP("TxnReport");}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text>function () {OnWIPNewClick();}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text>function () {datanavigation_WIP("EDIT");}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text>function () {datanavigation_WIP("DELETE");}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text>function () {datanavigation_WIP("VIEW");}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text>function () {WIPchangeMode();}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelListPreview").Text("Export").Icon("save").Width(75).OnClick(@<text>function () {OnWIPListPreviewClick();}</text>))
+                @(Html.DevExtreme().Button().ID("WIPModelCLOSE").Text("Close").Icon("clear").OnClick(@<text>function (){closeProfile_WIP();} </text>))
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="WIPreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_WIP_Info_Grid_dx")
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="col-md-8">
+                <div class="setFooterItem">
+                    <div class="footer-inner">
+                        <div class="list_footer_left_margin">
+                            <div class="footericon">
+                                <i id="WIP_LockICON" style="color:red;font-size:35px;"></i>
+                            </div>
+                            @*<div class="footer-locktext">
+                                <div id="CBLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                            <div class="footer-locktext">
+                                <div id="WIP_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="WIP_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-text">
+                                <p id="WIPLbl_Create" class="right_footertext_top"></p>
+                                <p id="WIPLbl_Modify" class="right_footertext_bottom"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>  @* Ftr add/edit details *@
+
+        @Html.Partial("AttachmentFAB", "WIPPrf_FAB,WIPProfile_grid_DIV,Type1,WIPProfile," + UserType) @*fab buttons*@
+
+ 
+    </div>
+    @*Javascript Events*@
+    <script type="text/javascript">
+    var WIP_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var WIPInfo_SetVouchingModeOn = "@WIPInfo_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_WIPPrf = "@UserType".toUpperCase();
+    var WIP_IsVouchingMode = false;
+    var WIP_ViewMode = "Default";
+
+    var WIPID;
+    var WIP_EditDate;
+    var WIP_AddDate;
+    var WIP_AddBy;
+    var WIP_EditBy;
+    var WIP_ActionStatus;
+    var WIP_ActionDate;
+    var WIP_ActionBy;
+
+    var WIP_Opening;
+    var WIP_LedgerID;
+    var WIP_LedgerName;
+    var WIP_Reference;
+    var WIP_OpeningDate;
+    var WIP_CallingFrom;
+    var WIP_TR_ID;
+        var WIP_Entry_Type;
+        var WIP_OpenActions;
+        var WIP_YearID;
+        var Select_xid_WIP;
+
+    var WIPInfo_IsDetailRowExpanded = false;
+    var WIPInfo_NestedRecord_FocusedRowIndex = -1;
+    var WIPInfo_NestedGrid_AccessID;
+    var WIPInfo_AtachmentID;
+    var WIPInfo_FileName;
+    var WIPInfo_ParamMandatory;
+    var WIPInfo_FromDateLabel;
+    var WIPInfo_ToDateLabel;
+    var WIPInfo_DescriptionLabel;
+    var WIPInfo_Doc_ID;
+    var WIPInfo_Doc_Category;
+    var WIPInfo_MasterRowRecID;
+    var WIPInfo_MasterRowMID;
+    var WIPInfo_NestedRowMapID;
+    var WIPInfo_reason;
+    var WIPInfo_Attachment_RecStatus;
+    var WIPInfo_NestedRowReasonID;
+    var WIPInfo_NestedRowKeyValue;
+    </script>
+    @*Global Variables*@
+
+    <script type="text/javascript">
+    $(document).ready(function ()
+    {
+        if ("@WIP_LockUnlockRight" == "False")
+        {
+            $("#WIPModelUnlock").hide();
+            $("#WIPModelLock").hide();
+        }
+        if ("@WIP_AddRight" == "False")
+        {
+            $("#WIPModelNew").hide();
+        }
+        if ("@WIP_UpdateRight" == "False")
+        {
+            $("#WIPModelEdit").hide();
+        }
+        if ("@WIP_ViewRight" == "False")
+        {
+            $("#WIPModelView").hide();
+        }
+        if ("@WIP_DeleteRight" == "False")
+        {
+            $("#WIPModelDelete").hide();
+        }
+        if ("@WIP_ExportRight" == "False")
+        {
+            $("#WIPModelListPreview").hide();
+        }
+        if ("@WIP_ReportRight" == "False")
+        {
+            $("#WIPModelTxnReport").hide();
+        }
+        HideUnreleasedFunctionality('Frm_WIP_Info');  
+        // SetWIPGroupPanelFooterVisible();
+        //$("#WIPListGrid").hover(function () {
+        //WIPListGrid.Focus()
+        //})
+        $(".WIPListGrid_PreviewRow").hide();
+        GetSessionStorage("WIPListGrid");
+        if (WIPInfo_SetVouchingModeOn == true)
+        {
+            $("#WIPViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        DxGrid_EventsOnScreenClose(WIPListGrid)
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_WIPProfile();
+    });
+        function ClearAllReferences_WIPProfile() {
+            WIP_YearID = null;
+            WIP_OpenActions = null;      
+            WIP_ShowHorizontalBar = null;
+            WIPInfo_SetVouchingModeOn = null;
+            UserType_WIPPrf = null;
+            WIP_IsVouchingMode = null;
+            WIP_ViewMode = null;       
+            WIPID = null;
+            WIP_EditDate = null;
+            WIP_AddDate = null;
+            WIP_AddBy = null;
+            WIP_EditBy = null;
+            WIP_ActionStatus = null;
+            WIP_ActionDate = null;
+            WIP_ActionBy = null;
+            WIP_Opening = null;
+            WIP_LedgerID = null;
+            WIP_LedgerName = null;
+            WIP_Reference = null;
+            WIP_OpeningDate = null;
+            WIP_CallingFrom = null;
+            WIP_TR_ID = null;
+            WIP_Entry_Type = null;
+            WIPInfo_IsDetailRowExpanded = null;
+            WIPInfo_NestedRecord_FocusedRowIndex = null;
+            WIPInfo_NestedGrid_AccessID = null;
+            WIPInfo_AtachmentID = null;
+            WIPInfo_FileName = null;
+            WIPInfo_ParamMandatory = null;
+            WIPInfo_FromDateLabel = null;
+            WIPInfo_ToDateLabel = null;
+            WIPInfo_DescriptionLabel = null;
+            WIPInfo_Doc_ID = null;
+            WIPInfo_Doc_Category = null;
+            WIPInfo_MasterRowRecID = null;
+            WIPInfo_MasterRowMID = null;
+            WIPInfo_NestedRowMapID = null;
+            WIPInfo_reason = null;
+            WIPInfo_Attachment_RecStatus = null;
+            WIPInfo_NestedRowReasonID = null;
+            WIPInfo_NestedRowKeyValue = null;
+            WIPListGrid = null;
+            WIPInfo_IsDetailRowExpanded = null;
+            Expanded_Row_Key_WIP = null;
+            VisibleColumns_WIPListGrid_dx = null;
+
+            ClearAllReferences("WIPProfile_ClearReferences");
+        }
+
+    function WIPAjaxSuccessForm(data)
+    {
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else
+        {
+            IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            //$("#popup_frm_WIP_Window").dxPopup("hide");
+           // WIPListGrid.Refresh();
+            WIPListGrid_dx_Refresh()
+            IsSucessPopup = false;
+        }
+    }
+
+    </script>
+    @*Document.ready, AjaxSuccess Functions*@
+<script type="text/javascript">
+    function datanavigation_WIP(Action)
+    {
+        if (WIPID == null || WIPID == "")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        switch (Action)
+        {
+            case "UNLOCK":
+                WIPOnUnlockClick();
+                break;
+
+            case "LOCK":
+                WIPOnLockClick();
+                break;
+
+            case "EDIT":
+                OnWIPEditClick();
+                break;
+
+            case "DELETE":
+                OnWIPDeleteClick();
+                break;
+
+            case "VIEW":
+                OnWIPViewClick();
+                break;
+
+            case "Audit_Add":
+                WIP_AddAuditActions();
+                break;
+
+            case "Audit_View":
+                WIP_ViewAuditActions();
+                break;
+
+            case "TxnReport":
+                WIPOnTxnReportClick();
+                break;
+        }
+    }
+    function WIP_AddAuditActions()
+    {
+        if ("@WIP_ManageRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data:
+            {
+                ActionMethod: "ADD REMARKS",
+                ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions,
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    Add_Actions(WIPID, "WIP_INFO", "Profile_WIP", "WIP_AddActionItem_Popup", "WIPListGrid");
+                }
+                else
+                {
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            }
+        });
+    }
+    function WIP_ViewAuditActions()
+    {
+        if ("@WIP_ViewRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (WIP_Entry_Type.toUpperCase() == "VOUCHER ENTRY")
+        {
+            DevExpress.ui.dialog.alert('Entries created from vouchers can be audited from vouchers only...!<br><br>Please unselect Entries Created from Voucher...!', "Information...");
+            return;
+        }
+
+        View_Actions(WIPID, "WIP_INFO", "Profile_WIP", WIP_ActionStatus, "WIP_ViewActionItem_Popup", "WIPListGrid")
+    }
+    function WIPOnUnlockClick(_MultiUserConfirmation = false)
+    {
+        if ("@WIP_LockUnlockRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data:
+            {
+                ActionMethod: "UNLOCKED",
+                ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions,
+                MultiUserConfirmation: _MultiUserConfirmation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.isconfirm == true)
+                {
+                    var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false).show();
+                    confirmbox.done(function (confirmboxResult)
+                    {
+                        if (confirmboxResult)
+                        {
+                            WIPOnUnlockClick(true);
+                        }
+                        else
+                        {
+                            WIPListGrid_dx_Refresh();
+                        }
+                    });
+                }
+                else
+                {
+                    var alertBoxDone = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                    alertBoxDone.done(function (alertBoxResult)
+                    {
+                        if (data.jsonParam.result)
+                        {
+                            Select_xid_WIP = WIPID
+                        }
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            WIPListGrid_dx_Refresh();
+                        }
+                    });
+                }
+            }
+        });
+    }
+    function WIPOnLockClick(_MultiUserConfirmation = false)
+    {
+        if ("@WIP_LockUnlockRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data:
+            {
+                ActionMethod: "LOCKED",
+                ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions,
+                MultiUserConfirmation: _MultiUserConfirmation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.isconfirm == true) {
+                    var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false).show();
+                    confirmbox.done(function (confirmboxResult) {
+                        if (confirmboxResult) {
+                            WIPOnLockClick(true);
+                        }
+                        else {
+                            WIPListGrid_dx_Refresh();
+                        }
+                    });
+                }
+                else {
+                    var alertBoxDone = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                    alertBoxDone.done(function (alertBoxResult) {
+                        if (data.jsonParam.result) {
+                            Select_xid_WIP = WIPID
+                        }
+                        if (data.jsonParam.refreshgrid) {
+                            WIPListGrid_dx_Refresh();
+                        }
+                    });
+                }
+            }
+        });
+    }
+    function OnWIPNewClick()
+    {
+        debugger;
+        if ("@WIP_AddRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data: { ActionMethod: "New" },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == "true" || data.jsonParam.result == true)
+                {
+                    ShowLoader();
+                    OpenDynamicPopup("New ~ WIP Info", "@Url.Action("Frm_WIP_window", "WIP", new { @area = "Profile" })?ActionMethod=New", "auto", 600);
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    // WIPListGrid.Refresh();
+                    WIPListGrid_dx_Refresh()
+                }
+            }
+        });
+    }
+    function OnWIPEditClick(_MultiUserConfirmation = false)
+    {
+        if ("@WIP_UpdateRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data: {
+                ActionMethod: "Edit",
+                ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions,
+                MultiUserConfirmation: _MultiUserConfirmation},
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    openWIPEditWindow();
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false).show();
+                        confirmbox.done(function (confirmboxResult) {
+                            if (confirmboxResult)
+                            {
+                                OnWIPEditClick(true);
+                            }
+                            else {
+                                WIPListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title).done(function () {
+                            if (data.jsonParam.refreshgrid) {
+                                WIPListGrid_dx_Refresh();
+                            }
+                        })
+                    }
+                }
+            }
+        });
+    }
+    function openWIPEditWindow()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/Frm_WIP_Window",
+            data: { EditedOn: WIP_EditDate,ActionMethod: "Edit", ID: WIPID  },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("Edit ~ WIP Info", null, "auto", "600", true, data);
+            }
+        });
+    }
+    function OnWIPViewClick()
+    {
+        if ("@WIP_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data: {
+                ActionMethod: "View",
+                ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions},
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == "true" || data.jsonParam.result == true)
+                {
+                    ShowLoader();
+                    openWIPViewWindow(WIPID);
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    //WIPListGrid.Refresh();
+                    WIPListGrid_dx_Refresh()
+                }
+            }
+        });
+    }
+    function openWIPViewWindow(WIPID)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/Frm_WIP_Window",
+            data: { ActionMethod: "View", ID: WIPID, EditedOn: WIP_EditDate },
+            cache: false,
+            success: function (data)
+            {
+                OpenDynamicPopup("View ~ WIP Info", null, "auto", "600", true, data);
+                HideLoader();
+            }
+        });
+    }
+    function OnWIPDeleteClick(_MultiUserConfirmation = false)
+    {
+        if ("@WIP_DeleteRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/DataNavigation",
+            data: {
+                ActionMethod: "Delete", ID: WIPID,
+                Edit_Date: WIP_EditDate,
+                Action_Status: WIP_ActionStatus,
+                Entry_Type: WIP_Entry_Type,
+                TR_ID: WIP_TR_ID,
+                YearID: WIP_YearID,
+                OpenActions: WIP_OpenActions,
+                MultiUserConfirmation: _MultiUserConfirmation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader()
+                if (data.jsonParam.result == true)
+                {
+                    openDeleteWIPWindow(WIPID);
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false).show();
+                        confirmbox.done(function (confirmboxResult)
+                        {
+                            if (confirmboxResult)
+                            {
+                                OnWIPDeleteClick(true);
+                            }
+                            else
+                            {
+                                WIPListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title).done(function ()
+                        {
+                            if (data.jsonParam.refreshgrid)
+                            {
+                                WIPListGrid_dx_Refresh();
+                            }
+                        })
+                    }
+                }
+            }
+        });
+    }
+    function openDeleteWIPWindow(WIPID)
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/Frm_WIP_Window",
+            data: { ActionMethod: "Delete", ID: WIPID, EditedOn: WIP_EditDate },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("Delete ~ WIP Info", null, "auto", "600", true, data);
+            }
+        });
+    }
+    function OnWIPListPreviewClick()
+    {
+        if ("@WIP_ExportRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+
+        OpenPopup("report_export_modal", "Export Option", "/Profile/WIP/Frm_Export_Options_dx/?GridName=WIPListGrid", "auto", 125, false, false);
+    }
+    function WIPOnTxnReportClick()
+    {
+        if ("@WIP_ReportRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        WIP_CallingFrom = "WIP_Profile";
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/WIP/Frm_WIP_Txn_Report",
+            data:
+            {
+                WIP_ID: WIPID,
+                Opening: WIP_Opening,
+                LedgerID: WIP_LedgerID,
+                LedgerName: WIP_LedgerName,
+                Reference: WIP_Reference,
+                OpeningDate: WIP_OpeningDate,
+                CallingFrom: WIP_CallingFrom,
+                EntryType: WIP_Entry_Type
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenPopup("WIP_Txn_Report_modal", "Transaction Report", null, "auto", 700, true, data);
+            }
+        });
+    }
+    function closeProfile_WIP()
+    {
+        $(".TabPanalMenu-tabs .active span").click();
+    }
+    function WIP_EditPaymentVoucherClick()
+    {
+        if ("@WIP_Payment_UpdateRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (WIPID == null || WIPID == "")
+        {
+            DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Edited. . . !', 'WIP Info');
+            return;
+        }
+        var ID = WIPID;
+        var M_ID = WIP_TR_ID;
+        var Type = WIP_Entry_Type;
+        if (Type == "Profile Entry")
+        {
+            DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Edited. . . !', 'WIP Info');
+            return;
+        }
+        Vouchers_Edit_CreatedProfileID(M_ID, ID, "WIP", "WIP", "WIPListGrid", false);
+    }
+    function WIP_ViewPaymentVoucherClick()
+    {
+        if ("@WIP_Payment_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (WIPID == null || WIPID == "") {
+            DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Viewed. . . !', 'WIP Info');
+            return;
+        }
+        var ID = WIPID;
+        var M_ID = WIP_TR_ID;
+        var Type = WIP_Entry_Type;
+        if (Type == "Profile Entry")
+        {
+            DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Viewed. . . !', 'WIP Info');
+            return;
+        }
+
+        Vouchers_View_CreatedProfileID(M_ID, ID, "WIP", "WIP", "WIPListGrid");
+    }
+    function WIP_DeletePaymentVoucherClick()
+    {
+        if ("@WIP_Payment_DeleteRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (WIPID == null || WIPID == "") {
+            DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Deleted. . . !', 'WIP Info');
+            return;
+        }
+        var ID = WIPID;
+        var M_ID = WIP_TR_ID;
+        var Type = WIP_Entry_Type;
+        if (Type == "Profile Entry")
+        {
+            DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Deleted. . . !', 'WIP Info');
+            return;
+        }
+
+        Vouchers_Delete_CreatedProfileID(M_ID, ID, "WIP", "WIP", "WIPListGrid", false, false);
+    }
+</script>
+@*Button Functions*@
+<script>
+    function On_WIPProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (WIPInfo_ParamMandatory == 1)
+            {
+                AddAttachment(WIPInfo_MasterRowRecID, "Profile_WIP", WIPInfo_Doc_ID, WIPInfo_Doc_Category, WIPInfo_ParamMandatory, WIPInfo_FromDateLabel, WIPInfo_ToDateLabel, WIPInfo_DescriptionLabel, "WIPProfileAttachment", null, "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(WIPInfo_MasterRowRecID, "Profile_WIP", WIPInfo_Doc_ID, "WIPProfileAttachment", "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (WIPInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(WIPInfo_MasterRowRecID, "Profile_WIP", WIPInfo_AtachmentID, WIPInfo_ParamMandatory, WIPInfo_FromDateLabel, WIPInfo_ToDateLabel, WIPInfo_DescriptionLabel, "WIPProfileAttachment", null, "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(WIPInfo_MasterRowRecID, "Profile_WIP", WIPInfo_AtachmentID, WIPInfo_ParamMandatory, WIPInfo_FromDateLabel, WIPInfo_ToDateLabel, WIPInfo_DescriptionLabel, null, "WIPListGrid", WIPInfo_NestedGrid_AccessID, WIPInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(WIPInfo_AtachmentID, WIPInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(WIPInfo_MasterRowRecID, "Profile_WIP", "WIP Information", "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (WIPInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(WIPInfo_MasterRowRecID, WIPInfo_NestedRowMapID, "Profile_WIP", "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(WIPInfo_MasterRowRecID, WIPInfo_NestedRowMapID, "Profile_WIP", "WIPListGrid", WIPInfo_NestedGrid_AccessID, WIPInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(WIPInfo_MasterRowRecID, WIPInfo_NestedRowMapID, "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            WIPPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (WIPInfo_Nested_Doc_Status == "")
+            {
+                WIPPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (WIPInfo_Nested_Doc_Status == "NO")
+            {
+                WIPPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (WIPInfo_Nested_Doc_Status == "YES")
+            {
+                WIPPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            WIPInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            WIPInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            WIPInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc")
+        {
+            OnWIPInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc")
+        {
+            OnWIPInfo_RejectDoc();
+        }
+    }
+    function OnWIPInfo_RejectDoc()
+    {
+        if (WIPInfo_AtachmentID == null || WIPInfo_AtachmentID.length == 0)
+        {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+        }
+        RejectAttachment(WIPInfo_AtachmentID, "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+    }
+    function OnWIPInfo_AcceptDoc()
+    {
+        if (WIPInfo_AtachmentID == null || WIPInfo_AtachmentID.length == 0)
+        {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+        }
+
+        AcceptAttachment(WIPInfo_AtachmentID, "WIPListGrid", WIPInfo_NestedGrid_AccessID);
+    }
+    function WIPInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (WIPInfo_IsDetailRowExpanded == true || WIP_IsVouchingMode == true)
+        {
+            if (WIPInfo_MasterRowRecID == null || WIPInfo_MasterRowRecID == "")
+            {
+                Recid = WIPID;
+            }
+            else
+            {
+                Recid = WIPInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = WIPID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_WIP", "WIPListGrid", WIPInfo_AtachmentID, WIPInfo_NestedRowReasonID, WIPInfo_NestedRowKeyValue);
+    }
+    function WIPInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (WIPInfo_IsDetailRowExpanded == true || WIP_IsVouchingMode == true)
+        {
+            if (WIPInfo_MasterRowRecID == null || WIPInfo_MasterRowRecID == "")
+            {
+                Recid = WIPID;
+            }
+            else
+            {
+                Recid = WIPInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = WIPID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_WIP", "WIPListGrid", WIPInfo_AtachmentID, WIPInfo_NestedRowReasonID, WIPInfo_NestedRowKeyValue);
+    }
+</script>
+@*attachment and nested grid*@
+
+@*DevExtreme Start*@
+    
+<script>
+    var WIPListGrid = null;    
+    var Expanded_Row_Key_WIP = null;
+    var VisibleColumns_WIPListGrid_dx = [];
+    function WIPchangeMode() {
+        WIPListGrid.beginUpdate();
+        if (WIP_ShowHorizontalBar == 0) {
+            WIP_ShowHorizontalBar = 1;
+            $("#WIPModelToggleScrollBar").find("span").text("Default Data");
+            $("#WIPModelToggleScrollBar").width(110);
+            WIPListGrid.option("columnHidingEnabled", false);
+            WIPListGrid.option("allowColumnResizing", true)
+            WIPListGrid.option("columnResizingMode", "widget")
+        }
+        else {
+            WIP_ShowHorizontalBar = 0;
+            $("#WIPModelToggleScrollBar").find("span").text("Full Data");
+            $("#WIPModelToggleScrollBar").width(90);
+            WIPListGrid.option("columnHidingEnabled", true)
+            WIPListGrid.option("allowColumnResizing", false)
+            WIPListGrid.option("columnResizingMode", "nextColumn")
+        }
+        WIPListGrid.endUpdate();
+    }
+    function WIP_VouchingSwitch_ValueChange(e) {
+        WIP_IsVouchingMode = e.value;
+        if (WIPInfo_SetVouchingModeOn == true) {
+            WIPInfo_SetVouchingModeOn = false;
+        }
+        else {
+            WIPPrf_FAB.SetVisible(false);
+        }
+        if (WIP_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else
+        {              
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        WIPListGrid.clearSelection();
+        WIPListGrid.option("masterDetail.enabled", !WIP_IsVouchingMode)
+        WIPListGrid.repaint();
+    }
+    function WIP_ViewSwitch_ValueChange(e) {
+        WIP_ViewMode = e.value == false ? "Default" : "Compact";
+        if (WIPInfo_SetVouchingModeOn == true) {
+            $("#WIPVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        WIPListGrid.beginUpdate();
+        var columns = WIPListGrid.option("columns");
+        if (WIP_ViewMode == "Compact") {
+            VisibleColumns_WIPListGrid_dx = [];
+            for (var i = 0; i < columns.length; i++) {
+                var name = columns[i].dataField;
+                var ColumnVisible = WIPListGrid.columnOption(name, "visible");
+                if (name == "WIPListGrid_dx_Compact_Column") {
+                    WIPListGrid.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon") {
+                    VisibleColumns_WIPListGrid_dx.push(name);
+                    WIPListGrid.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            WIPListGrid.columnOption("WIPListGrid_dx_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_WIPListGrid_dx.length; i++) {
+                WIPListGrid.columnOption(VisibleColumns_WIPListGrid_dx[i], "visible", true);
+            }
+        }
+        WIPListGrid.repaint();
+        WIPListGrid.endUpdate();
+    }  
+    function WIP_UpdateFooterDetail(ID, Action_Status, Add_Date, Add_By, Action_Date, Action_By, Edit_Date, Edit_By)
+    {
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+        if (ID != null) {
+            Add_Date = (JS_Json_Date_To_ddMMyyyy((Add_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+            Edit_Date = (JS_Json_Date_To_ddMMyyyy((Edit_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+            Action_Date = (JS_Json_Date_To_ddMMyyyy((Action_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+            Status = Action_Status;
+            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "fa fa-lock";
+            }
+            else {
+                Pic_Status = "fa fa-unlock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED") {
+                    Lbl_Status_Color = "green";
+                }
+                else {
+                    Lbl_Status_Color = "red";
+                }
+            }
+            if (Action_Date) {
+                Lbl_ActionOn = StatusStr + " On: " + Action_Date;
+                Lbl_ActionBy = StatusStr + " By: " + Action_By;
+            }
+
+            else {
+                Lbl_ActionOn = "";
+                Lbl_ActionBy = "";
+            }
+            if (Add_Date) {
+                Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+            }
+            else {
+                Lbl_Create = "";
+            }
+
+            if (Edit_Date) {
+                Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+            }
+            else {
+                Lbl_Modify = "";
+            }
+        }
+        $('#WIPLbl_Status').text(Lbl_Status);
+        $('#WIP_Lbl_ActionOn').text(Lbl_ActionOn);
+        $('#WIP_Lbl_ActionBy').text(Lbl_ActionBy);
+        $('#WIPLbl_Create').text(Lbl_Create);
+        $('#WIPLbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#WIPLbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status == "fa fa-lock") {
+            $('#WIP_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+        }
+        else if (Pic_Status == "fa fa-unlock") {
+            $('#WIP_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+        }
+        else {
+            $('#WIP_LockICON').removeClass("fa");
+            $('#WIP_LockICON').removeClass("fa-lock");
+            $('#WIP_LockICON').removeClass("fa-unlock");
+        }
+    }
+</script>
+@*Grid Functions*@
+<script>
+    function WIPListGrid_dx_Refresh()
+    {
+        WIPListGrid.refresh().done(function () { ActionAfterDataGridRefresh_WIPListGrid_dx() })
+    }
+    async function ActionAfterDataGridRefresh_WIPListGrid_dx(ActionMethod = null)
+    {     
+        if (ActionMethod != null)
+        {
+            if (ActionMethod == "_New")
+            {
+                DevExpress.ui.dialog.confirm("Add More Entry...?", "New ~ WIP Info").done(function (confirmDialogResult)
+                {
+                    if (confirmDialogResult)
+                    {
+                        OnWIPNewClick();
+                    }
+                })
+            }
+            else if (ActionMethod == "_Edit")
+            {            
+                if ("@ViewData["WIP_LockUnlockRight"]" == "True")
+                {
+                    DevExpress.ui.dialog.confirm("Do you want to <font color=red>Lock</font> this Entry...?", "Confirmation...").done(function (confirmDialogResult)
+                    {
+                        if (confirmDialogResult)
+                        {
+                            datanavigation_WIP("LOCK");
+                        }
+                    });
+                }
+            }
+        }
+        else {
+            var selectedRowKeys = WIPListGrid.getSelectedRowKeys()
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                WIPListGrid.clearSelection()
+                WIPListGrid.selectRows(selectedRowKeys)
+            }
+        }
+    }
+
+    function WIPListGrid_dx_OnInitialized(e) {
+        DxGrid_AdjustSize(e.component, $("#WIPProfile_ParentDiv .report_button_div"))
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize(e.component, $("#WIPProfile_ParentDiv .report_button_div"), "", evt)
+        });
+        WIPListGrid = e.component;
+    }
+    function WIPListGrid_dx_OnCellPrepared(e) {
+        if (e.rowType == "data") {
+            if (WIP_IsVouchingMode == true) {
+                if (e.column.dataField === "iIcon") {
+                    $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                    $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                }
+            }
+            $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.key + "|" + e.column.dataField);
+            /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + e.key);*/
+        }
+    }
+    function WIPListGrid_dx_OnRowPrepared(e)
+    {
+        if (e.rowType == "data")
+        {
+            var GridName = e.element[0].id;
+            $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+            if (e.data.RemarkStatus != null && (e.data.RemarkStatus == "OPEN" || e.data.RemarkStatus == "REOPENED")) {
+                $(e.rowElement).css("background-color", "gold");
+            }
+            if (e.data.RemarkStatus == null && e.data.Remarks != null && e.data.Remarks == true && e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit == 0) {
+                $(e.rowElement).css("background-color", "lightgreen");
+            }
+            if (e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit > 0) {
+                $(e.rowElement).css("background-color", "mistyrose");
+            }
+            DxGrid_CreatePreviewRow(e, WIP_IsVouchingMode,"Master")
+            //var PreviewRowContent = WIPListGrid_dx_PreviewRow_Template(e)
+            //var PreviewRowClass = GridName + "_PreviewRow " + GridName + "_PreviewRow_" + e.key + " DataGridPreviewRow"
+            //var PreviewRowOptions = "";
+            //if (WIP_IsVouchingMode == true) {
+            //    PreviewRowOptions = "style='display:none' onmouseover=OnGridPrevRowMouseHoverIn(event,this,'" + GridName + "','" + e.rowIndex + "','" + e.key + "') onmouseout=OnGridPrevRowMouseHoverOut(event,this,'" + GridName + "','" + e.rowIndex + "','" + e.key + "')"
+            //}
+            //var EmptyTdshtml = "";
+            //var emptyTd = $(e.rowElement).find('td.dx-datagrid-group-space').length
+            //for (var i = 0; i < emptyTd; i++) {
+            //    EmptyTdshtml += "<td></td>"
+            //}
+            //($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='" + (e.columns.length) + "'>" + PreviewRowContent + "</td></tr>")
+        }
+        else if (e.rowType == "detailAdaptive")
+        {
+            DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+        }
+    }
+    async function WIPListGrid_dx_OnContentReady(e)
+    {    
+        await DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_WIP, Select_xid_WIP)
+        Select_xid_WIP = null;
+        DxGrid_OnContentReady(e, WIP_ShowHorizontalBar);
+    }
+    function WIPListGrid_dx_OnCellDblClick(e)
+    {
+        if (e.rowType == "data")
+        {
+            if (WIP_IsVouchingMode == true && WIP_ViewMode == "Default")
+            {
+                OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+            }
+            else if (WIP_IsVouchingMode == false)
+            {
+                OnWIPEditClick();
+            }
+        }
+    }
+
+    function WIPListGrid_dx_iIconTemplate(container, templateData) {
+        var iREQ_ATTACH_COUNT = templateData.data.REQ_ATTACH_COUNT
+        var iCOMPLETE_ATTACH_COUNT = templateData.data.COMPLETE_ATTACH_COUNT
+        var iRESPONDED_COUNT = templateData.data.RESPONDED_COUNT
+        var iREJECTED_COUNT = templateData.data.REJECTED_COUNT
+        var iOTHER_ATTACH_CNT = templateData.data.OTHER_ATTACH_CNT
+        var iALL_ATTACH_CNT = templateData.data.ALL_ATTACH_CNT
+        var iIcon = templateData.data.iIcon
+        var UniqueID = templateData.component.element()[0].id
+        var key = templateData.data.ID
+        var VisibleIndex = templateData.rowIndex
+        var htmlString = "";
+        htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+        htmlString += DxGrid_VouchingAuditIcons(iIcon)
+        htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+        $(container).html(htmlString)
+    }
+    function WIPListGrid_dx_Compact_Column_Template(container, templateData) {
+        var Name = templateData.component.element()[0].id;
+        var KeyValue = templateData.data.ID;
+        var VouchingMode = WIP_IsVouchingMode == true ? "True" : "False";
+
+        var htmlString = "<div class='container-fluid'>" +
+            "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>WIP Ledger:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.WIP_Ledger + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Reference:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Branch' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.Reference + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Opening:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_ACCOUNT_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            DxGrid_FormatNumber(templateData.data.Opening) + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Addition:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|BA_CUST_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            DxGrid_FormatNumber(templateData.data.Addition) + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Deduction:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|OP_AMOUNT' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            DxGrid_FormatNumber(templateData.data.Deduction) + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Closing:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|CL_AMOUNT' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            DxGrid_FormatNumber(templateData.data.Closing ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Special Reference:</label></div>" +
+            "<div class='col-sm-12 col-md-9 col-lg-9 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Special_Ref' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            templateData.data.Special_Ref + "</div></div></div>";
+
+        $(container).html(htmlString)
+    }
+    function WIPListGrid_dx_Compact_Column_CellValue(rowData) {
+        var data =
+            [
+                rowData.WIP_Ledger, rowData.Reference, rowData.Opening, rowData.Special_Ref, rowData.Addition, rowData.Deduction, rowData.Closing
+
+            ]
+        return data.join(" ")
+    }
+    function WIPListGrid_dx_GroupCell_Template(container, templateData) {
+        DxGrid_GroupCell_Template(container, templateData)
+    }
+
+    function WIPListGrid_dx_OnSelectionChanged(e) {
+        var selectedRowKeys = e.selectedRowKeys;
+        if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+            if (WIP_IsVouchingMode)
+            {
+                WIPPrf_FAB.SetVisible(true);
+                WIPPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+            WIPListGrid_dx_SelectedRowData(e.selectedRowsData);
+        }
+        else {
+            WIPID = null;
+            WIP_UpdateFooterDetail(WIPID, WIP_ActionStatus, WIP_AddDate, WIP_AddBy, WIP_ActionDate, WIP_ActionBy, WIP_EditDate, WIP_EditBy);
+        }
+    }
+    function WIPListGrid_dx_SelectedRowData(selectedData = null) {
+        if (selectedData == null) {
+            selectedData = WIPListGrid.getSelectedRowsData();
+        }
+        if (selectedData != null && selectedData.length > 0) {
+            var values = selectedData[0]
+            WIPID = values["ID"]
+            WIP_EditDate = values["Edit_Date"];
+            WIP_EditBy = values["Edit_By"];
+            WIP_AddDate = values["Add_Date"];
+            WIP_AddBy = values["Add_By"];
+            WIP_ActionDate = values["Action_Date"];
+            WIP_ActionBy = values["Action_By"];
+            WIP_ActionStatus = values["Action_Status"];
+            WIP_Opening = values["Opening"];
+            WIP_LedgerID = values["LED_ID"];
+            WIP_LedgerName = values["WIP_Ledger"];
+            WIP_Reference = values["Reference"];
+            WIP_OpeningDate = values["Date_of_Creation"];
+            WIP_TR_ID = values["TR_ID"];
+            WIP_Entry_Type = values["Entry_Type"];
+            WIP_OpenActions = values["OpenActions"];
+            WIP_YearID = values["YearID"];
+
+
+            WIP_UpdateFooterDetail(WIPID, WIP_ActionStatus, WIP_AddDate, WIP_AddBy, WIP_ActionDate, WIP_ActionBy, WIP_EditDate, WIP_EditBy);
+            if (WIP_IsVouchingMode == true) {
+                OpenLeftPane();
+                LeftPaneContent_WIP("WIPListGrid", WIPID, WIP_IsVouchingMode)
+            }
+        }
+        else {
+            WIPID = null;
+        }
+    }
+    function WIPListGrid_dx_OnRowExpanding(e) {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            e.component.collapseRow(Expanded_Row_Key_WIP)
+            e.component.selectRows(e.key);
+            Expanded_Row_Key_WIP = e.key;
+            WIPInfo_IsDetailRowExpanded = true;
+            var DetailGridID = e.element[0].id + e.key;
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+            }
+            //e.component.collapseAll(-1);
+        }
+        else {
+            e.component.option("CustomProp.groupRowExpanded", true);
+        }
+    }
+    function WIPListGrid_dx_OnRowCollapsing(e)
+    {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            var DetailGridID = e.element[0].id + e.key;
+            sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+            WIPInfo_IsDetailRowExpanded = false;
+            e.component.selectRows(e.key);
+            if (WIP_IsVouchingMode == false) {
+                WIPPrf_FAB.SetVisible(false);
+            }
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.clearSelection();
+            }
+        }
+        else {
+            e.component.option("CustomProp.groupRowCollapsed", true);
+        }
+    }
+    function WIPListGrid_dx_OnContextMenuPreparing(e)
+    {            if (!e.items) e.items = [];
+        if (e.target == "header") {
+
+            DxGrid_HeaderContextMenu(e, "@WIP_SpecialGrouping")
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer")
+            {
+                if (WIP_ViewMode == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType =="detailAdaptive"))
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+                    {
+                        text: "Expand Detail",
+                        icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                        disabled: expanded,
+                        visible: !WIP_IsVouchingMode,
+                        onItemClick: function ()
+                        {
+                            if (expanded){ }
+                            else {e.component.expandRow(key); }
+                        }
+                    }, {
+                        text: "Collapse Detail",
+                        icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                        disabled: !expanded,
+                        visible: !WIP_IsVouchingMode,
+                        onItemClick: function () {
+                            if (expanded) {e.component.collapseRow(key);}
+                            else { }
+                        }
+                    },
+                   {
+                        text: "New",
+                        icon: "fa-solid fa-plus text-success",
+                        beginGroup: true,
+                        visible: "@WIP_AddRight"=="True",
+                        onItemClick: function ()
+                        {
+                            OnWIPNewClick();
+                        }
+                    },
+                    {
+                        text: "Edit",
+                        icon: "fa-solid fa-pen text-info",
+                        visible: "@WIP_UpdateRight"=="True",
+                        onItemClick: function ()
+                        {
+                            datanavigation_WIP("EDIT");
+                        }
+                    },
+                    {
+                        text: "Delete",
+                        icon: "fa-solid fa-trash",
+                        visible: "@WIP_DeleteRight" == "True",
+                        onItemClick: function () {
+                            datanavigation_WIP("DELETE");
+                        }
+                    },
+                    {
+                        text: "Txn. Report",
+                        icon:"product",
+                        visible: "@WIP_ReportRight"=="True",
+                        onItemClick: function () {
+
+                            datanavigation_WIP("TxnReport");
+                        }
+                    },
+                    {
+                        text: "View",
+                        icon:"fa-regular fa-eye",
+                        visible: "@WIP_ViewRight"=="True",
+                        onItemClick: function () {
+
+                            datanavigation_WIP("VIEW");
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@WIP_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnWIPListPreviewClick();
+                        }
+                    },
+                    {
+                        text: "Audit Actions",
+                        icon: "../../../../Icons/Audit Actions1_16x16.png",
+                        visible: true,
+                        items: [
+                            {
+                                text: "New",
+                                icon: "../../../../Icons/New button2_16x16.png",
+                                visible:"@WIP_ManageRemarks"=="True",
+                                onItemClick: function () {
+                                    datanavigation_WIP("Audit_Add");
+                                }
+                            },
+                            {
+                                text: "View",
+                                icon: "../../../../Icons/View button1_16x16.png",
+                                   visible:"@WIP_ViewRemarks"=="True",
+                                onItemClick: function () {
+                                    datanavigation_WIP("Audit_View");
+                                }
+                            },
+                            {
+                                text: "Lock",
+                                icon: "../../../../Icons/Lock1_16x16.png",
+                                visible: "@WIP_LockUnlockRight"=="True",
+                                onItemClick: function () {
+                                    datanavigation_WIP("LOCK");
+                                }
+                            },
+                            {
+                                text: "Unlock",
+                                icon: "../../../../Icons/Unlock1_16x16.png",
+                                visible: "@WIP_LockUnlockRight"=="True",
+                                onItemClick: function () {
+                                    datanavigation_WIP("UNLOCK");
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text: "Creation Entry",
+                        icon:"fa-solid fa-gears text-primary",
+                        items: [
+                            {
+                                text: "Edit",
+                                icon: "fa-solid fa-pen text-info",
+                                visible: "@WIP_Payment_UpdateRight" == "True",
+                                onItemClick: function () {
+
+                                    WIP_EditPaymentVoucherClick();
+                                }
+                            },
+                            {
+                                text: "View",
+                                icon:"fa-regular fa-eye",
+                                  visible: "@WIP_Payment_ViewRight"=="True",
+                                onItemClick: function () {
+                                    WIP_ViewPaymentVoucherClick();
+                                }
+                            },
+                            {
+                                text: "Delete",
+                                icon:"fa-solid fa-trash",
+                                  visible: "@WIP_Payment_DeleteRight"=="True",
+                                onItemClick: function () {
+                                    WIP_DeletePaymentVoucherClick();
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            closeProfile_WIP();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            WIPListGrid_dx_Refresh()
+                        }
+                    }]
+        }
+        else if (e.target == "content" && e.row == void 0) {
+            e.items = [
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        closeProfile_WIP();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        WIPListGrid_dx_Refresh()
+                    }
+                }
+            ]
+        }
+    }
+
+    function WIPListGrid_dx_DetailTemplate(container, templateData) {
+        var GridName = templateData.component.element()[0].id
+        var RecID = templateData.data.ID;
+        WIPListGrid_dx_Detail(container, GridName, RecID, WIP_IsVouchingMode, WIP_ShowHorizontalBar);
+    }
+    function WIPListGrid_dx_Detail(container, GridName, RecID, vouchingMode, AllColumns)
+    {
+        var url = "/Profile/WIP/Frm_WIP_Info_GridData_detail_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+        var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+        instance.option("onSelectionChanged", WIPListGrid_dx_Detail_onSelectionChanged);
+    }
+    function WIPListGrid_dx_Detail_onSelectionChanged(e) {
+        if (WIPInfo_IsDetailRowExpanded || WIP_IsVouchingMode) {
+            if (e.selectedRowsData != null && e.selectedRowsData.length > 0) {
+                WIPInfo_NestedGrid_AccessID = e.element[0].id;
+                WIPListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+            }
+            else {
+                WIPPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function WIPListGrid_dx_Detail_SelectedRowData(selectedData = null)
+    {
+        if (selectedData == null)
+        {
+            selectedData = $("#" + WIPInfo_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+        }
+        var values = selectedData[0];
+        WIPInfo_NestedRowKeyValue = values["UniqueID"];
+        if (values["UniqueID"] != null)
+        {
+            WIPPrf_FAB.SetVisible(true);
+            WIPInfo_Nested_Doc_Status = values["Doc_Status"];
+
+            if (WIP_IsVouchingMode == true) {
+                WIPPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (WIPInfo_Nested_Doc_Status == "") {
+                    WIPPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (WIPInfo_Nested_Doc_Status == "NO") {
+                    WIPPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (WIPInfo_Nested_Doc_Status == "YES") {
+                    WIPPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            WIPInfo_ParamMandatory = values["Params_Mandatory"];
+            WIPInfo_FromDateLabel = values["LABEL_FROM_DATE"];
+            WIPInfo_ToDateLabel = values["LABEL_TO_DATE"];
+            WIPInfo_DescriptionLabel = values["LABEL_DESCRIPTION"];
+            WIPInfo_Doc_Category = values["Document_Category"];
+            WIPInfo_Doc_ID = values["Document_ID"];
+            WIPInfo_AtachmentID= values["ATTACH_ID"];
+            IndexAttachmentID = WIPInfo_AtachmentID;
+            WIPInfo_MasterRowRecID = values["TxnID"];
+            WIPInfo_MasterRowMID = values["TxnMID"];
+            WIPInfo_NestedRowMapID = values["MAP_ID"];
+            WIPInfo_reason = values["Reason"];
+            WIPInfo_FileName = values["ATTACH_FILE_NAME"];
+            WIPInfo_Attachment_RecStatus= values["Attachment_Action_Status"];
+            if (WIP_IsVouchingMode == true) {
+                if (WIPInfo_FileName != null && WIPInfo_FileName.length > 0) {
+                    ViewDocument(WIPInfo_AtachmentID, WIPInfo_FileName, "WIPPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+         WIPInfo_NestedRowReasonID = values["ReasonID"];
+        IndexAttachmentReasonID = WIPInfo_NestedRowReasonID;
+    }
+    function LeftPaneContent_WIP(GridName, RecID, vouchingMode, AllColumns = 0) {
+        $("#LeftPane_Div_Content").html(null);
+        $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+        WIPListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+        setTimeout(function () {
+            AdditionalInfoGrid_WIP($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+        })
+    }
+    function AdditionalInfoGrid_WIP(container, GridName, RecID, vouchingMode, AllColumns) {
+        var url = "/Profile/WIP/Frm_WIP_Info_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+        DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url)
+    }
+</script>
+    @*Devextreme Ends*@
+
+</div>

@@ -1,0 +1,533 @@
+﻿<div class="InternalTransferVoucher_PendingGrid_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var openCenID = ViewBag.Open_Cen_Id;
+        var openCenRecID = ViewBag.Open_Cen_Rec_Id;
+    }
+
+    <div id="PendingTransfer_ParentDiv">
+        <div class="row">
+            <div class="">
+                <div id="content" class="col-md-12">
+                    <div style="padding-left:0px;" class="col-md-5">
+                        <h4>Pending Internal Transfer Entries</h4>
+                    </div>
+                    <div id="it_pending_dropdown" style="padding-left:0px;" class="col-md-7">
+                        <div class="col-md-1">
+                            <label> from</label>
+                        </div>
+                        <div class="col-md-9">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_Cen_List").Name("GLookUp_Cen_List").Placeholder("Select Centre..").ValueExpr("TO_CEN_ID").DisplayExpr("TO_CEN_NAME").DataSource(d => d.Mvc().Controller("InternalTransfer").LoadAction("LookUp_Cen_List_InternalTransfer").Key("TO_CEN_ID")).OnValueChanged("LookUp_CentreList_InternalTransfer_ChangeEvent").ContentTemplate(@<text> @Html.Partial("LookUp_Cen_List_InternalTransfer") </text>) )
+                        </div>
+                        <div style="padding-right:0px;" class="col-md-2">
+                            @(Html.DevExtreme().Button().ID("GoCenList").Icon("fa fa-check-circle fa-w-16 btn-icons checkred").Text("Go").OnClick("OnGOClick"))
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="pendingListPartialView" class="parent_table">
+            <form>
+                @Html.Partial("Frm_I_Transfer_Pending_Grid", Model)
+            </form>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        @Html.Partial("Drop_Request", "Send Your Request to Madhuban for ( New ~ Pending Internal Transfer Entries)...")
+                    </div>
+                    <div class="col-sm-7 col-md-7 col-lg-7">
+                        <div class="styleActionBtn">
+                            @(Html.DevExtreme().Button().ID("BUT_ACCEPT").Text("Accept Transfer").Icon("add").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen").OnClick(@<text> function () { OnAcceptClick(); } </text>) )
+                            @(Html.DevExtreme().Button().ID("BUT_NewEntry").Text("New Entry not linked to above Transfer").Icon("New").OnClick(@<text> function () { OnNewEntryClick();  } </text>) )
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!--[Buttons]-->
+    </div>
+    @(Html.DevExtreme().Popup().CustomPopup() .ID("popup_frm_Internal_Transfer_Pending_Window") .Title("Pending Internal Transfer") .DragEnabled(true) .OnShowing("PopupOnShowing") .ShowCloseButton(true) .ContentTemplate(@<text> <div id='popup_match_Internal_Transfer_result'> </div> </text>) )
+    @(Html.DevExtreme().Popup().CustomPopup() .ID("pInternal_Transfer_report_modal") .OnShowing("PopupOnShowing") .Title("Pending Internal Transfer").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true) .ContentTemplate(@<text> <div id='pInternal_Transfer_report_modal_result'> </div> </text>) )
+
+    <script>
+        var TO_CEN_ID = "";
+        var ToCenListID = "";
+        var To_CEN_Name = "";
+        var ITVPending_GoClick = false;
+        var _Status;
+        var _ID = null;
+        var _Centre_Name;
+        var _Centre_UID;
+        var _No;
+        var _Zone;
+        var _Sub_Zone;
+        var _CEN_ID;
+        var _P_Date;
+        var _BI_ACC_NO;//Redmine Bug #133234 fixed
+        var _Incharge;
+        var _Contact_No;
+        var _Purpose;
+        var _Mode;
+        var _Amount;
+        var _BI_ID;
+        var _Bank_Name;
+        var _Branch_Name;
+        var _Ref_No;
+        var _Ref_Date;
+        var _M_ID;
+        var _PUR_ID;
+        var _Ref_Bank_AccNo;
+        var _Description;
+        var _REF_BI_ID;
+        var _Ref_Branch;
+        var _Ref_Others;
+        var _Add_Date;
+        var _Add_By;
+        var _Edit_By;
+        var _Edit_Date;
+        var _Action_Status;
+        var _Action_By;
+        var _Action_Date;
+        var _Modes;
+        var _Ref_Branches;
+    </script>
+    @* InternalTransferVoucher_PendingEntry_Grid_Global_Variables*@
+    <script>
+
+
+        function LookUp_CentreList_InternalTransfer_ChangeEvent(e)
+        {
+            var dropDownBox = $("#GLookUp_Cen_List").dxDropDownBox("instance");
+            dropDownBox.close();
+            var $dataGrid = $("#Frm_Voucher_Win_ItemInternalTransfer_GLookUp_Centre_List_datagrid");
+            if ($dataGrid.length)
+            {
+                var dataGrid = $dataGrid.dxDataGrid("instance");
+                dataGrid.selectRows(e.value, false);
+                if (dataGrid.getSelectedRowsData().length > 0)
+                {
+                    var item = dataGrid.getSelectedRowsData()[0];
+                    TO_CEN_ID = item.TO_CEN_ID;
+                    ToCenListID = item.TO_ID;
+                    To_CEN_Name = item.TO_CEN_NAME;
+                }
+            }
+        }
+    </script>
+    <script type="text/javascript">
+
+    $(document).ready(function ()
+    {
+        if ("@openCenID" != "4216")
+        {
+            $("#it_pending_dropdown").hide();
+        }
+        ASPxClientControl.AdjustControls(document.getElementById("PendingTransfer_ParentDiv"));
+        setTimeout(function ()
+        {
+            $("#PendingInternalTransferListGrid").focus();
+            PendingInternalTransferListGrid.Refresh();
+        }, Timeout500);// redmine bug 132901 fixed
+    });
+
+
+    function PendingBeginCallBack(s, e)
+    {
+        e.customArgs['command'] = e.command;
+        e.customArgs['TO_CEN_ID'] = TO_CEN_ID;
+        e.customArgs['TO_CEN_NAME'] = To_CEN_Name;
+        e.customArgs['GOClick'] = ITVPending_GoClick;
+    }//Redmine bug 132871 fixed
+    function PendingEndCallBack(s, e)
+    {
+        s.Focus();
+        ITVPending_GoClick = false;
+        if(e.command=="REFRESH")
+        {
+            //s.ExpandAll();
+        }
+    }//Redmine Bug #132901 fixed
+    function OnGridFocusedRowChanged(s, e)
+    {
+        s.Focus();
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+
+        }
+        else
+        {
+            _ID = null;
+        }
+    }
+
+    function pInternalTransferOnGetRowValues(pInternalTransferData)
+    {
+        var values = pInternalTransferData.split('![');
+        _Status = values[0];
+        _Centre_Name = values[1];
+        _Centre_UID = values[2];
+        _No = values[3];
+        _Zone = values[4];
+        _Sub_Zone = values[5];
+        _CEN_ID = values[6];
+        _Description = values[7];
+        _ITEM_ID = values[8];
+        _P_Date = values[9];
+        _Mode = values[10];
+        _Amount = values[11];
+        _BI_ID = values[12];
+        _Bank_Name = values[13];
+        _Branch_Name = values[14];
+        _BI_ACC_NO = values[15];//Redmine Bug #133234 fixed
+        _Incharge = values[16];
+        _Contact_No = values[17];
+        _Purpose = values[18];
+        _PUR_ID = values[19];
+        _REF_BI_ID = values[20];
+        _Ref_Branch = values[21];
+        _Ref_No = values[22];
+        _Ref_Date = values[23];
+        _Ref_Others = values[24];
+        _ID = values[25];
+        _M_ID = values[26];
+        _Ref_Bank_AccNo = values[27];
+        _Narration = values[28];
+        _Add_By = values[29];
+        _Add_Date = values[30];
+        _Edit_By = values[31];
+        _Edit_Date = values[32];
+        _Action_Status = values[33];
+        _Action_By = values[34];
+        _Action_Date = values[35];
+        if (_ID == 'undefined' || _ID == undefined || _ID == null || _ID == "")
+        {
+            HideLoader();
+            DevExpress.ui.dialog.alert('Internal Transfer Entry Not Selected...', 'Alert ');
+            return;
+        }
+        OnAcceptClick_ITVpending();
+    }
+    function ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'Accept') {
+            OnAcceptClick();
+        }
+        if (e.item.name == 'Close') {
+            OnNewEntryClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            PendingInternalTransferListGrid.Refresh();
+        }
+    }
+
+    function OnListPreviewClick()
+    {
+        ShowLoader();
+        OpenPopup("pInternal_Transfer_report_modal", "Export Option", "@Url.Action("Frm_Export_Options_IT_Pending", "InternalTransfer", new { @area = "Account" })", "auto", "20%", false,null);
+    }
+
+    function OnGOClick()
+    {
+        ITVPending_GoClick = true;
+        PendingInternalTransferListGrid.Refresh();
+
+    }
+
+    function OnNewEntryClick()
+    {
+        $("#_Pending_List").val(false);
+        $("#ITV_Cmd_Mode").dxSelectBox("instance").option("value", "CASH");
+        $("#Frm_I_Transfer_Pending").dxPopup("hide");
+    }
+    function OnAcceptClick()
+    {
+        if (PendingInternalTransferListGrid.GetFocusedRowIndex() >= 0)
+        {
+            if (!PendingInternalTransferListGrid.IsGroupRow(PendingInternalTransferListGrid.GetFocusedRowIndex())) 
+            {
+                ShowLoader();
+                var key = PendingInternalTransferListGrid.GetRowKey(PendingInternalTransferListGrid.GetFocusedRowIndex());
+                PendingInternalTransferListGrid.GetValuesOnCustomCallback({ key: key }, pInternalTransferOnGetRowValues);
+            }
+            else
+            {
+                _ID = null;
+                if (_ID == 'undefined' || _ID == undefined || _ID == null) 
+                {
+                    DevExpress.ui.dialog.alert('Internal Transfer Entry Not Selected...', 'Alert ').done(function (r)
+                    {
+                        if (r)
+                        {
+                            $("#PendingInternalTransferListGrid").focus();
+                        }
+                    });
+                }
+            }
+        }
+        else
+        {
+            _ID = null;
+            if (_ID == 'undefined' || _ID == undefined || _ID == null)
+            {
+                DevExpress.ui.dialog.alert('Internal Transfer Entry Not Selected...', 'Alert ').done(function (r)
+                {
+                    if (r)
+                    {
+                        $("#PendingInternalTransferListGrid").focus();
+                    }
+                });
+            }
+        }
+    }
+    async function OnAcceptClick_ITVpending()
+    {
+        ShowLoader();//Redmine Bug #133234 fixed
+        $("#USE_CROSS_REF").val(true);
+        $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Match ~ Internal Transfer");
+        $("#CROSS_REF_ID").val(_ID);
+        $("#CROSS_M_ID").val(_M_ID);
+        $("#FR_REC_EDIT_ON").val(_Edit_Date);
+        await Item_DataGrid_ITV.selectRows(_ITEM_ID, false);
+        $("#ITV_GLookUp_ItemList").dxDropDownBox("instance").option("readOnly", true);
+        $("#ITV_GLookUp_ItemList").dxDropDownBox("instance").option("focusStateEnabled", false);
+        $("#ITV_GLookUp_ItemList").find('input').css('color', '#008000');
+        $("#ITV_BE_Item_Head").find('input').css('color', '#008000');
+        await GLookUp_ItemList_Leave_ITV();
+        $("#ITV_Txt_V_Date").dxDateBox("instance").option("value", moment(_P_Date,"DD/MM/YYYY"));
+        $("#ITV_Txt_V_Date").dxDateBox("instance").option("readOnly", true);
+        $("#ITV_Txt_V_Date").find('input').css('color', '#008000');
+        var Tr_AB_ID_1 = "";
+        var Tr_AB_ID_2 = "";
+        if ($("#ITV_iTrans_Type").val() == "DEBIT")
+        {
+            Tr_AB_ID_1 = _CEN_ID;
+            Tr_AB_ID_2 = "@openCenRecID";
+        }
+        else
+        {
+            Tr_AB_ID_2 = _CEN_ID;
+            Tr_AB_ID_1 = "@openCenRecID";
+        }
+        await ToCentre_DataGrid_ITV.selectRows(Tr_AB_ID_1, false);
+        ToCen_ITV_Enable = false;
+        Control_SetReadOnly("ITV_GLookUp_ToCen_List", "dxDropDownBox", (ToCen_ITV_Enable == true && ToCen_ITV_ReadOnly == false) ? false : true);
+        $("#ITV_GLookUp_ToCen_List").find('input').css('color', '#008000');
+        $("#ITV_BE_To_Institute").find('input').css('color', '#008000');
+        $("#ITV_BE_To_Incharge").find('input').css('color', '#008000');
+        $("#ITV_BE_To_Tel_No").find('input').css('color', '#008000');
+        $("#ITV_BE_To_UID").find('input').css('color', '#008000');
+        $("#ITV_BE_To_Pad_No").find('input').css('color', '#008000');
+        $("#ITV_BE_To_Zone").find('input').css('color', '#008000');
+        await FrCentre_DataGrid_ITV.selectRows(Tr_AB_ID_2, false);
+        FrCen_ITV_Enable = false;
+        Control_SetReadOnly("ITV_GLookUp_FrCen_List", "dxDropDownBox", (FrCen_ITV_Enable == true && FrCen_ITV_ReadOnly == false) ? false : true);
+        $("#ITV_GLookUp_FrCen_List").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_Institute").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_Incharge").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_Tel_No").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_UID").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_Pad_No").find('input').css('color', '#008000');
+        $("#ITV_BE_Fr_Zone").find('input').css('color', '#008000');
+        await $("#ITV_Cmd_Mode").dxSelectBox("instance").option("value", _Mode);
+        $("#ITV_Cmd_Mode").dxSelectBox("instance").option("readOnly", true);
+        $("#ITV_Cmd_Mode").find('input').css('color', '#008000');
+        var Ref_Bank_ID = "";
+        var Ref_Branch = "";
+        if (_Mode.toUpperCase() != "CASH")
+        {
+            $("#ITV_Txt_V_Date").dxDateBox("instance").option("readOnly", false);
+            $("#ITV_Txt_V_Date").find('input').css('color', '#000080');
+            var xBANK_ID = _BI_ID;
+            var xREF_BANK_ID = _REF_BI_ID;
+            var xREF_ACC_NO = _BI_ACC_NO;
+            if (xBANK_ID.length > 0)
+            {
+                TrfBank_ITV_ReadOnly = true;
+                Control_SetReadOnly("ITV_GLookUp_TrfBankList", "dxDropDownBox", (TrfBank_ITV_Enable == true && TrfBank_ITV_ReadOnly == false) ? false : true);
+                if ($("#ITV_iTrans_Type").val() == "CREDIT")
+                {
+                    if (_Mode.toUpperCase() == "DD")
+                    {                        
+                        $("#lbl_Trf_ANo_Tag").val(xREF_BANK_ID);
+                        await TrfBank_DataGrid_ITV.selectRows(xREF_BANK_ID, false);
+                        $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("value", TransformText(_Ref_Branch));
+                        $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("value", TransformText(_Ref_Bank_AccNo));
+                    }
+                    else
+                    {
+                        TrfBank_DataGrid_ITV.filter(["BA_REC_ID", "=", xBANK_ID]);
+                        await TrfBank_DataGrid_ITV.refresh();
+                        var GridTotalCount = TrfBank_DataGrid_ITV.totalCount();
+                        if (GridTotalCount > 0)
+                        {
+                            for (var i = 0; i < GridTotalCount; i++)
+                            {
+                                var BA_REC_ID = TrfBank_DataGrid_ITV.cellValue(i, "BA_REC_ID");
+                                if (BA_REC_ID == xBANK_ID)
+                                {
+                                    TrfBank_DataGrid_ITV.option("focusedRowEnabled", true);
+                                    xBANK_ID = TrfBank_DataGrid_ITV.cellValue(i, "TRF_BI_ID");
+                                    $("#lbl_Trf_ANo_Tag").val(xBANK_ID);
+                                    TrfBank_DataGrid_ITV.option("focusedRowIndex", i);
+                                    $("#ITV_GLookUp_TrfBankList").dxDropDownBox("instance").option("value", xBANK_ID);
+                                    break;
+                                }
+                            }
+                        }
+                        $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("value", TransformText(_Branch_Name)); //_BI_Branch
+                        $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("value", TransformText(_BI_ACC_NO));
+                        Ref_Bank_ID = _REF_BI_ID;
+                        Ref_Branch = _Ref_Branch;
+                    }
+                }
+                if ($("#ITV_iTrans_Type").val() == "DEBIT")
+                {
+                    if (_Mode.toUpperCase() == "DD" || _Mode.toUpperCase() == "CHEQUE")
+                    {   
+                        $("#lbl_Trf_ANo_Tag").val(xREF_BANK_ID);
+                        await TrfBank_DataGrid_ITV.selectRows(xREF_BANK_ID, false);
+                        $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("value", TransformText(_Branch_Name));//_BI_Branch
+                        $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("value", TransformText(_BI_ACC_NO));
+                    }
+                    else
+                    {
+                        TrfBank_DataGrid_ITV.filter(["BA_REC_ID", "=", xBANK_ID]);
+                        await TrfBank_DataGrid_ITV.refresh();
+                        if (TrfBank_DataGrid_ITV.totalCount() > 0)
+                        {
+                            for (var i = 0; i < TrfBank_DataGrid_ITV.totalCount(); i++)
+                            {
+                                var BA_REC_ID = TrfBank_DataGrid_ITV.cellValue(i, "BA_REC_ID");
+                                if (BA_REC_ID == xBANK_ID)
+                                {
+                                    TrfBank_DataGrid_ITV.option("focusedRowEnabled", true);
+                                    xBANK_ID = TrfBank_DataGrid_ITV.cellValue(i, "TRF_BI_ID");
+                                    $("#lbl_Trf_ANo_Tag").val(xBANK_ID);
+                                    TrfBank_DataGrid_ITV.option("focusedRowIndex", i);
+                                    $("#ITV_GLookUp_TrfBankList").dxDropDownBox("instance").option("value", xBANK_ID);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                TrfBank_ITV_ReadOnly = false;
+                TrfBank_ITV_Enable = false;
+                Control_SetReadOnly("ITV_GLookUp_TrfBankList", "dxDropDownBox", (TrfBank_ITV_Enable == true && TrfBank_ITV_ReadOnly == false) ? false : true);
+                //$("#ITV_GLookUp_TrfBankList").dxDropDownBox("instance").option("readOnly", true);
+                $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("readOnly", true);
+                $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("readOnly", true);
+                $("#ITV_GLookUp_TrfBankList").find('input').css('color', '#008000');
+                $("#ITV_Txt_Trf_Branch").find('input').css('color', '#008000');
+                $("#ITV_Txt_Trf_ANo").find('input').css('color', '#008000');
+                if (BankCount_ITR == 1)
+                {
+                    if (_Mode.toUpperCase() == "CBS" || _Mode.toUpperCase() == "RTGS" || _Mode.toUpperCase() == "NEFT")
+                    {
+                        if (xREF_BANK_ID.length > 0)
+                        {
+                            if (Bank_DataGrid_ITV.totalCount() > 0)
+                            {
+                                for (var i = 0; i < Bank_DataGrid_ITV.totalCount() ; i++)
+                                {
+                                    var BANK_ACC_NO = Bank_DataGrid_ITV.cellValue(i, "BANK_ACC_NO");
+                                    if (BANK_ACC_NO == xREF_ACC_NO)
+                                    {
+                                        await Bank_DataGrid_ITV.selectRows(Bank_DataGrid_ITV.cellValue(i, "BA_ID"), false);
+                                        $("#ITV_GLookUp_BankList").dxDropDownBox("instance").option("readOnly", true);
+                                        $("#ITV_GLookUp_BankList").find('input').css('color', '#008000');
+                                        $("#ITV_BE_Bank_Branch").find('input').css('color', '#008000');
+                                        $("#ITV_BE_Bank_Acc_No").find('input').css('color', '#008000');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (_Mode.toUpperCase() == "CASH TO BANK" && $("#ITV_iTrans_Type").val() == "CREDIT")
+            {
+                if (xREF_BANK_ID.length > 0)
+                {
+                    if (Bank_DataGrid_ITV.totalCount() > 0) {
+                        for (var i = 0; i < Bank_DataGrid_ITV.totalCount(); i++) {
+                            var BANK_ACC_NO = Bank_DataGrid_ITV.cellValue(i, "BANK_ACC_NO");
+                            if (BANK_ACC_NO == xREF_ACC_NO) {
+                                await Bank_DataGrid_ITV.selectRows(Bank_DataGrid_ITV.cellValue(i, "BA_ID"), false);
+                                $("#ITV_GLookUp_BankList").dxDropDownBox("instance").option("readOnly", true);
+                                $("#ITV_GLookUp_BankList").find('input').css('color', '#008000');
+                                $("#ITV_BE_Bank_Branch").find('input').css('color', '#008000');
+                                $("#ITV_BE_Bank_Acc_No").find('input').css('color', '#008000');
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (_Mode.toUpperCase() == "CASH TO DD")
+            {
+                if (xREF_BANK_ID.length > 0)
+                {
+                    TrfBank_ITV_ReadOnly = false;
+                    TrfBank_ITV_Enable = false;
+                    Control_SetReadOnly("ITV_GLookUp_TrfBankList", "dxDropDownBox", (TrfBank_ITV_Enable == true && TrfBank_ITV_ReadOnly == false) ? false : true);
+                   // $("#ITV_GLookUp_TrfBankList").dxDropDownBox("instance").option("readOnly", true);
+                    await TrfBank_DataGrid_ITV.selectRows(xREF_BANK_ID, false);
+                    $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("value", TransformText(_Ref_Branch));
+                    $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("value", "");
+                    $("#ITV_Txt_Trf_Branch").dxTextBox("instance").option("readOnly", true);
+                    $("#ITV_Txt_Trf_ANo").dxTextBox("instance").option("readOnly", true);
+                    $("#ITV_GLookUp_TrfBankList").find('input').css('color', '#008000');
+                    $("#ITV_Txt_Trf_Branch").find('input').css('color', '#008000');
+                    $("#ITV_Txt_Trf_ANo").find('input').css('color', '#008000');
+                }
+            }
+            $("#ITV_Txt_Ref_No").dxTextBox("instance").option("value", TransformText(_Ref_No));
+            $("#ITV_Txt_Ref_No").dxTextBox("instance").option("readOnly", true);
+            $("#ITV_Txt_Ref_No").find('input').css('color', '#008000');
+            if ($("#ITV_ITV_iTrans_Type").val() == "DEBIT" && _Mode.toUpperCase().toUpperCase() == "DD")
+            {
+                $("#ITV_Txt_DD_Fr_Chq_No").dxTextBox("instance").option("value", _Ref_Others);
+                $("#ITV_Txt_DD_Fr_Chq_No").dxTextBox("instance").option("readOnly", false);
+            }
+            if (_Ref_Date.length > 0)
+            {
+                $("#ITV_Txt_Ref_Date").dxDateBox("instance").option("value", moment(_Ref_Date,"DD/MM/YYYY"));//Redmine bug 132871 fixed
+                $("#ITV_Txt_Ref_Date").dxDateBox("instance").option("readOnly", true);
+                $("#ITV_Txt_Ref_Date").find('input').css('color', '#008000');
+            }
+        }
+        $("#ITV_Txt_Amount").dxNumberBox("instance").option("value", _Amount);
+        $("#ITV_Txt_Bank_Chg").dxNumberBox("instance").option("value", 0.00);
+        $("#ITV_Txt_Amount").dxNumberBox("instance").option("readOnly", true);
+        $("#ITV_Txt_Bank_Chg").dxNumberBox("instance").option("readOnly", true);
+        $("#ITV_Txt_Amount").find('input').css('color', '#008000');
+        $("#ITV_Txt_Bank_Chg").find('input').css('color', '#008000');
+        $("#ITV_Txt_Total").find('input').css('color', '#008000');
+        if (_PUR_ID.length > 0)
+        {
+            $("#ITV_GLookUp_PurList").dxSelectBox("instance").option("value", _PUR_ID);
+            $("#ITV_GLookUp_PurList").dxSelectBox("instance").option("readOnly", true);
+            $("#ITV_GLookUp_PurList").find('input').css('color', '#008000');
+        }
+
+        setTimeout(function ()
+        {
+            HideLoader();//Redmine Bug #133234 fixed
+            $("#Frm_I_Transfer_Pending").dxPopup("hide");
+        }, Timeout500);
+
+      
+    }
+
+    </script>
+</div>

@@ -1,0 +1,258 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using System.Web.UI.WebControls;
+@using ConnectOneMVC.Areas.Start.Controllers;
+@model ConnectOneMVC.Areas.Start.Models.VouchingAuditModel
+
+
+<style>
+    /*.dxeImage{height:300px !important;}*/
+
+    @@media only screen and (max-width:768px) {
+        #Vouching table > tbody > tr {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        #Vouching #splResizing_0, #splResizing_0_CC {
+            width: 90vw !important;
+            height: 55vh !important;
+        }
+
+        #splResizing_1i0_CC {
+            width: 90vw !important;
+        }
+
+        #splResizing_1_S {
+            display: none;
+        }
+    }
+
+    @@media only screen and (max-width:480px) {
+        #Vouching #splResizing_0, #splResizing_0_CC {
+            height: 70vh !important;
+        }
+    }
+
+    @@media screen and (max-device-width: 560px) and (orientation:landscape) {
+        #Vouching #splResizing_0, #splResizing_0_CC {
+            height: 90vh !important;
+        }
+    }
+</style>
+<script type="text/javascript">
+    function ShowWidgetPanel(widgetPanelUID) {
+        var panel = dockManager.GetPanelByUID(widgetPanelUID);
+        panel.Show();
+    }
+    function SetWidgetButtonVisible(widgetName, visible) {
+        if (!visible)
+            $('#widgetButton_' + widgetName).addClass('disabled')
+        else
+            $('#widgetButton_' + widgetName).removeClass();
+    }
+</script>
+
+@using (Ajax.BeginForm("VouchingScreen", "VouchingAudit", new AjaxOptions
+{
+    HttpMethod = "POST",
+    UpdateTargetId = "VouchingAuditWindow",
+    InsertionMode = InsertionMode.Replace,
+    OnSuccess = "VouchingAuditSuceess",
+    OnBegin = "AjaxBeginFormPost"
+},
+            new
+            {
+                id = "VouchingAuditvalidationForm",
+            }))
+{
+    @Html.HiddenFor(x => x.VF_ENTRY_ID)
+    @Html.HiddenFor(x => x.Curr_Attachment_File_Name)
+    @Html.HiddenFor(x => x.VF_Vouching_Status)
+    @Html.HiddenFor(x => x.VF_Instt_Code)
+    @Html.HiddenFor(x => x.VF_Category)
+
+    @Html.DevExpress().Splitter(
+                settings =>
+                {
+                    settings.Name = "splResizing";
+                    settings.Height = 1000;
+                    settings.Width = Unit.Percentage(100);
+                    settings.Styles.Pane.Paddings.Padding = 0;
+
+                    settings.Panes.Add(listBoxPane =>
+                    {
+                        listBoxPane.Name = "listBoxContainer";
+                        listBoxPane.Size = Unit.Percentage(25);
+                        listBoxPane.ShowCollapseBackwardButton = DefaultBoolean.True;
+                        listBoxPane.ShowCollapseForwardButton = DefaultBoolean.True;
+                        listBoxPane.SetContent(() =>
+                        {
+                            @Html.RenderPartial("VouchingLeftPanel", Model);
+                        });
+                    });
+                    settings.Panes.Add(listBoxPane =>
+                    {
+                        listBoxPane.Name = "midBoxContainer";
+                        listBoxPane.Size = Unit.Percentage(35);
+                        listBoxPane.ShowCollapseBackwardButton = DefaultBoolean.True;
+                        listBoxPane.ShowCollapseForwardButton = DefaultBoolean.True;
+                        listBoxPane.SetContent(() =>
+                        {
+                            @Html.RenderPartial("VouchingMidPanel", Model);
+                        });
+                    });
+                    settings.Panes.Add(contentPane =>
+                    {
+                        contentPane.Size = Unit.Percentage(40);
+                        contentPane.Name = "gridContainer";
+                        contentPane.ShowCollapseBackwardButton = DefaultBoolean.True;
+                        contentPane.ShowCollapseForwardButton = DefaultBoolean.True;
+                        contentPane.SetContent(() =>
+                        {
+                            @Html.RenderPartial("VouchingRightPanel", Model);
+                        });
+                    });
+
+                    settings.ClientSideEvents.PaneResized = "OnSplitterPaneResized";
+                    settings.PreRender = (sender, e) =>
+                    {
+                        if (ASPxWebControl.GlobalTheme.Contains("Metropolis"))
+                            ((MVCxSplitter)sender).Styles.Pane.CssClass = "metropolisPane";
+                        else if (ASPxWebControl.GlobalTheme.Contains("Youthful"))
+                            ((MVCxSplitter)sender).Styles.Pane.CssClass = "youthfulPane";
+                        else
+                            ((MVCxSplitter)sender).Styles.Pane.CssClass = string.Empty;
+                    };
+                }).GetHtml()
+
+
+    @Html.DevExpress().DockManager(
+    settings => {
+        settings.Name = "dockManager";
+        settings.ClientSideEvents.PanelShown = "function(s, e) { SetWidgetButtonVisible(e.panel.panelUID, false) }";
+        settings.ClientSideEvents.PanelCloseUp = "function(s, e) { SetWidgetButtonVisible(e.panel.panelUID, true) }";
+    }
+).GetHtml()
+    @Html.DevExpress().DockPanel(
+        settings => {
+            settings.Name = "dateTimePanel";
+            settings.PanelUID = "DateTime";
+            settings.HeaderText = "Attachment";
+            //settings.Left = 820;
+            //settings.Top = 220;
+            settings.AllowResize = true;
+            settings.OwnerZoneUID = "rightZone";
+           // settings.Width = 600;
+            settings.SetContent(() => {
+                Html.RenderPartial("DateTimeWidgetPartial");
+            });
+        }
+    ).GetHtml()
+    @Html.DevExpress().DockPanel(
+        settings => {
+            settings.Name = "weatherPanel";
+            settings.PanelUID = "Weather";
+            settings.HeaderText = "Weather";
+           // settings.Width = 275;
+            settings.OwnerZoneUID = "midZone";
+            settings.VisibleIndex = 0;
+            settings.AllowResize = true;
+            settings.ShowOnPageLoad = false;
+            settings.SetContent(() => {
+                Html.RenderPartial("WeatherWidgetPartial");
+            });
+        }
+    ).GetHtml()
+
+
+    <div class="widgetPanel">
+        @foreach (string widget in WidgetsDemoHelper.GetWidgets())
+        {
+            @Html.DevExpress().Image(
+                settings => {
+                    settings.Name = "widgetButton_" + widget;
+                    settings.ImageUrl = Url.Content(string.Format("~/Content/image/back-to-bank.jpg", widget));
+                    settings.ControlStyle.Cursor = "pointer";
+                    settings.ToolTip = "Show " + widget;
+                    settings.Properties.ClientSideEvents.Click = string.Format("function(s, e) {{ ShowWidgetPanel('{0}') }}", widget);
+                }
+            ).GetHtml()
+        }
+    </div>
+
+
+}
+
+<script type="text/javascript">
+    var EntryID;
+    $(document).ready(function () {
+        EntryID = "@Model.VF_ENTRY_ID";
+       // PopupVoucher();
+    });
+    function DonRegister_OnInit(s, e) { }
+    function DonRegisterGrid_BeginCallBack(s, e) { }
+    function OnGridDonRegisterListGrid_EndCallback(s, e) { }
+    function DonationRegisterSelectionChanged(s, e) { }
+    function OnDonRegisterGridFocusedRowChanged (s, e) { }
+    function ExpandDonationRow(s, e) { } 
+    function CollapseDonationRow(s, e) { }
+    function DonRegister_ContextMenuFunction(s, e) { }
+    function OnInit(s, e) {
+        $(window).resize(function () {
+            //imageSlider.AdjustControl();
+        });
+    }
+    function VouchingAuditOnInit(s, e) {
+        VouchingAuditAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            VouchingAuditAdjustSize();
+        });
+    }
+    function Vouching_Accept_click(e) {
+        var result = e.validationGroup.validate();
+        var form = $("#VouchingAuditvalidationForm");
+        if (result.isValid) {
+            $("#VF_Vouching_Status").val("Accepted");
+            form.submit();
+        }
+    }
+    function Vouching_Reject_click(e) {
+        var result = e.validationGroup.validate();
+        var form = $("#VouchingAuditvalidationForm");
+        if (result.isValid) {
+            $("#VF_Vouching_Status").val("Rejected");
+            form.submit();
+        }
+    }
+    function Vouching_Skip_click(e) {
+        var result = e.validationGroup.validate();
+        var form = $("#VouchingAuditvalidationForm");
+        if (result.isValid) {
+            $("#VF_Vouching_Status").val("Skipped");
+            form.submit();
+        }
+    }
+    function VouchingAuditSuceess() {
+        HideLoader();
+        @*var _url = "@(Html.Raw(Url.Action("VouchingScreen", "VouchingAudit")))?InsttID=PBKIVV&Vouching_Category=CASH_DONATIONS";
+        alert(_url);
+        $('#VouchingAuditWindow').load(_url);*@
+    }
+    function VouchingAuditAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        StockProfileListGrid.SetHeight(height);
+        StockProfileListGrid.SetHeight(height);
+    }
+    function OnSplitterPaneResized(s, e) {
+        var name = e.pane.name;
+        //if (name == 'listBoxContainer')
+        //    ResizeControl(lblEmployees, e.pane);
+        //else if (name == 'gridContainer')
+        //    ResizeControl(gvEmployees, e.pane);
+    }
+  
+    function ResizeControl(control, splitterPane) {
+        control.SetWidth(splitterPane.GetClientWidth());
+        control.SetHeight(splitterPane.GetClientHeight());
+    }
+</script>

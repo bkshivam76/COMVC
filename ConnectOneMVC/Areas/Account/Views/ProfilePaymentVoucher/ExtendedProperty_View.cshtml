@@ -1,0 +1,106 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Frm_Property_Window_Model
+    @{ var isvisible = (Model.Tag == Common_Lib.Common.Navigation_Mode._View || Model.Tag == Common_Lib.Common.Navigation_Mode._Delete) ? true : false;}
+<style>
+    .extprop_buttons > div {
+        height: 49px;        
+    }
+  
+    </style>
+<div class="row">
+    <div class="col-md-11" >
+        @Html.Action("Property_ExtendedPropertyGrid", new { ActionMethodName =Model.Tag.ToString(), LB_EXTENDED_PROPERTY_TABLE=Model.LB_EXTENDED_PROPERTY_TABLE })
+    </div>
+    <div class="col-md-1 extprop_buttons">
+        @(Html.DevExtreme().Button().ID("BUT_NEW").Text("New").Icon("add").Width("100%").OnClick(@<text> function () { OnFrm_Property_Window_Ext_PopUp_NewClick() } </text>).Disabled(isvisible) )
+        @(Html.DevExtreme().Button().ID("BUT_EDIT").Text("Edit").Icon("edit").Width("100%").OnClick(@<text> function () { OnFrm_Property_Window_Ext_PopUp_EditClick() } </text>).Disabled(isvisible))
+        @(Html.DevExtreme().Button().ID("BUT_DELETE").Text("Delete").Icon("trash").Width("100%").OnClick(@<text> function () { OnExtendedPropertyGridDeleteClick() } </text>).Disabled(isvisible)) 
+    </div>
+</div>
+<script>
+    var ExtendedProperty_Sr;
+    function OnExtendedPropertyGridDeleteClick(e)
+    {
+        if ("@isvisible" == "False") {
+            if (!ExtendedProperty_Sr) {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+                return;
+            }
+            var deleteResultExtendedProperty = DevExpress.ui.dialog.confirm('Sure you want to Delete this Entry...?', "Confirm changes");
+            deleteResultExtendedProperty.done(function (dialogResult) {
+
+                if (dialogResult) {
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Account/ProfilePaymentVoucher/Frm_Property_Window_Delete_Grid_Record",
+                        data: { ActionMethod: "Delete", SrID: ExtendedProperty_Sr },
+                        cache: false,
+                        success: function (result) {
+                            Property_Window_ExtendedPropertyGrid.SetFocusedRowIndex(-1);
+                            Property_Window_ExtendedPropertyGrid.Refresh();
+                           
+                        }
+                    });
+                }
+            });
+        }
+    }
+    function OnExtendedPropertyGridFocusedRowChanged(s, e)
+    {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;', OnExtendedPropertyGridRowValues);
+    }
+    function OnExtendedPropertyGridRowValues(values) {
+       
+        ExtendedProperty_Sr = values[0];
+    }
+    function Frm_Property_Window_Ext_OnSuccess(data)
+    {
+        HideLoader();
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult) {
+                if (alertResult) {
+                    if (data.jsonParam.focusid) {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function () {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+        }
+        else if (data.jsonParam.result == true)
+        {          
+            $("#Frm_Property_Window_Property_Ext_popup").dxPopup("hide");
+            Property_Window_ExtendedPropertyGrid.SetFocusedRowIndex(-1);
+            Property_Window_ExtendedPropertyGrid.Refresh();
+        }
+    }
+
+    function OnFrm_Property_Window_Ext_PopUp_NewClick()
+    {
+        if ("@isvisible" == "False")
+        {      
+            ShowLoader();
+            OpenPopup("Frm_Property_Window_Property_Ext_popup", "New ~ Extended Property", "@Url.Action("Frm_Property_Window_Ext", "ProfilePaymentVoucher", new { @area = "Account" })?ActionMethod=_New", "auto", "55%", false, null);
+        }
+    }
+
+    function OnFrm_Property_Window_Ext_PopUp_EditClick()
+    {
+        if ("@isvisible" == "False")
+        {
+            if (ExtendedProperty_Sr != null && ExtendedProperty_Sr != undefined && ExtendedProperty_Sr != "undefined")
+            {  
+                ShowLoader(); 
+                OpenPopup("Frm_Property_Window_Property_Ext_popup", "Edit ~ Extended Property", "@Url.Action("Frm_Property_Window_Ext", "ProfilePaymentVoucher", new { @area = "Account" })?ActionMethod=_Edit&SrID=" + ExtendedProperty_Sr, "auto", "55%", false, null);
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            }
+        }
+    }
+    </script>

@@ -1,0 +1,258 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    int po_id = ViewBag.Paypo_id;
+    bool PO_AddAccVouPaymentRight = (bool)ViewData["PO_AddAccVouPaymentRight"];
+}
+
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    [type="radio"]:checked,
+    [type="radio"]:not(:checked) {
+        position: absolute;
+        left: -9999px;
+    }
+
+        [type="radio"]:checked + label,
+        [type="radio"]:not(:checked) + label {
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+            line-height: 15px;
+            display: inline-block;
+            color: #666;
+        }
+
+            [type="radio"]:checked + label:before,
+            [type="radio"]:not(:checked) + label:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #ddd;
+                border-radius: 100%;
+                background: #fff;
+            }
+
+            [type="radio"]:checked + label:after,
+            [type="radio"]:not(:checked) + label:after {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: #337ab7;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 100%;
+                -webkit-transition: all 0.2s ease;
+                transition: all 0.2s ease;
+            }
+
+            [type="radio"]:not(:checked) + label:after {
+                opacity: 0;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            [type="radio"]:checked + label:after {
+                opacity: 1;
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .margT4 {
+        margin-top: 4px !important;
+    }
+
+    .buttonMrgTB {
+        margin-bottom: 15px;
+        margin-top: 15px;
+    }
+
+    .popuphead {
+        margin: 0 0 5px 12px !important;
+    }
+</style>
+
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="id_Payment_Grid" class="edit_form">
+
+    @*@using (Ajax.BeginForm("Frm_PO_Goods_Returned_Save", "PurchaseRegister",
+                           new AjaxOptions
+                           {
+                               HttpMethod = "POST",
+                               UpdateTargetId = "id_Payment_Grid",
+                               InsertionMode = InsertionMode.InsertAfter,
+                               OnBegin = "AjaxBeginFormPost",
+                               OnSuccess = "Frm_Purchase_Payment_OnSuccess"
+                           },
+                           new
+                           {
+                               id = "ID_Frm_POPayment_Window",
+                               @class = "edit_form"
+                           }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.ActionMethod)
+            @Html.HiddenFor(x => x.Sr)
+
+
+
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {*@
+
+    <!-- <div class="full-width-header-bg">
+         <div class="row">
+             <div class="col-sm-8">
+                 <h3 class="popuphead"><i class="far fa-edit"></i> Payment Details</h3>
+             </div>
+             <div class="col-sm-4 prm">
+                 <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+             </div>
+         </div>
+
+     </div> [Header]-->
+
+    @Html.Partial("Purchase_Payment_Mapping_Grid", Model)
+    <div class="row marginAll8">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="col-md-12">
+                    <div class="button-align pull-right styleActionBtn">
+                            @(Html.DevExtreme().Button().ID("Id_postnewpayment").Text("Post New Payment").OnClick(@<text> function(){ Postnewpay(); } </text>))
+                        @if (ViewBag.PayCallingPage == "InnerGrid")
+                        {
+                                @(Html.DevExtreme().Button().ID("Id_pay_ok").Text("Ok").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen").OnClick(@<text> function(){ PO_PostingActEstPay(); } </text>))
+                        }
+                        else
+                        {
+                                @(Html.DevExtreme().Button().ID("Id_pay_ok").Text("Ok").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen").OnClick(@<text> function(){ PO_PostPayment(); } </text>))
+                        }
+                                @(Html.DevExtreme().Button().ID("Id_pay_close").Text("Cancel").Icon("fa fa-times-circle fa-w-16 btn-icons crossgrey").OnClick(@<text> function(){ Close_mappur(); } </text>))
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!--[button]-->
+    @*}
+        }*@
+</div>
+<script>
+    var purchaseselectedrowsarray = [];
+    function onpaymentmapgridinit(s, e) {
+        $.ajax({
+            type: "Get",
+            url: "/Stock/PurchaseRegister/PurchaseFindGridKeyValue",//0000113 bug fixed
+            success: function (value) {
+                if (value.result == true) {
+                    ActualPaymentsGrid.SelectRowsByKey(value.data);
+                }
+            }
+        });
+    }
+    $(document).ready(function ()
+    {
+        if ("@PO_AddAccVouPaymentRight" == "False")
+        {
+            $("#Id_postnewpayment").hide();
+        }
+    });
+    function paymentgrid_selectionChanged(s, e)
+    {
+        s.SortBy("Txn_ID");
+    }
+    function Close_mappur() {
+        dontaskpopupcloseconfirmation = false;
+        $("#Purchaseinnergrid").dxPopup("hide");
+    }//0000113 bug fixed
+
+    function PO_PostingActEstPay() {
+        purchaseselectedrowsarray = ActualPaymentsGrid.GetSelectedKeysOnPage();
+
+        $.ajax({
+            type: "POST",
+            url: "/Stock/PurchaseRegister/Addingnewpayment",
+            data: {
+                selectedrowarr: purchaseselectedrowsarray
+            },
+            success: function (data) {
+
+                $("#Purchaseinnergrid").dxPopup("hide");
+                PO_PaymentGrid.SetFocusedRowIndex(-1);
+                PO_PaymentGrid.Refresh();
+            },
+            error: function (e) {
+
+            }
+        });
+    }
+
+    function PO_PostPayment()
+    {
+        purchaseselectedrowsarray = ActualPaymentsGrid.GetSelectedKeysOnPage();
+
+        $.ajax({
+            type: "POST",
+            url: "/Stock/PurchaseRegister/Addingnewpayment",
+            data: {
+                selectedrowarr: purchaseselectedrowsarray,
+                callingscreen: "Info",
+                po_id:"@po_id"
+            },
+            success: function (data) {
+                if (data.result == true) {
+                    $("#Purchaseinnergrid").dxPopup("hide");
+                    DevExpress.ui.dialog.alert(data.message, "Inform");
+                    PurchaseRegisterGrid.Refresh();
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+            },
+          
+        });
+    }
+    function Postnewpay() {
+        if ("@PO_AddAccVouPaymentRight" != "True")
+        {
+                DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+                return;
+        }
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

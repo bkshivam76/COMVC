@@ -1,0 +1,337 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool DBData = ViewBag.DBData == null ? true : ViewBag.DBData;
+    bool UserReg_AddRight = (bool)ViewData["UserReg_AddRight"];
+    bool UserReg_UpdateRight = (bool)ViewData["UserReg_UpdateRight"];
+    bool UserReg_ViewRight = (bool)ViewData["UserReg_ViewRight"];
+    bool UserReg_DeleteRight = (bool)ViewData["UserReg_DeleteRight"];
+    bool UserReg_ExportRight = (bool)ViewData["UserReg_ExportRight"];
+    bool UserReg_AddPersonnelRight = (bool)ViewData["UserReg_AddPersonnelRight"];
+    bool UserReg_AddGroupRight = (bool)ViewData["UserReg_AddGroupRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "UserRegisterListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "UserRegister",
+            Action = "Frm_UserRegister_Info_Grid",
+            FilterVisible = false,
+            SearchVisible = false,
+            ShowGroupedColumns = false,
+            DBData = DBData,
+            SessionGUID = SessionGUID
+        };
+
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "UserRegister Listing";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.CustomDataActionRouteValues = new { Controller = "UserRegister", Action = "UserRegisterCustomDataAction" };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            gridView.ScrollToVisibleIndexOnClient = gridView.FocusedRowIndex;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var Additem = e.CreateItem("New", "New");
+                Additem.Image.IconID = "actions_new_16x16gray";
+                if (UserReg_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+                var Edititem = e.CreateItem("Edit", "Edit");
+                Edititem.Image.IconID = "actions_edit_16x16devav";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+                var Deleteitem = e.CreateItem("Delete", "Delete");
+                Deleteitem.Image.IconID = "actions_delete_16x16devav";
+                if (UserReg_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                var Viewitem = e.CreateItem("View", "View");
+                Viewitem.Image.IconID = "actions_show_16x16gray";
+                if (UserReg_ViewRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var ChangePwd = e.CreateItem("Change Password", "changepwd");
+                ChangePwd.Image.IconID = "xaf_action_security_changepassword_svg_dark_16x16";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), ChangePwd);
+
+                var ResetPwd = e.CreateItem("Reset Password", "resetpwd");
+                ResetPwd.Image.IconID = "xaf_action_resetpassword_svg_16x16";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), ResetPwd);
+
+                var Adusrtogrup = e.CreateItem("Add Selected Users to Group", "adusrtogrup");
+                Adusrtogrup.Image.IconID = "actions_newgroup_16x16devav";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Adusrtogrup);
+
+                var AddPrivileg = e.CreateItem("Add Privileges", "AddPrivileg");
+                AddPrivileg.Image.IconID = "businessobjects_bo_rules_svg_16x16";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AddPrivileg);
+
+                var ManagPrivileg = e.CreateItem("Manage Privileges", "ManagPrivileg");
+                ManagPrivileg.Image.IconID = "dashboards_editrules_svg_16x16";
+                if (UserReg_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), ManagPrivileg);
+
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if (UserReg_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+
+
+
+            }
+        };
+        settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+
+        settings.KeyFieldName = "ID";
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+        };
+
+        //Detail Grid settings
+        settings.SettingsDetail.ShowDetailRow = true;
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            ViewContext.Writer.Write("<b class='text-red' style='font-size:14px'>Mapped Rights:</b>");
+            Html.RenderAction("Frm_UserRegister_Info_DetailGrid", new { RecID = DataBinder.Eval(c.DataItem, "ID"), command = "REFRESH" }); //, ShowHorizontalBar = ShowHorizontalBar
+
+        });
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+        {
+            //These are General DetailGrid Export Settings
+            string RecID = (string)DataBinder.Eval(e.DataItem, "ID");
+
+            GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Options.Controllers.UserRegisterController.CreateGeneralDetailGridSettings(RecID));
+            grid.Bind(ConnectOneMVC.Areas.Options.Controllers.UserRegisterController.GetUserPrivilegesData(RecID));
+            e.DetailGridViews.Add(grid);
+
+        };
+
+        settings.DetailRowExpandedChanged = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            if (e.Expanded == true)
+            {
+                gridView.FocusedRowIndex = e.VisibleIndex;
+            }
+        };
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "UserName";
+                column.Caption = "User Name";
+                column.Width = 260;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PersonnelName";
+                column.Caption = "Name";
+                column.Width = 175;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "SewaDept";
+                column.Caption = "Sewa Department";
+                column.Width = 125;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ContactNo";
+                column.Caption = "Mobile No.";
+                column.Width = 100;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "EmailID";
+                column.Caption = "Email Id";
+                column.Width = 100;
+            }
+        });
+
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Is_Admin";
+                column.Caption = "Is Admin";
+                column.Width = 100;
+            }
+        });
+    settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "SELFPOSTED";
+                column.Caption = "Show Self Entries Only";
+                column.Width = 150;
+            }
+        });
+    settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Groups";
+                column.Caption = "Groups";
+                column.Width = 300;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedBy";
+                column.Caption = "Add By";
+                column.Width = 300;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "AddedOn";
+                column.Caption = "Add Date";
+                column.Width = 300;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "EditedBy";
+                column.Caption = "Edit By";
+                column.Width = 300;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "EditedOn";
+                column.Caption = "Edit Date";
+                column.Width = 300;
+                column.Visible = false;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ID";
+                column.Caption = "ID";
+                column.Width = 100;
+                column.Visible = false;
+            }
+        });
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        // settings.SettingsCookies.Enabled = true;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+        }
+
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.Settings.UseFixedTableLayout = true;
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = false;
+        settings.SettingsBehavior.AllowSelectByRowClick = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+
+
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.Settings.ShowGroupedColumns = false;
+        settings.Settings.ShowFooter = false;
+
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.ClientSideEvents.Init = "UserRegisterOnInit";
+        settings.ClientSideEvents.ContextMenuItemClick = "UserRegisterContextMenuFunction";
+        settings.ClientSideEvents.RowDblClick = "UserRegisterdblclickEdit";
+        settings.ClientSideEvents.FocusedRowChanged = "UserRegisterGridFocusedRowChanged";
+        settings.ClientSideEvents.BeginCallback = "UserRegisterGrid_BeginCallBack";
+        settings.ClientSideEvents.EndCallback = "UserRegisterGrid_EndCallback";
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

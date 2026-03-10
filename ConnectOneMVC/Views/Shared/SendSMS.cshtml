@@ -1,0 +1,89 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@(Html.DevExtreme().Popup().ID("SendSms_PopUp").OnShowing("PopupOnShowing").Title("Send Sms").Height("auto").Width(250).Shading(true).Visible(false).ContentTemplate( @<text>
+
+    <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div>
+                            <form id="SendSmsForm" class="edit_form form-horizontal">                           
+                                  <div class="form-group">
+                                      <label for="MobileNoInput" class="text-red">Mobile No.*</label>
+                                      @Html.DevExtreme().TextBox().CustomTextBox().ID("MobileNoInput").Name("MobileNoInput").MaxLength(10).Placeholder("Enter 10 Digit Mobile No.").OnInput("MobileNo_OnInput").Mode(DevExtreme.AspNet.Mvc.TextBoxMode.Tel)
+                                        <small id="MobileNoHelp" class="text-muted">A SMS Will Be Sent To This Number</small>
+                                  </div>                             
+                                </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                                       @(Html.DevExtreme().Button().CustomSaveButton().ID("SendSms_SAVE").Text("Send").OnClick("SendSmsClick").UseSubmitBehavior(false))
+                                       @(Html.DevExtreme().Button().CustomCloseButton().ID("SendSms_CANCEL").Text("Cancel").OnClick("CancelSendSms"))
+
+                    </div>
+                </div>
+    </div>
+</text>) )
+
+
+
+
+
+<script>
+    var SMSkey_SMS = "";
+    var GenericID_SMS = null;
+    function OpenSendSMS(_SMSKey="",GenericID=null)
+    {
+        if ($("#SendSms_PopUp").dxPopup("option", "visible"))
+        {
+            DevExpress.ui.dialog.alert("Send SMS Functionality Is Already Opened...", "Information")
+            return;
+        }
+        SMSkey_SMS = _SMSKey;
+        GenericID_SMS = GenericID;
+        $("#SendSms_PopUp").dxPopup("show");
+        $("#MobileNoInput").dxTextBox("reset");
+        setTimeout(function () { $("#MobileNoInput").dxTextBox("focus") }, 400);       
+    }
+    function MobileNo_OnInput(e)
+    {
+        var target = e.event.target;
+        var data = target.value
+        var dataFull = data.replace(/[^0-9]/gi, '');
+        target.value = dataFull;
+    }
+    function SendSmsClick(e)
+    {
+        if (IsNullOrWhitespace("MobileNoInput", "dxTextBox")) {
+            DevExpress.ui.dialog.alert("Enter 10 Digit Mobile No.", "Information").done(function () { $("#MobileNoInput").dxTextBox("focus") })
+            return;
+        }
+        if ($("#MobileNoInput").dxTextBox("option", "value").length < 10) {
+            DevExpress.ui.dialog.alert("Enter 10 Digit Mobile No.", "Information").done(function () { $("#MobileNoInput").dxTextBox("focus") })
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Base/SendSms",
+            cache: false,
+            data:
+            {
+                SMSKey: SMSkey_SMS,
+                GenericID: GenericID_SMS,
+                MobileNoInput: $("#MobileNoInput").dxTextBox("option", "value")
+            },
+            success: function (data)
+            {
+                HideLoader();
+                $("#SendSms_PopUp").dxPopup("hide");
+                DevExpress.ui.dialog.alert(data.ResultString, "Information")
+            }
+        });
+    }
+    function CancelSendSms(e)
+    {
+        $("#SendSms_PopUp").dxPopup("hide");      
+    }
+</script>

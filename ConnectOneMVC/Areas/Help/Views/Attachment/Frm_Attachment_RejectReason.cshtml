@@ -1,0 +1,146 @@
+﻿<div class="AttachmentRejectReason_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+    var Help_Rec_ID = (string)ViewBag.Help_Rec_ID;
+    var MainGridName = (string)ViewBag.MainGridName;
+    var NestedGridName = (string)ViewBag.NestedGridName;
+
+}
+<style>
+
+    .dx-list-item-content {
+        white-space: normal;
+    }
+</style>
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+<div id="Frm_Attachment_Reason_Popup">
+    <form>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 md-12 pll">
+                            <label class="control-label text-red" for="user">Choose Reason For Rejecting The Document:</label>
+                        </div>
+                        <div class="col-sm-12 md-12 pll ">
+                            @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Attachment_RejectReason").Name("Attachment_RejectReason").Items(new[] {"OTHER", "Document Not Clear, Not Properly Scanned", "Document Completely Not visible/scanned", "Document Mismatch(Not As Per Document Name)", "Document Not Of The Institute","Bhandari- Two sign required", "Donor Sign is Missing", "Document Not Uploaded Properly" }).ShowClearButton(false).OnValueChanged("Attachment_RejectReason_ValueChange"))
+                        </div>
+                        <div class="col-sm-12 md-12 pll " id="Reason_Attachment_Div">
+                            <label class="control-label text-red" for="user">Enter Reason:</label>
+                            @(Html.DevExtreme().TextArea().ID("Reason_Attachment").Name("Reason_Attachment").Height(150).Placeholder("Enter Reason").OnValueChanged("AttachmentTextAREA_ValueChange").MaxLength(4000) )
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("Attachment_Reason_Ok").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("ReasonSaveClick_Attachment"))
+
+                            @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Attachment_Reason_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { CloseRejectReason_Attachment();} </Text>))
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+</form>
+</div><!--[Form Div]-->
+<script>
+    function CloseRejectReason_Attachment()
+    {
+        HidePopup('Attachment_Reason_popup');   
+    }
+    function ReasonSaveClick_Attachment(e)
+    {       
+        if (Reason_Attachment == null || Reason_Attachment.trim().length < 1)
+        {
+            DevExpress.ui.dialog.alert("Please Choose Or Enter Reason", 'Error');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',            
+            url: "/Help/Attachment/Frm_Attachment_UnCheck",
+            cache: false,
+            data: { ID: "@Help_Rec_ID", Reason: Reason_Attachment },
+            success: function (data)
+            {                                      
+                if (data.result == true)
+                {                     
+                   // DevExpress.ui.dialog.alert(data.Message, "Success");
+                    if ("@NestedGridName".length>0)
+                    {
+                        if (ASPxClientControl.GetControlCollection().GetByName("@NestedGridName") != null)
+                        {
+                            if (typeof ASPxClientControl.GetControlCollection().GetByName("@NestedGridName") !== 'undefined')
+                            {
+                                ASPxClientControl.GetControlCollection().GetByName("@NestedGridName").Refresh();                                
+                            }
+                        }
+                    }
+                    if ("@MainGridName".length > 0) {
+                        if (ASPxClientControl.GetControlCollection().GetByName("@MainGridName") != null) {
+                            if (typeof ASPxClientControl.GetControlCollection().GetByName("@MainGridName") !== 'undefined') {
+                                if ("@MainGridName" == "CashBookListGrid")
+                                {
+                                    RefreshCashBookGrid();
+                                }
+                                else {
+                                    ASPxClientControl.GetControlCollection().GetByName("@MainGridName").Refresh();
+                                }
+                            }
+                        }
+                    }
+                    if (typeof AttachmentListGrid !== 'undefined') {
+                        AttachmentListGrid.Refresh();
+                    }   
+                    DevExpress.ui.notify({ message: data.Message, width: 300, shading: true, position: 'center' }, "error", 1500);
+                    HidePopup('Attachment_Reason_popup');
+                }  
+                else if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.Message, "Error");
+                }
+                else if (data.result == "NoSuperuser_Auditor_Check_UncheckRights")
+                {
+                    $("#Help_BUT_Reject").hide();
+                    DevExpress.ui.dialog.alert(data.Message, "Warning");
+                    HidePopup('Attachment_Reason_popup'); 
+                }
+                HideLoader();      
+            }
+        });
+    }
+</script>
+<script>
+    var Reason_Attachment = "";
+    $(document).ready(function ()
+    {
+        $("#Reason_Attachment_Div").hide();
+    });
+    function Attachment_RejectReason_ValueChange(e)
+    {
+        if (e.value == "OTHER")
+        {
+            Reason_Attachment = "";
+            $("#Reason_Attachment_Div").show();
+        }
+        else
+        {
+            $("#Reason_Attachment").dxTextArea("instance").reset();
+            $("#Reason_Attachment_Div").hide();
+            Reason_Attachment = e.value;
+        }
+    }
+    function AttachmentTextAREA_ValueChange(e)
+    {
+        Reason_Attachment = e.value;
+    }
+    </script>
+    </div>

@@ -1,0 +1,169 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.SupplierMasterNEVD
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("SupplierBankAccount_Info_Grid", "SupplierMaster", new { ActionMethodName = Model.ActionMethod, SupplierID = Model.SupplierID })
+    </div>
+</div>
+
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-md-12 btnsDiv">
+                        @(Html.DevExtreme().Button()
+                            .ID("BUT_SupplierBankNew")
+                            .Text("New")
+                            .Icon("fas fa-file btn-icons newfile icon-rgt-space5")
+                            .Disabled(IsDisabled)
+                            .OnClick(@<text>
+                                function () {
+                                OnFrm_SupplierBank_New_Click()
+                                }
+                            </text>))
+                        @(Html.DevExtreme().Button()
+                            .ID("BUT_SupplierBankEdit")
+                            .Text("Edit")
+                            .Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5")
+                            .Disabled(IsDisabled)
+                            .OnClick(@<text>
+                                function () {
+                                OnFrm_SupplierBank_Edit_Click()
+                                }
+                            </text>))
+                        @(Html.DevExtreme().Button()
+                            .ID("BUT_SupplierBankDelete")
+                            .Text("Delete")
+                            .Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5")
+                            .Disabled(IsDisabled)
+                            .OnClick(@<text>
+                                function () {
+                                OnFrm_SupplierBank_Delete_Click()
+                                }
+                            </text>))
+                        @(Html.DevExtreme().Button()
+                            .ID("BUT_SupplierBankView")
+                            .Text("View")
+                            .Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5")
+                            .Disabled(IsVisible)
+                            .OnClick(@<text>
+                                function () {
+                                OnFrm_SupplierBank_View_Click()
+                                }
+                            </text>))
+                        @(Html.DevExtreme().Button()
+                            .ID("BUT_SupplierBankViewListPreview")
+                            .Text("List Export")
+                            .Icon("save")
+                            .Disabled(IsVisible)
+                            .OnClick(@<text>
+                                function () {
+                                OnFrm_SupplierBank_ListPreviewClick();
+                                }
+                            </text>)
+                        )
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-md-12">
+    @(Html.DevExtreme().Popup().CustomPopup().ID("SupplierBank_report_modal").Title("Supplier Bank Details").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true)
+                               .ContentTemplate(@<text><div id="id_SupplierBank_Result" class="export_popup"></div></text>))
+</div>
+<script>
+    var SupplierBanksr;
+    var SupplierBankid;
+    function OnSupplierBankAccountGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr_No;ID', SupplierBank_GridRowValues);
+    }
+    function SupplierBank_GridRowValues(values) {
+        SupplierBanksr = values[0];
+        SupplierBankid = values[1];
+    }
+
+
+    function OnFrm_SupplierBank_New_Click() {
+        ShowLoader();   
+        OpenPopup("Frm_SupplierBank_Popup", "New ~ Bank Account", "@Url.Action("Frm_Supplier_BankAccountWindow", "SupplierMaster", new {@area= "Stock" })?ActionMethod=New", "auto", 900, false, null);
+        HideLoader();
+    }
+    function OnFrm_SupplierBank_Edit_Click() {
+        if (SupplierBanksr == null || SupplierBanksr == undefined || SupplierBanksr == "undefined") {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+        }
+
+            ShowLoader();
+
+        OpenPopup("Frm_SupplierBank_Popup", "Edit ~ Bank Account", "@Url.Action("Frm_Supplier_BankAccountWindow", "SupplierMaster", new {@area= "Stock" })?ActionMethod=Edit&SR_No=" + SupplierBanksr, "auto", 900, false, null);
+        HideLoader();
+    }
+
+    function OnFrm_SupplierBank_View_Click() {
+        if (SupplierBanksr == null || SupplierBanksr == undefined || SupplierBanksr == "undefined") {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+            }  
+        ShowLoader();
+        OpenPopup("Frm_SupplierBank_Popup", "View ~ Bank Account", "@Url.Action("Frm_Supplier_BankAccountWindow", "SupplierMaster", new {@area= "Stock" })?ActionMethod=View&SR_No=" + SupplierBanksr, "auto", 900, false, null);
+        HideLoader();
+
+        }
+    function OnFrm_SupplierBank_Delete_Click() {
+        if (SupplierBanksr == 'undefined' || SupplierBanksr == undefined || SupplierBanksr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var result = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        result.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/SupplierMaster/Frm_SupplierBank_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", SR_No: SupplierBanksr, id: SupplierBankid },
+                    cache: false,
+                    success: function (result) {
+
+                        SupplierBankAcccountGrid.SetFocusedRowIndex(-1);
+                        SupplierBankAcccountGrid.Refresh();
+                      }
+                });
+            }
+        });
+
+
+
+    }
+
+    
+    function OnFrm_SupplierBank_ListPreviewClick()
+    {
+        $("#SupplierBank_report_modal").dxPopup("show");
+        $("#SupplierBank_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#SupplierBank_report_modal").html('');
+        ShowLoader();
+        $("#id_SupplierBank_Result").load("@Url.Action("Frm_Export_Options_Bank", "SupplierMaster", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }   
+    function Frm_SupplierBank_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+
+            $("#Frm_SupplierBank_Popup").dxPopup("hide");
+            SupplierBankAcccountGrid.SetFocusedRowIndex(-1);
+            SupplierBankAcccountGrid.Refresh();
+         
+        }
+    }
+</script>

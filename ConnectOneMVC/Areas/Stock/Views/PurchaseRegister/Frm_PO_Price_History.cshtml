@@ -1,0 +1,423 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.PriceHistory
+@{
+    Layout = null;
+}
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+
+<style>
+    .pll2 {
+        padding-left: 2px !important;
+    }
+
+    .margR4 {
+        margin-right: 4px;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_PriceHistory_PopUp" class="edit_form">
+    @using (Ajax.BeginForm("Frm_PO_Price_History", "PurchaseRegister",
+                          new AjaxOptions
+                          {
+                              HttpMethod = "POST",
+                              UpdateTargetId = "Frm_PriceHistory_PopUp",
+                              InsertionMode = InsertionMode.InsertAfter,
+                              OnBegin = "AjaxBeginFormPost",
+                              OnSuccess = "PurchasePriceHistorySuccessForm"
+
+                          },
+                          new
+                          {
+                              id = "ID_frm_Price_History",
+                              @class = "edit_form"
+                          }))
+    {
+        @Html.AntiForgeryToken()
+
+
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit">  Price History </i>  </h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i>Select atleast one Search Criteria</h5>
+                    </div>
+                </div>
+            </div><!--[]-->
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label text-red" for="user">Item Name:</label>
+                        </div>
+                        <div class="col-sm-9 prm pll1">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                   .ID("PH_Item_ID")
+                                                                                   .Name("PH_Item_ID")
+                                                                                   //.Value(Model.UO_CA_ItemID)
+                                                                                   // .Placeholder("may Comes pre-filled as selected in previous screen")
+                                                                                   .ValueExpr("ID")
+                                                                                   .DisplayExpr("ItemName")
+                                                                                   .DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("LookUp_PriceHistoryItem").Key("ID").LoadParams(new { SupplierID = new JS("function (){ return SupplierID;}") }))
+
+                                                                                   .OnValueChanged("LookUp_Item_ChangeEvent")
+
+                                                                                   // .OnInitialized("onInitialized_Item_ChangeEvent")
+                                                                                   .ContentTemplate(@<text>
+                                                                                    @Html.Partial("LookUp_PriceHistoryItem")
+                                                                                </text>)
+                            )
+                            @Html.ValidationMessageFor(model => model.PH_Item_ID, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label" for="user">Item Code:</label>
+                        </div>
+                     
+
+                        <div class="col-sm-8 prm pll1">
+                            @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                      .ID("PH_Item_Code")
+                                                                                      .Name("PH_Item_Code")
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+              
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label" for="user">Supplier Name:</label>
+                        </div>
+                        <div class="col-sm-9 prm pll1">
+
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                          .ID("PH_Supplier")
+                                                                                          .Name("PH_Supplier")
+                                                                                          //.Value(Model.UO_CA_ItemID)
+                                                                                          // .Placeholder("may Comes pre-filled as selected in previous screen")
+                                                                                          .ValueExpr("ID")
+                                                                                          .DisplayExpr("SuppName")
+                                                                                          .DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("LookUp_PriceHistorySuppplier").Key("ID"))
+
+                                                                                          .OnValueChanged("LookUp_Supplier_ChangeEvent")
+
+                                                                                          //.OnInitialized("onInitialized_Center_Event")
+                                                                                          .ContentTemplate(@<text>
+                                                                                            @Html.Partial("LookUp_PriceHistorySuppplier")
+                                                                                        </text>)
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+           
+
+            <div class="row">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="container-fluid">
+
+                        <div class="col-sm-12 btn-align styleActionBtn">
+                            @(Html.DevExtreme().Button()
+                                                                                                                                                     .ID("BUT_Search_PH")
+                                                                                                                                                     .Text("Search")
+                                                                                                                                                     .OnClick(@<text>
+                                                                                                                                                        function () {
+                                                                                                                                                        OnFrm_Search_Click()
+                                                                                                                                                        }
+                                                                                                                                                    </text>))
+          
+                            @(Html.DevExtreme().Button()
+                                                                                                                                                  .ID("PHClose")
+                                                                                                                                                  .Icon(Url.Content("~/Icons/Close button2.png"))
+                                                                                                                                                  .Text("Close")
+                                                                                                                                                  .FocusStateEnabled(true)
+                                                                                                                                                 .OnClick(@<text>
+                                                                                                                                                    function (){closePriceHistory();}
+                                                                                                                                                </text>)
+                            )
+                        </div><!--[button]-->
+
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row" style="margin-bottom: 5px; ">
+                <div class="col-sm-12 prm pll1">
+                    <label class="control-label" for="user">
+                        <h6 style="padding-left:9px;margin-top:5px;" class="text-red">Price History :</h6>
+                    </label>
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 prm pll1 table-responsive tbnew2 overflow-scroll scrollbar" id="result_PriceHistoryGridData">
+                    @Html.Action("PriceHistoryGrid", "PurchaseRegister")
+
+                </div>
+            </div><!--[Row]-->
+
+           
+        }
+    }
+</div>
+
+<script>
+  
+    var PO_PH_Item_DG;
+    var PO_PH_Supplier_DG;
+  
+    var isPHGridRefresh = false;
+    var SupplierID = null;
+    var Item_ID = null;
+ 
+  
+    function PH_PHGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isPHGridRefresh = true;
+        }
+    }
+
+
+
+    $(document).ready(async function () {
+
+        sessionclearpath = "/Stock/PurchaseRegister/POHistorySessionclear";
+        var form = "ID_frm_Price_History";
+        ShowLoader();
+        AssignIDtoLabel(form, "PO_PriceHistory");
+
+
+        $("#result_PriceHistoryGridData").html("");
+       
+        Refresh_PO_PH_Item_DG();
+        Refresh_PO_PH_Supplier_DG();
+      
+
+
+          if ("@Model.PH_Item_ID" > "0")
+        {
+                
+              await PO_PH_Item_DG.selectRows(parseInt("@Model.PH_Item_ID"), false);
+              Item_ID = "@Model.PH_Item_ID";
+        }
+           
+        
+          if ("@Model.PH_Supplier" > "0")
+        {
+
+              await PO_PH_Supplier_DG.selectRows(parseInt("@Model.PH_Supplier"), false);
+             SupplierID = "@Model.PH_Supplier";
+
+        }
+         
+      
+
+        if ("@Model.PH_Item_ID" > "0") {
+            
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/PurchaseRegister/Check_PriceHistory",
+                data: { Item_ID: Item_ID  },
+                cache: false,
+                success: function (Item_result) {
+
+                    $("#result_PriceHistoryGridData").html("");
+                    $("#result_PriceHistoryGridData").html(Item_result);
+                    HideLoader();
+                }
+
+
+            });
+        }
+
+        setTimeout(function ()
+        {
+
+            Focus_FirstEditable_Field(form);
+            HideLoader();
+
+        }, Timeout500);
+    });
+
+
+    function OnFrm_Search_Click()
+    {
+        var Item_ID;
+        var _ID = $("#PH_Item_ID").dxDropDownBox("instance").option("value");
+          if (_ID != null) {
+            Item_ID = _ID[0];
+        }
+        else {
+            DevExpress.ui.dialog.alert("Item Name is mandatory", "Error");
+            return;
+        }
+       
+        var Item_Code = $("#PH_Item_Code").dxTextBox("instance").option("value");
+        var Supplier = $("#PH_Supplier").dxDropDownBox("instance").option("value");
+        if (Supplier != null) {
+            SupplierID = Supplier[0];
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Check_PriceHistory",
+            data: { Item_Code: Item_Code, SupplierID: SupplierID, Item_ID: Item_ID },
+            cache: false,
+            success: function (Item_result) {
+
+                $("#result_PriceHistoryGridData").html("");
+                $("#result_PriceHistoryGridData").html(Item_result);
+                HideLoader();
+                }
+
+
+        });
+    }
+
+
+
+
+    function LookUp_Item_ChangeEvent(e) {
+        e.component.close();
+        if (e.value == null && e.previousValue != null) {
+            PO_PH_Item_DG.clearSelection();
+            return;
+        }
+        if (PO_PH_Item_DG.getSelectedRowsData().length > 0) {
+            var item = PO_PH_Item_DG.getSelectedRowsData()[0];
+            Item_ID = item.ID;
+        }
+
+    }
+
+    @*function OnInitializedItemCategory(e) {
+        e.component.option("dataSource").store.load().done(function myfunction(d) {
+            if (d.length == 1) {
+                //e.component.option("value", d[0].R_CO_NAME);
+            }
+        });
+        var key = e.component.option("value");
+        if (key != null) {
+            if (e.component.getDataSource() != null) {
+                e.component.getDataSource().store().byKey(key).done(function (result) {
+                    if (result != null && result != undefined && result != "undefined") {
+
+                        //resCountryCode = result.R_CO_CODE;
+                        //resCountryId = result.R_CO_REC_ID;
+                        //$("#Res_StateID").dxDropDownBox("instance").repaint();
+                        //$("#Res_StateID").dxDropDownBox("instance").reset("",result.R_CO_CODE);
+                        MainCategoryValue = "@Model.UO_CA_Item_Category";
+                        //$("#Res_DisttID").dxDropDownBox("instance").repaint();
+                        //$("#Res_cityID").dxDropDownBox("instance").repaint();
+                    }
+                })
+            }
+        }
+    }*@
+  
+
+
+    async function LookUp_Supplier_ChangeEvent(e) {
+        try {
+            e.component.close();
+            if (e.value == null && e.previousValue != null) {
+                PO_PH_Supplier_DG.clearSelection();
+                return;
+            }
+            if (PO_PH_Supplier_DG.getSelectedRowsData().length > 0) {
+                var item = PO_PH_Supplier_DG.getSelectedRowsData()[0];
+                SupplierID = item.ID;
+                await PO_PH_Item_DG.refresh();
+
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+   
+
+
+    async function Refresh_PO_PH_Item_DG() {
+        try {
+            var $PO_PH_Item_DG = $("#LookUp_PriceHistoryItems_datagrid");
+            if ($PO_PH_Item_DG.length) {
+                PO_PH_Item_DG = $PO_PH_Item_DG.dxDataGrid("instance");
+                await PO_PH_Item_DG.refresh();
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+       async function Refresh_PO_PH_Supplier_DG() {
+           try {
+               var $PO_PH_Supplier_DG = $("#GetSupplierPriceHistoryDG");
+               if ($PO_PH_Supplier_DG.length) {
+                   PO_PH_Supplier_DG = $PO_PH_Supplier_DG.dxDataGrid("instance");
+                   await PO_PH_Supplier_DG.refresh();
+               }
+           }
+           catch (e) {
+               console.log(e);
+           }
+        }
+
+     
+
+    function PurchasePriceHistorySuccessForm(data) {
+     
+
+        HideLoader();
+        if (data.result == true || data.result == "true") {
+            DevExpress.ui.dialog.alert(data.Message, "Inform");
+            //var StackSubmitSuccess = DevExpress.ui.dialog.alert(data.Message, "Inform..");
+            $("#popup_frm_price_history").dxPopup("hide");
+            PriceHistoryListGrid.SetFocusedRowIndex(-1);
+            PriceHistoryListGrid.Refresh();
+        }
+        else {
+
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+    }
+
+
+    
+    function closePriceHistory() {
+        $.ajax({
+            url: "/Stock/PurchaseRegister/POHistorySessionclear",
+            type: "GET",
+            cache: false
+        });
+
+        $("#popup_frm_price_history").dxPopup("hide");
+   
+    }
+   
+</script>

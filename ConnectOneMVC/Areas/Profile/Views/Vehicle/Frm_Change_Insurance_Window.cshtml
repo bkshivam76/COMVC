@@ -1,0 +1,207 @@
+﻿<div class="Vehicle_InsuranceProfile_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Profile.Models.VehicleInsurance
+    <script>
+        function ChangeLook_InsList(e) {
+            var dropDownBox = $("#Look_InsList").dxDropDownBox("instance");
+            dropDownBox.close();
+        }
+
+        function AjaxSuccessVehicleINSWindow(data) {
+            HideLoader();
+            if (data.jsonParam.result == false) {
+                var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertclick.done(function (alertResult) {
+                    if (alertResult) {
+                        
+                        if (data.jsonParam.focusid) {
+                            var id = "#" + data.jsonParam.focusid;
+                            setTimeout(function () {
+                                $(id).find('input').focus();
+                            }, 250);
+                        }
+                        if (data.jsonParam.closeform) {
+                            hide_vehicle_insurance()
+                        }
+                        if (data.jsonParam.refreshgrid) {
+                            let GridInstance = $('#VehiclesListGrid').data("dxDataGrid")
+                            if (GridInstance !== void 0) {
+                                VehicleListGrid_dx_Refresh();
+                            }
+                            else if (typeof VehiclesListGrid !== "undefined" && ASPxClientUtils.IsExists(VehiclesListGrid) && VehiclesListGrid.GetMainElement()) {
+                                VehiclesListGrid.Refresh();
+                            }
+                        }
+                    }
+                });
+            }
+            else if (data.jsonParam.result == true) {
+                var ChangeInsuranceSubmitSuccess = DevExpress.ui.dialog.alert(data.jsonParam.message, "Vehicles");
+                ChangeInsuranceSubmitSuccess.done(function (alertResult) {
+                    if (alertResult) {
+                        hide_vehicle_insurance()
+                        let GridInstance = $('#VehiclesListGrid').data("dxDataGrid")
+                        if (GridInstance !== void 0) {
+                            VehicleListGrid_dx_Refresh();
+                        }
+                        else if (typeof VehiclesListGrid !== "undefined" && ASPxClientUtils.IsExists(VehiclesListGrid) && VehiclesListGrid.GetMainElement()) {
+                            VehiclesListGrid.Refresh();
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+
+    <div id="Frm_Change_Insurance_Window">
+        @{
+            Html.EnableClientValidation();
+            Html.EnableUnobtrusiveJavaScript();
+        }
+        @using (Ajax.BeginForm("Frm_Change_Insurance_Window", "Vehicle",
+            new AjaxOptions
+            {
+                HttpMethod = "POST",
+                UpdateTargetId = "frm_Change_Insurance_Popup",
+                InsertionMode = InsertionMode.InsertAfter,
+                OnBegin = "AjaxBeginFormPost",
+                OnSuccess = "AjaxSuccessVehicleINSWindow"
+            },
+            new
+            {
+                id = "Frm_ChangeVehicles_Insurance_validationForm",
+                @class = "edit_form"
+            }))
+        {
+            @Html.HiddenFor(x => x.xID)
+            @Html.HiddenFor(x => x.Tag)
+            @Html.HiddenFor(x => x.Screen)
+            @Html.HiddenFor(x => x.Info_LastEditedOn)
+
+            <div class="full-width-header-bg2">
+                <div class="row">
+                    <div class="col-xs-8 plm">
+                        <h3 class="popuphead">
+                            <i class="fa fa-edit"></i> Change Insurance Detail
+                        </h3>
+                    </div>
+                    <div class="col-xs-4 prm">
+                        <h5 class="mand-txt-align"> <i class="fa fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="form-field">
+                <div class="row" style="margin:4px 0">
+                    <div class="col-sm-2 col-xs-4">
+                        @Html.Label("Name:", htmlAttributes: new { @class = "control-label " })
+                    </div>
+                    <div class="col-sm-10 col-xs-8">
+                        <big><b>@Model.Look_ItemList</b></big>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-2 col-xs-4">
+                        @Html.Label("Description:", htmlAttributes: new { @class = "control-label" })
+                    </div>
+                    <div class="col-sm-10 col-xs-8 prm">
+                        <label>@Model.Desc</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-field hide">
+                <div class="row">
+                    <div class="col-sm-2">
+                        @(Html.DevExtreme().RadioGroup().ID("Rad_Insurance").Name("Rad_Insurance").DisplayExpr("text").Height(40).Value(0)
+                        .ValueExpr("color").DataSource(new object[] { new { text = "YES", color = "YES" },new { text = "NO", color = "NO" }}) )
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <div class="row">
+                    <div class="col-sm-12">
+                        @Html.Label("Insurance Company Name:", htmlAttributes: new { @class = "control-label text-red" })
+                        @(Html.DevExtreme().DropDownBox().ID("Look_InsList").Name("Look_InsList").Value(Model.Look_InsList).ValueExpr("ID").DisplayExpr("Name")
+                                .DataSource(Model.Insurance_DD_Data,"ID").Placeholder("Select Insurance Company...")
+                                .ShowClearButton(true).OnValueChanged("ChangeLook_InsList").DeferRendering(false)
+                                .ContentTemplate(@<text>  @Html.Partial("LookUp_GetInsList") </text>)
+                            )
+                        @Html.ValidationMessageFor(model => model.Look_InsList, "", new { @class = "text-red" })
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-5">
+                    <div class="form-field">
+                        @Html.Label("Policy No:", htmlAttributes: new { @class = "control-label text-red" })
+
+                        @(Html.DevExtreme().TextBoxFor(x => x.Txt_PolicyNo).CustomTextBox(true, true).ID("Txt_PolicyNo").Name("Txt_PolicyNo")
+                                    .Placeholder("Type Policy No").Value(Model.Txt_PolicyNo) .ShowClearButton(true).MaxLength(50) )
+
+                        @Html.ValidationMessageFor(model => model.Txt_PolicyNo, "", new { @class = "text-red" })
+                    </div>
+                </div>
+
+                <div class="col-sm-7">
+                    <div class="form-field">
+                        @Html.Label("Expiry Date:", htmlAttributes: new { @class = "control-label text-red" })
+
+                        @(Html.DevExtreme().DateBoxFor(x => x.Txt_I_Date).CustomDateBox().Name("Txt_I_Date").Placeholder("dd-MM-yyyy").ID("Txt_I_Date"))
+                        @Html.ValidationMessageFor(model => model.Txt_I_Date, "", new { @class = "text-red" })
+                    </div>
+                </div>
+            </div>
+
+
+                <div class="row hide">
+                    <label>Insurance Amount</label>
+                    @(Html.DevExtreme().NumberBox().ID("Txt_InsAmt").Name("Txt_InsAmt").Placeholder("Type Insurance Amount...").Value(0))
+                </div>
+
+
+                <div class="row pl-5" style="margin-top: 4px; padding-left: 5px;">
+                    <div class="col-sm-8 text-left">
+                        @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ {1})...",
+                                            "Update", "Change Insurance Details"))
+                    </div>
+                    <div class="col-sm-4 text-right">
+                        @(Html.DevExtreme().Button().CustomSaveButton().Text("Save").UseSubmitBehavior(true))
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("VehicleCancel").Text("Cancel").FocusStateEnabled(true)
+                        .OnClick("hide_vehicle_insurance"))
+                    </div>
+                </div>
+
+                }
+            </div>
+            <script>
+                function hide_vehicle_insurance() {
+                    $("#Change_Vehicle_Insurance").dxPopup("hide")
+                }
+                $(function () {
+                    TransformTextForDB("Frm_ChangeVehicles_Insurance_validationForm");
+                    $("#Txt_PolicyNo").keypress(function (e) {
+                        e = e || window.event;
+                        key = e.keyCode || e.which;
+                        //For Firefox
+                        if (key == 8 || key == 127 || key == 9)
+                            return true
+                        var txt = String.fromCharCode(key);
+                        var reg = /[a-zA-Z0-9-/]/;
+                        if (reg.test(txt))
+                            return true;
+
+                        e.preventDefault();
+                        return false;
+                    });
+
+                    });
+
+               // });
+            </script>
+        </div>

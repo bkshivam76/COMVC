@@ -1,0 +1,367 @@
+﻿<div class="AssetTransferVoucher_PendingGrid_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model System.Data.DataTable
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var Open_Cen_Rec_ID = ViewBag.open_Cen_Rec_ID;
+        var Open_Cen_ID = ViewBag.Open_Cen_ID;
+    }
+    <style>
+        #PendingAssetTransfer_ParentForm {
+            padding: 0px 0px 0px 0px !important;
+        }
+    </style>
+    <div id="PendingAssetTransfer_ParentDiv">
+        <div class="container-fluid" id="PendingAssetTransfer_ParentForm">
+            <div class="full-width-header-bg2">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>Pending Asset Transfer Entries</h3>
+                    </div>
+                    <div class="col-sm-6 prm" id="lblFrom_Aset">
+                        <div class="row">
+                            <div class="col-sm-1">
+                                <label> from </label>
+                            </div>
+                            <div class="col-sm-8">
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown() .ID("GLookUp_Cen_List_AsetTrans").Name("GLookUp_Cen_List_AsetTrans").ValueExpr("TO_CEN_ID") .DisplayExpr("TO_CEN_NAME") .DataSource(d => d.Mvc().Controller("AssetTransferVoucher").LoadAction("LookUp_Cen_List_AsetTrans").Key("TO_CEN_ID").LoadMode(DataSourceLoadMode.Raw).CacheRawData(true))
+                                      .OnValueChanged("GLookUp_Cen_List_EditValueChange_AsetTrans") .ReadOnly(false) .ContentTemplate(@<text> @Html.Partial("LookUp_Cen_List_AssetsTransfer") </text>) )
+                            </div>
+                            <div class="col-sm-3" style="padding-right:0px;" >
+                                @(Html.DevExtreme().Button() .ID("Grid_GoCenList_AsetTrans") .Text("Go") .Icon("fas fa-check-circle btn-icons checkRed") .OnClick(@<text> function () { OnGOClick_AsetTrans(); } </text>) )
+                            </div>
+                        </div>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div id="pendingAssetListPartialView">
+                        <form>
+                            @Html.Partial("AssetTransfer_Pending_Grid", Model)
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="row">
+                        <div class="col-sm-2 col-md-3 col-lg-4">
+                            @Html.Partial("Drop_Request", "Send Your Request to Madhuban for ( Pending Asset Transfer Entries )...")
+                        </div>
+                        <div class="col-sm-10 col-md-9 col-lg-8">
+                            <div class="styleActionBtn">
+                                @(Html.DevExtreme().Button().ID("BUT_Reject_Aset").Text("Reject").Icon("fa fa-check-circle fa-w-16 btn-icons checkred") .OnClick(@<text> function () { OnRejectClick_AsetTrans();} </text>).Visible(false) )
+                                @(Html.DevExtreme().Button().ID("BUT_ACCEPT_Aset").Text("Accept Transfer").Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen") .OnClick(@<text> function () { OnAcceptClick_AsetTrans();} </text>) )
+                                @(Html.DevExtreme().Button().ID("BUT_New_Aset").Text("New Entry not linked to above Transfer").Icon("add").OnClick(@<text> function () {    OnCancelClick_AsetTrans();  } </text>) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+        </div>
+
+    </div>
+
+    <script>
+        var _Date_AsetTrans;
+        var _ITEM_ID_AsetTrans;
+        var _CEN_ID_AsetTrans;
+        var _ASSET_TYPE_AsetTrans;
+        var _ASSET_REF_ID_AsetTrans;
+        var _PUR_ID_AsetTrans;
+        var _ID_AsetTrans;
+        var _M_ID_AsetTrans;
+        var _EDIT_DATE_AsetTrans;
+        var _ASSET_QTY_AsetTrans;
+        var _ASSET_SALE_AMT_AsetTrans;
+        var _Amount_AsetTrans;
+        var _Description_AsetTrans;
+        var _Centre_Name_AsetTrans;
+        var _Incharge_AsetTrans;
+        var _Contact_No_AsetTrans;
+        var _Centre_UID_AsetTrans;
+        var _No_AsetTrans;
+        var _ASSET_ITEM_ID_AsetTrans;
+        var _Asset_AsetTrans;
+        var _Purpose_AsetTrans;
+        var _Narration_AsetTrans;
+        var TO_CEN_ID_AsetTrans = 0;
+        var dataGrid;
+    </script> @*Global Variables*@
+    <script type="text/javascript">
+    function OnAcceptClick_AsetTrans()
+    {
+        if (AssetTransfer_Pending_ListGrid.GetFocusedRowIndex() < 0)
+        {
+            DevExpress.ui.dialog.alert('Asset Transfer Entry Not Selected...', 'Pending Asset Transfer Entries').done(function (result)         
+            {
+                if (result)
+                {
+                    $("#AssetTransfer_Pending_ListGrid").focus();
+                }                       
+            });
+            _ID_AsetTrans = null;
+        }
+        else
+        {
+            ShowLoader();
+            _ID_AsetTrans = AssetTransfer_Pending_ListGrid.GetRowKey(AssetTransfer_Pending_ListGrid.GetFocusedRowIndex());
+            AssetTransfer_Pending_ListGrid.GetValuesOnCustomCallback({ key: _ID_AsetTrans}, AsetTransPending_GetRowValues);
+        }
+    }
+
+    async function OnAcceptClick_Pen_AsetTrans_AfterGettingRowData()
+    {
+        ShowLoader();
+        $("#USE_CROSS_REF").val(true);
+        $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Match ~ Asset Transfer");
+        $("#CROSS_REF_ID").val(_ID_AsetTrans);
+        $("#CROSS_M_ID").val(_M_ID_AsetTrans);
+        $("#iSpecific_ItemID").val(_ITEM_ID_AsetTrans);
+        $("#FR_REC_EDIT_ON").val(_EDIT_DATE_AsetTrans);
+        await LookUp_GetItemList_AsetTrans();
+        if ($("#iSpecific_ItemID").val().length > 0)
+        {
+            ItemList_ATV_ReadOnly = true;
+            await GLookUp_ItemList_DataGrid_AsetTrans.selectRows($("#iSpecific_ItemID").val(), false);
+            ItemList_ATV_Enable = false;
+            Control_SetReadOnly("GLookUp_ItemList_AsetTrans", "dxDropDownBox", (ItemList_ATV_Enable == true && ItemList_ATV_ReadOnly == false) ? false : true);
+            $("#GLookUp_ItemList_AsetTrans").find('input').css('color', '#008000');
+            $("#BE_Item_Head_AsetTrans").find('input').css('color', '#008000');
+        }
+        $("#Txt_V_Date_AsetTrans").dxDateBox("instance").option("value", moment(_Date_AsetTrans, "DD/MM/YYYY"));
+        Txt_V_Date_Enable = false;
+        Control_SetReadOnly("Txt_V_Date_AsetTrans", "dxDateBox", (Txt_V_Date_Enable == true && Txt_V_Date_ReadOnly == false) ? false : true);
+        $("#Txt_V_Date_AsetTrans").find('input').css('color', '#008000');
+
+        var Tr_AB_ID_1 = "";
+        var Tr_AB_ID_2 = "";
+        if ($("#iTrans_Type").val().toUpperCase() == "DEBIT")
+        {
+            Tr_AB_ID_1 = _CEN_ID_AsetTrans;
+            Tr_AB_ID_2 = "@Open_Cen_Rec_ID";
+        }
+        else
+        {
+            Tr_AB_ID_1 = "@Open_Cen_Rec_ID";
+            Tr_AB_ID_2 = _CEN_ID_AsetTrans;
+        }
+        await Promise.all([LookUp_Get_Fr_Centre_AsetTrans(), LookUp_Get_To_Centre_AsetTrans()]); // synchrononity issue while refreshing from and to center in item dd value change, so writing here and skipping this part in item dd value change by cheking value of USE_CROSS_REF
+        if (Tr_AB_ID_1.length > 0)
+        {
+            await GLookUp_ToCen_List_DataGrid_AsetTrans.selectRows(Tr_AB_ID_1, false);
+            ToCen_ATV_Enable = false;
+            Control_SetReadOnly("GLookUp_ToCen_List_AsetTrans", "dxDropDownBox", (ToCen_ATV_Enable == true && ToCen_ATV_ReadOnly == false) ? false : true);
+            $("#GLookUp_ToCen_List_AsetTrans").find('input').css('color', '#008000');
+            ToCentre_AT_SetColour('#008000');
+        }
+        if (Tr_AB_ID_2.length > 0)
+        {
+            await GLookUp_FrCen_List_DataGrid_AsetTrans.selectRows(Tr_AB_ID_2, false);
+            FrCen_ATV_Enable = false;
+            Control_SetReadOnly("GLookUp_FrCen_List_AsetTrans", "dxDropDownBox", (FrCen_ATV_Enable == true && FrCen_ATV_ReadOnly == false) ? false : true);
+            $("#GLookUp_FrCen_List_AsetTrans").find('input').css('color', '#008000');
+            FrCentre_AT_SetColour('#008000');
+        }
+        $("#Cmb_Asset_Type_AsetTrans").dxSelectBox("instance").option("value", TransformText(_ASSET_TYPE_AsetTrans));
+        Cmb_Asset_Type_Enable = false;
+        Control_SetReadOnly("Cmb_Asset_Type_AsetTrans", "dxSelectBox", (Cmb_Asset_Type_Enable == true && Cmb_Asset_Type_ReadOnly == false) ? false : true);
+        $("#Cmb_Asset_Type_AsetTrans").find('input').css('color', '#008000');
+        $("#Txt_SaleAmt_AsetTrans").dxNumberBox("instance").option("value", parseFloat(_ASSET_SALE_AMT_AsetTrans));
+        Txt_SaleAmt_Enable = false;
+        Control_SetReadOnly("Txt_SaleAmt_AsetTrans", "dxNumberBox", (Txt_SaleAmt_Enable == true && Txt_SaleAmt_ReadOnly == false) ? false : true);
+        $("#Txt_SaleAmt_AsetTrans").find('input').css('color', '#008000');
+
+        var xAsset_Item_ID = _ASSET_REF_ID_AsetTrans;
+        if (xAsset_Item_ID.toString().length > 0)
+        {
+            AssetList_ATV_ReadOnly = true;
+            await GLookUp_AssetList_DataGrid_AsetTrans.selectRows(xAsset_Item_ID, false);
+            AssetList_ATV_Enable = false;
+            Control_SetReadOnly("GLookUp_AssetList_AsetTrans", "dxDropDownBox", (AssetList_ATV_Enable == true && AssetList_ATV_ReadOnly == false) ? false : true);
+            $("#GLookUp_AssetList_AsetTrans").find('input').css('color', '#008000');
+
+            Txt_Desc_Enable = false;
+            Control_SetReadOnly("Txt_Desc_AsetTrans", "dxTextBox", (Txt_Desc_Enable == true && Txt_Desc_ReadOnly == false) ? false : true);
+            $("#Txt_Desc_AsetTrans").find('input').css('color', '#008000');
+
+            Txt_CurQty_ATV_Enable = false;
+            Control_SetReadOnly("Txt_CurQty_AsetTrans", "dxNumberBox", (Txt_CurQty_ATV_Enable == true && Txt_CurQty_ATV_ReadOnly == false) ? false : true);
+            $("#Txt_CurQty_AsetTrans").find('input').css('color', '#008000');
+        }
+
+        if ($("#iTrans_Type").val().toUpperCase() == "CREDIT")
+        {
+            $("#Txt_CurQty_AsetTrans").dxNumberBox("instance").option("value", parseFloat(_ASSET_QTY_AsetTrans)); //#6320 fix
+        }
+        $("#Txt_Qty_AsetTrans").dxNumberBox("instance").option("value", parseFloat(_ASSET_QTY_AsetTrans));
+        Txt_Qty_ATV_Enable = false;
+        Control_SetReadOnly("Txt_Qty_AsetTrans", "dxNumberBox", (Txt_Qty_ATV_Enable == true && Txt_Qty_ATV_ReadOnly == false) ? false : true);
+        $("#Txt_Qty_AsetTrans").find('input').css('color', '#008000');
+        await LookUp_GetLocList_AsetTrans();
+        var xPUR_ID = _PUR_ID_AsetTrans;
+        if (xPUR_ID.toString().length > 0)
+        {
+            PurList_ATV_ReadOnly = true;
+            await GLookUp_PurList_DataGrid_AsetTrans.selectRows(xPUR_ID, false);
+            PurList_ATV_Enable = false;
+            Control_SetReadOnly("GLookUp_PurList_AsetTrans", "dxDropDownBox", (PurList_ATV_Enable == true && PurList_ATV_ReadOnly == false) ? false : true);
+            $("#GLookUp_PurList_AsetTrans").find('input').css('color', '#008000');
+        }
+        $("#pending_list").val(false);
+
+        setTimeout(function () {
+            $("#popup_frm_Asset_Transfer_Pending_Window").dxPopup("hide");
+            HideLoader();
+        }, Timeout500);
+    }
+    function OnListPreviewClick_AsetTrans()
+    {
+        ShowLoader();
+        OpenPopup("popup_Asset_Transfer_ListPreview_Window", "Export Options", "@Url.Action("AssetTransfer_Export_Options", "AssetTransferVoucher", new {@area = "Account" })", "auto",130, false, null);
+        HideLoader();
+    }
+    function OnGOClick_AsetTrans()
+    {
+        RefreshGridView("AssetTransfer_Pending_ListGrid");
+    }
+    function OnCancelClick_AsetTrans()
+    {
+        $("#pending_list").val(false);
+        $("#popup_frm_Asset_Transfer_Pending_Window").dxPopup("hide");
+    }
+    </script> @*Button Functions*@
+
+    <script>
+        $(document).ready(function ()
+        {
+            ShowLoader();
+            ASPxClientControl.AdjustControls(document.getElementById("PendingAssetTransfer_ParentDiv"));
+            if ("@Open_Cen_ID" == "4216")
+            {
+
+            }
+            else
+            {
+                $("#lblFrom_Aset").hide();
+            }
+            setTimeout(function ()
+            {
+                try
+                {
+                    HideLoader();
+                    if ($("#AssetTransfer_Pending_ListGrid").length > 0)
+                    {
+                        $("#AssetTransfer_Pending_ListGrid").hover((r) =>
+                        {
+                            $("#AssetTransfer_Pending_ListGrid").focus();
+                        })
+                        //AssetTransfer_Pending_ListGrid.Focus();                       
+                    }
+                }
+                catch (err)
+                {
+                }
+            }, Timeout500);
+
+        });
+
+        function GLookUp_Cen_List_EditValueChange_AsetTrans(e)
+        {
+            e.component.close();
+            var $dataGrid = $("#LookUp_Cen_List_AssetsTransfer_GLookUp_Centre_List_datagrid");
+            if ($dataGrid.length)
+            {
+                dataGrid = $dataGrid.dxDataGrid("instance");
+                dataGrid.selectRows(e.value, false);
+                if (dataGrid.getSelectedRowsData().length > 0)
+                {
+                    var item = dataGrid.getSelectedRowsData()[0];
+                    TO_CEN_ID_AsetTrans = item["TO_CEN_ID"];
+                }
+            }
+        }
+    </script> @*document.ready SetDefault*@
+
+
+
+
+    <script>
+        function AsetTransPending_GetRowValues(data) {
+            var values = data.split('![');
+            _ID_AsetTrans = values[0];
+            _M_ID_AsetTrans = values[1];
+            _ITEM_ID_AsetTrans = values[2];
+            _EDIT_DATE_AsetTrans = values[3];
+            _Date_AsetTrans = values[4];
+            _CEN_ID_AsetTrans = values[5];
+            _ASSET_TYPE_AsetTrans = values[6];
+            _ASSET_SALE_AMT_AsetTrans = values[7];
+            _ASSET_REF_ID_AsetTrans = values[8];
+            _ASSET_ITEM_ID_AsetTrans = values[9];
+            _ASSET_QTY_AsetTrans = values[10];
+            _PUR_ID_AsetTrans = values[11];
+
+            HideLoader();
+            if (_ID_AsetTrans == 'undefined' || _ID_AsetTrans == undefined || _ID_AsetTrans == null || _ID_AsetTrans == "") {
+                DevExpress.ui.dialog.alert('Asset Transfer Entry Not Selected...', 'Pending Asset Transfer Entries');
+                return;
+            }
+            OnAcceptClick_Pen_AsetTrans_AfterGettingRowData();
+        }
+        function AsetTrans_PendingContextMenuClick(s, e) {
+            if (e.item.name == 'Accept') {
+                OnAcceptClick_AsetTrans();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnListPreviewClick_AsetTrans();
+            }
+            else if (e.item.name == 'Close') {
+                OnCancelClick_AsetTrans();
+            }
+            else if (e.item.name == 'Refresh') {
+                RefreshGridView("AssetTransfer_Pending_ListGrid");
+            }
+        }
+
+        function AssetTrasferOnGridFocusedRowChanged(s, e) {
+            s.Focus();
+            if (s.GetFocusedRowIndex() >= 0) {
+
+            }
+            else {
+                _ID_AsetTrans = null;
+            }
+        }
+        function AsetTrans_PendingBeginCallback(s, e) {
+            ShowLoader("Pending Asset Transfer Entries");
+            e.customArgs['command'] = e.command;
+            e.customArgs['TO_CEN_ID'] = TO_CEN_ID_AsetTrans;
+        }
+        function AsetTrans_PendingEndCallback(s, e) {
+            s.Focus();
+            HideLoader();
+        }
+        function AsetTrans_PendingRowDblClick() {
+            OnAcceptClick_AsetTrans()
+        }
+
+        $(function () {
+            $("#popup_frm_Asset_Transfer_Pending_Window").dxPopup({
+                onHiding: function (e) {
+                    After_AssetTransfer_loaded();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Account/AssetTransferVoucher/SessionClear_pending",
+                        cache: false
+                    });
+                }
+            });
+        })
+    </script> @*Grid Functions*@
+
+</div>

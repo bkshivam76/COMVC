@@ -1,0 +1,514 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;    
+    bool Dept_Store_Add_Rights = (bool)ViewData["Dept_Store_AddRight"];
+    bool Dept_Store_Update_Rights = (bool)ViewData["Dept_Store_UpdateRight"];
+    bool Dept_Store_View_Rights = (bool)ViewData["Dept_Store_ViewRight"];
+    bool Dept_Store_Delete_Rights = (bool)ViewData["Dept_Store_DeleteRight"];
+    bool Dept_Store_Export_Rights = (bool)ViewData["Dept_Store_ExportRight"];
+    bool Dept_Store_Report_Rights = (bool)ViewData["Dept_Store_ReportRight"];
+}
+<style>
+    .control-label {
+        text-align: left !important;
+    }
+
+    .dx-state-disabled .dx-texteditor-input {
+        color: darkgoldenrod;
+    }
+
+    .dx-texteditor-container {
+        overflow: visible;
+    }
+
+    /*gp*/
+    /*.dx-button-has-text .dx-button-content {
+        margin-right: 15px;
+        padding: 2px 1px;
+        min-width: 40px;
+        padding-left: 19px;
+    } */
+
+    .dx-overlay-content .dx-item {
+        max-width: none;
+    }
+
+    #Store_Dept_MasterListGrid_DXPFCForm_PW-1 {
+        left: 40% !important;
+    }
+</style>
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Store Department Register</label>@*Mantis bug 1123 resolved*@
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterNew").Text("New").Icon("add").OnClick(@<text> function () { OnStore_Dept_MasterNewClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnStore_Dept_MasterEditClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnStore_Dept_MasterDeleteClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterView").Text("View").Icon("doc").OnClick(@<text> function () { OnStore_Dept_MasterViewClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterToggleScrollBar").Text("Full Data")/*.Width(90)*/.Icon("toolbox").OnClick(@<text> function () { Store_Dept_MasterchangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterListExport").Text("List Export").Icon("save")/*.Width(75)*/.OnClick(@<text> function () { OnStore_Dept_MasterListPreviewClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Store_Dept_MasterCLOSE").Text("Close").Icon("clear").OnClick(@<text> function () { $(".TabPanalMenu-tabs .active span").click(); } </text>))
+    </div><!--[Buttons]-->
+</div><!--[Header]-->
+<div class="col-md-12 no-padding">
+    <form>
+        <div id="Store_Dept_MasterreloadPartialView" class="parent_table">
+            @Html.Partial("Frm_Store_Dept_Master_Info_Grid", Model)
+        </div>
+    </form>
+</div><!--[Grid]-->
+<div class="footer-MainBoxdiv full-width-footer">
+    <div class="list_footer_left_margin col-md-10">
+        <div class="list_footer_left_margin">
+            <p id="Store_Dept_MasterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="Store_Dept_MasterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div>
+</div><!--[Footer]-->
+
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("Store_Dept_Master_report_modal").Title("Store_Dept_Master List Preview").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='Store_Dept_Master_report_modal_result' class="export_popup"> </div> </text>))
+
+<script type="text/javascript">
+
+    var Store_Dept_Master_ShowHorizontalBar = 0;
+    var StoreMasterEditright;
+    var StoreMasterNewright;
+    var StoreMasterExportright;
+    var StoreMasterDeleteright;
+    var StoreMasterViewright;
+    var Store_MappedLocations;
+    var Store_Add_By;
+    var Store_Add_Date;
+    var Store_ID;
+    var Store_Edit_Date;
+    var Store_Edit_By;
+    var Store_Close_Date;
+    var Store_Dept_Name;
+    var isstoremasterGridRefresh = false;
+
+    $(document).ready(function ()
+    {  
+        if ("@Dept_Store_Add_Rights" == "False")
+        {
+            StoreMasterNewright = false;
+            $("#Store_Dept_MasterNew").hide();
+        }
+        else
+        {
+            StoreMasterNewright = true;
+        }
+        if ("@Dept_Store_Update_Rights" == "False")
+        {
+            StoreMasterEditright = false;
+            $("#Store_Dept_MasterEdit").hide();                 
+        }
+        else
+        {
+            StoreMasterEditright = true;
+        }
+        if ("@Dept_Store_View_Rights" == "False")
+        {
+            StoreMasterViewright = false;
+            $("#Store_Dept_MasterView").hide();
+        }
+        else
+        {
+            StoreMasterViewright = true;
+        }
+        if ("@Dept_Store_Delete_Rights" == "False")
+        {
+            StoreMasterDeleteright = false;
+            $("#Store_Dept_MasterDelete").hide();
+        }
+        else
+        {
+            StoreMasterDeleteright = true;
+        }
+        if ("@Dept_Store_Export_Rights" == "False")
+        {
+            StoreMasterExportright = false;
+            $("#Store_Dept_MasterListExport").hide();
+        }
+        else
+        {
+            StoreMasterExportright = true;
+        }        
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/Store_Dept_Master/SessionClear",
+            cache: false
+        });
+        DeleteCookie("storeCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/Store_Dept_Master/InfoSessionclear",
+            cache: false
+        });
+    });
+    function Store_Dept_MasterOnInit(s, e) {
+        Store_Dept_MasterAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Store_Dept_MasterAdjustSize();
+        });
+    }
+    function Store_Dept_MasterGrid_EndCallback(s, e) {
+        Store_Dept_MasterAdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function Store_Dept_MasterAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        Store_Dept_MasterListGrid.SetHeight(height);
+        Store_Dept_MasterListGrid.SetHeight(height);
+    }
+    function Store_Dept_MasterchangeMode()
+    {
+        ShowLoader();
+        if (Store_Dept_Master_ShowHorizontalBar == 0) {
+            Store_Dept_Master_ShowHorizontalBar = 1;
+            $("#Store_Dept_MasterToggleScrollBar").find("span").text("Default Data");
+            $("#Store_Dept_MasterToggleScrollBar").width(110);
+        }
+        else {
+            Store_Dept_Master_ShowHorizontalBar = 0;
+            $("#Store_Dept_MasterToggleScrollBar").find("span").text("Full Data");
+            /* $("#Store_Dept_MasterToggleScrollBar").width(90); */
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Store_Dept_Master_Info_Grid", "Store_Dept_Master")',
+            type: "GET",
+            data: { ShowHorizontalBar: Store_Dept_Master_ShowHorizontalBar },
+            success: function (res) {
+                $("#Store_Dept_MasterreloadPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }// full data button click   
+    function Store_Dept_MasterGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isstoremasterGridRefresh = true;
+        }
+        e.customArgs["ShowHorizontalBar"] = Store_Dept_Master_ShowHorizontalBar;
+    }
+    function OnStore_Dept_MasterGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0) {
+            Store_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            Store_Dept_MasterListGrid.GetValuesOnCustomCallback({ key: Store_ID }, Store_Dept_MasterOnGetRowValues);
+        }
+        else { Store_ID = 0; }
+    }
+    function Store_Dept_MasterOnGetRowValues(FDData)
+    {
+        var values = FDData.split("![");
+        Store_Dept_Name = values[4];    
+        Store_MappedLocations = values[6];      
+        Store_Add_By = values[0];
+        Store_Add_Date = values[1];
+        Store_Edit_Date = values[3];
+        Store_Edit_By = values[2];
+        Store_Close_Date = values[5];    
+        Store_Dept_Master_UpdateFooterDetail(Store_Add_By, Store_Add_Date, Store_Edit_Date, Store_Edit_By);
+    }
+    function Store_Dept_Master_UpdateFooterDetail(Store_Add_By, Store_Add_Date, Store_Edit_Date, Store_Edit_By)
+    {
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        if (Store_Add_Date)
+        {
+            Lbl_Create = "Add On: " + Store_Add_Date + ", Add By: " + Store_Add_By;
+        }
+        else
+        {
+            Lbl_Create = "Add On: " + "?, Add By: " + Store_Add_By;
+        }
+        if (Store_Edit_Date)
+        {
+            Lbl_Modify = "Edit On: " + Store_Edit_Date + ", Edit By: " + Store_Edit_By;
+        }
+        else
+        {
+            Lbl_Modify = "Edit On: " + "?, Edit By: " + Store_Edit_By;
+        }
+        $('#Store_Dept_MasterLbl_Create').text(Lbl_Create);
+        $('#Store_Dept_MasterLbl_Modify').text(Lbl_Modify);
+    }
+    </script>
+<script type="text/javascript">
+
+   function OnStore_Dept_MasterNewClick()
+   {
+       if (!StoreMasterNewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+       ShowLoader();
+       $("#Store_Dept_MastervalidationForm").remove();//Mantis bug 0001114 resolved
+       OpenDynamicPopup("New ~ Store Dept.Master","@Url.Action("Frm_Store_Dept_Master_Window", "Store_Dept_Master", new { @area = "Stock" })?ActionMethod=New","auto","90%",false,null);
+       HideLoader();
+    }//new click
+    function OnStore_Dept_MasterEditClick()
+    {
+        if (!StoreMasterEditright)
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!Store_ID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            return;
+        }
+        if (Store_Close_Date)
+        {
+            DevExpress.ui.dialog.alert(Store_Dept_Name +' Is closed...Cannot Be Edited..!', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/Store_Dept_Master/DataNavigation",
+            data: { ActionMethod: "Edit", ID: Store_ID, Edit_By: Store_Edit_By},
+            cache: false,
+            async: false,
+            success: function (Store_Dept_Master_Edit_ButtonClick_result)
+            {
+                if (Store_Dept_Master_Edit_ButtonClick_result.result == true)
+                {
+                    ShowLoader();
+                    OpenDynamicPopup("Edit ~ Store Dept.Master","@Url.Action("Frm_Store_Dept_Master_Window", "Store_Dept_Master", new { @area = "Stock" })?ActionMethod=" + "Edit" + "&ID=" + Store_ID,"auto","90%",false,null);
+                    HideLoader();
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(Store_Dept_Master_Edit_ButtonClick_result.Message, 'Warning!');
+                }
+            }
+        });
+    }//edit click
+
+    function OnStore_Dept_MasterViewClick()
+    {
+        if (!StoreMasterViewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (!Store_ID)
+        {
+              DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+              return;
+        }
+        ShowLoader();
+        OpenDynamicPopup("View ~ Store Dept.Master", "@Url.Action("Frm_Store_Dept_Master_Window", "Store_Dept_Master", new { @area = "Stock" })?ActionMethod=" + "View" + "&ID=" + Store_ID, "auto", "90%", false, null);
+        HideLoader();
+    }//view click
+  function OnStore_Dept_MasterDeleteClick()
+  {
+      if (!StoreMasterDeleteright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+      if (!Store_ID)
+      {
+          DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+          return;
+      }
+      if (Store_Close_Date)
+      {
+          DevExpress.ui.dialog.alert(Store_Dept_Name + ' Is closed...Cannot Be Deleted..!', 'Alert ');
+          return;
+      }
+      $.ajax({
+          type: 'GET',
+          url: "/Stock/Store_Dept_Master/DataNavigation",
+          data: { ActionMethod: "Delete", ID: Store_ID, Edit_By: Store_Edit_By },
+          cache: false,
+          success: function (Store_Dept_Master_Delete_ButtonClick_result)
+          {
+              if (Store_Dept_Master_Delete_ButtonClick_result.result == true)
+              {
+                  ShowLoader();
+                  OpenDynamicPopup("Delete ~ Store Dept.Master", "@Url.Action("Frm_Store_Dept_Master_Window", "Store_Dept_Master", new { @area = "Stock" })?ActionMethod=" + "Delete" + "&ID=" + Store_ID, "auto", "90%", false, null);
+                  HideLoader();
+              }
+              else
+              {
+                  DevExpress.ui.dialog.alert(Store_Dept_Master_Delete_ButtonClick_result.Message, 'Warning!');
+              }
+          }
+      });
+    }//delete click
+    function OnStore_Dept_MasterListPreviewClick()
+    {     
+        if (StoreMasterExportright) {
+            ShowLoader();
+            OpenPopup("Store_Dept_Master_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Store_Dept_Master", new { @area = "Stock" })", "auto", "20%", false, null);
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+    }//list preview
+  function OnStore_Dept_Master_Store_Closure()
+  {
+      if (!StoreMasterEditright)
+      {
+          DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+      }
+      if (!Store_ID)
+      {
+          DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+          return;
+      }
+      if (Store_Close_Date)
+      {
+          DevExpress.ui.dialog.alert(Store_Dept_Name + " Already Closed On " + (Store_Close_Date.toString()).substring(0, 10), 'Alert ');
+          return;
+      }
+      ShowLoader();
+      OpenDynamicPopup("Close ~ Store/Dept","@Url.Action("Frm_Store_Dept_Master_Closure_Window", "Store_Dept_Master", new { @area = "Stock" })?ID=" + Store_ID + "&Store_Dept_Name=" + encodeURIComponent(Store_Dept_Name),"auto","55%",false,null);
+      HideLoader();
+    }//store close
+  function OnStore_Dept_Master_Store_Reopen()
+  {
+      if (!StoreMasterEditright)
+      {
+          DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+      }
+
+        if (!Store_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        if (!Store_Close_Date) {
+            DevExpress.ui.dialog.alert(Store_Dept_Name +' Is Already Opened..!', 'Alert ');
+           return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/Store_Dept_Master/Store_ReOpen",
+            data: { ID: Store_ID},
+            cache: false,
+            success: function (ReOpenStoreDept_result) {
+                if (ReOpenStoreDept_result.result == true) {
+                    DevExpress.ui.dialog.alert(ReOpenStoreDept_result.Message, "Reopen Store Dept..");
+                    Store_Dept_MasterListGrid.SetFocusedRowIndex(-1);
+                    Store_Dept_MasterListGrid.Refresh();
+                    HideLoader();
+                }
+                else if (ReOpenStoreDept_result.result == "NoUpdateRights")
+                {
+                    DevExpress.ui.dialog.alert(ReOpenStoreDept_result.Message, 'Warning!');
+                    Store_Dept_MasterListGrid.Refresh();
+                    HideLoader();
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(ReOpenStoreDept_result.Message, 'Warning!');
+                    Store_Dept_MasterListGrid.Refresh();
+                    HideLoader();
+                }
+            }
+        });
+    }//store reopen
+  function Store_Dept_MasterAjaxSuccessForm(data)
+    {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            Store_Dept_MasterListGrid.SetFocusedRowIndex(-1);
+            Store_Dept_MasterListGrid.Refresh();
+        }
+    }
+  function Store_Dept_MasterdblclickEdit(s, e)
+    {
+        if (Store_ID)
+        {
+            OnStore_Dept_MasterEditClick();
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+        }
+    }
+  function Store_Dept_MasterContextMenuFunction(s, e) {
+        if (!Store_ID)
+        {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        if (e.item.name == 'New') {
+            OnStore_Dept_MasterNewClick();
+        }
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit') {
+            OnStore_Dept_MasterEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnStore_Dept_MasterDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnStore_Dept_MasterViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnStore_Dept_MasterListPreviewClick();
+        }
+        else if (e.item.name == 'CloseStoreDept') {
+            OnStore_Dept_Master_Store_Closure();
+        }
+        else if (e.item.name == 'ReopenStoreDept') {
+            OnStore_Dept_Master_Store_Reopen();
+        }
+        else if (e.item.name == 'Refresh') {
+            Store_Dept_MasterListGrid.Refresh();
+      }
+        else if (e.item.name == 'AddInchargeLoc') {
+            Store_Dept_Master_AddInchargeLoc();
+      }
+       
+    }
+
+
+    
+
+    function Store_Dept_Master_AddInchargeLoc() {
+        debugger
+
+        if (!StoreMasterEditright) {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!Store_ID) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            return;
+        }
+        if (Store_Close_Date) {
+            DevExpress.ui.dialog.alert(Store_Dept_Name + ' Is closed...Cannot change ..!', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/Store_Dept_Master/DataNavigation",
+            data: { ActionMethod: "AddIncharge", ID: Store_ID, Edit_By: Store_Edit_By },
+            cache: false,
+            async: false,
+            success: function (Store_Dept_Master_Edit_ButtonClick_result) {
+                if (Store_Dept_Master_Edit_ButtonClick_result.result == true) {
+                    ShowLoader();
+                    OpenDynamicPopup("Edit ~ Store Dept.Master", "@Url.Action("Frm_SDM_Add_Incharge", "Store_Dept_Master", new { @area = "Stock" })?ActionMethod=" + "Edit" + "&ID=" + Store_ID, "auto", "90%", false, null);
+                    HideLoader();
+                }
+                else {
+                    DevExpress.ui.dialog.alert(Store_Dept_Master_Edit_ButtonClick_result.Message, 'Warning!');
+                }
+            }
+        });
+
+    }
+</script>
+

@@ -1,0 +1,1393 @@
+﻿<div class="AddressBook_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+
+    @{
+        ViewBag.Title = "Index";
+        string UserType = (string)ViewBag.UserType;
+        var CalledFromOtherScreen = ViewBag.PopUpId;
+        var PartyRefreshFunction = (string)ViewBag.PartyRefreshFunction;
+        bool AdresBook_AddRight = (bool)ViewData["AdresBook_AddRight"];
+        bool AdresBook_UpdateRight = (bool)ViewData["AdresBook_UpdateRight"];
+        bool AdresBook_DeleteRight = (bool)ViewData["AdresBook_DeleteRight"];
+        bool AdresBook_ExportRight = (bool)ViewData["AdresBook_ExportRight"];
+        bool AdresBook_ListRight = (bool)ViewData["AdresBook_ListRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool AddressBook_Auto_Vouching_Mode = ViewData["AddressBook_Auto_Vouching_Mode"] == null ? false : (bool)ViewData["AddressBook_Auto_Vouching_Mode"];
+        var next_Unaudited_YearID = (int)ViewBag.next_Unaudited_YearID;
+    }
+    <style>
+        #uploadExcel_Address {
+            display: block;
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            float: left;
+        }
+    </style>
+    <div id="AddressBook_ParentDiv">
+        <div id="content_AB" class="col-md-12 report_header_div_main">
+            <div class="col-md-3 report_header_div">
+                <label class="report_header_label">Address Book</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("AddressBookIndicatorVisibilitySwitch").SwitchedOnText("Indicators On").SwitchedOffText("Indicators Off")
+                .OnValueChanged("AddressBook_IndicatorSwitch_ValueChange").Width(100))
+                @(Html.DevExtreme().Switch().ID("AddressBookVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off")
+                .OnValueChanged("AddressBook_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("AdresBookViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default")
+                .OnValueChanged("AdresBook_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("AddressModelNew").Text("New").Icon("add")
+                .OnClick(@<text> function () { OnAddressNewClick();} </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelEdit").Text("Edit").Icon("edit")
+                .OnClick(@<text> function () { OnAddressEditClick();} </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelDelete").Text("Delete").Icon("trash")
+                .OnClick(@<text> function () { OnAddressDeleteClick(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox")
+                .OnClick(@<text> function () { AddressBookchangeMode(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelListPreview").Text("List Preview").Icon("save")
+                .OnClick(@<text> function () { OnAddressListPreviewClick(); } </text>))
+                @(Html.DevExtreme().Button().ID("AddressModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){closeAddressBook();} </text>))
+                <!--@(Html.DevExtreme().Button().ID("AddressSampleFormat").Text("Import Excel Format").OnClick(@<text> function (){ImportSampleFormat();} </text>))
+                <form id="uploadExcel_Address">
+                    @(Html.DevExtreme().FileUploader().SelectButtonText("Choose File").ID("ExcelUpload_Address")
+                        .Name("ExcelUpload_Address").Multiple(false).Accept("xls/*").UploadMode(FileUploadMode.UseForm)
+                        .ShowFileList(true).Visible(false).OnValueChanged("ExcelUpload_valueChange"))-->
+                @*<input type="file" id="ExcelUpload" />*@
+                <!--</form>
+                @(Html.DevExtreme().Button().ID("UploadData_Address").Text("Upload by Excel")
+                    .OnClick(@<text> function (){UploadExcelData();} </text>))-->
+                @*onclick="uploadingProcess()*@
+
+
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="AddressreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Address_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="AB_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="ActionItem_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="AB_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="AB_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="AB_Create" class="right_footertext_top"></p>
+                            <p id="AB_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "AddressBook_FAB,AddressBook_ParentDiv,Type1,AddressBookFacility," + UserType) @*fab buttons*@
+
+        @*Add/Edit Popup*@
+        <div class="col-md-12">
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                            .ID("AddressBook_report_modal")
+                                                            .OnShowing("PopupOnShowing")
+                                                            .Title("AddressBook List Preview")
+                                                            .FullScreen(false)
+                                                            .MaxWidth(125)
+                                                            .Height("auto")
+                                                            .ShowCloseButton(true)
+                                                            .ContentTemplate(@<text>
+                                                                <div id='AddressBook_report_modal_result'>
+                                                                </div>
+                                                            </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                            .ID("popup_frm_Address_Window_Close")
+                                                            .Title("Address")
+                                                            .OnShowing("PopupOnShowing")
+                                                            .ContentTemplate(@<text>
+                                                                <div id="result1">
+                                                                </div>
+                                                            </text>)
+                                                                                    .OnHiding(@<text>
+                                                                                        function () {
+                                                                                        if(IsAddressbookSucessPopup == false && IsAddressbookViewPopup == false)
+                                                                                        {
+                                                                                        var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                                                                        result.done(function (dialogResult) {
+                                                                                        if(dialogResult){
+                                                                                        $("#popup_frm_Address_Window_Close").dxPopup("hide");
+                                                                                        }else
+                                                                                        {
+                                                                                        $("#popup_frm_Address_Window_Close").dxPopup("show");
+                                                                                        }
+                                                                                        });
+                                                                                        }
+                                                                                        }
+                                                                                    </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                            .ID("popup_frm_Address_Window")
+                                                            .Title("Address")
+                                                            .OnShowing("PopupOnShowing")
+                                                            .ContentTemplate(@<text>
+                                                                <div id="Frm_Address_result">
+                                                                </div>
+                                                            </text>)
+        )
+        </div>
+    </div>
+    @*Javascript Events*@
+    <script>
+  $(function ()
+  {
+      if ("@CalledFromOtherScreen".length > 0)
+      {
+          if ("@CalledFromOtherScreen" != "Dynamic_Content_popup")
+          {
+              $("#" + "@CalledFromOtherScreen").dxPopup({
+                  onHiding: function (e) {
+                      $.ajax({
+                          type: 'GET',
+                          url: "/Facility/AddressBook/SessionClear",
+                          cache: false
+                      });
+                      if ("@PartyRefreshFunction".length > 0) {
+                          var fn = window["@PartyRefreshFunction"];
+                          if (typeof fn == "function") {
+                              fn();
+                          }
+                      }
+                      if (AddressBook_IsVouchingMode == true) {
+                          ClearLeftPane();
+                          CloseLeftPane();
+                          ClearRightPane();
+                          CloseRightPane();
+                      }
+                  }
+              });
+          }
+      }
+  });
+    function closeAddressBook()
+    {
+
+        if ("@CalledFromOtherScreen".length > 0)
+        {
+            var popupid = "#" + "@CalledFromOtherScreen";
+            $(popupid).dxPopup("hide");
+            //$.ajax({
+            //    type: 'GET',
+            //    url: "/Facility/AddressBook/SessionClear",
+            //    cache: false
+            //});
+            //$("#Addressresult").dxPopup("hide");
+            //$("#AddressBook_ParentDiv").remove();
+        }
+        else
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/AddressBook/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_AddressBook();
+    });
+    var UserType_AddressPrf = "@UserType".toUpperCase();
+    function ClearAllReferences_AddressBook()
+    {
+        AddressBookInfo_IsDetailRowExpanded = null;
+        AddressBookInfo_NestedRecord_FocusedRowIndex = null;
+        AddressBookInfo_NestedGrid_AccessID = null;
+        AddressBookInfo_AtachmentID = null;
+        AddressBookInfo_FileName = null;
+        AddressBookInfo_ParamMandatory = null;
+        AddressBookInfo_FromDateLabel = null;
+        AddressBookInfo_ToDateLabel = null;
+        AddressBookInfo_DescriptionLabel = null;
+        AddressBookInfo_Doc_ID = null;
+        AddressBookInfo_Doc_Category = null;
+        AddressBookInfo_MasterRowRecID = null;
+        AddressBookInfo_MasterRowMID = null;
+        AddressBookInfo_NestedRowMapID = null;
+        AddressBookInfo_reason = null;
+        AddressBookInfo_Attachment_RecStatus = null;
+        AddressBookInfo_Nested_Doc_Status = null;
+        AddressBookInfo_NestedRowReasonID = null;
+        AddressBookInfo_NestedRowKeyValue = null;
+        AB_ColumnToBeShownIndex = null;
+        AB_ColumnToBeHidddenIndex = null;
+        AddressBookGridLayou = null;
+        AB_Select_xid = null;
+        ABFocusedRowIndexBeforeRefresh = null;
+        IsAddressbookSucessPopup = null;
+        IsAddressbookViewPopup = null;
+        IsAddressbookNewPopup = null;
+        AB_ShowHorizontalBar = null;
+        Addressbook_I = null;
+        tP_NOField = null;
+        telMiscIdField = null;
+        categoryField = null;
+        Address_typeField = null;
+        Addressbook_Edit_Date = null;
+        Addressbook_Add_Date = null;
+        Addressbook_Add_By = null;
+        Addressbook_Edit_By = null;
+        Addressbook_Action_Status = null;
+        Addressbook_Action_By = null;
+        Addressbook_Action_Date = null;
+        Addressbook_AddRight = null;
+        Addressbook_EditRight = null;
+        Addressbook_DeleteRight = null;
+        Addressbook_ExportRight = null;
+        Addressbook_ListRight = null;
+        UserType_AddressPrf = null;
+        _actionName = null;
+        _IsContextMenu = null;
+        AddressBook_IsVouchingMode = null;
+        AddressBook_SetVouchingModeOn = null;
+        AdresBook_ViewMode = null;
+        UserType_AddressPrf = null;
+        ClearAllReferences("AddressBook_ClearReferences");
+    }
+    </script>
+    <script type="text/javascript">
+            var IsAddressbookSucessPopup = false;
+            var IsAddressbookViewPopup = false;
+            var IsAddressbookNewPopup = false;
+            var AB_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+            var Addressbook_ID=null;
+            var Addressbook_Name=null;
+            var tP_NOField;
+            var telMiscIdField;
+            var categoryField;
+            var Address_typeField;
+            var Addressbook_Edit_Date;
+            var Addressbook_Add_Date;
+            var Addressbook_Add_By;
+            var Addressbook_Edit_By;
+            var Addressbook_Action_Status;
+            var Addressbook_Action_By;
+            var Addressbook_Action_Date;
+            var Addressbook_AddRight;
+            var Addressbook_EditRight;
+            var Addressbook_DeleteRight;
+            var Addressbook_ExportRight;
+            var Addressbook_ListRight;
+            var UserType_AddressPrf = "@UserType".toUpperCase();
+            var _actionName = "";
+            var _IsContextMenu = false;
+            var AddressBook_IsVouchingMode = false;
+            var AddressBook_SetVouchingModeOn = "@AddressBook_Auto_Vouching_Mode" == "True" ? true : false;
+            var AddressBook_IsIndicatorSwitchOn = "@AddressBook_Auto_Vouching_Mode" == "True" ? true : false;
+            var AddressBook_ShowAttachmentIndicator = AddressBook_IsIndicatorSwitchOn;
+            var AddressBook_ShowVouchingIndicator = AddressBook_IsIndicatorSwitchOn;
+            var AddressBook_Trigger_IndicatorSwitch_ValueChange = "@AddressBook_Auto_Vouching_Mode" == "True" ? false : true;
+            var AdresBook_ViewMode = "Default";
+
+    function AddressBook_IndicatorSwitch_ValueChange(e) {
+
+        if (AddressBook_Trigger_IndicatorSwitch_ValueChange) {
+            AddressBook_IsIndicatorSwitchOn = e.value;
+            AddressBook_ShowAttachmentIndicator = AddressBook_IsIndicatorSwitchOn;
+            AddressBook_ShowVouchingIndicator = AddressBook_IsIndicatorSwitchOn;
+
+            AddressListGrid.Refresh();
+        }
+        else {
+            AddressBook_Trigger_IndicatorSwitch_ValueChange = true;
+        }
+    }
+
+    function AddressBook_VouchingSwitch_ValueChange(e)
+    {
+        ShowLoader();
+        AddressBook_IsVouchingMode = e.value;
+        //AddressListGrid.SetFocusedRowIndex(-1);
+        if (AddressBook_SetVouchingModeOn == true)
+        {
+            AddressBook_SetVouchingModeOn = false;
+        }
+        else
+        {
+            AddressBook_FAB.SetVisible(false);
+        }
+        if (AddressBook_IsVouchingMode == true)
+        {
+            if (AddressBook_IsIndicatorSwitchOn == false) {
+                $("#AddressBookIndicatorVisibilitySwitch").dxSwitch("instance").option("value", true);
+            }
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else
+        {
+            //AddressBook_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        AddressListGrid_CollapseAllDetailRows();
+    }
+    function AddressListGrid_CollapseAllDetailRows()
+    {
+        ShowLoader();
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.AddressListGrid !== 'undefined')
+            {
+                if (typeof window.AddressListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof AddressListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        HideLoader();
+                        AddressListGrid.SetFocusedRowIndex(-1);
+                        AddressListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    setTimeout(function ()
+                    {
+                        AddressListGrid_CollapseAllDetailRows();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function AdresBook_ViewSwitch_ValueChange(e)
+    {
+        ShowLoader();
+        AdresBook_ViewMode = e.value == false ? "Default" : "Compact";
+        if (AddressBook_SetVouchingModeOn == true)
+        {
+            $("#AddressBookVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            //AddressListGrid_CollapseAllDetailRows();
+            if (AddressBook_IsVouchingMode == false)
+            {
+                AddressBook_FAB.SetVisible(false);
+            }
+            AddressListGrid.CollapseAllDetailRows();
+        }
+        HideLoader();
+    }
+    $(document).ready(function ()
+    {
+        ASPxClientControl.AdjustControls(document.getElementById("AddressBook_ParentDiv"));
+                IsAddressbookSucessPopup = false;
+                IsAddressbookViewPopup = false;
+               // SetAddressGroupPanelFooterVisible();
+                //AddressGroupPanelVisibility();
+
+                Addressbook_AddRight = ("@AdresBook_AddRight" == "True") ? true : false;
+                Addressbook_EditRight = ("@AdresBook_UpdateRight" == "True") ? true : false;
+                Addressbook_DeleteRight = ("@AdresBook_DeleteRight" == "True") ? true : false;
+                Addressbook_ExportRight = ("@AdresBook_ExportRight" == "True") ? true : false;
+                Addressbook_ListRight = ("@AdresBook_ListRight" == "True") ? true : false;
+
+                if (Addressbook_AddRight != true)
+                {
+                    $("#AddressModelNew").hide();
+                }
+                if (Addressbook_EditRight != true)
+                {
+                    $("#AddressModelEdit").hide();
+                }
+                if (Addressbook_DeleteRight != true)
+                {
+                    $("#AddressModelDelete").hide();
+                }
+                if (Addressbook_ExportRight != true)
+                {
+                    $("#AddressModelListPreview").hide();
+                }
+
+                //$("#AddressListGrid").hover(function () {
+                //    AddressListGrid.Focus()
+                //});
+                HideUnreleasedFunctionality('Frm_Address_Info');
+                $(".AddressListGrid_PreviewRow").hide();
+                GetSessionStorage("AddressListGrid");
+                if (AddressBook_SetVouchingModeOn == true)
+                {
+                    $("#AdresBookViewModeSwitch").dxSwitch("instance").option("value", true);
+                }
+
+                if (AddressBook_IsIndicatorSwitchOn == true) {
+                    $("#AddressBookIndicatorVisibilitySwitch").dxSwitch("instance").option("value", true);
+                }
+                else {
+                    $("#AddressBookIndicatorVisibilitySwitch").dxSwitch("instance").option("value", false);
+                }
+            });
+
+    function OnAddressNewClick()
+    {
+        console.log("New Click");
+        if (!Addressbook_AddRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/AddressBook/Frm_Address_Info_Window",
+            data: { ActionMethod: "New", DropDownFunctionName: "@PartyRefreshFunction" },
+            cache: false,
+            success: function (data)
+            {
+                OpenPopup("popup_frm_Address_Window", "New ~ Contact", null, "auto", 900, true, data);
+            }
+        });
+        @*OpenPopup("popup_frm_Address_Window", "New ~ Contact", "@Url.Content("~/Facility/AddressBook/Frm_Address_Info_Window")" + "?ActionMethod=New&DropDownFunctionName=" + "@PartyRefreshFunction", "auto", 900, false, null);*@
+        @*OpenPopup("popup_frm_Address_Window", "New ~ Contact", "/Facility/AddressBook/Frm_Address_Info_Window?ActionMethod=New&DropDownFunctionName=" + "@PartyRefreshFunction", "auto", 900, false, null);*@
+        @*OpenPopup("popup_frm_Address_Window", "New ~ Contact","@Url.Action("Frm_Address_Info_Window", "AddressBook", new { @area = "Facility" })?ActionMethod=New&DropDownFunctionName="+"@PartyRefreshFunction", "auto", 900, false,null);*@
+    }
+    function OnAddressEditClick()
+    {
+        console.log("Edit Click");
+        if (!Addressbook_EditRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }
+        AddressBook_GetRowData();
+        if (Addressbook_ID==null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader()
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/AddressBook/DataNavigation",
+            data:
+            {
+                ActionMethod: "Edit",
+                ID: Addressbook_ID,
+                Edit_Date: Addressbook_Edit_Date
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == true)
+                {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/AddressBook/Frm_Address_Info_Window",
+                        data: { ActionMethod: "Edit", ID: Addressbook_ID, EditedOn: Addressbook_Edit_Date, DropDownFunctionName: "@PartyRefreshFunction" },
+                        cache: false,
+                        success: function (data)
+                        {
+                            if (typeof (data) == "string")
+                            {
+                                OpenPopup("popup_frm_Address_Window", "Edit ~ Contact", null, "auto", 900, true, data);
+                            }
+                            else
+                            {
+                                DevExpress.ui.dialog.alert(data.jsonParam.message, 'Warning!');
+                                HideLoader();
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    AddressListGrid.Refresh();
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.Message, "Warning...");
+
+                }
+            }
+        });
+    }
+
+    function OnAddressDeleteClick()
+    {
+        console.log("Delete Click");
+        if (!Addressbook_DeleteRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }
+        AddressBook_GetRowData();
+        if (Addressbook_ID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+        result.done(function (dialogResult)
+        {
+            if (dialogResult)
+            {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Facility/AddressBook/DataNavigation",
+                    data:
+                    {
+                        ActionMethod: "Delete",
+                        id: Addressbook_ID,
+                        Edit_Date: encodeURIComponent(Addressbook_Edit_Date)
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (data.result == true)
+                        {
+                            DevExpress.ui.dialog.alert(data.Message, "Address(s) Book");
+                            @*if ("@PartyRefreshFunction".length > 0)
+                            {
+                                var fn = window["@PartyRefreshFunction"];
+                                if (typeof fn == "function")
+                                {
+                                    fn();
+                                }
+                            }*@
+                            console.log("Delete success");
+                            AddressListGrid.Refresh();
+                        }
+                        else if (data.result == "NoDeleteRights")
+                        {
+                            $("#AddressModelDelete").hide();
+                            DevExpress.ui.dialog.alert(data.Message, "No Rights");
+                        }
+                        else
+                        {
+                            DevExpress.ui.dialog.alert(data.Message, "Address(s) Book");
+                            //AddressListGrid.Refresh();
+                        }
+                        HideLoader();
+                    }
+                });
+            }
+        });
+    }
+        async function OnAddressMergeClick()
+        {
+        var MergeInNextYearToo = false;
+        AddressBook_GetRowData();
+        if (Addressbook_ID == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (parseInt("@next_Unaudited_YearID") != 0)
+        {
+            MergeInNextYearToo= await DevExpress.ui.dialog.confirm("Do you Want to make Merge Same Contact in year " + "@next_Unaudited_YearID".substring(0, 2) + "-" + "@next_Unaudited_YearID".substring(2) + " too?", "Confirm");
+        }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AddressBook/Frm_Party_Merge_Window",
+                data:
+                {
+                    NextYearMerge: MergeInNextYearToo,
+                    ID: Addressbook_ID,
+                    Name: Addressbook_Name,
+                    Edit_Date: Addressbook_Edit_Date
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("PartyMergePopup", "Merge ~ ",null, "auto", 550, true, data);
+                }
+            });        
+    }
+    function OnAddressListPreviewClick() {
+        if (!Addressbook_ExportRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }
+        ShowLoader();
+        OpenPopup("AddressBook_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "AddressBook", new { @area = "Facility" })", "auto",250);
+    }
+
+            function GetSelectedFieldValuesCallback(values) {
+                SelectedRows.BeginUpdate();
+                try {
+                    SelectedRows.ClearItems();
+                    for (var i = 0; i < values.length; i++) {
+                        SelectedRows.AddItem(values[i]);
+                    }
+                } finally {
+                    SelectedRows.EndUpdate();
+                }
+                $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+            }
+
+
+
+            function AddressToggleHBarClick() {
+                //AddressListGrid.ContextMenuFunction.
+            }
+
+            function IsDate(val) {
+                var d = new Date(val);
+                return !isNaN(d.valueOf());
+            }
+
+
+
+
+
+    </script>
+    <script>
+        var AB_Select_xid = "";
+        var ABFocusedRowIndexBeforeRefresh;
+        function AddressBookOnInit(s, e) {
+            AddressBookAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                AddressBookAdjustSize();
+            });
+        }
+        function AddressBookAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try {
+                AddressListGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function AddressBookListGrid_BeginCallback(s, e) {
+            ShowLoader_GridView();
+            ABFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["VouchingMode"] = AddressBook_IsVouchingMode;
+            e.customArgs["ShowHorizontalBar"] = AB_ShowHorizontalBar;
+            e.customArgs["ViewMode"] = AdresBook_ViewMode;
+            e.customArgs["ColumnToBeShownIndex"] = AB_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = AB_ColumnToBeHidddenIndex;
+            e.customArgs["RowKeyToFocus"] = AB_Select_xid;
+            e.customArgs["ShowAttachmentIndicator"] = AddressBook_ShowAttachmentIndicator;
+            e.customArgs["ShowVouchingIndicator"] = AddressBook_ShowVouchingIndicator;
+        }
+        var AB_ColumnToBeShownIndex = "";
+        var AB_ColumnToBeHidddenIndex = "";
+        var AddressBookGridLayout = null;
+        function OnGridAddressBookListGrid_EndCallback(s, e) {
+            AB_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            AB_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+            AddressBookGridLayout = s.cpClientLayout;
+            $(".AddressListGrid_PreviewRow").hide();
+            GetSessionStorage("AddressListGrid");
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+                if (ABFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(ABFocusedRowIndexBeforeRefresh);
+                }
+                AB_Select_xid = "";
+            }
+            HideLoader_GridView();
+        }
+        function AddressBookchangeMode() {
+            ShowLoader();
+            if (AB_ShowHorizontalBar == 0) {
+                AB_ShowHorizontalBar = 1;
+                $("#AddressToggleScrollBar").find("span").text("Default Data");
+                $("#AddressToggleScrollBar").width(110);
+            }
+            else {
+                AB_ShowHorizontalBar = 0;
+                $("#AddressToggleScrollBar").find("span").text("Full Data");
+                $("#AddressToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: "/Facility/AddressBook/Frm_Address_Info_Grid",
+                type: "GET",
+                data: { ShowHorizontalBar: AB_ShowHorizontalBar, VouchingMode: AddressBook_IsVouchingMode, ViewMode: AdresBook_ViewMode, Layout: AddressBookGridLayout, ColumnToBeHidddenIndex: AB_ColumnToBeHidddenIndex, ColumnToBeShownIndex: AB_ColumnToBeShownIndex },
+                success: function (res) {
+                    $("#AddressreloadPartialView").html(res);
+                    ASPxClientControl.AdjustControls(document.getElementById("AddressreloadPartialView"));
+                    $(".AddressListGrid_PreviewRow").hide();
+                    GetSessionStorage("AddressListGrid");
+                    HideLoader();
+                }
+            });
+
+        }
+        function AddressBookdblclickEdit(s, e) {
+            if (AddressBook_IsVouchingMode == false) {
+                AddressBook_ID = s.GetRowKey(s.GetFocusedRowIndex());
+                //AddressListGrid.GetValuesOnCustomCallback({ key: key }, AddressBookOnGetRowValues);
+                //if (AddressBook_ID != null || AddressBook_ID == 'undefined' || AddressBook_ID == undefined)
+                //
+                OnAddressEditClick();//redmine Bug #133474 fixed
+
+            }
+        }
+        function OnAddressBookGridFocusedRowChanged(s, e) {
+            if (s.GetFocusedRowIndex() > -1) {
+                if (AddressBook_IsVouchingMode) {
+                    AddressBook_FAB.SetVisible(true);
+                    AddressBook_FAB.SetActionContext("VouchingActionContext", true);
+                }
+                Addressbook_ID = s.GetRowKey(s.GetFocusedRowIndex());
+                AddressBook_GetRowData(s.GetFocusedRowIndex())
+                //ShowLoader;
+                //s.GetValuesOnCustomCallback({ ID: s.GetRowKey(s.GetFocusedRowIndex()) }, OnGetRowValues_AddressInfo);
+                //s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Add_By;Add_Date;Edit_By;Edit_Date;Action_Status;Action_By;Action_Date', OnGetRowValues);
+                if (AddressBook_IsVouchingMode == true) {
+                    OpenLeftPane();
+                    LoadDocumentAndAdditionalInfoInLeftPane("Facility", "AddressBook", "LeftPaneContent", Addressbook_ID, AddressBook_IsVouchingMode, "");
+                }
+            }
+            else {
+                Addressbook_ID = null;
+
+            }
+            Addressbook_UpdateFooterDetail(Addressbook_ID, Addressbook_Action_Status, Addressbook_Add_Date, Addressbook_Add_By,
+                Addressbook_Action_Date, Addressbook_Action_By, Addressbook_Edit_Date, Addressbook_Edit_By);
+        }
+        function AddressBook_GetRowData(RowIndex = null) {
+            var focusedrow = RowIndex == null ? AddressListGrid.GetFocusedRowIndex() : RowIndex;
+            var topindex = AddressListGrid.GetTopVisibleIndex();
+            var Index = focusedrow - topindex;
+            var AB_PageData = AddressListGrid.cpPagedata;
+            if (AB_PageData != null && AB_PageData.length > 0 && Index < AB_PageData.length && Index >= 0) {
+                Addressbook_ID = typeof AB_PageData[Index][0] !== "undefined" ? AB_PageData[Index][0] : null;
+                Addressbook_Add_By = typeof AB_PageData[Index][1] !== "undefined" ? AB_PageData[Index][1] : null;
+                Addressbook_Add_Date = typeof AB_PageData[Index][2] !== "undefined" ? AB_PageData[Index][2] : null;
+                Addressbook_Edit_By = typeof AB_PageData[Index][3] !== "undefined" ? AB_PageData[Index][3] : null;
+                Addressbook_Edit_Date = typeof AB_PageData[Index][4] !== "undefined" ? AB_PageData[Index][4] : null;
+                Addressbook_Action_By = typeof AB_PageData[Index][5] !== "undefined" ? AB_PageData[Index][5] : null;
+                Addressbook_Action_Date = typeof AB_PageData[Index][6] !== "undefined" ? AB_PageData[Index][6] : null;
+                Addressbook_Action_Status = typeof AB_PageData[Index][7] !== "undefined" ? AB_PageData[Index][7] : null;
+                Addressbook_Name = typeof AB_PageData[Index][8] !== "undefined" ? AB_PageData[Index][8] : null;
+            }
+            else {
+                Addressbook_ID = null;
+            }
+        }
+        function OnGetRowValues_AddressInfo(value) {
+            if (value != null)//redmine Bug #133518 fix
+            {
+                var values = value.split("![");
+                Addressbook_ID = values[0];
+                Addressbook_Add_By = values[1];
+                Addressbook_Add_Date = values[2];
+                Addressbook_Edit_By = values[3];
+                Addressbook_Edit_Date = values[4];
+                Addressbook_Action_Status = values[5];
+                Addressbook_Action_By = values[6];
+                Addressbook_Action_Date = values[7];
+                Addressbook_UpdateFooterDetail(Addressbook_ID, Addressbook_Action_Status, Addressbook_Add_Date, Addressbook_Add_By,
+                    Addressbook_Action_Date, Addressbook_Action_By, Addressbook_Edit_Date, Addressbook_Edit_By);
+                if (AddressBook_IsVouchingMode == true) {
+                    OpenLeftPane();
+                    LoadDocumentAndAdditionalInfoInLeftPane("Facility", "AddressBook", "LeftPaneContent", Addressbook_ID, AddressBook_IsVouchingMode, "");
+                }
+            }
+            HideLoader();
+        }
+        function Addressbook_UpdateFooterDetail(Addressbook_ID, Addressbook_Action_Status, Addressbook_Add_Date, Addressbook_Add_By, Addressbook_Action_Date, Addressbook_Action_By, Addressbook_Edit_Date, Addressbook_Edit_By) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (Addressbook_ID != null) {
+                //Addressbook_Add_Date = (moment(Addressbook_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                //Addressbook_Edit_Date = (moment(Addressbook_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                //Addressbook_Action_Date = (moment(Addressbook_Action_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                Status = Addressbook_Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+                if (Addressbook_Action_Date) {
+                    Lbl_ActionOn = StatusStr + " On: " + Addressbook_Action_Date;
+                    Lbl_ActionBy = StatusStr + " By: " + Addressbook_Action_By;
+                }
+                else {
+                    Lbl_ActionOn = "";
+                    Lbl_ActionBy = "";
+                }
+                if (Addressbook_Add_Date) {
+                    Lbl_Create = "Add On: " + Addressbook_Add_Date + ", By: " + Addressbook_Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+                if (Addressbook_Edit_Date) {
+                    Lbl_Modify = "Edit On: " + Addressbook_Edit_Date + ", By: " + Addressbook_Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#AB_Status').text(Lbl_Status);
+            $('#AB_Lbl_ActionOn').text(Lbl_ActionOn)
+            $('#AB_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#AB_Create').text(Lbl_Create);
+            $('#AB_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#ActionItem_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ActionItem_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ActionItem_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ActionItem_LockICON').removeClass("fa");
+                $('#ActionItem_LockICON').removeClass("fa-lock");
+                $('#ActionItem_LockICON').removeClass("fa-unlock");
+            }
+        }
+        function AddressBookContextMenuFunction(s, e) {
+            if (e.item.name == 'New') {
+                OnAddressNewClick();
+            }
+            else if (e.item.name == 'Edit') {
+                OnAddressEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                OnAddressDeleteClick();
+            }
+            else if (e.item.name == 'Merge') {
+                OnAddressMergeClick();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnAddressListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeAddressBook();
+            }
+            else if (e.item.name == 'LabelPrinting') {
+                DevExpress.ui.dialog.alert("Coming Soon", "Information");
+            }
+            else if (e.item.name == 'EnvelopPrinting') {
+                DevExpress.ui.dialog.alert("Coming Soon", "Information");
+            }
+            else if (e.item.name == 'Import') {
+                DevExpress.ui.dialog.alert("Coming Soon", "Information");
+            }
+            else if (e.item.name == 'Export') {
+                DevExpress.ui.dialog.alert("Coming Soon", "Information");
+            }
+            else if (e.item.name == 'Refresh') {
+                AddressListGrid.Refresh();
+            }
+
+        }
+    </script>
+    @* Grid Functions *@
+    <script>
+    var AddressBookInfo_IsDetailRowExpanded = false;
+    var AddressBookInfo_NestedRecord_FocusedRowIndex = -1;
+    var AddressBookInfo_NestedGrid_AccessID;
+    var AddressBookInfo_AtachmentID;
+    var AddressBookInfo_FileName;
+    var AddressBookInfo_ParamMandatory;
+    var AddressBookInfo_FromDateLabel;
+    var AddressBookInfo_ToDateLabel;
+    var AddressBookInfo_DescriptionLabel;
+    var AddressBookInfo_Doc_ID;
+    var AddressBookInfo_Doc_Category;
+    var AddressBookInfo_MasterRowRecID;
+    var AddressBookInfo_MasterRowMID;
+    var AddressBookInfo_NestedRowMapID;
+    var AddressBookInfo_reason;
+    var AddressBookInfo_Attachment_RecStatus;
+    var AddressBookInfo_Nested_Doc_Status;
+    var AddressBookInfo_NestedRowReasonID;
+    var AddressBookInfo_NestedRowKeyValue;
+
+    function On_AddressBookFacility_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AddressBookInfo_ParamMandatory == 1)
+            {
+                AddAttachment(AddressBookInfo_MasterRowRecID, "Facility_AddressBook", AddressBookInfo_Doc_ID, AddressBookInfo_Doc_Category, AddressBookInfo_ParamMandatory, AddressBookInfo_FromDateLabel, AddressBookInfo_ToDateLabel, AddressBookInfo_DescriptionLabel, "AddressBookFacilityAttachment", null, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(AddressBookInfo_MasterRowRecID, "Facility_AddressBook", AddressBookInfo_Doc_ID, "AddressBookFacilityAttachment", "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AddressBookInfo_Nested_Doc_Status == "NO" || AddressBookInfo_Nested_Doc_Status == "")
+            {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            if (AddressBookInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(AddressBookInfo_MasterRowRecID, "Facility_AddressBook", AddressBookInfo_AtachmentID, AddressBookInfo_ParamMandatory, AddressBookInfo_FromDateLabel, AddressBookInfo_ToDateLabel, AddressBookInfo_DescriptionLabel, "AddressBookFacilityAttachment", null, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AddressBookInfo_Nested_Doc_Status == "NO" || AddressBookInfo_Nested_Doc_Status == "")
+            {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            DeleteAttachment(AddressBookInfo_MasterRowRecID, "Facility_AddressBook", AddressBookInfo_AtachmentID, AddressBookInfo_ParamMandatory, AddressBookInfo_FromDateLabel, AddressBookInfo_ToDateLabel, AddressBookInfo_DescriptionLabel, null, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID, AddressBookInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (AddressBookInfo_Nested_Doc_Status == "NO" || AddressBookInfo_Nested_Doc_Status == "")
+            {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+
+            ViewDocument(AddressBookInfo_AtachmentID, AddressBookInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(AddressBookInfo_MasterRowRecID, "Facility_AddressBook", "Address Book", "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (AddressBookInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(AddressBookInfo_MasterRowRecID, AddressBookInfo_NestedRowMapID, "Facility_AddressBook", "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(AddressBookInfo_MasterRowRecID, AddressBookInfo_NestedRowMapID, "Facility_AddressBook", "AddressListGrid", AddressBookInfo_NestedGrid_AccessID, AddressBookInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(AddressBookInfo_MasterRowRecID, AddressBookInfo_NestedRowMapID, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            AddressBook_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (AddressBookInfo_Nested_Doc_Status == "")
+            {
+                AddressBook_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (AddressBookInfo_Nested_Doc_Status == "NO")
+            {
+                AddressBook_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (AddressBookInfo_Nested_Doc_Status == "YES")
+            {
+                AddressBook_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept") {
+
+            AddressBookInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject") {
+
+            AddressBookInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks") {
+
+            AddressBookInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnAddressBookInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnAddressBookInfo_RejectDoc();
+        }
+    }
+    function OnAddressBookInfo_RejectDoc() {
+        if (AddressBookInfo_AtachmentID == null || AddressBookInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(AddressBookInfo_AtachmentID, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+    }
+    function OnAddressBookInfo_AcceptDoc() {
+        if (AddressBookInfo_AtachmentID == null || AddressBookInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(AddressBookInfo_AtachmentID, "AddressListGrid", AddressBookInfo_NestedGrid_AccessID);
+    }
+    function AddressBookInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (AddressBookInfo_IsDetailRowExpanded == true || AddressBook_IsVouchingMode == true)
+        {
+            if (AddressBookInfo_MasterRowRecID == null || AddressBookInfo_MasterRowRecID == "")
+            {
+                Recid = Addressbook_ID;
+            }
+            else
+            {
+                Recid = AddressBookInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = Addressbook_ID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Facility_AddressBook", "AddressListGrid", AddressBookInfo_AtachmentID, AddressBookInfo_NestedRowReasonID, AddressBookInfo_NestedRowKeyValue);
+    }
+    function AddressBookInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (AddressBookInfo_IsDetailRowExpanded == true || AddressBook_IsVouchingMode == true)
+        {
+            if (AddressBookInfo_MasterRowRecID == null || AddressBookInfo_MasterRowRecID == "")
+            {
+                Recid = Addressbook_ID;
+            }
+            else
+            {
+                Recid = AddressBookInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = Addressbook_ID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Facility_AddressBook", "AddressListGrid", AddressBookInfo_AtachmentID, AddressBookInfo_NestedRowReasonID, AddressBookInfo_NestedRowKeyValue);
+    }
+    function OnAddressBookListGridNestedFocusedRowChange(s, e)
+    {
+        if (AddressBookInfo_IsDetailRowExpanded == true || AddressBook_IsVouchingMode == true)
+        {
+            AddressBookInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (AddressBookInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                AddressBook_FAB.SetVisible(true);
+                AddressBookInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnAddressBookInfo_GetGridRowValues);
+            }
+            else
+            {
+                AddressBook_FAB.SetVisible(false);
+            }
+        }
+    }
+    function OnAddressBookInfo_GetGridRowValues(values)
+    {
+        
+        HideLoader();
+        if (values[14] != null)
+        {
+            AddressBookInfo_Nested_Doc_Status = values[0];
+            AddressBook_FAB.SetVisible(true);
+            if (AddressBook_IsVouchingMode == true)
+            {
+                AddressBook_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (AddressBookInfo_Nested_Doc_Status == "")
+                {
+                    AddressBook_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (AddressBookInfo_Nested_Doc_Status == "NO")
+                {
+                    AddressBook_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (AddressBookInfo_Nested_Doc_Status == "YES")
+                {
+                    AddressBook_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+           // AddressBook_FAB.SetActionContext("actionItemContext", true);
+            AddressBookInfo_ParamMandatory = values[1];
+            AddressBookInfo_FromDateLabel = values[2];
+            AddressBookInfo_ToDateLabel = values[3];
+            AddressBookInfo_DescriptionLabel = values[4];
+            AddressBookInfo_Doc_Category = values[5];
+            AddressBookInfo_Doc_ID = values[6];
+            AddressBookInfo_AtachmentID = values[7];
+            IndexAttachmentID = AddressBookInfo_AtachmentID;
+            AddressBookInfo_MasterRowRecID = values[8];
+            AddressBookInfo_MasterRowMID = values[9];
+            AddressBookInfo_NestedRowMapID = values[10];
+            AddressBookInfo_reason = values[11];
+            AddressBookInfo_FileName = values[12];
+            AddressBookInfo_Attachment_RecStatus = values[13];
+            AddressBookInfo_NestedRowKeyValue = values[14];
+
+            if (AddressBook_IsVouchingMode == true)
+            {
+                if (AddressBookInfo_FileName != null && AddressBookInfo_FileName.length > 0)
+                {
+                    ViewDocument(AddressBookInfo_AtachmentID, AddressBookInfo_FileName, "AddressBook_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        AddressBookInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = AddressBookInfo_NestedRowReasonID;
+    }
+    function AddressBookGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = AB_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = AddressBook_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function AddressBookGrid_DetailRowExpanding(s, e)
+    {
+        AddressBookInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (AddressBook_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function AddressBookGrid_DetailRowCollapsing(s, e)
+    {
+        AddressBookInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (AddressBook_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            AddressBook_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+    <script>
+
+
+
+    function ImportSampleFormat() {
+       file_name = "Address_Book";
+        window.location.href = '@Url.Action("ImportTableAsExcelFile", "Base", new {area = "", table_name = "ADDRESS_BOOK" })';
+
+        }
+        var dialog = document.getElementById('ExcelUpload_Address');
+        var file_path = "";
+        var file_name = "";
+        //function uploadingProcess() {
+
+        //    let files = Array.from(dialog.files);
+        //    file_name = files[0];
+
+        //}
+
+        //dialog.addEventListener("click", (e) => {
+        //    //alert("eventlistner");
+        //    uploadingProcess();
+        //    //UploadProcessAfterBrowse();
+        //});
+        function UploadExcelData() {
+            //$('#AddressUploadData').click(function () {
+            //debugger;
+            //$('#ExcelUpload_Address').trigger("click");
+
+            var fileUploader = $("#ExcelUpload_Address").dxFileUploader("instance");
+            fileUploader.reset();
+            fileUploader._isCustomClickEvent = true;
+            fileUploader._$fileInput.click();
+        }
+        //dialog.addEventListener("change",
+        //    function (changeEvent) {
+        //        var selectedFile = changeEvent.target.files[0];
+        //        console.log(selectedFile);
+        //        if (selectedFile) {
+        //            console.log('user select file : ', selectedFile.name);
+        //            file_name = changeEvent.target.files[0];
+        //            file_path = document.getElementById("ExcelUpload").value;
+        //            //debugger;
+        //            UploadProcessAfterBrowse();
+        //        } else {
+        //            console.log('no file selected');
+        //            DevExpress.ui.dialog.alert("No File Selected", "Uploading File..");
+        //        }
+        //    }
+        //);
+        function ExcelUpload_valueChange(e) {
+            //$("#Txt_ProfilePic_FileName").val(null);
+            var files = e.value;
+            //debugger;
+            if (files.length > 0) {
+                if ((files[0].type).includes("sheet")) {
+                    const blob = new Blob([files[0]], { type: files[0].type });
+                    var url = URL.createObjectURL(blob);
+                    file_path = url;
+                    file_name = files[0].name;
+                    //debugger;
+                    UploadProcessAfterBrowse();
+                }
+                else {
+                    DevExpress.ui.dialog.alert('No File is Selected', "Information...").done(function () { });
+                }
+            }
+        }
+
+        function UploadProcessAfterBrowse() {
+            //debugger;
+            var formdata = new FormData($('#uploadExcel_Address').get(0));
+            var tablename = "ADDRESS_BOOK"
+            //formdata.append("file_name", file_name);
+            //formdata.append("file_path", file_path);
+            formdata.append("table_name", tablename);
+                if (file_name) {
+                    $.ajax({
+                url: "/Base/ReadUploadedExcel",
+                        type: "POST",
+                        cache: false,
+                        data: formdata,
+                        processData: false,
+                        contentType: false,
+                        success: function (res) {
+                        //debugger;
+                        if (res.jsonParam.result == true) {
+                            DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                        }
+                        if (res.jsonParam.result == false) {
+                            //DevExpress.ui.notify({ message: res.jsonParam.message, width: 500, shading: true, position: 'center' }, "error", 1000);
+                            DevExpress.ui.dialog.alert(res.jsonParam.message, res.jsonParam.title);
+                        }
+                        HideLoader();
+                    }
+                });
+            }
+        }
+
+
+        //inputElement.addEventListener("focusin",
+        //    function (focusInEvent) {
+        //        console.log('input type file element gain focus in after you click the button ' +
+        //            'and also after pop up file dialog closed');
+        //    }
+        //);
+
+        //inputElement.addEventListener("focusout",
+        //    function (focusoutEvent) {
+        //        if (document.activeElement === inputElement) {
+        //            console.log("user still open pop up file dialog");
+        //        } else {
+        //            console.log("input type file just losing focus");
+        //        }
+        //    }
+        //);
+
+
+    </script>
+</div>
+
+

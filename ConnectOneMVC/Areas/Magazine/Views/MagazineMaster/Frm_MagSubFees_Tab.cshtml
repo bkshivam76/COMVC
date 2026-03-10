@@ -1,0 +1,221 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<ConnectOneMVC.Areas.Magazine.Models.MagazineSubFees>
+
+<div id="content" class="col-md-12" style="padding-bottom:20px">
+    <form>
+        <div id="PartialViewFees" style="margin-top:1px !important;">
+            @Html.Partial("Frm_MagSubFees_Tab_Grid", Model)
+        </div>
+    </form>
+</div>
+<div class="footer-MainBoxdiv full-width-footer">
+    @*<div class="col-lg-8 report_footer_small_buttons_div" id="DepositsFooterItem">*@
+    <div class="list_footer_left_margin col-md-10">
+        <div>
+            @*class="footer_new_left"*@
+            <div>
+                <div class="list_footer_left_margin">
+                    <div class="footer-locktext">
+                        <div id="obF_Lbl_ActionOn" class="left_footertext_top"></div>
+                        <div id="obF_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                    </div>
+                    @*<div class="footer-locktext">
+                            <div id="obFLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                        </div>*@
+                </div>
+                <div class="list_footer_left_margin">
+                    <p id="obFLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                    <p id="obFLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="list_footer_right_margin_consistent col-md-1">
+        @*<i id="obF_LockICON" class="fa fa-lock lock_symbol"></i>*@
+    </div>
+    @*</div>
+        <div class="col-lg-4 listing_footer_filter_buttons_div">
+        </div>*@
+</div>
+
+<div class="col-md-12">
+    @*Add/Edit Popup*@
+
+    @(Html.DevExtreme().Popup().CustomPopup().ID("CoreLocation_report_modal").OnShowing("PopupOnShowing").Title("Location List Preview").FullScreen(false)
+                                               .Width(200)
+                                               .Height(200)
+                                               .Height("auto")
+                                               .ShowCloseButton(true)
+                                               .ContentTemplate(@<text>
+                                                <div id='CoreLocation_report_modal_result'>
+                                                </div>
+                                            </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_CoreLocation_Window").Title("CoreLocation").OnShowing("PopupOnShowing")
+                                               .Width(500)
+                                               .Height(200)
+                                               .ContentTemplate(@<text>
+                                                <div id="CoreLocationresult">
+                                                </div>
+                                            </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_CoreMatchedLocation_Window").Title("CoreMatchedLocation").DragEnabled(true)
+                                               .MaxHeight(400)
+                                               .MaxWidth(800)
+                                               .ShowCloseButton(true)
+                                               .ContentTemplate(@<text>
+                                                <div id="CoreMatchedLocationresult">
+                                                </div>
+                                            </text>))
+</div>
+
+@*Javascript Events*@
+<script type="text/javascript">
+    $(document).ready(function () {
+
+    });
+    function MagSubFeesOnInit(s, e) {
+        MagSubFeesAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            MagSubFeesAdjustSize();
+        });
+    }
+    function MagSubFeesGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+    }
+
+    function MagSubFeesAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        MagSubFeesGrid.SetHeight(height);
+        MagSubFeesGrid.SetHeight(height);
+    }
+
+    function MagSubFeesdblclickEdit(s, e) {
+        //var key = s.GetRowKey(s.GetFocusedRowIndex());
+        //OpeningbalancesListGrid.GetValuesOnCustomCallback({ key: key }, FDOnGetRowValues);
+        //if (FDID != null || FDID == "" || FDID == undefined)
+        //    OnEditClick();
+    }
+
+    function MagSubFeesOnGridFocusedRowChanged(s, e) {
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        MagSubFeesGrid.GetValuesOnCustomCallback({ key: key }, MagSubFeesOnGetRowValues);
+    }
+
+    var EffectiveDate;
+    var IndianFee;
+    var ForeignFee;
+    var SubFeesID;
+    var AddFees_By;
+    var AddFees_Date;
+    var EditFees_By;
+    var EditFees_Date;
+    var ActionFees_Status;
+    var ActionFees_By;
+    var ActionFees_Date;
+
+    function MagSubFeesOnGetRowValues(FDData) {
+        var values = FDData.split("![");
+        EffectiveDate = values[0];
+        IndianFee = values[1];
+        ForeignFee = values[2];
+        SubFeesID = values[3];
+        AddFees_By = values[4];
+        AddFees_Date = values[5];
+        EditFees_By = values[6];
+        EditFees_Date = values[7];
+        ActionFees_Status = values[8];
+        ActionFees_By = values[9];
+        ActionFees_Date = values[10];
+
+        MagSubFeesUpdateFooterDetail(SubFeesID, ActionFees_Status, AddFees_Date, AddFees_By,
+        ActionFees_Date, ActionFees_By, EditFees_Date, EditFees_By);
+    }
+
+    function MagSubFeesContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            OnMagazineNewClick();
+        }
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit') {
+            OnMagazineEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnMagazineDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnMagazineViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnMagazinePreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            RebindSubscriptionTypeFees();
+        }
+    }
+
+    function MagSubFeesUpdateFooterDetail(ID, ActionFees_Status, AddFees_Date, AddFees_By, ActionFees_Date, ActionFees_By, EditFees_Date, EditFees_By) {
+
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Add_Date = "";
+        var Add_By = "";
+        var Status_On = "";
+        var Status_By = "";
+        var StatusStr = "Completed";
+        var Lbl_StatusOn = "";
+        var Lbl_StatusBy = "";
+
+        Status = Action_Status;
+
+        Add_Date = Add_Date;
+        Add_By = Add_By;
+        Status_On = Action_Date;
+        Status_By = Action_By;
+
+        if (Status_On) {
+            Lbl_StatusOn = StatusStr + " On: " + Status_On;
+            Lbl_StatusBy = StatusStr + " By: " + Status_By;
+        }
+        else {
+            Lbl_StatusOn = StatusStr + " On: " + "?";
+            Lbl_StatusBy = StatusStr + " By: " + Status_By;
+        }
+
+        if (Add_Date) {
+            Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, By: " + Add_By;
+        }
+
+        var Edit_Date = "";
+        var Edit_By = "";
+
+        Edit_Date = Edit_Date;
+        Edit_By = Edit_By;
+
+        if (Edit_Date) {
+            Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, By: " + Edit_By;
+        }
+        $('#obF_Lbl_ActionOn').text(Lbl_StatusOn)
+        $('#obF_Lbl_ActionBy').text(Lbl_StatusBy);
+        $('#obFLbl_Create').text(Lbl_Create);
+        $('#obFLbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#obFLbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status != "") {
+            $('#obF_LockICON').css('class', Pic_Status);
+        }
+    }
+</script>

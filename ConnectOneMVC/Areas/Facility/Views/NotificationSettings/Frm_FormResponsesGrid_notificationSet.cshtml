@@ -1,0 +1,1017 @@
+﻿<div class="FormResponses_notificationSet_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        //var SessionGUID = Request.QueryString["SessionGUID"];
+        //SessionGUID = SessionGUID == "null" ? null : SessionGUID;
+        //var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        //bool chartApprovalRequired = (bool)ViewBag.isApprovalRequired;
+        //var chartInstanceID = (string)ViewBag.chartInstanceID;
+        //var regCenId = (string)ViewBag.regCenId;
+        //var QuestionFilter = (string)ViewBag.QuestionFilter;
+    }
+    @{
+        string Purpose = ViewBag.Purpose;
+        bool chartApprovalRequired = (bool)ViewBag.isApprovalRequired;
+    }
+    <style>
+        .dx-datagrid-content .dx-datagrid-table .dx-row .dx-command-select[aria-colindex="1"] {
+            text-align: center !important;
+        }
+
+        .dx-actionsheet-item-content .dx-button-has-icon .dx-button-content {
+            padding-left: 7px;
+            padding-top: 0px;
+            padding-bottom: 5px;
+            padding-right: 10px;
+        }
+
+        .dx-actionsheet-item-content .dx-button-content .dx-icon {
+            font-size: 20px;
+        }
+
+        .dx-actionsheet-popover-wrapper .dx-popup-content {
+            padding: 6px 3px 0px 3px;
+        }
+
+        .dx-actionsheet-popover-wrapper > .dx-overlay-content {
+            margin-top: -6px;
+        }
+
+        .AdaptiveCommandColumn_Grouped {
+            position: absolute;
+            left: 13px;
+            top: 43%;
+        }
+
+        .AdaptiveCommandColumn {
+            position: absolute;
+            left: 0px;
+            top: 43%;
+        }
+
+            .AdaptiveCommandColumn span {
+                transform: scale(1.2);
+            }
+
+        .dx-datagrid-nowrap.dx-datagrid-headers .dx-header-row > td > .dx-datagrid-text-content {
+            white-space: normal;
+        }
+
+        .dx-actionsheet-item-content .dx-button-content .dx-icon {
+            float: left;
+            position: static;
+            margin-top: 2px;
+        }
+
+        .dx-actionsheet-item-content .dx-button-content {
+            text-overflow: unset;
+            height: max-content;
+            text-wrap: balance;
+            padding-top: 3px !important;
+        }
+    </style>
+    <div>
+        @(Html.DevExtreme().Switch().ID("CustomNotification_ResponsesInfoViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default")
+        .OnValueChanged("CustomNotification_ResponsesInfo_Dx_ViewSwitch_ValueChange").Width(70).Value(true))
+        @(Html.DevExtreme().Button().ID("CustomNotification_ResponsesInfoModelCLOSE").Text("Ok & Close").Icon("clear").OnClick("closeFormResponses_notificationSet") )
+        <span id="count_formresponsesgridPage_notificationSet"></span>
+    </div>
+    @(Html.DevExtreme().DataGrid().CustomDataGridListing(1)
+        .ID("CustomNotification_ResponsesInfoGrid_dx")
+        .DataSource(d => d.Mvc().Controller("NotificationSettings").LoadAction("FormResponsesData_Load")
+                        .LoadMode(DataSourceLoadMode.Raw).Key("RESP_ID")
+                        //.LoadParams(new { chartInstanceID= chartInstanceID, regCenId= regCenId, QuestionFilter= QuestionFilter })
+                        .OnBeforeSend("CustomNotification_ResponsesInfoGrid_dx_OnBeforeSend")
+                )
+
+        .NoDataText("No Data").Columns(columns =>
+        {
+            columns.Add().DataField("iIcon").Name("iIcon").Caption("").Visible(true).AllowEditing(false)
+            .HeaderFilter(filter => filter.DataSource("CRDxGrid_HeaderFilterDataSource")).RenderAsync(true).Width(30)
+            .CellTemplate(new JS("HighlightRow_icon_CellTemplate")).CalculateCellValue("CustomNotification_ResponsesInfoGrid_dx_iIcon_CellValue");
+            columns.Add().DataField("CustomNotification_ResponsesInfoGrid_dx_Compact_Column")
+            .Name("CustomNotification_ResponsesInfoGrid_dx_Compact_Column").Caption("").Visible(false).Width("100%")
+            .CellTemplate(new JS("CustomNotification_ResponsesInfoGrid_dx_Compact_Column_Template")).AllowEditing(false)
+            .CalculateCellValue("CustomNotification_ResponsesInfoGrid_dx_Compact_Column_CellValue")
+            .Visible(true).RenderAsync(true).ShowInColumnChooser(false);
+
+            columns.Add().DataField("SummaryColumn").Name("SummaryColumn").Caption("SummaryColumn").Visible(false).ShowInColumnChooser(false);//Bug #137209 Fix
+
+        })
+        .Selection(s => s.Mode(SelectionMode.Multiple)
+        .ShowCheckBoxesMode(GridSelectionShowCheckBoxesMode.Always)
+        .AllowSelectAll(true)
+        )      
+        .Summary(s =>
+        {
+            s.TotalItems(item => item.Add().Column("REGISTRATIONS").Name("REGISTRATIONS_CustomNotification_ResponsesInfoGrid_dx_Compact_Column_sum")
+            .SummaryType(SummaryType.Sum).DisplayFormat("Registrations:{0}").ShowInColumn("CustomNotification_ResponsesInfoGrid_dx_Compact_Column"));
+        })
+        .OnInitialized("CustomNotification_ResponsesInfoGrid_dx_OnInitialized")
+        .OnRowPrepared("CustomNotification_ResponsesInfoGrid_dx_OnRowPrepared")
+        .OnContentReady("CustomNotification_ResponsesInfoGrid_dx_OnContentReady")
+        .OnSelectionChanged("CustomNotification_ResponsesInfoGrid_dx_OnSelectionChanged")
+        .OnRowClick("CustomNotification_ResponsesInfoGrid_InfoGrid_dx_OnRowClick")
+        .WordWrapEnabled(false)
+)
+    <script>
+        $(document).ready(function () {
+            var FormRespnsesGridInstance = $("#CustomNotification_ResponsesInfoGrid_dx").dxDataGrid("instance")
+            if (selectedFormResponses_notificationSet != null || selectedFormResponses_notificationSet != undefined) {
+                if (selectedFormResponses_notificationSet.length > 0) {
+                    FormRespnsesGridInstance.selectRows(selectedFormResponses_notificationSet);
+                }
+            }
+        });
+    var CustomNotification_Responses_FirstCall = true;
+    var CustomNotification_ResponsesInfoGrid_dx = null;
+    var CustomNotificationResponsesGrid_Content_ready = false;
+    var CustomNotificationResponsesGrid_ViewMode = null;
+    var _CustomNotificationResponsesGrid_DataSource = null;
+        var VisibleColumns_CustomNotificationResponsesGrid = [];
+
+    //var CustomNotificationResponsesGrid_SelectedData = [];
+    var CompactMode_CustomNotificationResponses = "Compact";
+    function closeFormResponses_notificationSet() {
+        selectedFormResponses_notificationSet = CustomNotification_ResponsesInfoGrid_dx.getSelectedRowKeys(); //.selectedRowsData();
+        $("#FormResponse_notificationSet_modal").dxPopup("hide");
+    }
+    function CustomNotification_ResponsesInfo_Dx_ViewSwitch_ValueChange(e) {
+        CompactMode_CustomNotificationResponses = e.value == false ? "Default" : "Compact";
+        CustomNotificationResponsesGrid_Load_Columns(CompactMode_CustomNotificationResponses);
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_OnInitialized(e) {
+        DxGrid_AdjustSize(e.component, $("#CustomNotification_Responses_ParentDiv_dx .report_button_div"), "Dynamic_Content_popup")
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize(e.component, $("#CustomNotification_Responses_ParentDiv_dx .report_button_div"), "Dynamic_Content_popup", evt)
+        });
+        CustomNotification_ResponsesInfoGrid_dx = e.component;
+        e.component.option("dataSource").store.load().done(function (data) {
+            CustomNotificationResponsesGrid_AddDynamic_Columns(data);
+            CustomNotificationResponsesGrid_Load_Columns(CompactMode_CustomNotificationResponses);
+            e.component.columnOption("command:select", "width", 30)
+        });
+
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_OnRowPrepared(e) {
+        if (e.rowType == "data") {
+            var GridName = e.element[0].id;
+            $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+            if (e.data.REC_STATUS != null && e.data.REC_STATUS == -1) {
+                $(e.rowElement).css("background-color", "rgb(233, 210, 224)");// REJECTED RESPONSE
+            }
+            if (e.data.REC_STATUS != null && e.data.REC_STATUS == 2) {
+                $(e.rowElement).css("background-color", "rgb(238, 251, 233)");// APPROVED RESPONSE
+            }
+            if (!(e.data.Accomodation == "")) {
+                $(e.rowElement).css("background-color", "rgb(255, 245, 223)");
+            }
+            if (e.data.Arrived) {
+                $(e.rowElement).css("background-color", "rgb(212, 236, 244)");
+            }
+            if (e.data.REC_STATUS != null && e.data.REC_STATUS == -2) {
+                $(e.rowElement).css("background-color", "rgb(255, 240, 240)");
+            }
+
+            if (e.data.Highlight !== null) {
+                var Highlight = e.data.Highlight;
+                if (Highlight) {
+                    $(e.rowElement).css("background-color", Highlight);
+                }
+            }
+            var PreviewRowContent = CustomNotification_ResponsesInfoGrid_dx_PreviewRow_Template(e)
+            var PreviewRowClass = "DataGridPreviewRow"
+            var PreviewRowOptions = "";
+            ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + "><td style='padding-left:30px' colspan='" + (e.columns.length) + "'>" + PreviewRowContent + "</td></tr>")
+        }
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_OnSelectionChanged(e) {
+        var selectedRowKeys = e.selectedRowKeys;
+        if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+            //CustomNotificationResponsesGrid_SelectedData = e.selectedRowsData;
+            selectedFormResponses_notificationSet = e.selectedRowKeys
+            document.getElementById("selectedManualResponsesCount_notificationSet").innerText = selectedFormResponses_notificationSet.length + " Response(s) Selected Manually."
+            document.getElementById("count_formresponsesgridPage_notificationSet").innerText = selectedFormResponses_notificationSet.length + " Response(s) Selected Manually."
+        }
+        else {
+            //CustomNotificationResponsesGrid_SelectedData = [];
+            selectedFormResponses_notificationSet = null;
+            document.getElementById("selectedManualResponsesCount_notificationSet").innerText = "You did not selected any Responses Manually.";
+            document.getElementById("count_formresponsesgridPage_notificationSet").innerText = "";
+        }
+        $("#selectedCount_div_CustomNotification_Responses>label").text(selectedRowKeys.length + " Row(s) Selected")
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_OnContentReady(e) {
+        DxGrid_OnContentReady(e);
+    }
+    function CustomNotification_ResponsesInfoGrid_InfoGrid_dx_OnRowClick(e) {
+        if (e.rowType === "data") {
+            if (e.isSelected)
+                e.component.deselectRows(e.key);
+            else
+                e.component.selectRows(e.key, true);
+        }
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_Compact_Column_Template(container, templateData) {
+            var htmlString = "";
+            if (templateData.data.Highlight) {
+                if (templateData.data.Highlight.includes("#")) {
+                    htmlString += "<div class='clearfix form-row'><div class='row'><div class='col-md-2'>" +
+                        "<p class=''><b>🖌</b></p>" +
+                        "</div></div></div>";
+                }
+            }
+            if ("ProfilePicPath" in templateData.data) {//_colName == "ProfilePicPath") {
+                if (templateData.data.ProfilePicPath?.trim()) {
+                    htmlString += "<div class='clearfix form-row RowImage'><div class='row'>" +
+                        "<a class='lightbox' href='#img_" + templateData.data.RESP_ID + "'>" +
+                        "<img src='" + templateData.data.ProfilePicPath + "' class='event-img img-rounded' loading='lazy' /></a>" +
+                        "<a class='lightbox-target' id='img_" + templateData.data.RESP_ID + "'>" +
+                        "<img src='" + templateData.data.ProfilePicPath + "'/><a class='lightbox-close' href='#'></span></a>";
+                }
+                else
+                    htmlString += "<div class='clearfix form-row'><div class='row'>";
+            }
+            else {
+
+                htmlString += "<div class='clearfix form-row'><div class='row'>";
+
+            }
+
+            if ("@Purpose".toUpperCase() == "REGISTRATION") {
+
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Accomodation - </b>" + (templateData.data.Accomodation ?? "")+ "</p>" +
+                    "</div>" +
+                    "<div class='col-md-2'>" +
+                    "<p class=''><b>Beds - </b>" + (templateData.data.Beds ?? "") + "</p>" +
+                    "</div>" +
+                    "<div class='col-md-2'>" +
+                    "<p class=''><b>Arrived - </b>" + (templateData.data.Arrived ?? "") + "</p>" +
+                    "</div>" +
+                    "<div class='col-md-2'>" +
+                    "<p class=''><b>Reg No - </b>"  + (templateData.data.RegNo ?? "") + "</p>" +
+                    "</div>" +
+                    "<div class='col-md-2'>" +
+                    "<p class=''><b>Reg Sr No - </b>" + (templateData.data.RegSrNo ?? "") + "</p>" +
+                    "</div>";
+            }
+
+            if (!("@Purpose".toUpperCase() == "SURVEY FORMS")) {
+                htmlString += "<div class='col-md-4'>" +
+                    "<p class=''><b>Centre Email - </b>" + (templateData.data.Centre_Email ?? "") + "</p>" +
+                    "</div>" +
+                    "<div class='col-md-4'>" +
+                    "<p class=''><b>Next Linked Form Received - </b>" + (templateData.data.NextLinkedFormReceived ?? "") + "</p>" +
+                    "</div>"+
+                    "<div class='col-md-4'>" +
+                    "<p class=''><b>Responder Category - </b>" + (templateData.data.Responder_category ?? "") + "</p>" +
+                    "</div>";
+
+            }
+            htmlString += "</div>" +
+                "<div class='row'>";
+            if ("Name" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Name - </b>" + (templateData.data.Name ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Mob1" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Mob1 - </b>" + (templateData.data.Mob1 ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Email1" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Email1 - </b>" + (templateData.data.Email1 ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Gender" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Gender - </b>" + (templateData.data.Gender ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Age" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Age - </b>" + (templateData.data.Age ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("DOB" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>DOB - </b>" + (JS_Json_Date_To_ddMMyyyy((templateData.data.DOB ?? ""), "DD-MM-YYYY") ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Address" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Address - </b>" + (templateData.data.Address ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("PIN" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>PIN - </b>" + (templateData.data.PIN ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("City" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>City - </b>" + (templateData.data.City ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("State" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>State - </b>" + (templateData.data.State ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Country" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Country - </b>" + (templateData.data.Country ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Centre" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Centre - </b>" + (templateData.data.Centre ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Course" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Course - </b>" + (templateData.data.Course ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("DATE_OF_COURSE" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>DATE OF COURSE - </b>" + (JS_Json_Date_To_ddMMyyyy((templateData.data.DATE_OF_COURSE ?? ""), "DD-MM-YYYY") ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("BK_TITLE" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>BK Title - </b>" + (templateData.data.BK_TITLE ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Education" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Education - </b>" + (templateData.data.Education ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Occupation" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Occupation - </b>" + (templateData.data.Occupation ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Specialities" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p class=''><b>Specialities - </b>" + (templateData.data.Specialities ?? "") + "</p>" +
+                    "</div>";
+            }
+            if ("Points_Received" in templateData.data) {
+                htmlString += "<div class='col-md-2'>" +
+                    "<p style='color:green' class=''><b>Points Received - </b>" +
+                    (templateData.data.Points_Received ?? "") + " / "
+                    + (templateData.data.Total_Points ?? "")+ "</p>" +
+                    "</div>";
+            }
+
+            htmlString += "</div><div class='row'>";
+            for (const [key, value] of Object.entries(templateData.data)) {
+                if (key.includes(" - ")) {
+
+                    if (value) {
+                        htmlString += "<div class='col-md-2'><p class=''><b>" + (key ?? "") + " - " +
+                         "</b>" + value + "</p></div>";
+                    }
+                }
+            }
+            htmlString += "</div></div></div>";
+            $(container).html(htmlString)
+        }
+    function CustomNotification_ResponsesInfoGrid_dx_Compact_Column_CellValue(rowData) {
+
+
+            var data = [];
+            if ("ProfilePicPath" in rowData) {
+                if (rowData.ProfilePicPath?.trim()) {
+                    data.push(rowData.ProfilePicPath);
+                }
+            }
+            if ("@Purpose".toUpperCase() == "REGISTRATION") {
+                data.push(rowData.Accomodation ?? "")
+                data.push(rowData.Beds ?? "")
+                data.push(rowData.Arrived ?? "")
+                data.push(rowData.RegNo ?? "")
+                data.push(rowData.RegSrNo ?? "")
+            }
+
+            if (!("@Purpose".toUpperCase() == "SURVEY FORMS")) {
+                data.push(rowData.Centre_Email ?? "")
+                data.push(rowData.NextLinkedFormReceived ?? "")
+                data.push(rowData.Responder_category ?? "")
+            }
+
+            if ("Name" in rowData) {
+                data.push(rowData.Name ?? "")
+            }
+            if ("Mob1" in rowData) {
+                data.push(rowData.Mob1 ?? "")
+            }
+            if ("Email1" in rowData) {
+                data.push(rowData.Email1 ?? "")
+            }
+            if ("Gender" in rowData) {
+                data.push(rowData.Gender ?? "")
+            }
+            if ("Age" in rowData) {
+                data.push(rowData.Age ?? "")
+
+            }
+            if ("DOB" in rowData) {
+                data.push(rowData.DOB ?? "")
+            }
+            if ("Address" in rowData) {
+                data.push(rowData.Address ?? "")
+            }
+            if ("PIN" in rowData) {
+                data.push(rowData.PIN ?? "")
+            }
+            if ("City" in rowData) {
+                data.push(rowData.City ?? "")
+            }
+            if ("State" in rowData) {
+                data.push(rowData.State ?? "")
+            }
+            if ("Country" in rowData) {
+                data.push(rowData.Country ?? "")
+            }
+            if ("Centre" in rowData) {
+                data.push(rowData.Centre ?? "")
+            }
+            if ("Course" in rowData) {
+                data.push(rowData.Course ?? "")
+            }
+            if ("DATE_OF_COURSE" in rowData) {
+                data.push(rowData.DATE_OF_COURSE ?? "")
+            }
+            if ("BK_TITLE" in rowData) {
+                data.push(rowData.BK_TITLE ?? "")
+            }
+            if ("Education" in rowData) {
+                data.push(rowData.Education ?? "")
+            }
+            if ("Occupation" in rowData) {
+                data.push(rowData.Occupation ?? "")
+            }
+            if ("Specialities" in rowData) {
+                data.push(rowData.Specialities ?? "")
+            }
+            if ("Points_Received" in rowData) {
+                data.push(rowData.Points_Received ?? "")
+            }
+            for (const [key, value] of Object.entries(rowData)) {
+                if (key.includes(" - ")) {
+                    if (value)
+                        data.push(value);
+                }
+            }
+            return data.join(" ")
+        }
+
+    function CustomNotification_ResponsesInfoGrid_dx_PreviewRow_Template(e) {
+        var htmlString = "";
+        var Remarks = e.data.Remarks == null ? "" : e.data.Remarks;
+        if (Remarks.length > 0) {
+            htmlString += "<div><span style='color:#0000FF'> <i>Admin Remarks: " + Remarks + "</i></span></div>";
+        }
+        return htmlString;
+    }
+    function CRDxGrid_HeaderFilterDataSource(data) {
+        data.dataSource.postProcess = function (results) {
+            results = [];
+            results.push({
+                text: "Blue",
+                value: "Blue"
+            });
+            results.push({
+                text: "Green",
+                value: "Green"
+            });
+            results.push({
+                text: "Yellow",
+                value: "Yellow"
+            });
+            results.push({
+                text: "Orange",
+                value: "Orange"
+            });
+            results.push({
+                text: "Red",
+                value: "Red"
+            });
+            return results;
+        };
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_iIcon_CellValue(rowData) {
+        var Highlight = rowData.Highlight;
+        if (Highlight != null && Highlight.length == 0) { Highlight = null; }
+        return Highlight == "#30C5FF" ? "Blue" : Highlight == "#5DE23C" ? "Green" : Highlight == "#FBF719" ? "Yellow" : Highlight == "#FF793B" ? "Orange" : Highlight == "#F72F35" ? "Red" : Highlight == null ? "" : "Others";
+    }
+    function HighlightRow_icon_CellTemplate(container, templateData) {
+        if (templateData.data.Highlight) {
+            if (templateData.data.Highlight.includes("#")) {
+                $(container).html("🖌");
+            }
+        }
+    }
+    function CustomNotification_ResponsesInfoGrid_dx_OnBeforeSend(operation, ajaxOptions) {
+        debugger;
+        var param = {};
+        param["chartInstanceID"] = selectedInstanceId_notificationSet;
+        param["regCenId"] = "";
+        param["QuestionFilter"] = "";
+        param["FirstCall"] = CustomNotification_Responses_FirstCall;
+        ajaxOptions.data = param;
+        CustomNotification_Responses_FirstCall = false;
+    }
+    function CustomNotificationResponsesGrid_AddDynamic_Columns(data)
+        {
+            var _dt = data[0];
+            var columns = CustomNotification_ResponsesInfoGrid_dx.option("columns");
+            if (_dt)
+            {
+                if ("Responder_category" in _dt)
+                {
+                    columns.push({
+                        dataField: 'Responder_category',
+                        caption: 'Category',
+                        visible: true,
+                        allowEditing: false,
+                        dataType: 'string'
+                    });
+                }
+                if ("RegNo" in _dt) {
+                    columns.push({
+                        dataField: 'RegNo',
+                        caption: 'Reg No',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Education" in _dt) {
+                    columns.push({
+                        dataField: 'Education',
+                        caption: 'Education',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Occupation" in _dt) {
+                    columns.push({
+                        dataField: 'Occupation',
+                        caption: 'Occupation',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Course" in _dt) {
+                    columns.push({
+                        dataField: 'Course',
+                        caption: 'Course',
+                        visible: true,
+                        allowEditing: false,
+
+                    });
+                }
+                if ("Gender" in _dt) {
+                    columns.push({
+                        dataField: 'Gender',
+                        caption: 'Gender',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Age" in _dt) {
+                    columns.push({
+                        dataField: 'Age',
+                        caption: 'Age',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Centre" in _dt) {
+                    columns.push({
+                        dataField: 'Centre',
+                        caption: 'Centre',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Recommendation" in _dt) {
+                    columns.push({
+                        dataField: 'Recommendation',
+                        caption: 'Recommendation',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Name" in _dt) {
+                    columns.push({
+                        dataField: 'Name',
+                        caption: 'Name',
+                        minWidth: 150,
+                        visible: true,
+                        allowEditing: false,
+                        encodeHtml: false,
+
+                    });
+                }
+                if ("Mob1" in _dt) {
+                    columns.push({
+                        dataField: 'Mob1',
+                        caption: 'Mob1',
+                        minWidth: 150,
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Email1" in _dt) {
+                    columns.push({
+                        dataField: 'Email1',
+                        caption: 'Email1',
+                        minWidth: 150,
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("Address" in _dt) {
+                    columns.push({
+                        dataField: 'Address',
+                        caption: 'Address',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("City" in _dt) {
+                    columns.push({
+                        dataField: 'City',
+                        caption: 'City',
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                if ("State" in _dt) {
+                    columns.push({
+                        dataField: 'State',
+                        caption: 'State',
+                        visible: true,
+                        allowEditing: false,
+                    });
+                }
+                if ("BK_TITLE" in _dt) {
+                    columns.push({
+                        dataField: 'BK_TITLE',
+                        caption: 'BK_TITLE',
+                        visible: true,
+                        allowEditing: false,
+
+                    });
+                }
+                if ("ID_NAME" in _dt) {
+                    columns.push({
+                        dataField: 'ID_NAME',
+                        caption: 'ID Type',
+                        visible: true,
+                        allowEditing: false,
+
+                    });
+                }
+                if ("ID_NO" in _dt) {
+                    columns.push({
+                        dataField: 'ID_NO',
+                        caption: 'ID',
+                        visible: true,
+                        allowEditing: false,
+
+                    });
+                }
+                if ("NextLinkedFormReceived" in _dt) {
+                    columns.push({
+                        dataField: 'NextLinkedFormReceived',
+                        caption: 'Next Form Received',
+                        trueText: "Yes",
+                        falseText: "No",
+                        visible: true,
+                        allowEditing: false
+                    });
+                }
+                for (const [key] of Object.entries(data[0])) {
+                    if (key.includes(" - "))
+                    {
+                        columns.push({
+                            dataField: key,
+                            caption: key,
+                            visible: true
+                        });
+                    }
+                }
+                columns.push({
+                    dataField: 'Status',
+                    caption: 'Status',
+                    visible: false,
+                    allowEditing: false,
+                    groupIndex:"@chartApprovalRequired"=="True"?0:-1
+                });
+                columns.push({
+                    dataField: 'Arrived',
+                    caption: 'Arrived',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'AB_ID',
+                    caption: 'AB_ID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'RegSrNo',
+                    caption: 'RegSrNo',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'Centre_Email',
+                    caption: 'Centre_Email',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'Accomodation',
+                    caption: 'Accomodation',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'Beds',
+                    caption: 'Beds',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'ConnectOne_User_ID',
+                    caption: 'ConnectOne_User_ID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'ConnectOne_Cen_ID',
+                    caption: 'ConnectOne_Cen_ID',
+                    visible: false,
+                    allowEditing: false
+                });
+                if ("Email2" in _dt) {
+                    columns.push({
+                        dataField: 'Email2',
+                        caption: 'Email2',
+                        visible: false,
+                        allowEditing: false,
+                    });
+                }
+                if ("Email3" in _dt) {
+                    columns.push({
+                        dataField: 'Email3',
+                        caption: 'Email3',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Email4" in _dt) {
+                    columns.push({
+                        dataField: 'Email4',
+                        caption: 'Email4',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Email5" in _dt) {
+                    columns.push({
+                        dataField: 'Email5',
+                        caption: 'Email5',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Mob2" in _dt) {
+                    columns.push({
+                        dataField: 'Mob2',
+                        caption: 'Mob2',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Mob3" in _dt) {
+                    columns.push({
+                        dataField: 'Mob3',
+                        caption: 'Mob3',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Mob4" in _dt) {
+                    columns.push({
+                        dataField: 'Mob4',
+                        caption: 'Mob4',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Mob5" in _dt) {
+                    columns.push({
+                        dataField: 'Mob5',
+                        caption: 'Mob5',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("SUB_ZONE_NAME" in _dt) {
+                    columns.push({
+                        dataField: 'SUB_ZONE_NAME',
+                        caption: 'SUB_ZONE_NAME',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Points_Received" in _dt) {
+                    columns.push({
+                        dataField: 'Points_Received',
+                        caption: 'Points_Received',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Total_Points" in _dt) {
+                    columns.push({
+                        dataField: 'Total_Points',
+                        caption: 'Total_Points',
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                columns.push({
+                    dataField: 'REC_STATUS',
+                    caption: 'REC_STATUS',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'ADDED_ON',
+                    caption: 'ADDED_ON',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'REGISTRATIONS',
+                    caption: 'Reg. Count',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'RESP_ID',
+                    caption: 'RESP_ID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'SHARE_MESSAGE',
+                    caption: 'SHARE_MESSAGE',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'UserID',
+                    caption: 'UserID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'NextLinkedFormInstID',
+                    caption: 'NextLinkedFormInstID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'TravelFormInstID',
+                    caption: 'TravelFormInstID',
+                    visible: false,
+                    allowEditing: false
+                });
+                columns.push({
+                    dataField: 'FeedbackFormInstID',
+                    caption: 'FeedbackFormInstID',
+                    visible: false,
+                    allowEditing: false
+                });
+                if ("Name" in _dt == false)
+                {
+                    columns.push({
+                            dataField: 'Name',
+                            caption: 'Name',
+                            minWidth: 150,
+                            visible: false,
+                            allowEditing: false,
+                            encodeHtml: false,
+                        });
+                }
+                if ("Mob1" in _dt ==false) {
+                    columns.push({
+                        dataField: 'Mob1',
+                        caption: 'Mob1',
+                        minWidth: 150,
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("Email1" in _dt==false) {
+                    columns.push({
+                        dataField: 'Email1',
+                        caption: 'Email1',
+                        minWidth: 150,
+                        visible: false,
+                        allowEditing: false
+                    });
+                }
+                if ("DOB" in _dt) {
+                    columns.push({
+                        dataField: 'DOB',
+                        caption: 'DOB',
+                        visible: false,
+                        allowEditing: false,
+                        dataType: 'date',
+                        format: "dd-MM-yyyy"
+                    });
+                }
+                if ("NextLinkedFormReceived" in _dt ==false) {
+                    columns.push({
+                        dataField: 'NextLinkedFormReceived',
+                        caption: 'Next Form Received',
+                        trueText: "Yes",
+                        falseText: "No",
+                        visible: false
+                    });
+                }
+                CustomNotification_ResponsesInfoGrid_dx.beginUpdate();
+                CustomNotification_ResponsesInfoGrid_dx.option("columns", columns);
+                //CustomNotification_ResponsesInfoGrid_dx.repaint();
+                CustomNotification_ResponsesInfoGrid_dx.endUpdate();
+            }
+        }
+
+    function CustomNotificationResponsesGrid_Load_Columns(CRInfoGrid_ViewMOde) {
+        CustomNotification_ResponsesInfoGrid_dx.beginUpdate();
+        var _columns = CustomNotification_ResponsesInfoGrid_dx.option("columns");
+        if (CRInfoGrid_ViewMOde == "Compact") {
+            VisibleColumns_CustomNotificationResponsesGrid = [];
+            for (var i = 0; i < _columns.length; i++) {
+                var name = _columns[i].dataField;
+                var ColumnVisible = CustomNotification_ResponsesInfoGrid_dx.columnOption(name, "visible");
+                if (name == "CustomNotification_ResponsesInfoGrid_dx_Compact_Column" || name == "iIcon") {
+                    CustomNotification_ResponsesInfoGrid_dx.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true) {
+                    VisibleColumns_CustomNotificationResponsesGrid.push(name);
+                    CustomNotification_ResponsesInfoGrid_dx.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            CustomNotification_ResponsesInfoGrid_dx.columnOption("CustomNotification_ResponsesInfoGrid_dx_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_CustomNotificationResponsesGrid.length; i++) {
+                CustomNotification_ResponsesInfoGrid_dx.columnOption(VisibleColumns_CustomNotificationResponsesGrid[i], "visible", true);
+            }
+        }
+        var SummaryItems = CustomNotification_ResponsesInfoGrid_dx.option("summary.groupItems")
+        if (SummaryItems == void 0 || SummaryItems == null || SummaryItems.length == 0) {
+            SummaryItems = [];
+        }
+        var index = SummaryItems.findIndex(obj => { return obj.name === 'Name_Name_count' })
+        if (index == -1) {
+            SummaryItems.push({
+                column: 'Name',
+                displayFormat: "Total Registrations: {0}",
+                summaryType: 'count',
+                name: 'Name_Name_count'
+            })
+        }
+        index = SummaryItems.findIndex(obj => { return obj.name === 'REGISTRATIONS_REGISTRATIONS_sum' })
+        if (index == -1) {
+            SummaryItems.push({
+                column: 'REGISTRATIONS',
+                displayFormat: "Total Registered Souls: {0}",
+                summaryType: 'sum',
+                name: 'REGISTRATIONS_REGISTRATIONS_sum'
+            })
+        }
+        CustomNotification_ResponsesInfoGrid_dx.option("summary.groupItems", SummaryItems)
+        // CustomNotification_ResponsesInfoGrid_dx.repaint();
+        CustomNotification_ResponsesInfoGrid_dx.endUpdate();
+        // CustomNotification_ResponsesInfoGrid_dx.updateDimensions();
+    }
+
+    </script>
+</div>

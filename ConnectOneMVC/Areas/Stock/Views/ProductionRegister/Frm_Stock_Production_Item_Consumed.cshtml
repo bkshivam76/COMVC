@@ -1,0 +1,423 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.ProductionStockConsumedDetails
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "View") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    .wdfull {
+        width: 100%;
+    }
+
+    td {
+        width: auto;
+    }
+
+    .dntnbtn {
+        min-width: 68px !important;
+        font-size: 12px;
+    }
+
+    .fonttwelve {
+        font-size: 12px !important;
+    } 
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .margT4 {
+        margin-top: 4px !important;
+    }
+
+    .buttonMrgTB {
+        margin-bottom: 15px;
+        margin-top: 15px;
+    }
+
+    #Frm_StockCon_Window_popup {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_StockCon_Window_popup" class="col-md-12">
+    @using (Ajax.BeginForm("Frm_Add_Stock_Consumed", "ProductionRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_StockCon_popup",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "Frm_Prod_Stock_Consumed_OnSuccess"
+                       },
+                       new
+                       {
+                           id = "ID_Frm_Stock_Consumed_Window",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.sr)
+        @Html.HiddenFor(y => y.consumptionID)
+        @Html.HiddenFor(y => y.Production_Item_Name)
+        @Html.HiddenFor(y => y.Production_Head)
+        @Html.HiddenFor(y => y.Production_Make)
+        @Html.HiddenFor(y => y.Production_Model)
+        @Html.HiddenFor(y => y.Production_Code)
+        @Html.HiddenFor(y => y.Production_Unit)
+        @Html.HiddenFor(y => y.Production_Type)
+       // @Html.HiddenFor(y => y.avl_qty)
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+
+            <!-- <div class="full-width-header-bg3">
+                 <div class="row">
+
+                     <div class="col-sm-8 pll">
+                         <h3 class="popuphead"><i class="far fa-edit"></i> Item Consumed</h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div> [Header]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="col-sm-2 col-md-2 col-lg-2 ">
+                            <label class="control-label text-red" for="Name">Consumed Item:</label>
+                        </div>
+                        <div class="col-sm-4 col-md-4 col-lg-4 prm">
+                            <div class="dx-texteditor dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Production_Item_ID").Name("Production_Item_ID").Value(Model.Production_Item_ID).ValueExpr("ID").DisplayExpr("Item_Name").DataSource(d => d.Mvc().Controller("ProductionRegister").LoadAction("LookUp_GetStock_Consumed").Key("ID").LoadParams(new { storeid = new JS("function (){ return productionstoreid;}"), projectID = new JS("function (){ return projectID;}") })).Placeholder("Select Stock Item").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })@*Mantis bug 0000954 fixed*@
+                        .OnInitialized("OnInitialized_OnStockConsumedChanged")
+                        .OnValueChanged("Get_StockConsumed_ChangeEvent")
+
+                  .ContentTemplate(@<text> @Html.Partial("LookUp_Get_StockConsumed_List") </text>) )
+                                    @Html.ValidationMessageFor(model => model.Production_Item_ID, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-6 prm pll4">
+                            @(Html.DevExtreme().Button()
+                                    .ID("Check Availability")
+                                    .Text("Check Availability")
+                                    .Disabled(IsVisible)
+                                    .OnClick(@<text>
+                                        function () {
+                                        Check_Availability_Click()
+                                        }
+                                    </text>))
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[Stock Consumed]-->
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Head:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8">
+                                    <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Head1").Name("Production_Head1").MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true) )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Head]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Item Type:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 ">
+                                    <div class="dx-texteditor dx-satet-disabled dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Type1").Name("Production_Type1").MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Type]-->
+            </div>
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Item Code:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Code1").Name("Production_Code1").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).MaxLength(20).ReadOnly(true).Disabled(true) )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Code]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Make:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Make1").Name("Production_Make1").MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true) )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Make]-->
+            </div><!--[row2]-->
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Model:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Model1").Name("Production_Model1").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).MaxLength(20).ReadOnly(true).Disabled(true) )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Model]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Unit:</label></div>
+                                <div class="col-sm-8 col-md-8 col-lg-8">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Unit1").Name("Production_Unit1").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).MaxLength(20).ReadOnly(true).Disabled(true))
+                                            @Html.ValidationMessageFor(model => model.Production_Unit, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Unit]-->
+            </div><!--[row3]-->
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-4 form-field">
+                    <div class="col-sm-4 col-md-4 col-lg-6 pll"><label class="control-label text-red" for="user">Qty Available:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-6">@*Mantis bug 0000683 fixed*@
+                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_Available_Qty")
+                                                                .Name("Production_Available_Qty")
+                                                                .Value(Model.Production_Available_Qty.ToString())
+                                                                .ReadOnly(true)
+                                                                .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[Available Qty]-->
+                <div class="col-sm-6 col-md-6 col-lg-4 form-field">
+                    <div class="col-sm-4 col-md-4 col-lg-6 pll"><label class="control-label text-red" for="user">Qty Consumed:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-6">@*Mantis bug 0000683 fixed*@
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_Consumed_Qty").Name("Production_Consumed_Qty").Width("auto").Value(Model.Production_Consumed_Qty).ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "" } }).Format("#0.00").Placeholder("Enter Consumed Quantity").OnValueChanged("ConsumeQty_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible))@*Mantis bug 0000683 fixed*@
+                                        @Html.ValidationMessageFor(model => model.Production_Consumed_Qty, "", new { @class = "text-danger" })
+                                    </div>
+                </div><!--[Consumed Qty]-->
+                <div class="col-sm-12 col-md-12 col-lg-4 form-field">
+                    <div class="col-sm-2 col-md-2 col-lg-6 pll "><label class="control-label text-red" for="user">Amount:</label></div>
+                    <div class="col-sm-10 col-md-10 col-lg-6">@*Mantis bug 0000683 fixed*@
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_Amount").Name("Production_Amount").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Model.Production_Amount).Format("#0.00").Placeholder("Enter Amount").ReadOnly(true).Disabled(IsVisible))
+                                        @Html.ValidationMessageFor(model => model.Production_Amount, "", new { @class = "text-danger" })
+                                    </div>
+                </div><!--[Amount]-->
+            </div><!--[row4]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Remarks:</label></div>
+                            <div class="col-sm-10 col-md-10 col-lg-10 prm ">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                            .ID("Production_Remarks")
+                                            .Name("Production_Remarks")
+                                            .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                            .Value(Model.Production_Remarks)
+                                            .Placeholder("Enter Remarks...")
+                                            .MaxLength(8000)
+                                            .ReadOnly(IsVisible)
+                                            .Disabled(IsVisible)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[remarks]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 btn-align prm styleActionBtn">
+                            @if (Model.ActionMethod.ToString().Trim() == "View")
+                            {
+                                @(Html.DevExtreme().Button().CustomCloseButton().Text("Close").ID("productionStockConsumed_Cancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Productioninnergrid").dxPopup("hide"); } </text>) )
+                            }
+                            @if (Model.ActionMethod.ToString().Trim() == "New" || Model.ActionMethod.ToString().Trim() == "Edit")
+                            {
+                                @(Html.DevExtreme().Button().CustomSaveButton().Text("Save").ID("productionStockConsumed_Save").FocusStateEnabled(true).UseSubmitBehavior(true) )
+                                @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("productionStockConsumed_Cancled").FocusStateEnabled(true).OnClick(@<text> function () { $("#Productioninnergrid").dxPopup("hide"); } </text>) )
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div><!--[buttons]-->
+        }
+    }
+</div>
+
+<script>
+
+    var stockconhead;
+    var stockcontype;
+    var stockconcode;
+    var stockconmake;
+    var stockconmodel;
+    var stockconunit;
+    var stocktotalcost;
+    var stockavlqty;
+    var stockamt;
+    var stockconsumeqty;
+    var stockconname;
+    var stockid;
+    var stockCurrCost;//Mantis bug 0000953 fixed
+
+    function Get_StockConsumed_ChangeEvent(e) {   
+      
+        if (e.previousValue!=null&&e.previousValue != e.value)
+        {
+            $("#Production_Consumed_Qty").dxNumberBox("instance").reset();
+        }
+        var dropdown = $("#Production_Item_ID").dxDropDownBox("instance");
+        dropdown.close();
+        var $dataGrid = $("#LookUp_StockConsumed_datagrid");
+        if ($dataGrid.length) {
+            LookUp_StockConsumed_datagrid
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropdown.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                stockconname = item.Item_Name;
+                stockcontype = item.Item_Category;
+                stockconcode = item.Item_Code;
+                stockconmake = item.Make;
+                stockconmodel = item.Model;
+                stockconunit = item.Unit;
+                stockconhead = item.Head;
+                stockavlqty = item.Curr_Qty;             
+                stocktotalcost = item.Org_Cost;
+                stockCurrCost = item.Curr_Cost;//Mantis bug 0000953 fixed
+              
+                $("#Production_Item_Name").val(stockconname);
+                $("#Production_Head").val(stockconhead);
+                $("#Production_Type").val(stockcontype);
+                $("#Production_Code").val(stockconcode);
+                $("#Production_Make").val(stockconmake);
+                $("#Production_Model").val(stockconmodel);
+                $("#Production_Unit").val(stockconunit);
+              
+                $("#Production_Head1").dxTextBox("instance").option("value", stockconhead);
+                $("#Production_Type1").dxTextBox("instance").option("value", stockcontype);
+                $("#Production_Code1").dxTextBox("instance").option("value", stockconcode);
+                $("#Production_Make1").dxTextBox("instance").option("value", stockconmake);
+                $("#Production_Model1").dxTextBox("instance").option("value", stockconmodel);
+                $("#Production_Unit1").dxTextBox("instance").option("value", stockconunit);
+                $("#Production_Available_Qty").dxTextBox("instance").option("value", item["Curr_Qty"]);
+
+            }
+        }
+    }
+
+    
+    function OnInitialized_OnStockConsumedChanged(e) {
+        if ("@Model.ActionMethod" != "New") {
+            $("#Production_Item_ID").dxDropDownBox("instance").option("value",@Model.Production_Item_ID);
+            e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length > 0) {
+                    var $dataGrid = $("#LookUp_StockConsumed_datagrid");
+                    if ($dataGrid.length) {                     
+                        var dataGrid = $dataGrid.dxDataGrid("instance");
+                        dataGrid.selectRows($("#Production_Item_ID").dxDropDownBox("instance").option("value"), false);
+                    }
+                }
+            });
+        }
+    }
+    function ConsumeQty_ChangeEvent(e) {
+     
+        stockconsumeqty = $("#Production_Consumed_Qty").dxNumberBox("instance").option("value");
+        if (stockconsumeqty > stockavlqty) {
+            DevExpress.ui.dialog.alert("Consumed Quantity Cannot Be Greater Than Available Quantity..!", 'Alert!');
+            $("#Production_Consumed_Qty").dxNumberBox("instance").reset();
+            return;
+        }
+
+        stockamt = (stockCurrCost / stockavlqty) * stockconsumeqty; //Mantis bug 0000953 fixed       
+        $("#Production_Amount").dxNumberBox("instance").option("value", stockamt);
+    
+      
+   
+    }
+    function Check_Availability_Click() {
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+</script>
+<script>
+    $(document).ready(function ()
+    {
+        var form = "ID_Frm_Stock_Consumed_Window";
+        ShowLoader();
+        AssignIDtoLabel(form, "ProductionStockCon");
+        setTimeout(function ()
+        {
+            Set_Form_View_Delete_Mode(null, form, "@Model.ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.ActionMethod");
+            HideLoader();
+        }, Timeout500);
+    })
+
+</script>
+

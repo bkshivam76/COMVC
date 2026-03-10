@@ -1,0 +1,92 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_JobRequest
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = (Model != null && Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+}
+<fieldset id="jobexpensegrid">
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Action("InnerGrid_ActualExpensesIncurredGrid", "JobRequestRegister", new { ActionMethodName = Model.ActionMethod, ID = Model.Job_Id })
+        </div>
+    </div>
+    <div class="row">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="col-md-12">
+                        @(Html.DevExtreme().Button().ID("Job_BUT_Actual_ExpensesNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_Job_Actual_Expenses_New_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("Job_BUT_Actual_ExpensesDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_Job_Actual_Expenses_Delete_Click() } </text>))
+                </div>
+            </div>
+        </div>
+    </div>
+    </fieldset>
+    <script>
+   var JobActual_Expenses_Rec_Id;
+    var Jobexpensessr;
+
+    function JobActualExpensesIncurredGridFocusedRowChanged(s, e) {
+            s.GetRowValues(s.GetFocusedRowIndex(), 'REC_ID;Sr', Actual_Expenses_GridRowValues);
+        }
+    function Actual_Expenses_GridRowValues(values) {
+        JobActual_Expenses_Rec_Id = values[0];
+        Jobexpensessr = values[1];
+    }
+    $("#JobExpensesGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                OnFrm_Job_Actual_Expenses_New_Click();
+                break;
+            case 46://delete key
+                OnFrm_Job_Actual_Expenses_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            OnFrm_Job_Actual_Expenses_New_Click();
+        }
+
+    });
+        function OnFrm_Job_Actual_Expenses_New_Click()
+        {
+            if ("@IsDisabled" == "true") { return; }
+            var statusflowcheck = Job_StatusFlowCheck();
+            if (statusflowcheck[1] == false) {
+                DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+                return;
+            }     
+            ShowLoader();
+            OpenPopup("Jobinnergrid", "New ~ Expenses", "@Url.Action("Frm_Job_Expense_Details", "JobRequestRegister", new {@area= "Stock" })?Job_ID=" + '@Model.Job_Id', "auto", 1024, false, null);
+        }// new click
+    function OnFrm_Job_Actual_Expenses_Delete_Click()
+        { if ("@IsDisabled"=="true") { return; }
+            if (Jobexpensessr == 'undefined' || Jobexpensessr == undefined || Jobexpensessr == null || Jobexpensessr  == "") {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+            deleteResultPaymentDetail.done(function (dialogResult) {
+
+                if (dialogResult) {
+                    JobincurredDelete();
+                }
+            });
+        }
+    function JobincurredDelete() {
+        $.ajax({
+            type: "POST",
+            url: "/Stock/JobRequestRegister/incurredDelete",
+            data: {
+                ID: JobActual_Expenses_Rec_Id,
+                SR: Jobexpensessr},
+            success: function (data) {
+
+                JobExpensesGrid.SetFocusedRowIndex(-1);
+                JobExpensesGrid.Refresh();
+            },
+            error: function (e) {
+            }
+        });
+    }
+    </script>
+

@@ -1,0 +1,998 @@
+﻿<div class="BankProfileWindow_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.BankAccount
+
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    bool Bank_LockUnlockRight = (bool)ViewData["Bank_LockUnlockRight"];
+    bool Bank_ListAdresBookRight = (bool)ViewData["Bank_ListAdresBookRight"];
+}
+<style>
+    .control-label {
+        text-align: left !important;
+    } 
+/*    .dx-checkbox-text {
+        width: auto;
+    }*/
+    #Txt_EmailID_Bank {
+        padding-right:3px;     
+    }
+    #Bankprf_manSignatory .dx-icon { width: 35px; height: 35px; line-height: normal; top: -15px; bottom: 0; right: 0; }
+    #Bankprf_manSignatory .dx-button-content { height: inherit; padding: 46px 12px 5px; }
+    #Fera_Acc_Div{height:55px}
+    #Fera_Acc_Div .form-field{padding-top:0}
+    #Fera_Acc_Div label { margin: 0; font-size: 12px; }
+    .flex-container { display: flex; flex-wrap: nowrap;}
+    .flex-container > div { width: 100%; }
+    .flex-container > div .form-field { height: 55px; display: flex; align-items: center; }
+    @@media screen and (max-width:767px) {
+        #Fera_Acc_Div, .flex-container > div .form-field { height: auto; }
+        .flex-container{display:block}
+    }
+</style>
+
+<div id="BankWindow">
+    @using (Ajax.BeginForm("Frm_Bank_Window", "Bank",
+                                             new AjaxOptions
+                                             {
+                                                 HttpMethod = "POST",
+                                                 UpdateTargetId = "BankWindow",
+                                                 InsertionMode = InsertionMode.InsertAfter,
+                                                 OnBegin = "AjaxBeginFormPost",
+                                                 OnSuccess = "BankAjaxSuccessForm"
+                                             },
+                                                  new
+                                                  {
+                                                      id = "BankPrfForm",
+                                                      @class = "edit_form"
+                                                  }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.LastEditedOn)
+        @Html.HiddenFor(x => x.Txt_CustNo_Tag)
+        @Html.HiddenFor(x => x.Txt_No_Tag)
+        @Html.HiddenFor(x => x.SignList1_REC_EDIT_ON)
+        @Html.HiddenFor(x => x.SignList2_REC_EDIT_ON)
+        @Html.HiddenFor(x => x.SignList3_REC_EDIT_ON)
+        @Html.HiddenFor(x => x.AddDate)
+        @Html.HiddenFor(x => x.AddBy)
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.bankData)
+        @Html.HiddenFor(x => x.Titlex_Bank)
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+        using (Html.DevExtreme().ValidationGroup("BankProfileValidator"))
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+                    <div class="col-sm-4" id="TitleX_Div_Bank">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>@Model.Titlex_Bank</h3>
+                    </div>
+                    <div class="col-sm-4" id="SubTitleX_Div_Bank">
+                        <h5 class="popuphead">@Model.SubTitlex_Bank</h5>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+            </div><!--[Header]-->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-6">
+                                @Html.LabelFor(model => model.Rad_AccType_Bank, htmlAttributes: new { @class = "control-label text-red" })
+                            </div>
+                            <div class="col-md-6 prm">
+                                @(Html.DevExtreme().RadioGroup().ID("Rad_AccType_Bank").Name("Rad_AccType_Bank").DisplayExpr("text").Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal).ValueExpr("value").DataSource(ViewBag.Rad_AccType_list).OnValueChanged("Rad_AccType_SelectedIndexChanged") )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-field">
+                        <div class="container-fluid" style="padding-bottom:2px">
+                            @(Html.DevExtreme().RadioGroup().ID("Rad_AccKind_Bank").Name("Rad_AccKind_Bank").DisplayExpr("text").Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal).ValueExpr("value").DataSource(new object[] { new { text = "New", value = "NEW" }, new { text = "Existing", value = "EXISTING" }, }).OnValueChanged("Rad_AccKind_SelectedIndexChanged") )
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-4">
+                                @Html.LabelFor(model => model.Txt_Date_Bank, htmlAttributes: new { @class = "control-label ", @id = "lbl_op_date_Bank" })
+                            </div>
+                            <div class="col-md-8 prm">
+                                @(Html.DevExtreme().DateBox().CustomDateBox().Name("Txt_Date_Bank").ID("Txt_Date_Bank").Value(Model.Txt_Date_Bank).ReadOnly(IsVisible).Min("01/01/1900").ShowClearButton(true).DateOutOfRangeMessage("Cannot Be Less Than 01-01-1900")) @*rm bug 132573 fix*@
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 1]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-md-2">
+                            @Html.LabelFor(model => model.GLookUp_BankList_Bank, htmlAttributes: new { @class = "control-label text-red" })
+                        </div>
+                        <div class="col-md-10 prm">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_BankList_Bank").Name("GLookUp_BankList_Bank").ValueExpr("REC_ID").DisplayExpr("BI_BANK_NAME").DataSource(d => d.Mvc().Controller("Bank").LoadAction("LookUp_GetBankList").Key("REC_ID")).Placeholder("Select Bank...").ReadOnly(true).OnValueChanged("GLookUp_BankList_EditValueChanged_Bank").ContentTemplate(@<text> @Html.Partial("LookUp_GetBankList") </text>) )
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 2]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-md-2">
+                            @Html.LabelFor(model => model.GLookUp_BranchList_Bank, htmlAttributes: new { @class = "control-label text-red" })
+                        </div>
+                        <div class="col-md-10 prm">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_BranchList_Bank").Name("GLookUp_BranchList_Bank").ValueExpr("BB_ID").DisplayExpr("BB_BRANCH_NAME").DataSource(d => d.Mvc().Controller("Bank").LoadAction("LookUp_GetBranchList").Key("BB_ID")).Placeholder("Select Branch...").ReadOnly(true).OnValueChanged("GLookUp_BranchList_EditValueChanged_Bank").ContentTemplate(@<text> @Html.Partial("LookUp_GetBranchList") </text>) )
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 3]-->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-4">
+                                @Html.LabelFor(model => model.Txt_PAN_Bank, htmlAttributes: new { @class = "control-label" })
+                            </div>
+                            <div class="col-md-8 prm">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_PAN_Bank").Name("Txt_PAN_Bank").Value(Model.Txt_PAN_Bank).ReadOnly(true).ValidationError(true).MaxLength(100) )
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-4">
+                                @Html.LabelFor(model => model.Txt_IFSC_Bank, htmlAttributes: new { @class = "control-label" })
+                            </div>
+                            <div class="col-md-8 prm">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_IFSC_Bank").Name("Txt_IFSC_Bank").Value(Model.Txt_IFSC_Bank).ReadOnly(true).MaxLength(100) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 4]-->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-4">
+                                @Html.LabelFor(model => model.Txt_TAN_Bank, htmlAttributes: new { @class = "control-label" })
+                            </div>
+                            <div class="col-md-8 prm">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Txt_TAN_Bank").Name("Txt_TAN_Bank").Value(Model.Txt_TAN_Bank).Placeholder("Type TAN No..").ReadOnly(IsVisible).MaxLength(100).ElementAttr("class", "uppercase").UseMaskedValue(true))
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-md-4">
+                                @Html.LabelFor(model => model.Txt_MICR_Bank, htmlAttributes: new { @class = "control-label" })
+                            </div>
+                            <div class="col-md-8 prm">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_MICR_Bank").Name("Txt_MICR_Bank").Value(Model.Txt_MICR_Bank).ReadOnly(true).MaxLength(100) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row 5]-->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+
+                            @Html.LabelFor(model => model.Txt_TelNo_Bank, htmlAttributes: new { @class = "control-label" })
+
+
+                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_TelNo_Bank").Name("Txt_TelNo_Bank").Value(Model.Txt_TelNo_Bank).Placeholder("Type Bank Tel. No...").ReadOnly(IsVisible).MaxLength(100) )
+
+
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+
+                            @Html.LabelFor(model => model.Txt_EmailID_Bank, htmlAttributes: new { @class = "control-label" })
+
+
+                            @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Txt_EmailID_Bank").Name("Txt_EmailID_Bank").Value(Model.Txt_EmailID_Bank).Placeholder("Type Bank Email ID...").ReadOnly(IsVisible).MaxLength(100) )
+
+
+                        </div>
+                    </div>
+                </div>
+                
+            </div><!--[Row 6]-->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        @Html.LabelFor(model => model.Txt_CustNo_Bank, htmlAttributes: new { @class = "control-label", @id = "Layout_Bank_Item_09" })<br>
+                        @(Html.DevExtreme().TextBox().CustomTextBox(true,true).ID("Txt_CustNo_Bank").Name("Txt_CustNo_Bank").Value(Model.Txt_CustNo_Bank).Placeholder("Type Customer No./Client Id.").ReadOnly(IsVisible).MaxLength(20) )
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3" id="AccountNo_Div">
+                <div class="form-field">
+                    @Html.LabelFor(model => model.Txt_No_Bank, htmlAttributes: new { @class = "control-label text-red", @id = "Layout_Bank_Item_05" })<br>
+                    @(Html.DevExtreme().TextBox().CustomTextBox(true,true).ID("Txt_No_Bank").Name("Txt_No_Bank").Value(Model.Txt_No_Bank).Placeholder("Type Bank Account No...").ReadOnly(IsVisible).MaxLength(20) )
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="flex-container">
+                    <div id="Fera_Acc_Div">
+                        <div class="form-field">
+                            <div class="pll">
+                                @Html.LabelFor(model => model.Chk_FERA_Bank, htmlAttributes: new { @class = "control-label text-red", @id = "lbl_chk_FERA" })<br>
+                                @(Html.DevExtreme().CheckBox().ID("Chk_FERA_Bank").Name("Chk_FERA_Bank").Text("FCRA Designated").Value(Model.Chk_FERA_Bank))
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-field">
+                            <div class="pll">
+                                @(Html.DevExtreme().CheckBox().ID("chk_Corpus_Bank").Name("chk_Corpus_Bank").Text("CORPUS").Value(Model.chk_Corpus_Bank))
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-field">
+                            <div class="pll">
+                                @(Html.DevExtreme().CheckBox().ID("chk_Reloadable_Card_Bank").Name("chk_Reloadable_Card_Bank").Text("Reloadable Card").Value(Model.chk_Reloadable_Card_Bank))
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-field">
+                            <div class="pll">
+                                @(Html.DevExtreme().CheckBox().ID("chk_FCRA_Util_Bank").Name("chk_FCRA_Util_Bank").Text("FCRA Utilization").Value(Model.chk_FCRA_Util_Bank))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+      </div>
+            
+
+
+            <div class="row">
+                <div class="col-md-4" id="LayoutControlGroup1_Bank">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <fieldset class="default-fieldset">
+                                <legend class="custom-legend mlm"><label>Balance:</label></legend>
+                                @Html.LabelFor(model => model.Txt_Amount_Bank, htmlAttributes: new { @class = "control-label", @id = "lbl_OpBalance" })<br>
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Txt_Amount_Bank").Name("Txt_Amount_Bank").Format("#0.00").Placeholder("Type Opening Balance") )
+                                <p class="text-red text-center"> @(Model.MsgBalance)</p>
+
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8" id="Sign_Div_Bank">
+                    <div class="form-field">
+                        <div class="container-fluid"style="padding:1px 0px 2px 0px">
+                            <fieldset class="default-fieldset">
+                                <legend class="custom-legend mlm"><label>Signatories:</label></legend>
+                                <div class="col-md-9">
+                                    <div class="row">
+                                        <div class="col-xs-1">
+                                            @Html.LabelFor(model => model.Look_SignList1_Bank, htmlAttributes: new { @class = "control-label text-red" })
+                                        </div>
+                                        <div class="col-xs-11 prm">
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Look_SignList1_Bank").Name("Look_SignList1_Bank").ValueExpr("ID").DisplayExpr("Name").Placeholder("Select Signatory...").DataSource(d => d.Mvc().Controller("Bank").LoadAction("LookUp_Sign1List").Key("ID")).OnValueChanged("Look_SignList1_EditValueChanged").ReadOnly(IsVisible).ContentTemplate(@<text> @Html.Partial("LookUp_Sign1List") </text>) )
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-xs-1">
+                                            @Html.LabelFor(model => model.Look_SignList2_Bank, htmlAttributes: new { @class = "control-label" })
+                                        </div>
+                                        <div class="col-xs-11 prm">
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Look_SignList2_Bank").Name("Look_SignList2_Bank").ValueExpr("ID").DisplayExpr("Name").Placeholder("Select Signatory...").DataSource(d => d.Mvc().Controller("Bank").LoadAction("LookUp_Sign2List").Key("ID")).OnValueChanged("Look_SignList2_EditValueChanged").ReadOnly(IsVisible).ContentTemplate(@<text> @Html.Partial("LookUp_Sign2List") </text>) )
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-xs-1">
+                                            @Html.LabelFor(model => model.Look_SignList3_Bank, htmlAttributes: new { @class = "control-label" })
+                                        </div>
+                                        <div class="col-xs-11 prm">
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Look_SignList3_Bank").Name("Look_SignList3_Bank").ValueExpr("ID").DisplayExpr("Name").Placeholder("Select Signatory...").DataSource(d => d.Mvc().Controller("Bank").LoadAction("LookUp_Sign3List").Key("ID")).OnValueChanged("Look_SignList3_EditValueChanged").ReadOnly(IsVisible).ContentTemplate(@<text> @Html.Partial("LookUp_Sign3List") </text>) )
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    @(Html.DevExtreme().Button().Icon(Url.Content("../../../../Icons/add user.png")).ID("Bankprf_manSignatory").Text("Manage Signatories").Disabled(((Model.ActionMethod.ToString().Trim() == "_Delete") || (Model.ActionMethod.ToString().Trim() == "_View")) ? true : false).OnClick(@<text> function(){ Add_New_Singnature() } </text>).UseSubmitBehavior(false).Height("auto").Width("auto"))@*Redmine Bug #132527 resolved*@
+                                </div>
+
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-md-2">
+                            @Html.LabelFor(model => model.Txt_Remarks_Bank, htmlAttributes: new { @class = "control-label" })
+                        </div>
+                        <div class="col-md-10 prm">
+                            @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Txt_Remarks_Bank").Name("Txt_Remarks_Bank").Value(Model.Txt_Remarks_Bank).Placeholder("Type any other details/ Remarks..").ReadOnly(IsVisible).MaxLength(250) )
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ {1})...", Model.ActionMethod.ToString().Trim().Substring(1), Model.Titlex_Bank))
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <div class="styleActionBtn">
+                                @(Html.DevExtreme().Button().ID("BUT_SAVE_BankPrf").CustomSaveButton().Text((Model.ActionMethod.ToString().Trim() == "_New" || Model.ActionMethod.ToString().Trim() == "_New_From_Selection" || Model.ActionMethod.ToString().Trim() == "_Edit") ? "Save" : "Delete").UseSubmitBehavior(false).Visible(Model.ActionMethod.ToString().Trim() == "_View" ? false : true).OnClick("bankPRf_SaveClick"))
+                                @(Html.DevExtreme().Button().ID("BUT_CANCEL_BankPrf").CustomCloseButton().Text((Model.ActionMethod.ToString().Trim() == "_New" || Model.ActionMethod.ToString().Trim() == "_Edit" || Model.ActionMethod.ToString().Trim() == "_Delete") ? "Cancel" : "Close").FocusStateEnabled(true).OnClick(@<text> function () {    $("#popup_frm_Bank_Window").dxPopup("hide"); } </text>) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+        }
+    }
+</div>
+                    <script>
+    var Bank_DG_BankPrf;
+    var Branch_DG_BankPrf;
+    var SignList1_DG_BankPrf;
+    var SignList2_DG_BankPrf;
+    var SignList3_DG_BankPrf;
+    var ActionMethod_Bank = "@Model.ActionMethod";
+    var BankWindow_TakeCloseConfirmation = false;
+    async function LookUp_GetBankList_Bank()
+    {        
+        var $Bank_DG_BankPrf = $("#Frm_Profile_Win_Bank_GLookUp_BankList_datagrid");
+        if ($Bank_DG_BankPrf.length)
+        {
+            Bank_DG_BankPrf = $Bank_DG_BankPrf.dxDataGrid("instance");
+            var ddRefresh = false;
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Bank/RefreshBankList",
+                cache: false,
+                async: false,
+                success: function (data)
+                {
+                    ddRefresh = data.result;
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, "Error..");
+                    }
+                }
+            });
+            if (ddRefresh)
+            {
+                if (ActionMethod_Bank == "_New") {
+                    Control_SetReadOnly("GLookUp_BankList_Bank", "dxDropDownBox", false);
+                }
+                await Bank_DG_BankPrf.refresh();             
+            }
+        }
+    }
+    async function LookUp_GetBranchList_Bank()
+    {
+        var $Branch_DG_BankPrf = $("#Frm_Profile_Win_Bank_GLookUp_BranchList_datagrid");
+        if ($Branch_DG_BankPrf.length)
+        {
+            Branch_DG_BankPrf = $Branch_DG_BankPrf.dxDataGrid("instance");
+            var ddRefresh = false;
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Bank/RefreshBranchList",
+                cache: false,
+                async: false,
+                data: { bankID: bankData},
+                success: function (data)
+                {
+                    ddRefresh = data.result;
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, "Error..");
+                    }
+                }
+            });
+            if (ddRefresh)
+            {
+                if (ActionMethod_Bank == "_New") {
+                    Control_SetReadOnly("GLookUp_BranchList_Bank", "dxDropDownBox", false);
+                }
+                await Branch_DG_BankPrf.refresh();            
+            }
+        }
+    }
+    async function LookUp_SignList_Bank()
+    {        
+        var $SignList1_DG_BankPrf = $("#Sign1-datagrid");
+        var $SignList2_DG_BankPrf = $("#Sign2-datagrid");
+        var $SignList3_DG_BankPrf = $("#Sign3-datagrid");
+        if ($SignList1_DG_BankPrf.length)
+        {
+            SignList1_DG_BankPrf = $SignList1_DG_BankPrf.dxDataGrid("instance");
+        }
+        if ($SignList2_DG_BankPrf.length)
+        {
+            SignList2_DG_BankPrf = $SignList2_DG_BankPrf.dxDataGrid("instance");
+        }
+        if ($SignList3_DG_BankPrf.length)
+        {
+            SignList3_DG_BankPrf = $SignList3_DG_BankPrf.dxDataGrid("instance");
+        }
+        var ddRefresh = false;
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Bank/RefreshSignList",
+            cache: false,
+            async: false,
+            success: function (data) {
+                ddRefresh = data.result;
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error..");
+                }
+            }
+        });
+        if (ddRefresh)
+        {
+            await Promise.all([SignList1_DG_BankPrf.refresh(), SignList2_DG_BankPrf.refresh(), SignList3_DG_BankPrf.refresh()]);
+        }
+    }
+                    </script>@* DD init *@
+                    <script>
+                        var bankData = "";
+                        var Bank_DD_ValueChange_Complete = false;
+                        function GLookUp_BankList_EditValueChanged_Bank(e) {
+                            Bank_DD_ValueChange_Complete = false;
+                            e.component.close();
+                            if (e.value == null && e.previousValue != null) {
+                                Bank_DG_BankPrf.clearSelection();
+                                Branch_DG_BankPrf.clearSelection();
+                                Bank_DD_ValueChange_Complete = true;
+                                return;
+                            }
+                            if (Bank_DG_BankPrf.getSelectedRowsData().length > 0) {
+                                ShowLoader();
+                                var item = Bank_DG_BankPrf.getSelectedRowsData()[0];
+                                bankData = item.REC_ID;
+                                $("#Txt_PAN_Bank").dxTextBox("instance").option("value", item["BI_BANK_PAN_NO"]);
+                                LookUp_GetBranchList_Bank().then((r) => { Bank_DD_ValueChange_Complete = true; HideLoader(); });
+                            }
+                        }
+                        function GLookUp_BranchList_EditValueChanged_Bank(e) {
+                            e.component.close();
+                            if (e.value == null && e.previousValue != null) {
+                                Branch_DG_BankPrf.clearSelection();
+                                return;
+                            }
+                            if (Branch_DG_BankPrf.getSelectedRowsData().length > 0) {
+                                var item = Branch_DG_BankPrf.getSelectedRowsData()[0];
+                                $("#Txt_IFSC_Bank").dxTextBox("instance").option("value", item["BB_IFSC_CODE"]);
+                                $("#Txt_MICR_Bank").dxTextBox("instance").option("value", item["BB_MICR_CODE"]);
+                            }
+                        }
+                        function Look_SignList1_EditValueChanged(e) {
+                            e.component.close();
+                            if (e.value == null && e.previousValue != null) {
+                                SignList1_DG_BankPrf.clearSelection();
+                                return;
+                            }
+                            if (SignList1_DG_BankPrf.getSelectedRowsData().length > 0) {
+                                var item = SignList1_DG_BankPrf.getSelectedRowsData()[0];
+                                $("#SignList1_REC_EDIT_ON").val(item["REC_EDIT_ON"]);
+                            }
+                        }
+                        function Look_SignList2_EditValueChanged(e) {
+                            e.component.close();
+                            if (e.value == null && e.previousValue != null) {
+                                SignList2_DG_BankPrf.clearSelection();
+                                return;
+                            }
+                            if (SignList2_DG_BankPrf.getSelectedRowsData().length > 0) {
+                                var item = SignList2_DG_BankPrf.getSelectedRowsData()[0];
+                                $("#SignList2_REC_EDIT_ON").val(item["REC_EDIT_ON"]);
+                            }
+                        }
+                        function Look_SignList3_EditValueChanged(e) {
+                            e.component.close();
+                            if (e.value == null && e.previousValue != null) {
+                                SignList3_DG_BankPrf.clearSelection();
+                                return;
+                            }
+                            if (SignList3_DG_BankPrf.getSelectedRowsData().length > 0) {
+                                var item = SignList3_DG_BankPrf.getSelectedRowsData()[0];
+                                $("#SignList3_REC_EDIT_ON").val(item["REC_EDIT_ON"]);
+                            }
+                        }
+                        function Rad_AccType_SelectedIndexChanged(e) {
+                            if (e.value == "FD") {
+                                $("#Layout_Bank_Item_05").removeClass("text-red");
+                                $("#Txt_No_Bank").dxTextBox("instance").option("readOnly", true);
+                                $("#Txt_No_Bank").dxTextBox("instance").option("value", "");
+                                $("#Layout_Bank_Item_05").addClass("disabletxt").removeClass("text-red");
+                                $("#Layout_Bank_Item_09").addClass("text-red");
+                                $("#Chk_FERA_Bank").dxCheckBox("instance").option("readOnly", true);
+                                $("#Chk_FERA_Bank").dxCheckBox("instance").option("value", false);
+                                $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", true);
+                                $("#lbl_OpBalance").addClass("disabletxt").removeClass("text-red");
+                                if (ActionMethod_Bank != "_View") {
+                                    $("#Txt_Amount_Bank").dxNumberBox("instance").option("value", null);
+                                }
+                                $("#LayoutControlGroup1_Bank").hide();
+                                $("#Sign_Div_Bank").removeClass("col-md-8").addClass("col-md-12");
+                            }
+                            else {
+                                $("#Layout_Bank_Item_05").addClass("text-red");
+                                $("#Txt_No_Bank").dxTextBox("instance").option("readOnly", false);
+                                $("#Txt_No_Bank").dxTextBox("instance").option("value", "");
+                                $("#Layout_Bank_Item_05").removeClass("disabletxt").addClass("text-red");
+                                $("#Layout_Bank_Item_09").removeClass("text-red");
+                                $("#Chk_FERA_Bank").dxCheckBox("instance").option("readOnly", false);
+                                $("#Chk_FERA_Bank").dxCheckBox("instance").option("value", false);
+                                if ($("#Rad_AccKind_Bank").dxRadioGroup("instance").option("value") == "EXISTING") {
+                                    $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", false);
+                                    $("#lbl_OpBalance").removeClass("disabletxt").addClass("text-red");
+                                }
+                                else {
+                                    $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", true);
+                                    $("#lbl_OpBalance").addClass("disabletxt").removeClass("text-red");
+                                }
+                                if (ActionMethod_Bank != "_View") {
+                                    $("#Txt_Amount_Bank").dxNumberBox("instance").option("value", null);
+                                }
+                                $("#LayoutControlGroup1_Bank").show();
+                                $("#Sign_Div_Bank").removeClass("col-md-12").addClass("col-md-8");
+                            }
+                        }
+                        function Rad_AccKind_SelectedIndexChanged(e) {
+                            if (e.value == "NEW") {
+                                $("#SubTitleX_Div_Bank").hide();
+                                $("#TitleX_Div_Bank").removeClass("col-sm-4").addClass("col-sm-8");
+                                $("#lbl_op_date_Bank").addClass("text-red");
+                                $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", true);                                
+                                $("#Txt_Amount_Bank").dxNumberBox("instance").option("value", null);
+                                $("#lbl_OpBalance").addClass("disabletxt").removeClass("text-red");
+                                $("#chk_Corpus_Bank").dxCheckBox("instance").option("readOnly", false);
+                            }
+                            else {                                
+                                $("#SubTitleX_Div_Bank").show();
+                                $("#TitleX_Div_Bank").removeClass("col-sm-8").addClass("col-sm-4");
+                                $("#lbl_op_date_Bank").removeClass("text-red");
+                                $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", false);
+                                $("#Txt_Amount_Bank").dxNumberBox("instance").option("value", null);
+                                $("#lbl_OpBalance").removeClass("disabletxt").addClass("text-red");
+                                $("#chk_Corpus_Bank").dxCheckBox("instance").option("readOnly", true);
+                                $("#chk_Corpus_Bank").dxCheckBox("instance").option("value", false);
+                            }
+                        }
+                        function Txt_Amount_EditValueChanged_Bank(e) {
+                            $("#lbl_OpBalance").show();
+                        }
+
+                    </script>@* Value Change *@
+                    <script>
+    function bankPRf_SaveClick(e)
+    {
+        if (ActionMethod_Bank == "_Delete") {
+            var confirm = DevExpress.ui.dialog.confirm("Sure You Want To Delete This Entry...?", "Confirm");
+            confirm.done(function (result) {
+                if (result) {
+                    $("#BankPrfForm").submit();
+                }
+            });
+        }
+        else
+        {
+            var check = e.validationGroup.validate();
+            if (check.isValid)
+            {
+                $("#BankPrfForm").submit();
+            }
+        }
+    }
+    function BankAjaxSuccessForm(data)
+    {
+        BankWindow_TakeCloseConfirmation = false;
+        HideLoader();    
+        if (data.jsonParam.result == false)
+        {
+            if (data.jsonParam.refreshgrid)
+            {
+                var GridInstance = $('#BankListGrid_dx').data("dxDataGrid")
+                if (GridInstance !== void 0) {
+                    BankListGrid_dx_Refresh();
+                }
+                else {
+                    BankListGrid.Refresh();
+                }           
+            }
+            var alert = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alert.done(function (dialogResult)
+            {
+                if (data.jsonParam.focusid != null)
+                {
+                    if (dialogResult)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+            if (data.jsonParam.closeform == true)
+            {
+                $("#popup_frm_Bank_Window").dxPopup("hide");
+            }
+        }
+        else
+        {
+            var GridInstance = $('#BankListGrid_dx').data("dxDataGrid")
+            if (GridInstance !== void 0)
+            {
+                if (data.xid != null)
+                {
+                    Select_xid_bank_dx = data.xid;
+                }
+                BankListGrid_dx_Refresh();
+            }
+            else if (typeof BankListGrid !== 'undefined')
+            {            
+                if (data.xid != null)
+                {
+                    Select_xid = data.xid;
+                }
+                BankListGrid.Refresh();
+            }     
+            var check = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            check.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    if (typeof BankListGrid !== 'undefined' || GridInstance !== void 0)
+                    {
+                        if (ActionMethod_Bank == "_New")
+                        {
+                            var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "New ~ Bank Account");
+                            confirm.done(function (Result)
+                            {
+                                if (Result)
+                                {
+                                    if (GridInstance !== void 0)
+                                    {
+                                        BankProfile_OnNewClick_dx()
+                                    }
+                                    else
+                                    {
+                                        BankProfile_OnNewClick();
+                                    }                                    
+                                }
+                            });
+                        }
+                        else if (ActionMethod_Bank == "_Edit")
+                        {
+                            if ("@Bank_LockUnlockRight" == "True")
+                            {
+                                var confirm = DevExpress.ui.dialog.confirm('Do you want to <font color=red>Lock</font> this Entry...?', "Confirmation");
+                                confirm.done(function (Result)
+                                {
+                                    if (Result)
+                                    {
+                                        if (GridInstance !== void 0)
+                                        {
+                                            BankOnLockClick_dx();
+                                        }
+                                        else
+                                        {
+                                            BankOnLockClick();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+                if (data.jsonParam.closeform == true)
+                {
+                    $("#popup_frm_Bank_Window").dxPopup("hide");
+                }
+            });
+        }
+    }
+                    </script>@* Save And Save success *@
+                    <script>
+    function Add_New_Singnature()
+    {
+        if ("@Bank_ListAdresBookRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (ActionMethod_Bank == "_New" || ActionMethod_Bank == "_Edit")
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'Get',
+                url: "/Facility/AddressBook/Frm_Address_Info_dx",
+                data: { PopUpId: "BankPrf_ManageSign", PartyRefreshFunction:"LookUp_SignList_Bank"},
+                cache: false,
+                success: function (resultsuccess)
+                {
+                    OpenPopup("BankPrf_ManageSign", "Address Book(Bank Signatories)...", null, "auto", 1000, true, resultsuccess);
+                }
+            });
+        }
+    }
+
+
+    $("#Txt_TelNo_Bank").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9,]/;
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Txt_CustNo_Bank").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9A-Za-z-\/]/;
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Txt_No_Bank").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9A-Za-z-\/]/;
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+                    </script>@* Manage Signatory *@
+<script>
+    $(document).ready(function ()
+    {
+        if (ActionMethod_Bank != "_View") {
+            BankWindow_TakeCloseConfirmation = true;
+        }
+        ShowLoader_Ready();
+        TransformTextForDB("BankPrfForm");//Redmine Bug #132560 resolved
+        var form = "BankPrfForm";
+        AssignIDtoLabel(form, "BankPrf");
+        Promise.all([LookUp_GetBankList_Bank(), LookUp_SignList_Bank()]).then((r) =>
+       {
+            $("#Rad_AccKind_Bank").dxRadioGroup("instance").option("value", "EXISTING");
+            if (ActionMethod_Bank == "_Edit" || ActionMethod_Bank == "_Delete" || ActionMethod_Bank == "_View") {
+                Data_Binding_Bank();                
+                if ("@Model.chk_Corpus_Bank" == "True") {
+                    $("#chk_Corpus_Bank").dxCheckBox("instance").option("value", true);
+                } else {
+                    $("#chk_Corpus_Bank").dxCheckBox("instance").option("value", false);
+                }                
+                
+            }
+            else
+            {
+                $("#Rad_AccType_Bank").dxRadioGroup("instance").option("value", "@Model.Rad_AccType_Bank");
+                if ("@Model.Rad_AccKind_Bank".length > 0)
+                {
+                    $("#Rad_AccKind_Bank").dxRadioGroup("instance").option("value", "@Model.Rad_AccKind_Bank");
+                }
+            }
+            if ("@Model.Rad_AccType_readonly" == "True")
+            {
+                $("#Rad_AccType_Bank").dxRadioGroup("instance").option("readOnly", true);
+            }
+            if ("@Model.Rad_AccKind_readonly" == "True")
+            {
+                $("#Rad_AccKind_Bank").dxRadioGroup("instance").option("readOnly", true);
+            }
+            if ("@Model.GLookUp_BankList_readonly" == "True")
+            {
+                Control_SetReadOnly("GLookUp_BankList_Bank", "dxDropDownBox", true);
+            }
+            if ("@Model.GLookUp_BranchList_readonly" == "True")
+            {
+                Control_SetReadOnly("GLookUp_BranchList_Bank", "dxDropDownBox", true);
+            }
+            if ("@Model.Txt_Amount_readonly" == "True")
+            {
+                $("#Txt_Amount_Bank").dxNumberBox("instance").option("readOnly", true);
+            }
+            if ("@Model.Fera_Visibility" == "False")
+            {
+                $("#Fera_Acc_Div").hide();
+                $("#AccountNo_Div").removeClass("col-md-8").addClass("col-md-12");
+            }
+            SetValidation_BankProfile(); 
+            setTimeout(function () {
+                Set_Form_View_Delete_Mode(null, form, ActionMethod_Bank);
+                //Focus_FirstEditable_Field(form, ActionMethod_Bank);
+                if (ActionMethod_Bank == "_New" || ActionMethod_Bank == "_Edit")
+                {
+                    $("#Rad_AccType_Bank").dxRadioGroup("instance").focus();
+                }
+                HideLoader_Ready();
+            }, Timeout500);
+        });
+    });
+    function Data_Binding_Bank()
+    {
+        Bank_DG_BankPrf.selectRows("@Model.GLookUp_BankList_Bank", false).then((r) =>
+        {
+            if ("@Model.GLookUp_BankList_readonly" != "True") {
+                Control_SetReadOnly("GLookUp_BankList_Bank", "dxDropDownBox", false);
+            }
+            waitForBankValueChangeToGetOver();
+            function waitForBankValueChangeToGetOver()
+            {
+                if (Bank_DD_ValueChange_Complete == true)
+                {
+                    Branch_DG_BankPrf.selectRows("@Model.GLookUp_BranchList_Bank", false);
+                    if (ActionMethod_Bank != "_Delete" && ActionMethod_Bank != "_View" &&"@Model.GLookUp_BranchList_readonly"!="True")
+                    {
+                        Control_SetReadOnly("GLookUp_BranchList_Bank", "dxDropDownBox", false);
+                    }//Redmine Bug #133248 fixed
+                }
+                else
+                {
+                    setTimeout(function ()
+                    {
+                        waitForBankValueChangeToGetOver();
+                    }, Timeout100);
+                }
+            }
+        });
+        $("#Rad_AccType_Bank").dxRadioGroup("instance").option("value", "@Model.Rad_AccType_Bank");
+        $("#Txt_No_Bank").dxTextBox("instance").option("value", TransformText("@Model.Txt_No_Bank"));
+        $("#Rad_AccKind_Bank").dxRadioGroup("instance").option("value", "@Model.Rad_AccKind_Bank");
+        $("#Txt_CustNo_Bank").dxTextBox("instance").option("value", TransformText("@Model.Txt_CustNo_Bank"));
+        SignList1_DG_BankPrf.selectRows("@Model.Look_SignList1_Bank", false);
+        if ("@Model.Look_SignList2_Bank".length > 0)
+        {
+            SignList2_DG_BankPrf.selectRows("@Model.Look_SignList2_Bank", false);
+        }
+        if ("@Model.Look_SignList3_Bank".length > 0)
+        {
+            SignList3_DG_BankPrf.selectRows("@Model.Look_SignList3_Bank", false);
+        }
+        if ("@Model.Txt_Amount_Bank".length > 0)
+        {
+            $("#Txt_Amount_Bank").dxNumberBox("instance").option("value", parseFloat("@Model.Txt_Amount_Bank"));
+        }
+        if ("@Model.Chk_FERA_Bank" == "True")
+        {
+            $("#Chk_FERA_Bank").dxCheckBox("instance").option("value", true);
+        }
+        else
+        {
+            $("#Chk_FERA_Bank").dxCheckBox("instance").option("value", false);
+        }
+    }
+    $(function ()
+    {
+        $("#popup_frm_Bank_Window").dxPopup({
+
+            onHiding: function (e)
+            {
+                if (BankWindow_TakeCloseConfirmation == false)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Bank/SessionClear_Window",
+                        cache: false
+                    });
+                }
+                else
+                {
+                    e.cancel = true;
+                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                    result.done(function (dialogResult)
+                    {
+                        BankWindow_TakeCloseConfirmation = !dialogResult;
+                        if (dialogResult)
+                        {
+                            $("#popup_frm_Bank_Window").dxPopup("hide");
+                        }
+                    });
+                }
+            }
+        });
+    });
+                        function SetValidation_BankProfile()
+                        {
+                            var Txt_TAN_Bank = $("#Txt_TAN_Bank").dxTextBox("instance");
+                            Txt_TAN_Bank.option
+                                ({
+                                    "mask": 'AAAANNNNNA',
+                                    "maskRules":
+                                    {
+                                        'A': /[A-Za-z]/,
+                                        'N': /[0-9]/
+                                    },
+                                    "maskInvalidMessage": "* Invalid TAN No..."
+                                });
+                            Txt_TAN_Bank.option("isValid", true);
+                            $("#Txt_TAN_Bank").dxTextBox({})
+                                .dxValidator({
+                                    validationRules: [{
+                                        type: 'custom',
+                                        validationCallback: function (options) {
+                                            var result = Txt_TAN_Bank.option("isValid");
+                                            return result;
+                                        },
+                                        reevaluate: true,
+                                        message: '* Invalid TAN No.'
+                                    }],
+                                    validationGroup: "BankProfileValidator"
+                                });
+                            $("#Txt_Date_Bank").dxDateBox({})
+                                .dxValidator({
+                                    validationRules: [{
+                                        type: 'custom',
+                                        validationCallback: function (options) {
+                                            var result = $("#Txt_Date_Bank").dxDateBox("instance").option("isValid");
+                                            return result;
+                                        },
+                                        reevaluate: true,
+                                        message: 'Cannot Be Less Than 01-01-1900'
+                                    }],
+                                    validationGroup: "BankProfileValidator"
+                                });
+                        }
+</script>@* Document.ready *@
+    </div>

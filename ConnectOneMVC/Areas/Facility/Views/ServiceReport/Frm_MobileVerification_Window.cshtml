@@ -1,0 +1,267 @@
+﻿<style>
+    #MobileVerification_gsr_div {
+        padding: 0 0;
+    }
+</style>
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Facility.Models.ServiceReport_ViewModel
+<div class="container-fluid" id="MobileVerification_gsr_div">
+    <form id="MobileVerification_form_GSR" class="edit_form form-horizontal GSRForm">
+        <div class="row" id="PlantLocationDiv_GSR" style="display:none">
+            <div class="col-sm-12">
+                <div class="form-field">
+                    @Html.Label("Tree Plantation Location: ", htmlAttributes: new { @class = "control-label", @style = "font-weight:500" })
+                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_TreeLocation_GSR").Name("Txt_TreeLocation_GSR").ReadOnly(true).Value(Model.Txt_TreeLocation_GSR)
+                          .Buttons(x => { x.Add().Name("GetLocation_GSR").Location(TextEditorButtonLocation.After).Widget(w => w.Button().Text("Get Location").OnClick("GetLocation_GSR_Click").UseSubmitBehavior(false).Disabled(false));}))
+
+                </div>
+            </div>
+        </div>
+        <div id="MobileVerificationDiv_GSR" style="display:none">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                @Html.Label("Mobile No: ", htmlAttributes: new { @class = "control-label", @style = "font-weight:500" })
+                            </div>
+                            <div class="col-sm-6">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                                    .ID("Txt_MobNoVerification_GSR")
+                                                    .Name("Txt_MobNoVerification_GSR")
+                                                    .Placeholder("Type Mobile Number...")
+                                                    .MaxLength(10)
+                                                    .Mask("0000000000").MaskInvalidMessage("Please Enter 10 Digit Valid Mobile No.")
+                                                    .Mode(TextBoxMode.Tel).Value(string.IsNullOrWhiteSpace(Model.Txt_MobNoVerification_GSR) ?null:Model.Txt_MobNoVerification_GSR))
+                            </div>
+                            <div class="col-sm-3" id="Btn_Send_Otp_Gsr_Div">
+                                @(Html.DevExtreme().Button().ID("Send_OTP_GSR").Text("Send OTP").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick(@<text>function(){Send_OTP_GSR_Click()}</text>))
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row" id="Time_GSR_Span" style="display:none">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <label class="control-label"></label>
+                    </div>
+                </div>
+            </div>
+            <div class="row" id="Verify_Otp_GSR_Div" style="display:none">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                @Html.Label("Enter OTP: ", htmlAttributes: new { @class = "control-label", @style = "font-weight:500" })
+                            </div>
+                            <div class="col-sm-6">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                                    .ID("Txt_OTP_GSR")
+                                                    .Name("Txt_OTP_GSR")
+                                                    .Placeholder("Enter OTP...")
+                                                    .MaxLength(6)
+                                                    .Mask("000000").MaskInvalidMessage("Please Enter 6 Digit OTP").Mode(TextBoxMode.Tel))
+                            </div>
+                            <div class="col-sm-3">
+                                @(Html.DevExtreme().Button().ID("Verify_OTP_GSR").Text("Verify OTP").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick(@<text>function(){Verify_OTP_GSR_Click()}</text>).Visible(false))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="MobVerifySave_Div">
+            <div class="col-sm-12">
+                <div class="form-field">
+                    <div class="styleActionBtn">
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("MobileVerificationSave_GSR").Text("OK").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick(@<text>function(){MobileVerificationSave_GSR_Click()}</text>))
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+    var OTP_Sent_GSR = false;
+    var otp_expire_time_GSR = null;
+    var intervalId_GSR = null;
+    $(document).ready(function ()
+    {
+        if (GetLocation_GSR == true)
+        {
+            $("#PlantLocationDiv_GSR").show();
+            GetLocation_GSR_Click();
+        }
+        if (Tag_GSR == "_New" && Centre_VenueType_GSR == true)
+        {
+            $("#Txt_TreeLocation_GSR").dxTextBox("option", "value", "@Model.Cen_Location_Coordinates")
+        }
+        if (Mobile_Verified_GSR == false)
+        {
+            $("#MobileVerificationDiv_GSR").show();
+            setTimeout(function ()
+            {
+                $("#Txt_MobNoVerification_GSR").dxTextBox("focus");
+            }, 200)
+        }
+    })
+    var timer_GSR = function () {
+        if (OTP_Sent_GSR) {
+            var now = new Date().getTime();
+            var distance = otp_expire_time_GSR - now;
+            //var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            //var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            $("#Btn_Send_Otp_Gsr_Div").hide();
+            $("#Txt_MobNoVerification_GSR").dxTextBox("option", "readOnly", true)
+            $("#Time_GSR_Span label").text("Your OTP will be Valid till " + minutes + "m " + seconds + "s ");
+            $("#Time_GSR_Span").show();
+
+            if (distance < 0) {
+                $("#Time_GSR_Span label").text("");
+                $("#Time_GSR_Span").hide();
+                $("#Verify_Otp_GSR_Div").hide();
+
+                $("#Btn_Send_Otp_Gsr_Div").show();
+                $("#Txt_MobNoVerification_GSR").dxTextBox("option", "readOnly", false)
+                clearTime_GSR();
+            }
+        }
+    }
+    function clearTime_GSR() {
+        clearInterval(intervalId_GSR);
+    }
+    function Send_OTP_GSR_Click() {
+        debugger
+        ShowLoader();
+        var MobNo = $("#Txt_MobNoVerification_GSR").dxTextBox("option", "value");
+        if (MobNo == null) {
+            DevExpress.ui.dialog.alert('Please Enter 10 Digit Valid Mobile No.', "Information...").done(
+                function () { $("#Txt_Mobile_Verification_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        if (MobNo.length != 10) {
+            DevExpress.ui.dialog.alert('Please Enter 10 Digit Valid Mobile No.', "Information...").done(
+                function () { $("#Txt_Mobile_Verification_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        if ($("#Txt_MobNoVerification_GSR").dxTextBox("option", "isValid") == false) {
+            DevExpress.ui.dialog.alert('Please Enter 10 Digit Valid Mobile No.', "Information...").done(
+                function () { $("#Txt_Mobile_Verification_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/ServiceReport/SendOtp",
+            cache: false,
+            data: { Mobile: MobNo },
+            success: function (data) {
+                HideLoader();
+                if (data.jsonParam.result == false) {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title).done(
+                        function () {
+                            $("#Txt_MobNoVerification_GSR").dxTextBox("focus")
+                        });
+                }
+                else {
+                    OTP_Sent_GSR = true;
+                    intervalId_GSR = setInterval(timer_GSR, 1000);
+                    let d = new Date();
+                    let minutes = d.getMinutes();
+                    d.setMinutes(minutes + 5);
+                    otp_expire_time_GSR = d;
+                    $("#Btn_Send_Otp_Gsr_Div").hide();
+                    $("#Time_GSR_Span").show();
+                    $("#Verify_Otp_GSR_Div").show();
+
+                    $("#Txt_MobNoVerification_GSR").dxTextBox("option", "readOnly", true)
+                    $("#Txt_OTP_GSR").dxTextBox("focus");
+                }
+            }
+        });
+    }
+    function Verify_OTP_GSR_Click()
+    {
+        debugger
+        ShowLoader();
+        if ($("#Txt_OTP_GSR").dxTextBox("option", "isValid") == false)
+        {
+            DevExpress.ui.dialog.alert('Please Enter 6 Digit OTP', "Information...").done(
+                function () { $("#Txt_OTP_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        var _OTP = $("#Txt_OTP_GSR").dxTextBox("option", "value");
+        var MobNo = $("#Txt_MobNoVerification_GSR").dxTextBox("option", "value");
+        if (MobNo==null||MobNo.length != 10) {
+            DevExpress.ui.dialog.alert('Please Enter 10 Digit Valid Mobile No.', "Information...").done(
+                function () { $("#Txt_Mobile_Verification_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        if (_OTP == null || _OTP.length != 6)
+        {
+            DevExpress.ui.dialog.alert('Please Enter 6 Digit OTP', "Information...").done(
+                function () { $("#Txt_OTP_GSR").dxTextBox("focus") });
+            HideLoader();
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/ServiceReport/VerifyOtp",
+            cache: false,
+            data: { Mobile: MobNo, OTP: _OTP },
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title).done(
+                        function () {
+                            $("#Txt_OTP_GSR").dxTextBox("focus")
+                        });
+                }
+                else
+                {
+                    Mobile_Verified_GSR = true;
+                   // DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                    clearTime_GSR()
+                    $("#Time_GSR_Span label").text("Mobile Number Verified");
+                    $("#Verify_Otp_GSR_Div").hide();
+                    MobileVerificationSave_GSR_Click()
+                }
+            }
+        });
+    }
+    function MobileVerificationSave_GSR_Click(e)
+    {
+        debugger
+        ShowLoader();
+        var LocationCoordinate = $("#Txt_TreeLocation_GSR").dxTextBox("option", "value");
+        var MobNo = $("#Txt_MobNoVerification_GSR").dxTextBox("option", "value");
+        if (IsNullOrWhitespace(null, null, LocationCoordinate)) {
+            DevExpress.ui.dialog.alert("Location Not Available<br>Please Click Get Location Button", "Information")
+            HideLoader();
+            return;
+        }
+        if (Mobile_Verified_GSR == false)
+        {
+            //DevExpress.ui.dialog.alert("Mobile Number Not Verified<br>Verify The Mobile Number By Entering The OTP That You Will Receive", "Information")
+            HideLoader();
+            Verify_OTP_GSR_Click()
+            return;
+        }
+        else
+        {
+            AfterMobileVerification_GSR(MobNo, LocationCoordinate)
+        }
+    }
+</script>
+

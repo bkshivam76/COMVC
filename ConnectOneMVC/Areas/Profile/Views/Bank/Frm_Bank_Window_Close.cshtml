@@ -1,0 +1,171 @@
+﻿<div class="BankProfileClose_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.BankAccountOperation
+@{
+
+}
+<div>
+    @using (Ajax.BeginForm("Frm_Bank_Window_Close", "Bank",
+        new AjaxOptions
+        {
+            HttpMethod = "POST",
+            InsertionMode = InsertionMode.Replace,
+            OnBegin = "AjaxBeginFormPost",
+            OnSuccess = "BankAccClose_Reopen_Success"
+        },
+        new
+        {
+            id = "bankprofileAccClose_reopen",
+            @class = "edit_form"
+        }))
+
+    {
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.ActionName)
+        @Html.HiddenFor(x => x.LastEditedOn)
+        @Html.HiddenFor(x=>x.Tag)
+        @Html.AntiForgeryToken()
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+
+                    <div class="col-sm-8 pll">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>@ViewBag.Title</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+            </div><!--[row]-->       
+                    <div class="col-md-12" style="text-align:center">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <label class="control-label" for="BankName" id="Lbl_BankName" style="color:#800000;font-weight:bolder">@Model.BankName</label>
+                            </div>
+                        </div> 
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <label class="control-label" for="BankAddress" id="Lbl_BankAddress" style="color:#800000;font-weight:bolder">@Model.BankBranch</label>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <label class="control-label" for="AccountNo" id="Lbl_AccountNo" style="color:#800000;font-weight:bolder">@Model.AccountNo</label>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="col-md-6" id="BankTypeDiv">
+                                    <label class="control-label" for="AccountType" id="Lbl_AccountType" style="color:#800000;font-weight:bolder">@Model.AccountType</label>
+                                </div>
+                                <div class="col-md-6" id="BankCloseDateDiv">
+                                    <div class="col-md-3">
+                                        <label class="control-label" for="BA_ClOSE_DATE" id="Lbl_BA_ClOSE_DATE">Close Date:</label>
+                                    </div>
+                                    <div class="col-md-9">
+                                        @(Html.DevExtreme().DateBox().CustomDateBox().ID("BA_ClOSE_DATE").Name("BA_ClOSE_DATE").Placeholder("dd-MM-yyyy").Value(Model.BA_ClOSE_DATE) )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>         
+                <div class="form-group">
+                    <div class="col-md-12">
+                        <div class="styleActionBtn">
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("Bankprf_close_Save").Text("Save").UseSubmitBehavior(true) )
+
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("Bankprf_close_Cancel").Text("Cancel").OnClick("closeBankprf_Acc") )
+</div>
+                    </div>
+                </div>
+          
+
+        }
+    }
+</div>
+<script>
+    var Bank_TakeCloseConfirmation = true;
+    $(document).ready(function ()
+    {
+        Bank_TakeCloseConfirmation = true;
+        if ("@Model.Tag" == "_Re_Open") {
+            $("#BankCloseDateDiv").hide();
+            $("#BankTypeDiv").removeClass("col-md-6").addClass("col-md-12");
+            document.getElementById("BankTypeDiv").style.textAlign = "center";
+        }
+        else
+        {
+            $("#BA_ClOSE_DATE").dxDateBox("instance").focus();
+        }
+    });
+    function BankAccClose_Reopen_Success(data)
+    {
+        Bank_TakeCloseConfirmation = false;
+        HideLoader();
+        if (data.xid != null) {
+            Select_xid = data.xid;
+        }
+        if (data.jsonParam.closeform == true)
+        {
+            $("#popup_frm_Bank_Window_Close").dxPopup("hide");
+        }
+        var alert=DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+        alert.done(function (dialogResult)
+        {
+            if (data.jsonParam.focusid != null)
+            {
+                if (dialogResult)
+                {
+                    var id = "#" + data.jsonParam.focusid;
+                    setTimeout(function ()
+                    {
+                        $(id).find('input').focus();
+                    }, Timeout100);
+                }
+            }
+        });
+        if (data.jsonParam.refreshgrid)
+        {
+            var GridInstance = $('#BankListGrid_dx').data("dxDataGrid")
+            if (GridInstance !== void 0)
+            {
+                BankListGrid_dx_Refresh();
+            }
+            else
+            {
+                BankListGrid.Refresh();
+            }          
+        }
+    }
+    function closeBankprf_Acc()
+    {
+        $("#popup_frm_Bank_Window_Close").dxPopup("hide");
+    } 
+    $(function () {
+        $("#popup_frm_Bank_Window_Close").dxPopup({
+            onHiding: function (e) 
+            {              
+                if (Bank_TakeCloseConfirmation == false)
+                {
+                  
+                }
+                else
+                {
+                    e.cancel = true;
+                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Bank Account");
+                    result.done(function (dialogResult)
+                    {
+                        Bank_TakeCloseConfirmation = !dialogResult;
+                        if (dialogResult)
+                        {
+                            $("#popup_frm_Bank_Window_Close").dxPopup("hide");
+                        }
+                    });
+                }
+            }
+        });
+    });
+    </script>
+    </div>

@@ -1,0 +1,667 @@
+﻿<div class="GroupReg_MngPrivOptions_ClearReferences">
+
+    @model ConnectOneMVC.Areas.Options.Models.Model_ManagPrivileges_Window
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var CurrentUser = ViewBag.LogedinUser;
+        bool IsUserAdmin = (bool)ViewBag.UserIsAdmin;
+        bool MngPrvlg_AddPrivilegeRight = (bool)ViewData["MngPrvlg_AddPrivilegeRight"];
+        bool MngPrvlg_UpdatePrivilegeRight = (bool)ViewData["MngPrvlg_UpdatePrivilegeRight"];
+        bool MngPrvlg_ViewAddPrivilegeRight = (bool)ViewData["MngPrvlg_ViewPrivilegeRight"];
+        bool MngPrvlg_DeletePrivilegeRight = (bool)ViewData["MngPrvlg_DeletePrivilegeRight"];
+        bool MngPrvlg_ExportPrivilegeRight = (bool)ViewData["MngPrvlg_ExportPrivilegeRight"];
+        var screenTitle = Model.UGFlag == "User" ? "User Privileges Screen" : "Group Privileges Screen";
+    }
+
+    @{
+        Html.EnableClientValidation();
+        Html.AntiForgeryToken();
+        Html.EnableUnobtrusiveJavaScript();
+    }
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+    <style>
+        .control-label {
+            text-align: left !important;
+        }
+
+        .dx-button-has-text .dx-button-content {
+            margin-right: 15px;
+            padding: 2px 1px;
+            min-width: 40px;
+            padding-left: 19px;
+        }
+
+        .dx-texteditor-container {
+            overflow: visible
+        }
+
+    /*    .dx-checkbox-text {
+            width: auto
+        }*/
+    </style>
+
+    <div id="Frm_ManagPrivileges_Window_Content">
+        <form id="ManagePrivileges_Form">
+            @Html.HiddenFor(x => x.PopupID)
+            <div id="content" class="col-md-12 report_header_div_main">
+                <div class="col-md-6 report_header_div">
+                    <div class="full-width-header">
+                        <div class="row">
+                            <div class="col-sm-12 pll">
+                                <h3 class="popuphead">
+                                    <i id="MngPrvlg_title" class="far fa-edit"></i>@screenTitle
+                                </h3>
+                            </div>
+                        </div>
+                    </div><!--[row]-->
+                </div>
+                <div class="col-md-6">
+                    <div class="report_button_div">
+
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<Text> function () { ManagPrivileges_NEW(); } </Text>))
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text> function () { ManagPrivilegesEditClick(); } </text>))
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { ManagPrivilegesDeleteClick(); } </text>))
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () {ManagPrivilegesViewClick(); } </text>))
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesListPreview").Text("List Preview").Icon("save").Width(120).OnClick(@<text> function () { ManagPrivileges_Preview(); } </text>))@*//0000193 bug fixed*@
+                        @(Html.DevExtreme().Button().ID("ManagPrivilegesCLOSE").Text("Close").Icon("clear").OnClick("onHideofMngPri_Window"))@*//0000244 bug fixed.*@
+                    </div><!--[Buttons]-->
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <div class="container-fluid pll prm">
+                            <div class="row">
+                                <div class="col-sm-1 ">
+                                    <label id="lbl_ManPri_GroupID" class="text-red control-label">Group:</label>
+                                </div>
+                                <div class="col-sm-4 plm">
+
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("ManPri_GroupID").Name("ManPri_GroupID").HoverStateEnabled(true).DisplayExpr("Group_Name").ValueExpr("ID").Value(Model.ManPri_GroupID)
+                                        .DataSource(d => d.Mvc().Controller("GroupRegister").LoadAction("ManPri_Group_Dropdown").Key("ID")).Placeholder("Please select Group").ElementAttr(new Dictionary<string, object>
+                                        () { { "class", "dx-texteditor-input appear" } })
+                                        .OnInitialized("ManPri_GroupIntialise").OnValueChanged("ManPriGroup_Dropdownvaluechange").ContentTemplate(@<text> @Html.Partial("ManagPri_Group_Dropdown") </text>))
+
+                                </div>
+                                <div class="col-sm-1 ">
+                                    <label id="lbl_ManPri_UserID" class="text-red control-label">User:</label>
+                                </div>
+                                <div class="col-sm-4 plm">
+
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("ManPri_UserID").Name("ManPri_UserID").HoverStateEnabled(true).DisplayExpr("UserName").ValueExpr("ID").Value(Model.ManPri_UserID)
+                                    .DataSource(d => d.Mvc().Controller("GroupRegister").LoadAction("AdUserPrivileges_User_Dropdown").Key("ID").LoadParams(new { AllUser = new JS("function (){ return ManpriAlluser;}") })).Placeholder("Please select User").ElementAttr(new Dictionary<string, object>
+                                        () { { "class", "dx-texteditor-input appear" } })
+                                        .OnInitialized("ManPri_UserIntialise").OnValueChanged("ManPriUser_Dropdownvaluechange").ContentTemplate(@<text> @Html.Partial("AdUserPrivileges_User_Dropdown") </text>))
+
+                                </div>
+                                <div class="col-sm-2 plm">
+                                    @(Html.DevExtreme().CheckBox().ID("ManPri_AllUsers").Name("ManPri_AllUsers").Text("All Users").ReadOnly((!IsUserAdmin)|| Model.UGFlag!="User").FocusStateEnabled(IsUserAdmin && Model.UGFlag == "User").OnValueChanged("ManpriAlluserCheckbox_ValueChange"))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Group & User]-->
+
+            <div class="col-md-12 no-padding">
+
+                <div id="ManagPrivilegesreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_ManagPrivileges_Grid", Model.GridData)
+
+                </div>
+
+            </div><!--[Grid]-->
+
+            <div class="footer-MainBoxdiv full-width-footer">
+                <div class="list_footer_left_margin col-md-10">
+                    <div class="list_footer_left_margin">
+                        <p id="ManagPrivilegesLbl_Add" style="margin:0px" class="left_footertext_top"></p>
+                        <p id="ManagPrivilegesLbl_Edit" style="margin:0px" class="left_footertext_bottom"></p>
+                    </div>
+                </div><!--[Footer]-->
+            </div>
+
+        </form>
+    </div>
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+        function ManagPrivilegesGridFocusedRowChanged(s, e) {
+            //debugger;
+            if (s.GetFocusedRowIndex() > -1) {
+                s.GetRowValues(s.GetFocusedRowIndex(), 'UserName;GroupName;EntityName;PrivilegesGiven;PrivilegeID;AddedBy;AddedOn;EditedBy;EditedOn;ScreenID;GrpID;UserID', ManagPrivilegesOnGetRowValues);
+            }
+            else {
+                ManPriUserName = null;
+                ManPriGroupName = null;
+                ManPriEntityName = null;
+                ManPriPrivilegesGiven = null;
+                ManPriPrivilegeID = null;
+                ManPriAddedBy = null;
+                ManPriAddedOn = null;
+                ManPriEditedBy = null;
+                ManPriEditedOn = null;
+                ManPriScreenID = null;
+                ManPriGrpID = 0;
+                ManPriUserID = null;
+            }
+        }
+        function ManagPrivilegesOnGetRowValues(values) {
+            //debugger;
+            ManPriUserName = values[0];
+            ManPriGroupName = values[1];
+            ManPriEntityName = values[2];
+            ManPriPrivilegesGiven = values[3];
+            ManPriPrivilegeID = values[4];
+            ManPriAddedBy = values[5];
+            ManPriAddedOn = values[6];
+            ManPriEditedBy = values[7];
+            ManPriEditedOn = values[8];
+            ManPriScreenID = values[9];
+            ManPriGrpID = values[10]
+            ManagPrivileges_UpdateFooterDetail(ManPriAddedBy, ManPriAddedOn, ManPriScreenID, ManPriEditedOn, ManPriEditedBy);
+        }
+        function ManagPrivileges_UpdateFooterDetail(AddedBy, AddedOn, ScreenID, EditedOn, EditedBy) {
+            //debugger;
+            var addedonmonth = AddedOn.getMonth();
+            addedonmonth = addedonmonth + 1;
+            var editedonmonth = EditedOn.getMonth();
+            editedonmonth = editedonmonth + 1;
+            AddedOn = AddedOn.getDate() + "-" + addedonmonth + "-" + AddedOn.getFullYear() + " " + AddedOn.getHours() + ":" + AddedOn.getMinutes() + ":" + AddedOn.getSeconds();
+            EditedOn = EditedOn.getDate() + "-" + editedonmonth + "-" + EditedOn.getFullYear() + " " + EditedOn.getHours() + ":" + EditedOn.getMinutes() + ":" + EditedOn.getSeconds();
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+
+            if (AddedOn) {
+                Lbl_Create = "Add On: " + AddedOn + ", Add By: " + AddedBy;
+            }
+            else {
+                Lbl_Create = "Add On: " + "?, Add By: " + AddedBy;
+            }
+
+            if (EditedOn) {
+                Lbl_Modify = "Edit On: " + EditedOn + ", Edit By: " + EditedBy;
+            }
+            else {
+                Lbl_Modify = "Edit On: " + "?, Edit By: " + EditedBy;
+            }
+
+            $('#ManagPrivilegesLbl_Add').text(Lbl_Create);
+            $('#ManagPrivilegesLbl_Edit').text(Lbl_Modify);
+        }
+        function ManagPrivileges_MasterAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+        }
+        function ManagPrivilegesGrid_BeginCallBack(s, e) {
+
+            e.customArgs["command"] = e.command;
+            e.customArgs["GroupID"] = ManPrivilegGroupID;
+            e.customArgs["UserID"] = ManPrivilegUserName;
+        }
+        function ManagPrivilegesGrid_EndCallback(s, e) {
+            ManagPrivileges_MasterAdjustSize();
+        }
+        function ManagPrivilegesdblclickEdit(s, e) {
+            if (ManPriScreenID) {
+                ManagPrivilegesEditClick();
+            }
+            else {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            }
+        }//Double click on Grid
+
+        function ManagPrivilegesOnInit(s, e) {
+            ManagPrivileges_MasterAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ManagPrivileges_MasterAdjustSize();
+            });
+            s.SetFocusedRowIndex(-1);
+        }
+
+        function ManagPrivilegesContextMenuFunction(s, e) {
+
+            if (e.item.name == 'New') {
+                ManagPrivileges_NEW();
+            }
+            if (e.item.name == 'Close') {
+                $("#Dynamic_Content_popup").dxPopup("hide");
+            }
+            else if (e.item.name == 'Edit') {
+                ManagPrivilegesEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                ManagPrivilegesDeleteClick();
+            }
+            else if (e.item.name == 'View') {
+                ManagPrivilegesViewClick();
+            }
+            else if (e.item.name == 'ListPreview') {
+                ManagPrivileges_Preview();
+            }
+            else if (e.item.name == 'Refresh') {
+                GroupRegister_ManagPrivileges_Grid.Refresh();
+            }
+        }//Context Menu functions
+    </script>
+    @*Grid Functions*@
+    <script type="text/javascript">
+    var ugFLAG = "";
+    var Manag_Privileg_GroupID;
+    var Manag_Privileg_UserID;
+    var ManPrivilegUserName;
+    var ManPrivilegGroupID;
+    var ManPriUserName;
+    var ManPriGroupName;
+    var ManPriEntityName;
+    var ManPriPrivilegesGiven;
+    var ManPriPrivilegeID;
+    var ManPriAddedBy;
+    var ManPriAddedOn;
+    var ManPriEditedBy;
+    var ManPriEditedOn;
+    var ManPriScreenID;
+    var ManPriGrpID;
+    var ManPriUserID;
+    var ManPri_PopupID ="#"+"@Model.PopupID";
+    var ManPri_PopupDivID = "@Model.PopupID" + "_result";
+
+    $(document).ready(function ()
+    {
+        //debugger;
+        ShowLoader();
+        @*if ("@Model.UGFlag" == "User") {
+            document.getElementById("MngPrvlg_title").innerHTML = "User Privileges Screen";
+        }
+        else {
+            document.getElementById("MngPrvlg_title").innerHTML = "Group Privileges Screen";
+        }*@
+
+        if ("@MngPrvlg_AddPrivilegeRight" == "False")
+        {
+            $("#ManagPrivilegesNew").hide();
+            HideLoader();
+        }
+        if ("@MngPrvlg_UpdatePrivilegeRight" == "False")
+        {
+            $("#ManagPrivilegesEdit").hide();
+            HideLoader();
+        }
+        if ("@MngPrvlg_ViewAddPrivilegeRight" == "False")
+        {
+            $("#ManagPrivilegesView").hide();
+            HideLoader();
+        }
+        if ("@MngPrvlg_DeletePrivilegeRight" == "False")
+        {
+            $("#ManagPrivilegesDelete").hide();
+            HideLoader();
+        }
+        if ("@MngPrvlg_ExportPrivilegeRight" == "False")
+        {
+            $("#ManagPrivilegesListPreview").hide();
+            HideLoader();
+        }
+
+        if ("@Model.UGFlag" == "User") {
+            $("#ManPri_GroupID").dxDropDownBox("instance").option("readOnly", true);
+            $('#lbl_ManPri_GroupID').removeClass("text-red").addClass("disabletxt");
+            GetManPriUserName("@Model.ManPri_UserID");
+            ManPrivilegGroupID = 0;
+            $("#ManPri_UserID").dxDropDownBox("instance").option("value", "@Model.ManPri_UserID");
+        } else {
+            $("#ManPri_UserID").dxDropDownBox("instance").option("readOnly", true);
+            $('#lbl_ManPri_UserID').removeClass("text-red").addClass("disabletxt");
+            ManPrivilegUserName = null;
+            ManPrivilegGroupID = "@Model.ManPri_GroupID";
+            $("#ManPri_GroupID").dxDropDownBox("instance").option("value", "@Model.ManPri_GroupID");
+        }
+        setTimeout(function () {
+            HideLoader();
+        }, Timeout500);
+
+
+
+    });
+    function ManPri_UserIntialise(e)
+    {
+
+        if ("@Model.UGFlag" == "User") {
+            e.component.option("dataSource").store.load().done(function (d)
+            {
+                e.component.option("value", "@Model.ManPri_UserID");
+            });
+            ManPrivilegUserName = UserName;
+        }
+    }
+    function ManPriUser_Dropdownvaluechange(e) {
+        if ("@Model.UGFlag" == "User")
+        {
+            e.component.close();
+            GetManPriUserName(e.value);
+
+            if (e.value && e.value != 0)
+            {
+                ManPrivilegGroupID = 0;
+                $("#ManPri_GroupID").dxDropDownBox("instance").reset();
+                GroupRegister_ManagPrivileges_Grid.Refresh();
+            }
+            else {
+                Manag_Privileg_UserID = null;
+                ManPrivilegUserName = null;
+            }
+
+            if (e.value === null||e.value.length==0)//0000195 bug fixed
+            {
+                ManPrivilegUserName = null;
+                GroupRegister_ManagPrivileges_Grid.Refresh();//0000195 bug fixed
+            }
+        }
+    }
+    function GetManPriUserName(ddvaluechange) {
+        var $dataGrid = $("#AdUserPrivileges_User_DataGrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(ddvaluechange, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+
+                var item = dataGrid.getSelectedRowsData()[0];
+                ManPrivilegUserName = item.UserName;
+            }
+        }
+    }
+    function ManPri_GroupIntialise(e)
+    {
+
+        if ("@Model.UGFlag" == "Group") {
+            e.component.option("dataSource").store.load().done(function (d) {
+                e.component.option("value", "@Model.ManPri_GroupID");
+            });
+        }
+    }
+    function ManPriGroup_Dropdownvaluechange(e)
+    {
+
+        if ("@Model.UGFlag" == "Group") {
+            e.component.close();
+
+            if (e.value)
+            {
+                ManPrivilegUserName = "";
+                ManPrivilegGroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+                $("#ManPri_UserID").dxDropDownBox("instance").reset();
+                GroupRegister_ManagPrivileges_Grid.Refresh();
+            }
+            if (e.value === null)//0000195 bug fixed
+            {
+                ManPrivilegGroupID = 0;
+                GroupRegister_ManagPrivileges_Grid.Refresh();//0000195 bug fixed
+            }
+        }
+    }
+
+    window.onunload = function (e)
+    {
+
+        ManPrivilegUserName = null;
+    };
+    </script>
+    @*Dropdown Functions*@
+    <script type="text/javascript">
+    function ManagPrivileges_NEW()
+    {
+        if ("@MngPrvlg_AddPrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        ShowLoader();
+        $("#AdUserPrivilegesvalidationForm").remove();
+        if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value"))
+        {
+            Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        }
+        else
+        {
+            Manag_Privileg_GroupID = null;
+        }
+        if ($("#ManPri_UserID").dxDropDownBox("instance").option("value"))
+        {
+            Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+            ManPrivilegUserName = (ManPrivilegUserName == null || ManPrivilegUserName == "" || ManPrivilegUserName == "undefined" || ManPrivilegUserName == undefined) ? ManPrivilegUserName = UserName : ManPrivilegUserName;
+        }
+        else
+        {
+            Manag_Privileg_UserID = "";
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+            cache: false,
+            data: {
+                ActionMethod: "New",
+                GroupID: Number(Manag_Privileg_GroupID),
+                UserID: String(Manag_Privileg_UserID),
+                UserName: ManPrivilegUserName,
+                PopupID: "Dynamic_Content_popup"
+            },
+            success: function (data)
+            {
+                ShowLoader();
+                OpenDynamicPopup( "Add User Privileges", null, "auto", "900", true, data);
+                HideLoader();
+            }
+        });
+        HideLoader();
+    } //new click
+    function ManagPrivilegesEditClick()
+    {
+        if ("@MngPrvlg_UpdatePrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        //debugger;
+        $("#AdUserPrivilegesvalidationForm").remove();
+        if (!ManPriScreenID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            return;
+        }
+        if ($("#ManPri_UserID").dxDropDownBox("instance").option("value"))
+        {
+            if (ManPriGrpID)
+            {
+                DevExpress.ui.dialog.alert('You are managing the privileges belonging to the User.<br> User is getting this right because it belongs to the group.<br> Edit this privilege by managing the privileges of the group.', 'Alert'); return;
+            }
+        }
+        if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value")) {
+            Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        }
+        else { Manag_Privileg_GroupID = null; }
+        if ($("#ManPri_UserID").dxDropDownBox("instance").option("value")) {
+            Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+        }
+        else {
+            Manag_Privileg_UserID = "";
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+            cache: false,
+            data: {
+                ActionMethod: "Edit",
+                PrivilegeID: ManPriPrivilegeID,
+                ScreenID: ManPriScreenID,
+                GroupID: Number(Manag_Privileg_GroupID),
+                UserID: String(Manag_Privileg_UserID),
+                UserName: ManPrivilegUserName,
+                PopupID: "Dynamic_Content_popup"
+            },
+            success: function (data)
+            {
+                ShowLoader();
+                OpenDynamicPopup("Edit User Privileges", null, "auto", "900", true, data);
+                HideLoader();
+            }
+        });
+        HideLoader();
+    } //edit click
+    function ManagPrivilegesViewClick()
+    {
+        if ("@MngPrvlg_ViewAddPrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        //debugger;
+        $("#AdUserPrivilegesvalidationForm").remove();
+        if (!ManPriScreenID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value"))
+        {
+            Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        }
+        else
+        {
+            Manag_Privileg_GroupID = null;
+            if (ManPriGroupName)
+            {
+                Manag_Privileg_GroupID = ManPriGrpID;
+            }//0000191 bug fixed
+        }
+        if ($("#ManPri_UserID").dxDropDownBox("instance").option("value"))
+        {
+            Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+        }
+        else
+        {
+            Manag_Privileg_UserID = "";
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+            cache: false,
+            data: {
+                ActionMethod: "View",
+                PrivilegeID: ManPriPrivilegeID,
+                ScreenID: ManPriScreenID,
+                GroupID: Number(Manag_Privileg_GroupID),
+                UserID: String(Manag_Privileg_UserID),
+                UserName: ManPrivilegUserName,
+                PopupID: "Dynamic_Content_popup"
+            },
+            success: function (data)
+            {
+                ShowLoader();
+                OpenDynamicPopup( "View ~ User Privileges", null, "auto", "900", true, data);
+                HideLoader();
+            }
+        });
+        HideLoader();
+    }//view click
+    function ManagPrivilegesDeleteClick()
+    {
+        if ("@MngPrvlg_DeletePrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        //debugger;
+        $("#AdUserPrivilegesvalidationForm").remove();
+        if (!ManPriScreenID)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if ($("#ManPri_GroupID").dxDropDownBox("instance").option("value"))
+        {
+            Manag_Privileg_GroupID = $("#ManPri_GroupID").dxDropDownBox("instance").option("value");
+        }
+        else { Manag_Privileg_GroupID = null; }
+        if ($("#ManPri_UserID").dxDropDownBox("instance").option("value")) {
+            Manag_Privileg_UserID = $("#ManPri_UserID").dxDropDownBox("instance").option("value");
+        }
+        else {
+            Manag_Privileg_UserID = "";
+        }
+        if (Manag_Privileg_UserID) {
+            if (ManPriGrpID) {
+                DevExpress.ui.dialog.alert('You are managing the privileges belonging to the User.<br> User is getting this right because it belongs to the group.<br> Delete this privilege by managing the privileges of the group.', 'Alert'); return;//0000190 bug fixed
+            }
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Options/GroupRegister/DataNavigation",
+            data: { ActionMethod: "Delete", ID: ManPriScreenID },
+            cache: false,
+            async: false,
+            success: function (ManagPrivilegesDelete_ButtonClick_result) {
+                if (ManagPrivilegesDelete_ButtonClick_result.result == true) {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Options/GroupRegister/Frm_ManagPrivileges_AdUserPrivileges",
+                        cache: false,
+                        data: {
+                            ActionMethod: "Delete",
+                            PrivilegeID: ManPriPrivilegeID,
+                            ScreenID:ManPriScreenID,
+                            GroupID: Number(Manag_Privileg_GroupID),
+                            UserID: String(Manag_Privileg_UserID),
+                            UserName: ManPrivilegUserName,
+                            PopupID: "Dynamic_Content_popup"
+                        },
+                        success: function (data)
+                        {
+                            ShowLoader();
+                            OpenDynamicPopup("Delete ~ Manage Privileges", null, "auto", "900", true, data);
+                            HideLoader();
+                        }
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(ManagPrivilegesDelete_ButtonClick_result.message, 'Warning!');
+                }
+            }
+        });
+        HideLoader();
+    }//delete click//0000202 bug fixed
+    function ManagPrivileges_Preview()
+    {
+        if ("@MngPrvlg_ExportPrivilegeRight" == "False") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        OpenPopup("ManagPrivileges_report_modal","Export","@Url.Action("Frm_ManagPrivileges_Export_Options", "GroupRegister", new { @area = "Options" })","auto",145,false,null)
+
+    }//list preview
+    </script>
+    @*NEVD Functions*@
+    <script>
+    var ManpriAlluser = false;
+    function ManpriAlluserCheckbox_ValueChange(e)
+    {
+        ManpriAlluser = e.value;
+        //$("#ManPri_UserID").dxDropDownBox("instance").reset();
+        $("#AdUserPrivileges_User_DataGrid").dxDataGrid("instance").refresh();
+        $("#AdUserPrivileges_User_DataGrid").dxDataGrid("instance").clearSelection();
+    }
+
+
+
+    //This function calls whenever the popup close. And this code is specific for OpenPopup() ids.
+    $(function ()
+    {
+        //debugger;
+        $("#" + "@Model.PopupID").dxPopup({
+            onHiding: function (e)
+            {
+                $.ajax({
+                    url: "/Options/GroupRegister/SessionClear_MngPrivileges",
+                    type: "GET"
+                });
+            }
+        });
+    });
+
+
+    //On Hiding of this screen function
+    function onHideofMngPri_Window() {
+        //debugger;
+        $("#" + "@Model.PopupID").dxPopup("hide");
+    }
+    </script>
+</div>

@@ -1,0 +1,791 @@
+﻿@using System.Text.RegularExpressions;
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    var Layout = ViewData["Layout"];
+    var Screen = ViewBag.Screen;
+    string UserType = (string)ViewBag.UserType;
+    //bool Scheduler_AddRight = (bool)ViewData["Scheduler_AddRight"];
+    //bool Scheduler_UpdateRight = (bool)ViewData["Scheduler_UpdateRight"];
+    //bool Scheduler_DeleteRight = (bool)ViewData["Scheduler_DeleteRight"];
+    //bool Scheduler_ReportRight = (bool)ViewData["Scheduler_ReportRight"];
+    //bool Scheduler_ListRight = (bool)ViewData["Scheduler_ListRight"];
+    //bool Scheduler_ExportRight = (bool)ViewData["Scheduler_ExportRight"];
+    string ViewMode = ViewBag.ViewMode == null ? "Default" : (string)ViewBag.ViewMode;
+    List<string> ColumnTobeHidden = new List<string>();
+    List<string> ColumnTobeShown = new List<string>();
+    string ColumnToBeShowIndex = ViewBag.ColumnToBeShownIndex == null ? "" : (string)ViewBag.ColumnToBeShownIndex;
+    string ColumnToBeHideIndex = ViewBag.ColumnToBeHidddenIndex == null ? "" : (string)ViewBag.ColumnToBeHidddenIndex;
+    if (ColumnToBeHideIndex.Length > 0)
+    {
+        ColumnTobeHidden = ColumnToBeHideIndex.Split(',').ToList();
+    }
+    if (ColumnToBeShowIndex.Length > 0)
+    {
+        ColumnTobeShown = ColumnToBeShowIndex.Split(',').ToList();
+    }
+}
+@Html.DevExpress().GridView(
+settings =>
+{
+    settings.Name = "SchedulerListGrid";
+    settings.CallbackRouteValues = new
+    {
+        Controller = "Scheduler",
+        Action = "Frm_Scheduler_Info_Grid",
+        SessionGUID = SessionGUID
+    };
+
+    settings.Theme = "Aqua";
+    settings.Styles.FocusedRow.BackColor = System.Drawing.Color.FromArgb(0, 114, 198);
+    settings.Styles.FocusedRow.ForeColor = System.Drawing.Color.White;
+    settings.Styles.AlternatingRow.BackColor = System.Drawing.Color.Linen;
+
+    settings.PreRender = (s, e) =>
+    {
+        if (string.IsNullOrWhiteSpace(Screen)==false && Screen.Contains("Sparc"))
+        {
+            var sender = (MVCxGridView)s;
+            sender.FocusedRowIndex = -1;// Set the zero-based index of the focused row to remove default focus
+        }
+    };
+
+    settings.SettingsBehavior.AllowFocusedRow = true;
+    settings.SettingsBehavior.AllowSelectByRowClick = false;
+
+    settings.SettingsExport.EnableClientSideExportAPI = true;
+    settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+    settings.SettingsExport.PageHeader.Center = "Scheduler";
+    settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+    settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+    settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+    settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4;
+    settings.SettingsExport.TopMargin = 10;
+    settings.SettingsExport.LeftMargin = 4;
+    settings.SettingsExport.RightMargin = 2;
+    settings.SettingsExport.BottomMargin = 10;
+    settings.SettingsExport.Landscape = true;
+
+    settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+    settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+    settings.Settings.UseFixedTableLayout = true;
+
+    //Filter in Headings of the table.
+    settings.Settings.ShowHeaderFilterButton = true;
+    settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+    settings.Settings.ShowHeaderFilterBlankItems = false;
+    settings.Settings.ShowFilterRow = true;
+    // show filter control at the bottom
+    settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+    settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+    settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+    settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+    settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+    settings.Settings.ShowPreview = true;
+    settings.KeyboardSupport = true;
+    //settings.AccessKey = "G";
+    settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+    settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+    settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+    settings.SettingsDetail.ShowDetailRow = true;
+    settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+    settings.SetDetailRowTemplateContent(c =>
+    {
+        Html.RenderAction("Frm_Scheduler_Info_DetailGrid", new { REC_ID = DataBinder.Eval(c.DataItem, "REC_ID"), command = "REFRESH" });
+    });
+    //var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    if (ShowHorizontalBar == 1)
+    {
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+    }
+    else
+    {
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+        settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+    }
+
+    settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+    settings.Settings.ShowGroupPanel = false;
+    settings.SettingsBehavior.AutoExpandAllGroups = true;
+    settings.Settings.ShowGroupedColumns = false;
+    settings.Settings.ShowGroupButtons = true;
+    settings.SettingsBehavior.AllowFocusedRow = true;
+    settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+    settings.SettingsBehavior.AllowSelectByRowClick = false;
+    settings.Settings.UseFixedTableLayout = true;
+    settings.SettingsBehavior.AllowSort = true;
+    settings.SettingsBehavior.AllowEllipsisInText = true;
+    settings.SettingsBehavior.EnableCustomizationWindow = true;
+    settings.SettingsCustomizationDialog.ShowSortingPage = true;
+    settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+    settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+    settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+    settings.BeforeGetCallbackResult = (s, e) =>
+    {
+        MVCxGridView grid = s as MVCxGridView;
+        if (ViewData["RowKeyToFocus"] != null && ViewData["RowKeyToFocus"].ToString().Length > 0)
+        {
+            grid.FocusedRowIndex = grid.FindVisibleIndexByKeyValue(ViewData["RowKeyToFocus"]);
+            grid.MakeRowVisible(ViewData["RowKeyToFocus"]);
+            grid.ScrollToVisibleIndexOnClient = grid.FocusedRowIndex;
+        }
+    };
+    settings.CustomJSProperties = (s, e) =>
+    {
+        MVCxGridView grid = (MVCxGridView)s;
+
+        var lastVisibleColumn = grid.VisibleColumns.LastOrDefault();
+        e.Properties["cpClientLayout"] = grid.SaveClientLayout();
+        string ColumnToBeShownIndex = "";
+        string ColumnToBeHidddenIndex = "";
+        if (ColumnTobeHidden.Count > 0)
+        {
+            ColumnToBeHidddenIndex = String.Join(",", ColumnTobeHidden.ToArray());
+        }
+        if (ColumnTobeShown.Count > 0)
+        {
+            ColumnToBeShownIndex = String.Join(",", ColumnTobeShown.ToArray());
+        }
+        e.Properties["cpColumnToBeShownIndex"] = ColumnToBeShownIndex;
+        e.Properties["cpColumnToBeHidddenIndex"] = ColumnToBeHidddenIndex;
+        int startIndex = (grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? 0 : grid.PageIndex) * grid.SettingsPager.PageSize;
+        int endIndex = grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? grid.VisibleRowCount : Math.Min(grid.VisibleRowCount, startIndex + grid.SettingsPager.PageSize);
+        object[] Rowdata = new object[endIndex - startIndex];
+        for (int i = startIndex; i < endIndex; i++)
+        {
+            //Rowdata[i - startIndex] = grid.GetRowValues(i, new string[] { "REC_ID", "REC_ADD_BY", "REC_ADD_ON", "REC_EDIT_BY", "REC_EDIT_ON", "Action_Status", "Action_By", "Action_Date" });*@
+            Rowdata[i - startIndex] = grid.GetRowValues(i, new string[] { "REC_ID", "REC_ADD_BY", "REC_ADD_ON", "REC_EDIT_BY", "REC_EDIT_ON" , "CEN_ID"});
+        }
+        e.Properties["cpPagedata"] = Rowdata;
+    };
+
+    settings.SettingsPager.Visible = true;
+    settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+    settings.SettingsPager.PageSizeItemSettings.Visible = true;
+    settings.SettingsPager.PageSize = 25;
+    settings.SettingsPager.AllButton.Visible = true;
+    settings.KeyFieldName = "REC_ID";
+
+    #region Code to Display Columns in a Grid with visibility mode(true/false)
+    settings.KeyFieldName = "REC_ID";
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Schedule Name";
+        column.Caption = "Schedule Name";
+        column.Visible = true;
+        column.MinWidth = 150;
+        column.ExportWidth = 80;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Schedule Type";//Remember these are the column name provided from DB SP method.
+        column.Caption = "Schedule Type";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 100;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Frequency Type";
+        column.Caption = "Frequency Type";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Interval";
+        column.Caption = "Day Interval";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Week Interval";
+        column.Caption = "Week Interval";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Month Interval";
+        column.Caption = "Month Interval";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Days of Week";
+        column.Caption = "Days of Week";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Monthly Frequency Type";
+        column.Caption = "Monthly Frequency Type";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Date of Month";
+        column.Caption = "Date of Month";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day No. of Month";
+        column.Caption = "Day No. of Month";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Days of Month";
+        column.Caption = "Days of Month";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Frequency Type";
+        column.Caption = "Day Frequency Type";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "No. of Timebands";
+        column.Caption = "No. of Timebands";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Summary Details";
+        column.Caption = "Summary Details";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 1";
+        column.Caption = "Day Recurrence 1";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 1";
+        column.Caption = "Day Random 1";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 1";
+        column.Caption = "From Time 1";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 1";
+        column.Caption = "To Time 1";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 2";
+        column.Caption = "Day Recurrence 2";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 2";
+        column.Caption = "Day Random 2";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 2";
+        column.Caption = "From Time 2";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 2";
+        column.Caption = "To Time 2";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 3";
+        column.Caption = "Day Recurrence 3";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 3";
+        column.Caption = "Day Random 3";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 3";
+        column.Caption = "From Time 3";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 3";
+        column.Caption = "To Time 3";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 4";
+        column.Caption = "Day Recurrence 4";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 4";
+        column.Caption = "Day Random 4";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 4";
+        column.Caption = "From Time 4";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 4";
+        column.Caption = "To Time 4";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 5";
+        column.Caption = "Day Recurrence 5";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 5";
+        column.Caption = "Day Random 5";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 5";
+        column.Caption = "From Time 5";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 5";
+        column.Caption = "To Time 5";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 6";
+        column.Caption = "Day Recurrence 6";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 6";
+        column.Caption = "Day Random 6";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 6";
+        column.Caption = "From Time 6";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 6";
+        column.Caption = "To Time 6";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 7";
+        column.Caption = "Day Recurrence 7";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 7";
+        column.Caption = "Day Random 7";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 7";
+        column.Caption = "From Time 7";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 7";
+        column.Caption = "To Time 7";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 8";
+        column.Caption = "Day Recurrence 8";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 8";
+        column.Caption = "Day Random 8";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 8";
+        column.Caption = "From Time 8";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 8";
+        column.Caption = "To Time 8";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 9";
+        column.Caption = "Day Recurrence 9";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 9";
+        column.Caption = "Day Random 9";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 9";
+        column.Caption = "From Time 9";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 9";
+        column.Caption = "To Time 9";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Recurrence 10";
+        column.Caption = "Day Recurrence 10";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "Day Random 10";
+        column.Caption = "Day Random 10";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "From Time 10";
+        column.Caption = "From Time 10";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "To Time 10";
+        column.Caption = "To Time 10";
+        column.Visible = true;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "REC_ADD_ON";
+        column.Caption = "REC_ADD_ON";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "REC_ADD_BY";
+        column.Caption = "REC_ADD_BY";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "REC_ID";
+        column.Caption = "ID";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "REC_EDIT_ON";
+        column.Caption = "REC_EDIT_ON";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "REC_EDIT_BY";
+        column.Caption = "REC_EDIT_BY";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "IS_UNIVERSAL";
+        column.Caption = "IS_UNIVERSAL";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    settings.Columns.Add(column =>
+    {
+        column.FieldName = "CEN_ID";
+        column.Caption = "CEN_ID";
+        column.Visible = false;
+        column.MinWidth = 130;
+        column.ExportWidth = 120;
+        //column.SortAscending();
+    });
+    #endregion
+
+    settings.SettingsContextMenu.Enabled = true;
+    settings.SettingsBehavior.EnableCustomizationWindow = true;
+    settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+    settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+    settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+    //settings.SettingsContextMenu.RowMenuItemVisibility.Refresh = false;
+    settings.FillContextMenuItems = (sender, e) =>
+    {
+        if (e.MenuType == GridViewContextMenuType.Rows)
+        {
+            var Additem = e.CreateItem("New", "New");
+            Additem.Image.IconID = "actions_new_16x16gray";
+            //if (Scheduler_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+            var Edititem = e.CreateItem("Edit", "Edit");
+            Edititem.Image.IconID = "actions_edit_16x16devav";
+            //if (Scheduler_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+            var Deleteitem = e.CreateItem("Delete", "Delete");
+            Deleteitem.Image.IconID = "actions_delete_16x16devav";
+            //if (Scheduler_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+            var Viewitem = e.CreateItem("View", "View");
+            Viewitem.Image.Url = "../../../../Icons/View button1_16x16.png";
+            //if (Scheduler_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+            var PrintViewitem = e.CreateItem("List Preview", "ListPreview");
+            PrintViewitem.Image.IconID = "actions_export_16x16devav";
+            PrintViewitem.BeginGroup = true;
+            //if (Scheduler_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+            var Queueitem = e.CreateItem("Scheduled Jobs Queue", "QUEUE");
+            Queueitem.Image.IconID = IconID.OutlookinspiredIconExportSvg16x16;
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Queueitem);
+
+            var Logitem = e.CreateItem("Scheduled Job Log", "LOG");
+            Logitem.Image.IconID = IconID.OutlookinspiredIconExportSvg16x16;
+            e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Logitem);
+
+            var CloseItem = e.CreateItem("Close", "Close");
+            CloseItem.Image.IconID = "actions_close_16x16devav";
+            CloseItem.BeginGroup = true;
+            e.Items.Insert((e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh) + 1), CloseItem);
+        }
+    };
+    settings.ClientSideEvents.Init = "SchedulerOnInit";
+    settings.ClientSideEvents.BeginCallback = "SchedulerListGrid_BeginCallback";
+    settings.ClientSideEvents.EndCallback = "OnGridSchedulerListGrid_EndCallback";
+    settings.ClientSideEvents.ContextMenuItemClick = "SchedulerContextMenuFunction";
+    settings.ClientSideEvents.FocusedRowChanged = "OnSchedulerGridFocusedRowChanged";
+    settings.ClientSideEvents.DetailRowCollapsing = "SchedulerGrid_DetailRowCollapsing";
+    settings.ClientSideEvents.DetailRowExpanding = "SchedulerGrid_DetailRowExpanding";
+    settings.ClientSideEvents.RowDblClick = "SchedulerdblclickEdit";
+    settings.SettingsPopup.CustomizationWindow.VerticalAlign = PopupVerticalAlign.WindowCenter;
+    settings.SettingsPopup.CustomizationWindow.HorizontalAlign = PopupHorizontalAlign.WindowCenter;
+    settings.EnablePagingGestures = AutoBoolean.False;
+    MyExtensions.GridViewHelper.Custom_HeaderFilterFillItems_All(settings);
+    MyExtensions.GridViewHelper.CustomGridView(settings);
+}).Bind(Model).GetHtml()

@@ -1,0 +1,1429 @@
+﻿<div class="PartyLedgerReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+    @{
+        ViewBag.Title = "Index";
+        var CalledFromOtherScreen = ViewBag.PopUpId;
+        string UserType = (string)ViewBag.UserType;
+        bool PartyLedger_ExportRight = (bool)ViewData["PartyLedger_ExportRight"];
+        bool PartyLedger_Auto_Vouching_Mode = (bool)ViewData["PartyLedger_Auto_Vouching_Mode"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];
+        DateTime OpenYearSdt = ViewBag.OpenYearSdt;
+        DateTime OpenYearEdt = ViewBag.OpenYearEdt;
+    }
+    <style>
+        #PartyLedgerReportListGrid .hideDetail {
+            pointer-events: none;
+        }
+
+            #PartyLedgerReportListGrid .hideDetail > div {
+                display: none;
+            }
+    </style>
+    <div id="PartyLedger_ParentDiv">
+        <div class="report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">Party Ledger</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("PartyLRVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("PartyLR_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("PartyLedgerViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("PartyLedger_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("PartyLedgerReportToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text>function () {PartyLedgerReport_changeMode();}</text>))
+                @(Html.DevExtreme().Button().ID("PartyLedgerReportModelPrint").Text("Print").Icon("print").Width(80).OnClick(@<text>function () {OnPartyLedgerReportListPreviewClick();}</text>))
+                @(Html.DevExtreme().Button().ID("PartyLedgerReportModelListPreview").Text("Export").Icon("save").Width(80).OnClick(@<text>function () {OnPartyLedgerReportExportClick();}</text>))
+                @(Html.DevExtreme().Button().ID("PartyLedgerReportModelCLOSE").Text("Close").Icon("clear").OnClick(@<text>function (){closePartyLedger();}</text>))
+            </div>
+        </div>
+            <form class="edit_form form-horizontal" style="">
+                <input type="hidden" id="Fr_Date_PartyLedger" value="" />
+                <input type="hidden" id="To_Date_PartyLedger" value="" />
+                <div class="row">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-2"><label class="control-label">Party</label></div>
+                                    <div class="col-sm-10">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Party_PartyLedger").Name("Party_PartyLedger").Placeholder("Select Party")
+                                      .DataSource(d => d.Mvc().Controller("PartyLedger").LoadAction("Fill_Parties").Key("ID").LoadMode(DataSourceLoadMode.Raw)).OnValueChanged("Party_PartyLedger_OnValueChanged")
+                                      .DisplayExpr("Name").ValueExpr("ID").ContentTemplate(@<Text> @Html.Partial("PartyList") </Text>).Value(ViewBag.SelectedPartyValue))
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-2"><label class="control-label">Period</label></div>
+                                    <div class="col-sm-10">
+                                        <div class="row">
+                                            <div class="col-sm-8 col-md-8 col-lg-8">
+                                                @(Html.DevExtreme().SelectBox().ID("PeriodSelection_PartyLedger").Name("PeriodSelection_PartyLedger")
+                                              .DataSource(d => d.Mvc().Controller("PartyLedger").LoadAction("Fill_Change_Period_Items").Key("SelectedIndex").LoadMode(DataSourceLoadMode.Raw))
+                                              .DisplayExpr("Period").ValueExpr("SelectedIndex").SearchEnabled(false).OnValueChanged("PeriodSelection_PartyLedger_OnValueChanged").Value(ViewBag.PeriodSelectedIndex))
+
+
+                                            </div>
+                                            <div class="col-sm-4 col-md-4 col-lg-4">
+                                                @(Html.DevExtreme().Button().ID("btnChangePeriod_PartyLedger").Text("Change Period").Hint("Change Period")
+                                            .Disabled(true).OnClick("ChangePeriodClick_PartyLedger"))
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-12" style="vertical-align:central">
+                                        <span id="Party_Ledger_BE_View_Period" style="padding-left:3px;"></span>
+                                    </div>
+                                    <div class="col-sm-12"  style="padding-top:9px">
+                                        @(Html.DevExtreme().Button().ID("Party_ledger_btnshowLedger").Text("Show").Hint("Show Ledger").Width(70)
+                                      .Disabled(false).Icon("folder").OnClick("showPartyLedger"))
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[3]-->
+
+                </div>
+            </form>
+       
+        <div class="parent_table">
+            <form id="PartyLedgerReportreloadPartialView">
+                @Html.Partial("Frm_Party_Report_Grid_dx")
+            </form>
+        </div>   @*Grid*@
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="footer_new_left">
+                        <div class="row">
+                            <div class="col-md-10">
+                                <div style="padding-left:20px">
+                                    <span id="lbl_Ledger_Balance_label" style="color:#D2691E;font-weight:bold">Net Balance: </span>
+                                    <span id="lbl_Ledger_Balance" style="color:#D2691E;font-weight:bold">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("AttachmentFAB", "PartyLedgerPrf_FAB,PartyLedger_ParentDiv,Type1,PartyLedger," + UserType) @*fab buttons*@
+    @*Javascript Events*@
+<script>
+
+    var PartyLedgerReport_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var PartyLedger_Opening = parseFloat("@ViewBag.OpeningValue");
+    var PartyLR_IsVouchingMode = false;
+    var PartyLedger_SetVouchingModeOn = "@PartyLedger_Auto_Vouching_Mode" == "True" ? true : false;
+    var PartyLedger_ViewMode = "Default";
+    var PartyLedgerReport_Showclick = false;
+    var PartyLedger_TR_M_ID;
+    var PartyLedger_REC_ID;
+    var PartyLedger_iTR_TEMP_ID;
+    var PartyLedger_IsDetailRowExpanded = false;
+    var PartyLedger_NestedRecord_FocusedRowIndex = -1;
+    var PartyLedger_NestedGrid_AccessID;
+    var PartyLedger_AtachmentID;
+    var PartyLedger_FileName;
+    var PartyLedger_ParamMandatory;
+    var PartyLedger_FromDateLabel;
+    var PartyLedger_ToDateLabel;
+    var PartyLedger_DescriptionLabel;
+    var PartyLedger_Doc_ID;
+    var PartyLedger_Doc_Category;
+    var PartyLedger_MasterRowRecID;
+    var PartyLedger_MasterRowMID;
+    var PartyLedger_NestedRowMapID;
+    var PartyLedger_reason;
+    var PartyLedger_Attachment_RecStatus;
+    var PartyLedger_RecID_ForAttachment;
+    var PartyLedger_NestedRowKeyValue;
+    var PartyLedger_NestedRowReasonID;
+    var PartyLedgerReportListGrid;
+    var PartyLedger_Expanded_Row_Key;
+    var VisibleColumns_PartyLedger;
+    var gridRefreshRequired_PartyLedger = false;
+
+    $(document).ready(async function ()
+    {
+        debugger
+        if ("@PartyLedger_ExportRight" == "False")
+        {
+	        $("#PartyLedgerReportModelListPreview").hide();
+	        $("#PartyLedgerReportModelPrint").hide();
+        }
+        if (PartyLR_IsVouchingMode == true)
+        {
+            $(".PartyLedgerReportListGrid_PreviewRow").hide();
+        }
+        else
+        {
+            $(".PartyLedgerReportListGrid_PreviewRow").show();
+        }
+        GetSessionStorage("PartyLedgerReportListGrid");
+        await PeriodSelection_PartyLedger_OnValueChanged(null,true)
+        if ("@ViewBag.SelectedPartyValue".length > 0)
+        {
+            await Party_PartyLedger_OnValueChanged(null,true)
+        }
+        if ("@ViewBag.xFr_Date".length > 0)
+        {
+            await showPartyLedger();
+        }
+        if (PartyLedger_SetVouchingModeOn == true)
+        {
+            $("#PartyLedgerViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    async function Party_PartyLedger_OnValueChanged(e, FirstCall = false)
+    {
+        gridRefreshRequired_PartyLedger = true;
+        var partyID;
+        var partyDG = $("#Party_DG_PartyLedger").dxDataGrid("instance")
+        if (e)
+        {
+            partyID = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                partyDG.clearSelection();
+                return;
+            }
+        }
+        else
+        {
+            partyID = $("#Party_PartyLedger").dxDropDownBox("option", "value");
+        }
+        await partyDG.selectRows(partyID);   
+        //if (partyDG.getSelectedRowsData().length > 0)
+        //{
+        //    var item = partyDG.getSelectedRowsData()[0];
+        //}
+    }
+    async function PeriodSelection_PartyLedger_OnValueChanged(e, FirstCall = false)
+    {
+        debugger
+        gridRefreshRequired_PartyLedger = true;
+        var PeriodSelectedIndex;
+        if (e)
+        {
+            PeriodSelectedIndex = e.value;
+        }
+        else
+        {
+            PeriodSelectedIndex = $("#PeriodSelection_PartyLedger").dxSelectBox("option", "value")
+        }
+        if (PeriodSelectedIndex == null || PeriodSelectedIndex < 0)
+        {
+            return;
+        }
+        var xFr_Date, xTo_Date, MonthText, DataSource, _xDate;
+        DataSource = $("#PeriodSelection_PartyLedger").dxSelectBox("getDataSource");
+        var isLoaded = DataSource.isLoaded();
+        if (isLoaded == false)
+        {
+            await DataSource.load();
+        }
+        MonthText = $("#PeriodSelection_PartyLedger").dxSelectBox("option", "text");
+        $("#btnChangePeriod_PartyLedger").dxButton("instance").option("disabled", true);
+        if (PeriodSelectedIndex == 20)
+        {
+            $("#btnChangePeriod_PartyLedger").dxButton("instance").option("disabled", false);
+            if (FirstCall == false)
+            {
+                $("#btnChangePeriod_PartyLedger").trigger("dxclick")
+                return;
+            }
+            else
+            {
+                xFr_Date = StringToMomentDate("@ViewBag.xFr_Date","DD-MM-YYYY")
+                xTo_Date = StringToMomentDate("@ViewBag.xTo_Date","DD-MM-YYYY")
+            }
+        }
+        else if (PeriodSelectedIndex >= 0 && PeriodSelectedIndex <= 11)
+        {
+            var Sel_Mon = (MonthText.substr(0, 3)).toUpperCase();
+            var SEL_MM;
+            switch (Sel_Mon) {
+                case "JAN": SEL_MM = 1; break;
+                case "FEB": SEL_MM = 2; break;
+                case "MAR": SEL_MM = 3; break;
+                case "APR": SEL_MM = 4; break;
+                case "MAY": SEL_MM = 5; break;
+                case "JUN": SEL_MM = 6; break;
+                case "JUL": SEL_MM = 7; break;
+                case "AUG": SEL_MM = 8; break;
+                case "SEP": SEL_MM = 9; break;
+                case "OCT": SEL_MM = 10; break;
+                case "NOV": SEL_MM = 11; break;
+                case "DEC": SEL_MM = 12; break;
+                default: SEL_MM = 4; break;
+            }
+            xFr_Date = moment(new Date(MonthText.substr(4, 4), (SEL_MM - 1), 1)) //js date starts from 0
+            _xDate = xFr_Date.clone() //moment fns are mutable
+            xTo_Date = _xDate.add(1, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 12)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 13)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 6, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 14)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 15)
+        {
+            xFr_Date = moment(new Date("@OpenYearEdt.Year", 0, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 16)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 17)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 18)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+            _xDate = xFr_Date.clone()
+            xTo_Date = _xDate.add(9, 'M').subtract(1, 'd');
+        }
+        else if (PeriodSelectedIndex == 19)
+        {
+            xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+            xTo_Date = moment(new Date("@OpenYearEdt.Year",2, 31))
+        }
+        $("#Fr_Date_PartyLedger").val(xFr_Date.format("DD-MM-YYYY"));
+        $("#To_Date_PartyLedger").val(xTo_Date.format("DD-MM-YYYY"));
+        $("#Party_Ledger_BE_View_Period").text(("Fr.: " + xFr_Date.format("DD-MMM, YYYY") + " to " + xTo_Date.format("DD-MMM, YYYY")));
+    }
+    function ChangePeriodClick_PartyLedger()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/PartyLedger/Frm_PartyLedger_Specific_Period",
+            cache: false,
+            data:
+            {
+                xFrDate: $("#Fr_Date_PartyLedger").val(),
+                xToDate: $("#To_Date_PartyLedger").val()
+            },
+            success: function (data) {
+                OpenPopup("PopupCB_speceficPeriod", "Change Period", false, "auto", 250, true, data);
+            }
+        });
+    }
+    function Frm_Change_Period_Success_PartyLedger(fromDate, ToDate)
+    {
+        var xFr_Date = JS_Json_DateToMomentDate(fromDate)
+        var xTo_Date = JS_Json_DateToMomentDate(ToDate)
+        $("#Fr_Date_PartyLedger").val(xFr_Date.format("DD-MM-YYYY"));
+        $("#To_Date_PartyLedger").val(xTo_Date.format("DD-MM-YYYY"));
+        $("#Party_Ledger_BE_View_Period").text(("Fr.: " + xFr_Date.format("DD-MMM, YYYY") + " to " + xTo_Date.format("DD-MMM, YYYY")));
+        $("#PopupCB_speceficPeriod").dxPopup("hide");
+    }
+    async function showPartyLedger()
+    {
+        var _partyID = $("#Party_PartyLedger").dxDropDownBox("option", "value")
+        var Period = $("#PeriodSelection_PartyLedger").dxSelectBox("option", "value")
+        if (_partyID == null || _partyID.length == 0)
+        {
+            DevExpress.ui.dialog.alert("Please select Party", "Information").done(function ()
+            {
+                $("#Party_PartyLedger").dxDropDownBox("focus");
+            })
+            return;
+        }
+        if (Period == null)
+        {
+            DevExpress.ui.dialog.alert("Please select Period", "Information").done(function () {
+                $("#PeriodSelection_PartyLedger").dxSelectBox("focus");
+            })
+            return;
+        }
+        await DevExpress.ui.dialog.alert("1. Please ensure that account analysis is not showing any mistakes relating to the party<br>2. Check the party ledger thoroughly before sending the statement to any third party", "Disclaimer")
+        gridRefreshRequired_PartyLedger = false;
+        await PartyLedgerReportListGrid.refresh();
+    }
+    function PartyLedger_DS()
+    {
+        return new DevExpress.data.CustomStore({
+            key: "iTR_TEMP_ID",
+            loadMode: "raw",
+            load: function (loadOptions)
+            {
+                var frmDate = $("#Fr_Date_PartyLedger").val()
+                var partyid = $("#Party_PartyLedger").dxDropDownBox("option", "value")
+                if (frmDate == null || frmDate.length == 0 || partyid == null || partyid.length == 0)
+                {
+                    return []
+                }
+                const deferred = $.Deferred();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Reports/PartyLedger/PartyLedgerData",
+                    data:
+                    {
+                        Fr_Date: $("#Fr_Date_PartyLedger").val(),
+                        To_Date: $("#To_Date_PartyLedger").val(),
+                        PartyID: partyid,
+                        Opening: PartyLedger_Opening,
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        PartyLedger_Opening = data.Opening
+                        $("#lbl_Ledger_Balance").text(data.lblNetBalance);
+                        deferred.resolve(data.GridData);
+                    }
+                });
+                return deferred.promise();
+            }
+        })
+    }
+
+    function PartyLR_VouchingSwitch_ValueChange(e)
+    {
+        PartyLR_IsVouchingMode = e.value;
+        if (PartyLedger_SetVouchingModeOn == true) {
+            PartyLedger_SetVouchingModeOn = false;
+        }
+        else {
+            PartyLedgerPrf_FAB.SetVisible(false);
+        }
+        if (PartyLR_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        PartyLedgerReportListGrid.clearSelection();
+        PartyLedgerReportListGrid.option("masterDetail.enabled", !PartyLR_IsVouchingMode)
+        PartyLedgerReportListGrid.repaint();
+
+            //PartyLedgerReportListGrid.SetFocusedRowIndex(-1);
+            //PartyLR_IsVouchingMode = e.value;
+            //PartyLedgerPrf_FAB.SetVisible(false);
+            //if (PartyLR_IsVouchingMode == true)
+            //{
+            //    OpenRightPane();
+            //    ClearLeftPane();
+            //    OpenLeftPane();
+            //}
+            //else
+            //{
+            //    PartyLedgerPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            //    CloseRightPane();
+            //    ClearLeftPane();
+            //    CloseLeftPane();
+            //}
+            //PartyLedgerReportListGrid_CollapseAllDetailRows();
+    }
+    function PartyLedger_ViewSwitch_ValueChange(e)
+    {
+        PartyLedger_ViewMode = e.value == false ? "Default" : "Compact";
+        if (PartyLedger_SetVouchingModeOn == true) {
+            $("#PartyLRVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        PartyLedgerReportListGrid.beginUpdate();
+        var columns = PartyLedgerReportListGrid.option("columns");
+        if (PartyLedger_ViewMode == "Compact") {
+            VisibleColumns_PartyLedger = [];
+            for (var i = 0; i < columns.length; i++) {
+                var name = columns[i].dataField;
+                var ColumnVisible = PartyLedgerReportListGrid.columnOption(name, "visible");
+                if (name == "PartyLedgerReportListGrid_Compact_Column") {
+                    PartyLedgerReportListGrid.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon") {
+                    VisibleColumns_PartyLedger.push(name);
+                    PartyLedgerReportListGrid.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            PartyLedgerReportListGrid.columnOption("PartyLedgerReportListGrid_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_PartyLedger.length; i++) {
+                PartyLedgerReportListGrid.columnOption(VisibleColumns_PartyLedger[i], "visible", true);
+            }
+        }
+        PartyLedgerReportListGrid.repaint();
+        PartyLedgerReportListGrid.endUpdate();
+
+            //PartyLedger_ViewMode = e.value == false ? "Default" : "Compact";
+            //if (PartyLedger_SetVouchingModeOn == true)
+            //{
+            //    PartyLedger_SetVouchingModeOn = false;
+            //    $("#PartyLRVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            //}
+            //else
+            //{
+            //    PartyLedgerReportListGrid.CollapseAllDetailRows();
+            //}
+    }
+    function PartyLedgerReport_changeMode()
+    {
+            PartyLedgerReportListGrid.beginUpdate();
+            if (PartyLedgerReport_ShowHorizontalBar == 0) {
+                PartyLedgerReport_ShowHorizontalBar = 1;
+                $("#PartyLedgerReportToggleScrollBar").find("span").text("Default Data");
+                $("#PartyLedgerReportToggleScrollBar").width(110);
+                PartyLedgerReportListGrid.option("columnHidingEnabled", false);
+                PartyLedgerReportListGrid.option("allowColumnResizing", true)
+            }
+            else {
+                PartyLedgerReport_ShowHorizontalBar = 0;
+                $("#PartyLedgerReportToggleScrollBar").find("span").text("Full Data");
+                $("#PartyLedgerReportToggleScrollBar").width(90);
+                PartyLedgerReportListGrid.option("columnHidingEnabled", true)
+                PartyLedgerReportListGrid.option("allowColumnResizing", false)
+            }
+            PartyLedgerReportListGrid.endUpdate();
+    }
+    function OnPartyLedgerReportListPreviewClick()
+    {
+        if ("@PartyLedger_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        var partyDG = $("#Party_DG_PartyLedger").dxDataGrid("instance")
+        var selectedRowData = partyDG.getSelectedRowsData();
+        if (selectedRowData == null || selectedRowData.length == 0)
+        {
+            DevExpress.ui.dialog.alert("Please select Party", "Information").done(function ()
+            {
+                $("#Party_PartyLedger").dxDropDownBox("focus");
+            })
+            return
+        }
+        if (gridRefreshRequired_PartyLedger == true)
+        {
+            DevExpress.ui.dialog.alert("Party Ledger Data displayed is not as per the selected party and period filters <br> Please click the show button before exporting the report", "Information").done(function ()
+            {
+
+            })
+            return
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Reports/PartyLedger/PrintableReport",
+            data:
+            {
+                Name: selectedRowData[0]["Name"],
+                GST: selectedRowData[0]["GST"],
+                PAN: selectedRowData[0]["PAN"],
+                State: selectedRowData[0]["State"],
+                City: selectedRowData[0]["City"],
+                Mobile: selectedRowData[0]["Mobile"],
+                Email: selectedRowData[0]["Email"],
+                PartyID: selectedRowData[0]["ID"],
+                From: $("#Fr_Date_PartyLedger").val(),
+                To: $("#To_Date_PartyLedger").val(),
+                ReportData: JSON.stringify(GetDataSourceItems("PartyLedgerReportListGrid", "dxDataGrid"))
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenPopup("PartyLedgerReport_report_modal", "Print", null, "auto", "100%", true, data);
+            }
+        });
+    }
+    function OnPartyLedgerReportExportClick()
+    {
+        if ("@PartyLedger_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        var partyDG = $("#Party_DG_PartyLedger").dxDataGrid("instance")
+        var selectedRowData = partyDG.getSelectedRowsData();
+        if (selectedRowData == null || selectedRowData.length == 0) {
+            DevExpress.ui.dialog.alert("Please select Party", "Information").done(function () {
+                $("#Party_PartyLedger").dxDropDownBox("focus");
+            })
+            return
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Reports/PartyLedger/Frm_Export_Options",
+            data:
+            {
+                Name: selectedRowData[0]["Name"],          
+                From: $("#Fr_Date_PartyLedger").val(),
+                To: $("#To_Date_PartyLedger").val(),
+                GridName:"PartyLedgerReportListGrid"
+            },
+            cache: false,
+            success: function (data) {
+                HideLoader();
+                OpenPopup("report_export_modal", "Export Options", null, "auto", 120, true, data);
+            }
+        });
+    }
+    function closePartyLedger()
+    {
+        if ("@CalledFromOtherScreen".length > 0) {
+            var popupid = "#" + "@CalledFromOtherScreen";
+            $(popupid).dxPopup("hide");
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/PartyLedger/SessionClear",
+                cache: false
+            });
+            ClearAllReferences_PartyLedgerReport();
+        }
+        else
+        {
+            btnCloseActiveTab();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/PartyLedger/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_PartyLedgerReport();
+    });
+    function ClearAllReferences_PartyLedgerReport()
+    {
+        PartyLedgerReportListGrid = null;
+        PartyLedger_RefreshParty = null;
+        IsPartyLedgerReportSucessPopup = null;
+        IsPartyLedgerReportViewPopup = null;
+        PartyLedgerReport_ShowHorizontalBar = null;
+        PartyLR_IsVouchingMode = null;
+        PartyLedger_SetVouchingModeOn = null;
+        PartyLedger_ViewMode = null;
+        PartyLedgerReport_Showclick = null;
+        PartyLedger_TR_M_ID = null;
+        PartyLedger_REC_ID = null;
+        PartyLedger_iTR_TEMP_ID = null;
+        PartyLedger_IsDetailRowExpanded = null;
+        PartyLedger_NestedRecord_FocusedRowIndex = null;
+        PartyLedger_NestedGrid_AccessID = null;
+        PartyLedger_AtachmentID = null;
+        PartyLedger_FileName = null;
+        PartyLedger_ParamMandatory = null;
+        PartyLedger_FromDateLabel = null;
+        PartyLedger_ToDateLabel = null;
+        PartyLedger_DescriptionLabel = null;
+        PartyLedger_Doc_ID = null;
+        PartyLedger_Doc_Category = null;
+        PartyLedger_MasterRowRecID = null;
+        PartyLedger_MasterRowMID = null;
+        PartyLedger_NestedRowMapID = null;
+        PartyLedger_reason = null;
+        PartyLedger_Attachment_RecStatus = null;
+        PartyLedger_RecID_ForAttachment = null;
+        PartyLedger_NestedRowKeyValue = null;
+        PartyLedger_NestedRowReasonID = null;
+        PartyLedger_Expanded_Row_Key = null;
+        VisibleColumns_PartyLedger = null;
+        gridRefreshRequired_PartyLedger = null;
+
+        ClearAllReferences("PartyLedgerReport_ClearReferences");
+    }
+</script>
+<script>
+    function PartyLedgerReportListGrid_OnInitialized(e)
+    {
+        DxGrid_AdjustSize(e.component, $("#PartyLedger_ParentDiv .report_button_div"),"@CalledFromOtherScreen")
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize(e.component, $("#PartyLedger_ParentDiv .report_button_div"), "@CalledFromOtherScreen", evt)
+        });
+        PartyLedgerReportListGrid = e.component;
+    }
+    function PartyLedgerReportListGrid_OnCellPrepared(e)
+    {
+        if (e.rowType == "data")
+        {
+            if (PartyLR_IsVouchingMode == true)
+            {
+                if (e.column.dataField === "iIcon")
+                {
+                    $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                    $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                }
+            }
+            $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.key + "|" + e.column.dataField);
+            /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + e.key);*/
+            if (e.column.type == "detailExpand")
+            {
+                if (e.key == "Opening_Balance")
+                {
+                    $(e.cellElement).addClass("hideDetail");
+                }
+            }
+        }
+    }
+    function PartyLedgerReportListGrid_OnRowPrepared(e)
+    {
+        if (e.rowType == "data")
+        {
+            var GridName = e.element[0].id;
+            var keyvalue = e.key.ReplaceSpecialwith_();
+            var key = e.key;
+            $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+            let Remarks = e.data.NARRATION;
+            var PreviewRowContent = PartyLedgerReportListGrid_PreviewRow_Template(e)
+            var PreviewRowClass = GridName + "_PreviewRow " + GridName + "_PreviewRow_" + key + " DataGridPreviewRow " + keyvalue
+            var PreviewRowOptions = "";
+            if (PartyLR_IsVouchingMode == true)
+            {
+                PreviewRowOptions = "style='display:none' onmouseover=OnGridPrevRowMouseHoverIn(event,this,'" + GridName + "','" + e.rowIndex + "','" + key + "') onmouseout=OnGridPrevRowMouseHoverOut(event,this,'" + GridName + "','" + e.rowIndex + "','" + key + "')"
+            }
+            else
+            {
+                if (Remarks == null || Remarks.length == 0)
+                {
+                    PreviewRowOptions = "style='display:none'";
+                    PreviewRowClass += " empty";
+                }
+            }
+            var EmptyTdshtml = "";
+            var emptyTd = $(e.rowElement).find('td.dx-datagrid-group-space').length
+            for (var i = 0; i < emptyTd; i++) {
+                EmptyTdshtml += "<td></td>"
+            }
+            ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='" + e.columns.length + "'>" + PreviewRowContent + "</td></tr>")
+
+        }
+        else if (e.rowType == "detailAdaptive") {
+            DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+        }
+    }
+    function PartyLedgerReportListGrid_OnContentReady(e)
+    {
+        DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, PartyLedger_Expanded_Row_Key)
+        DxGrid_OnContentReady(e, PartyLedgerReport_ShowHorizontalBar);       
+    }
+    function PartyLedgerReportListGrid_OnCellDblClick(e)
+    {
+        if (e.rowType == "data")
+        {
+            if (PartyLR_IsVouchingMode == true && PartyLedger_ViewMode == "Default")
+            {
+                OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+            }
+        }
+    }
+    function PartyLedgerReportListGrid_OnSelectionChanged(e)
+    {
+        var selectedRowKeys = e.selectedRowKeys;
+        if (selectedRowKeys != null && selectedRowKeys.length > 0)
+        {
+            if (PartyLR_IsVouchingMode)
+            {
+                PartyLedgerPrf_FAB.SetVisible(true);
+                PartyLedgerPrf_FAB.SetActionContext("AddAttachmentContext", true);
+            }
+            PartyLedgerReportListGrid_SelectedRowData(e.selectedRowsData);
+        }
+        else
+        {
+            PartyLedger_iTR_TEMP_ID= null;
+        }
+    }
+    function PartyLedgerReportListGrid_SelectedRowData(selectedData = null)
+    {
+        if (selectedData == null)
+        {
+            selectedData = PartyLedgerReportListGrid.getSelectedRowsData();
+        }
+        if (selectedData != null && selectedData.length > 0)
+        {
+            var values = selectedData[0]
+            PartyLedger_TR_M_ID = values["TR_M_ID"];
+            PartyLedger_REC_ID = values["REC_ID"];
+            PartyLedger_iTR_TEMP_ID = values["iTR_TEMP_ID"];
+            if (PartyLR_IsVouchingMode == true)
+            {
+                OpenLeftPane();
+                LeftPaneContent_PartyLedgerReportListGrid("PartyLedgerReportListGrid", PartyLedger_REC_ID, PartyLedger_TR_M_ID, PartyLR_IsVouchingMode, PartyLedgerReport_ShowHorizontalBar, PartyLedger_iTR_TEMP_ID)
+            }
+        }
+        else
+        {
+            PartyLedger_iTR_TEMP_ID = null;
+        }
+    }
+    function PartyLedgerReportListGrid_OnRowExpanding(e)
+    {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            e.component.collapseRow(PartyLedger_Expanded_Row_Key)
+            e.component.selectRows(e.key);
+            PartyLedger_Expanded_Row_Key = e.key;
+            PartyLedger_IsDetailRowExpanded = true;
+            var DetailGridID = e.element[0].id + e.key;
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0)
+            {
+                instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+            }
+            //e.component.collapseAll(-1);
+        }
+        else {
+            e.component.option("CustomProp.groupRowExpanded", true);
+        }
+    }
+    function PartyLedgerReportListGrid_OnRowCollapsing(e)
+    {
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            var DetailGridID = e.element[0].id + e.key;
+            sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+            PartyLedger_IsDetailRowExpanded = false;
+            e.component.selectRows(e.key);
+            if (PartyLR_IsVouchingMode == false)
+            {
+                PartyLedgerPrf_FAB.SetVisible(false);
+            }
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.clearSelection();
+            }
+        }
+        else {
+            e.component.option("CustomProp.groupRowCollapsed", true);
+        }
+    }
+    function PartyLedgerReportListGrid_OnContextMenuPreparing(e)
+    {
+        if (!e.items) e.items = [];
+        if (e.target == "header")
+        {
+            DxGrid_HeaderContextMenu(e)
+        }
+        else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer")
+        {
+            if (PartyLedger_ViewMode == "Compact")
+                DxGrid_FooterContextMenu(e, true);
+            else
+                DxGrid_FooterContextMenu(e);
+        }
+        else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive"))
+        {
+            var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+            e.component.selectRows(key);
+            var expanded = e.component.isRowExpanded(key);
+            var hasDetail = true;
+            if (PartyLR_IsVouchingMode == false) {
+                var cellEle = e.component.getCellElement(e.row.rowIndex, 0)
+                hasDetail = !(cellEle[0].classList.contains("hideDetail"))
+            }
+            e.items = [
+                {
+                    text: "Expand Detail",
+                    icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                    disabled: expanded,
+                    visible: !PartyLR_IsVouchingMode && hasDetail,
+                    onItemClick: function () {
+                        if (expanded) {
+                        }
+                        else {
+                            e.component.expandRow(key);
+                        }
+                    }
+                },
+                {
+                    text: "Collapse Detail",
+                    icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                    disabled: !expanded,
+                    visible: !PartyLR_IsVouchingMode && hasDetail,
+                    onItemClick: function ()
+                    {
+                        if (expanded)
+                        {
+                            e.component.collapseRow(key);
+                        }
+                        else
+                        {
+                        }
+                    }
+                },
+                {
+                    text: "Print",
+                    icon: "print",
+                    visible: "@PartyLedger_ExportRight" == "True",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        OnPartyLedgerReportListPreviewClick();
+                    }
+                },
+                     {
+                    text: "Export",
+                    icon: "fa-solid fa-file-export text-warning",
+                    visible: "@PartyLedger_ExportRight" == "True",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        OnPartyLedgerReportExportClick();
+                    }
+                },
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function ()
+                    {
+                        closePartyLedger();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function ()
+                    {
+                        gridRefreshRequired_PartyLedger = false;
+                        PartyLedgerReportListGrid.refresh()
+                    }
+                }
+            ]
+        }
+        else if (e.target == "content" && e.row == void 0) {
+            e.items = [{
+                text: "Close",
+                icon: "fa-solid fa-rectangle-xmark text-danger",
+                beginGroup: true,
+                onItemClick: function () {
+                    closePartyLedger();
+                }
+            },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        gridRefreshRequired_PartyLedger = false;
+                        PartyLedgerReportListGrid.refresh()
+                    }
+                }
+
+            ]
+        }
+    }
+    function PartyLedgerReportListGrid_PreviewRow_Template(e) {
+        var htmlString = "";
+        if (PartyLR_IsVouchingMode == true) {
+            htmlString = DxGrid_AuditButtons(e.element[0].id, e.key, e.rowIndex);
+            htmlString += "<br><br>"
+        }
+        if (e.data.NARRATION != null && e.data.NARRATION.length > 0) {
+            htmlString += "<span style = 'color: #008000' > <i>" + e.data.NARRATION + "</i></span>";
+        }
+        return htmlString;
+    }
+    function PartyLedgerReportListGrid_Compact_Column_Template(container, templateData)
+    {
+        var Name = templateData.component.element()[0].id;
+        var KeyValue = templateData.data.iTR_TEMP_ID;
+        var VouchingMode = PartyLR_IsVouchingMode == true ? "True" : "False";
+
+        var htmlString = "<div class='container-fluid'>" +
+            "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Voucher:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|_Date' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (JS_Json_Date_To_ddMMyyyy((templateData.data._Date ?? ""), "DD-MMM-YYYY") ?? "") + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Date:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|InvNo' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.InvNo ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Particulars:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Particulars' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Particulars??"") + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>InvNo:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Screen' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Screen ?? "")+ "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Payment RefNo:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Payment_RefNo' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Payment_RefNo ?? "") + "</div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Debit:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Debit' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Debit ?? "") + "</div></div>";
+        htmlString += "<div class='row'>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Credit:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Credit' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Credit??"") + "</div>"+
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+            "<label class='control-label'>Balance:</label></div>" +
+            "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Balance' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+            (templateData.data.Balance ?? "") + "</div></div></div>";
+
+        $(container).html(htmlString)
+    }
+    function PartyLedgerReportListGrid_Compact_Column_CellValue(rowData)
+    {
+        var data = [rowData.Voucher, (JS_Json_Date_To_ddMMyyyy((rowData._Date ?? ""), "DD-MM-YYYY") ?? ""), rowData.InvNo, rowData.Payment_RefNo, rowData.Screen, rowData.Particulars, rowData.Debit, rowData.Credit, rowData.Balance];
+        return data.join(" ")
+    }
+    function PartyLedgerReportListGrid_iIconTemplate(container, templateData)
+    {
+        var iREQ_ATTACH_COUNT = templateData.data.iREQ_ATTACH_COUNT
+        var iCOMPLETE_ATTACH_COUNT = templateData.data.iCOMPLETE_ATTACH_COUNT
+        var iRESPONDED_COUNT = templateData.data.iRESPONDED_COUNT
+        var iREJECTED_COUNT = templateData.data.iREJECTED_COUNT
+        var iOTHER_ATTACH_CNT = templateData.data.iOTHER_ATTACH_CNT
+        var iALL_ATTACH_CNT = templateData.data.iALL_ATTACH_CNT
+        var iIcon = templateData.data.iIcon
+        var GridName = templateData.component.element()[0].id
+        var key = templateData.data.iTR_TEMP_ID
+        var VisibleIndex = templateData.rowIndex
+        var htmlString = "";
+        htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+        htmlString += DxGrid_VouchingAuditIcons(iIcon)
+        htmlString += DxGrid_AuditIconAfterClick(GridName, key, VisibleIndex)
+        $(container).html(htmlString)
+    }
+    function PartyLedgerReportListGrid_DetailTemplate(container, templateData)
+    {
+        var GridName = templateData.component.element()[0].id
+        var ID = templateData.data.REC_ID ?? "";
+        var MID = templateData.data.TR_M_ID ?? "";
+        PartyLedgerReportListGrid_Detail(container, GridName, ID, MID, PartyLR_IsVouchingMode, PartyLedgerReport_ShowHorizontalBar, templateData.data.iTR_TEMP_ID);
+        }
+
+    function PartyLedgerReportListGrid_Detail(container, GridName, RecID, Mid, vouchingMode, AllColumns,keyValue)
+    {
+        var url = "/Reports/PartyLedger/Frm_Party_Report_DetailGrid_Data?VouchingMode=" + vouchingMode + "&ID=" + RecID + "&MID=" + Mid
+        var instance = DxGrid_AttachmentGrid_Create(container, GridName, keyValue, vouchingMode, AllColumns, url)
+        instance.option("onSelectionChanged", PartyLedgerReportListGrid_Detail_onSelectionChanged);
+    }
+    function PartyLedgerReportListGrid_Detail_onSelectionChanged(e)
+    {
+        if (PartyLedger_IsDetailRowExpanded || PartyLR_IsVouchingMode)
+        {
+            if (e.selectedRowsData != null && e.selectedRowsData.length > 0)
+            {
+                PartyLedger_NestedGrid_AccessID = e.element[0].id;
+                PartyLedgerReportListGrid_Detail_SelectedRowData(e.selectedRowsData)
+            }
+            else
+            {
+                PartyLedgerPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function PartyLedgerReportListGrid_Detail_SelectedRowData(selectedData = null)
+    {
+        debugger
+        if (selectedData == null)
+        {
+            selectedData = $("#" + PartyLedger_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+        }
+        var values = selectedData[0];
+        PartyLedger_NestedRowKeyValue = values["UniqueID"];
+        if (values["UniqueID"] != null)
+        {
+            PartyLedgerPrf_FAB.SetVisible(true);
+            PartyLedger_Nested_Doc_Status = values["Doc_Status"];
+
+            if (PartyLR_IsVouchingMode == true) {
+                PartyLedgerPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (PartyLedger_Nested_Doc_Status == "") {
+                    PartyLedgerPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (PartyLedger_Nested_Doc_Status == "NO") {
+                    PartyLedgerPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (PartyLedger_Nested_Doc_Status == "YES") {
+                    PartyLedgerPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            PartyLedger_ParamMandatory = values["Params_Mandatory"];
+            PartyLedger_FromDateLabel = values["LABEL_FROM_DATE"];
+            PartyLedger_ToDateLabel = values["LABEL_TO_DATE"];
+            PartyLedger_DescriptionLabel = values["LABEL_DESCRIPTION"];
+            PartyLedger_Doc_Category = values["Document_Category"];
+            PartyLedger_Doc_ID = values["Document_ID"];
+            PartyLedger_AtachmentID = values["ATTACH_ID"];
+            IndexAttachmentID = PartyLedger_AtachmentID;
+            PartyLedger_MasterRowRecID = values["TxnID"];
+            PartyLedger_MasterRowMID = values["TxnMID"];
+            PartyLedger_NestedRowMapID = values["MAP_ID"];
+            PartyLedger_reason = values["Reason"];
+            PartyLedger_FileName = values["ATTACH_FILE_NAME"];
+            PartyLedger_Attachment_RecStatus = values["Attachment_Action_Status"];
+            if (PartyLedger_MasterRowMID != null && PartyLedger_MasterRowMID != "") {
+                PartyLedger_RecID_ForAttachment = PartyLedger_MasterRowMID;
+            }
+            else if (PartyLedger_MasterRowRecID != null && PartyLedger_MasterRowRecID != "") {
+                PartyLedger_RecID_ForAttachment = PartyLedger_MasterRowRecID;
+            }
+            PartyLedger_NestedRowReasonID = values["ReasonID"];
+            IndexAttachmentReasonID = PartyLedger_NestedRowReasonID;
+            if (PartyLR_IsVouchingMode == true)
+            {
+                if (PartyLedger_FileName != null && PartyLedger_FileName.length > 0)
+                {
+                    ViewDocument(PartyLedger_AtachmentID, PartyLedger_FileName, "PartyLedgerPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+    }
+
+    function LeftPaneContent_PartyLedgerReportListGrid(GridName, ID, MID, vouchingMode, AllColumns = 0,keyValue="")
+    {
+        $("#LeftPane_Div_Content").html(null);
+        $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+        PartyLedgerReportListGrid_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, ID, MID, vouchingMode, AllColumns, keyValue)
+        setTimeout(function () {
+            AdditionalInfoGrid_PartyLedgerReportListGrid($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, ID, MID, vouchingMode, AllColumns)
+        })
+    }
+    function AdditionalInfoGrid_PartyLedgerReportListGrid(container, GridName, ID, MID, vouchingMode, AllColumns, onlyAdditional = false)
+    {
+        if (onlyAdditional)
+        {
+            $(container).html(null)
+        }
+        var url = "/Reports/PartyLedger/Frm_Party_Report_AdditionalGrid?VouchingMode=" + vouchingMode + "&ID=" + ID + "&MID=" + MID
+        DxGrid_CreateAdditionalInfoGrid(container, GridName, ID, vouchingMode, AllColumns, url)
+    }
+</script>
+<script>
+    function On_PartyLedger_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PartyLedger_ParamMandatory == 1)
+            {
+                AddAttachment(PartyLedger_RecID_ForAttachment, "Accounts_CashBook", PartyLedger_Doc_ID, PartyLedger_Doc_Category, PartyLedger_ParamMandatory, PartyLedger_FromDateLabel, PartyLedger_ToDateLabel, PartyLedger_DescriptionLabel, "PartyLedgerAttachment", null, "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(PartyLedger_RecID_ForAttachment, "Accounts_CashBook", PartyLedger_Doc_ID, "PartyLedgerAttachment", "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PartyLedger_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(PartyLedger_RecID_ForAttachment, "Accounts_CashBook", PartyLedger_AtachmentID, PartyLedger_ParamMandatory, PartyLedger_FromDateLabel, PartyLedger_ToDateLabel, PartyLedger_DescriptionLabel, "PartyLedgerAttachment", null, "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(PartyLedger_RecID_ForAttachment, "Accounts_CashBook", PartyLedger_AtachmentID, PartyLedger_ParamMandatory, PartyLedger_FromDateLabel, PartyLedger_ToDateLabel, PartyLedger_DescriptionLabel, null, "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID, PartyLedger_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+
+
+            ViewDocument(PartyLedger_AtachmentID, PartyLedger_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(PartyLedger_RecID_ForAttachment, "Accounts_CashBook", "Party Ledger Information", "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (PartyLedger_Doc_Category.toLowerCase() == "others") {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(PartyLedger_RecID_ForAttachment, PartyLedger_NestedRowMapID, "Accounts_CashBook", "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(PartyLedger_RecID_ForAttachment, PartyLedger_NestedRowMapID, "Accounts_CashBook", "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID, PartyLedger_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(PartyLedger_RecID_ForAttachment, PartyLedger_NestedRowMapID, "PartyLedgerReportListGrid", PartyLedger_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction") {
+            s.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit") {
+            if (PartyLedger_Nested_Doc_Status == "") {
+                s.SetActionContext("AutoItemContext", true);
+            }
+            if (PartyLedger_Nested_Doc_Status == "NO") {
+                s.SetActionContext("EditItemContext", true);
+            }
+            if (PartyLedger_Nested_Doc_Status == "YES") {
+                s.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept") {
+            OnPartyLedger_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject") {
+            OnPartyLedger_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks") {
+            OnPartyLedger_AcceptRejectVoucher("Accept");
+        }
+    }
+    function PartyLedgerOnGridFocusedRowChanged(s, e) {
+        if (s.GetFocusedRowIndex() > -1) {
+            if (PartyLR_IsVouchingMode) {
+                PartyLedgerPrf_FAB.SetVisible(true);
+                PartyLedgerPrf_FAB.SetActionContext("VouchingActionContext", true);
+            }
+
+            s.GetRowValues(s.GetFocusedRowIndex(), 'TR_M_ID;REC_ID;iTR_TEMP_ID', OnPartyLedgerReport_GetMainGridRowValues);
+        }
+        else {
+            PartyLedger_TR_M_ID = null;
+            PartyLedger_REC_ID = null;
+            PartyLedger_iTR_TEMP_ID = null;
+        }
+    }
+    function OnPartyLedgerReport_GetMainGridRowValues(PartyLedgerReport_MainGridRowValues) {
+        PartyLedger_TR_M_ID = PartyLedgerReport_MainGridRowValues[0];
+        PartyLedger_REC_ID = PartyLedgerReport_MainGridRowValues[1];
+        PartyLedger_iTR_TEMP_ID = PartyLedgerReport_MainGridRowValues[2];
+        if (PartyLR_IsVouchingMode == true) {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Reports", "PartyLedger", "LeftPaneContent", PartyLedger_REC_ID, PartyLR_IsVouchingMode, PartyLedger_iTR_TEMP_ID == PartyLedger_REC_ID ? "" : PartyLedger_iTR_TEMP_ID);
+        }
+    }
+    function OnPartyLedgerReportListGridNestedFocusedRowChange(s, e)
+    {
+        if (PartyLedger_IsDetailRowExpanded || PartyLR_IsVouchingMode == true )
+        {
+            PartyLedger_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (PartyLedger_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                PartyLedger_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnPartyLedger_GetGridRowValues);
+            }
+            else
+            {
+                PartyLedgerPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnPartyLedger_GetGridRowValues(values)
+    {
+        if (values[14] != null)
+        {
+            PartyLedgerPrf_FAB.SetVisible(true);
+
+            PartyLedger_Nested_Doc_Status = values[0];
+
+            if (PartyLR_IsVouchingMode == true) {
+                PartyLedgerPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (PartyLedger_Nested_Doc_Status == "") {
+                    PartyLedgerPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (PartyLedger_Nested_Doc_Status == "NO") {
+                    PartyLedgerPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (PartyLedger_Nested_Doc_Status == "YES") {
+                    PartyLedgerPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+
+            PartyLedger_ParamMandatory = values[1];
+            PartyLedger_FromDateLabel = values[2];
+            PartyLedger_ToDateLabel = values[3];
+            PartyLedger_DescriptionLabel = values[4];
+            PartyLedger_Doc_Category = values[5];
+            PartyLedger_Doc_ID = values[6];
+            PartyLedger_AtachmentID = values[7];
+            IndexAttachmentID = PartyLedger_AtachmentID;
+            PartyLedger_MasterRowRecID = values[8];
+            PartyLedger_MasterRowMID = values[9];
+            PartyLedger_NestedRowMapID = values[10];
+            PartyLedger_reason = values[11];
+            PartyLedger_FileName = values[12];
+            PartyLedger_Attachment_RecStatus = values[13];
+            PartyLedger_NestedRowKeyValue = values[14];
+            PartyLedger_NestedRowReasonID = values[15];
+            IndexAttachmentReasonID = PartyLedger_NestedRowReasonID;
+
+            HideLoader();
+
+            if (PartyLedger_MasterRowMID != null && PartyLedger_MasterRowMID != "") {
+                PartyLedger_RecID_ForAttachment = PartyLedger_MasterRowMID;
+            }
+            else if (PartyLedger_MasterRowRecID != null && PartyLedger_MasterRowRecID != "") {
+                PartyLedger_RecID_ForAttachment = PartyLedger_MasterRowRecID;
+            }
+        }
+    }
+    function PartyLedgerReportListGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = PartyLedgerReport_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = PartyLR_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function PartyLedger_DetailRowExpanding(s, e)
+    {
+        PartyLedger_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (PartyLR_IsVouchingMode == true) {
+            pane.Expand();
+        }
+        else {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function PartyLedger_DetailRowCollapsing(s, e)
+    {
+        PartyLedger_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (PartyLR_IsVouchingMode == true) {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false) {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else {
+            PartyLedgerPrf_FAB.SetVisible(false);
+        }
+    }
+    function OnPartyLedger_AcceptwithoutRemarks() {
+            var Recid;
+            if (PartyLedger_IsDetailRowExpanded == true || PartyLR_IsVouchingMode == true) {
+                if (PartyLedger_MasterRowMID == null || PartyLedger_MasterRowMID == "") {
+                    if (PartyLedger_MasterRowRecID == null || PartyLedger_MasterRowRecID == "") {
+                        Recid = (PartyLedger_TR_M_ID == null || PartyLedger_TR_M_ID == "") ? PartyLedger_REC_ID : PartyLedger_TR_M_ID;
+                    }
+                    else {
+                        Recid = PartyLedger_MasterRowRecID;
+                    }
+                }
+                else {
+                    Recid = PartyLedger_MasterRowMID;
+                }
+            }
+            else {
+                Recid = (PartyLedger_TR_M_ID == null || PartyLedger_TR_M_ID == "") ? PartyLedger_REC_ID : PartyLedger_TR_M_ID;
+            }
+
+            Entry_AcceptwithoutRemarks(Recid, "Report_PartyReport", "PartyLedgerReportListGrid", PartyLedger_AtachmentID, PartyLedger_NestedRowReasonID, PartyLedger_NestedRowKeyValue);
+        }
+    function OnPartyLedger_AcceptRejectVoucher(_actionMethod) {
+            var Recid;
+            if (PartyLedger_IsDetailRowExpanded == true || PartyLR_IsVouchingMode == true) {
+                if (PartyLedger_MasterRowMID == null || PartyLedger_MasterRowMID == "") {
+                    if (PartyLedger_MasterRowRecID == null || PartyLedger_MasterRowRecID == "") {
+                        Recid = (PartyLedger_TR_M_ID == null || PartyLedger_TR_M_ID == "") ? PartyLedger_REC_ID : PartyLedger_TR_M_ID;
+                    }
+                    else {
+                        Recid = PartyLedger_MasterRowRecID;
+                    }
+                }
+                else {
+                    Recid = PartyLedger_MasterRowMID;
+                }
+            }
+            else {
+                Recid = (PartyLedger_TR_M_ID == null || PartyLedger_TR_M_ID == "") ? PartyLedger_REC_ID : PartyLedger_TR_M_ID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Report_PartyReport", "PartyLedgerReportListGrid", PartyLedger_AtachmentID, PartyLedger_NestedRowReasonID, PartyLedger_NestedRowKeyValue);
+        }
+ </script>
+    @* PartyLedger_AuditActionButton_Functions *@
+</div>

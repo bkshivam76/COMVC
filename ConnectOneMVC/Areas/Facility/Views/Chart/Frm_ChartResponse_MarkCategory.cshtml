@@ -1,0 +1,90 @@
+﻿
+<div class="ResponseMarkCategory_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+
+        var responseID = (string)ViewBag.ChartResponseID;    
+        //var gridnametorefresh = (string)ViewBag.GridNameToRefresh;
+    }
+
+    <div id="Frm_ChartResponse_MarkCategory">
+        <form>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 md-12 pll">
+                            <label class="control-label text-red" for="user">Choose Category:</label>
+                            @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Response_Categories").Name("Response_Categories").Placeholder("Choose Category").DataSource(new string[] { "BK", "Delegate","VIP","VVIP","IP", "Repeat", "Sewadhari" }))
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().Text("Add").ID("Response_MarkCategory").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("Response_MarkCategory"))
+                            @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Response_MarkCategory_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { Response_CloseMarkCategory();} </Text>))
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+        </form>
+    </div><!--[Form Div]-->
+
+    <script>
+
+        function Response_CloseMarkCategory(){
+            HidePopup('Response_MarkCategory_popup');
+        }
+
+        function Response_MarkCategory(e)
+        {           
+            var category = $("#Response_Categories").dxSelectBox("instance").option("value");
+
+            //if (category == null || category.trim().length <= 0)
+            //{
+            //    DevExpress.ui.dialog.alert("Please write some remark to save", 'Alert');
+            //    return;
+            //}
+
+            ShowLoader();
+            $.ajax({
+            type: 'GET',
+            url: "/Facility/Chart/saveResponseCategory",
+            cache: false,
+            data: {
+                ChartResponseID: "@responseID",
+                Category: category                
+            },
+            success: function (data)
+            {
+                HideLoader();
+                Response_CloseMarkCategory();
+                var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertClick.done(function (alertResult)
+                {
+                    if (alertResult)
+                    {
+                        if (data.jsonParam.result == true)
+                        {
+                            var GridInstance = $('#ChartResponsesInfoGrid_dx').data("dxDataGrid")//BK SOUMY
+                            if (GridInstance !== void 0) {
+                                ChartResponsesInfo_Dx_Refresh();
+                            }
+                            else
+                                ChartResponsesInfoGrid.Refresh();
+                        }
+                    }
+                })
+            }
+        });
+    }
+    </script>
+
+</div>

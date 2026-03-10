@@ -1,0 +1,1109 @@
+﻿<div class="AttachmentWindow_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Help.Models.Model_Attachment_Window
+
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && ((Model.ActionMethod.ToString().Trim() == "View") || (Model.ActionMethod.ToString().Trim() == "Delete")) ? true : false;
+    string PostSucessFunctionName = Model.Help_PostSucessFunctionName==null? "Frm_Documents_Window_Help_OnSuccess": Model.Help_PostSucessFunctionName;
+    string SessionVariableName = Model.Help_Byte_SessionName;
+    string buttontext = Model.Help_Post_Controller_Name == "Attachment" ? "Save" : "OK";
+   // string DescLabel = Model.Help_Description_Label.Length > 0 ? Model.Help_Description_Label : "Description";
+   // string FromDateLabel = Model.Help_FromDate_Label.Length > 0 ? Model.Help_FromDate_Label: "Applicable From:";
+  //  string ToDateLabel = Model.Help_ToDate_Label.Length > 0 ? Model.Help_ToDate_Label : "Applicable To:";
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool HelpSuperuser_Auditor = (bool)ViewData["HelpSuperuser_Auditor"];
+    bool Help_Attachments_ViewRight = (bool)ViewData["Help_Attachments_ViewRight"];
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<style>
+    .wdfull {
+        width: 100%;
+    }
+
+    td {
+        width: auto;
+    }
+
+    .dntnbtn {
+        min-width: 68px !important;
+        font-size: 12px;
+    }
+
+    .fonttwelve {
+        font-size: 12px !important;
+    }
+
+    .clear {
+        clear: both;
+    }
+
+    .bortabl {
+        border: 1px solid #64CAF1;
+        border-collapse: collapse;
+        padding-left: 5px;
+    }
+
+        .bortabl td {
+            border: 1px solid #64CAF1;
+            border-collapse: collapse;
+        }
+
+    .tabtbl {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+        .tabtbl table {
+            width: 100%;
+        }
+
+        .tabtbl th {
+            background: #BDD5ED;
+            color: #000;
+            font-size: 12px;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            padding-left: 10px;
+        }
+
+        .tabtbl td {
+            background: #fff;
+            color: #000;
+            font-size: 12px;
+            border: 1px solid #64CAF1;
+            border-collapse: collapse;
+            padding-left: 10px;
+        }
+
+    .dx-fileuploader-input-wrapper {
+        margin-top: -19px;
+        margin-left: 43px;
+        padding: 7px 0 7px;
+        border: 3px dashed transparent;
+    }
+
+    #fileName {
+        padding: 0px !important;
+    }
+
+    /*.dx-button-has-text .dx-button-content {
+        margin-right: 15px;
+        padding: 2px 1px;
+        min-width: 40px;
+        padding-left: 19px;
+    }*/
+    .dx-fileuploader-input-label { /*Mantis bug 1099 fixed*/
+        visibility: hidden;
+    } 
+    .dx-texteditor-container {
+        overflow: visible
+    }
+
+    #help_file-uploader {
+        margin: -16px;
+        margin-top: -1px;
+    }
+
+    .dx-fileuploader-input-wrapper {
+        margin-top: -19px;
+        margin-left: -3px;
+        /* padding: 7px 0 7px; */
+        border: 3px dashed transparent;
+    }
+
+    #Frm_Help_Documents_Popup {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+ /*   .dx-checkbox-text {
+        width: 120px;
+    }*/
+    #helpDocument_Save {
+        margin-right: 5px;
+    }
+</style>
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+<div id="Frm_Help_Documents_Popup" class="col-md-12" style="overflow:scroll">
+
+    @using (Ajax.BeginForm("Frm_Attachment_Window", "Attachment",
+                                                                  new AjaxOptions
+                                                                  {
+                                                                      HttpMethod = "POST",
+                                                                      UpdateTargetId = "Frm_Documents_Popup",
+                                                                      InsertionMode = InsertionMode.InsertAfter,
+                                                                      OnBegin = "AjaxBeginFormPost",
+                                                                      OnSuccess = String.Format("{0}", PostSucessFunctionName)
+                                                                  },
+                                          new
+                                          {
+                                              id = "ID_Frm_Help_Document_Attach",
+                                              @class = "edit_form",
+                                              enctype = "multipart/form-data"
+                                          }))
+    {
+
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.Help_Document_Name)
+        @Html.HiddenFor(x => x.Help_PostSucessFunctionName)
+        @Html.HiddenFor(x => x.Help_filefield)
+        @Html.HiddenFor(x => x.Help_Post_Action_Name)
+        @Html.HiddenFor(x => x.Help_Post_Controller_Name)
+        @Html.HiddenFor(x => x.Help_Post_Area_Name)
+        @Html.HiddenFor(x => x.Help_Byte_SessionName)
+        @Html.HiddenFor(x => x.Sr_no)
+        @Html.HiddenFor(x => x.Help_Document_PopupName)
+        @Html.HiddenFor(x => x.Help_REF_REC_ID)
+        @Html.HiddenFor(x => x.Help_REF_SCREEN)
+        @Html.HiddenFor(x => x.Help_Checked)
+        @Html.HiddenFor(x => x.Help_ParamMandatory)
+        @Html.HiddenFor(x => x.Help_Description_Label)
+        @Html.HiddenFor(x => x.Help_FromDate_Label)
+        @Html.HiddenFor(x => x.Help_ToDate_Label)
+        @Html.HiddenFor(x=>x.Help_CallFromHelpAttachment)
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+        using (Html.DevExtreme().ValidationGroup("HelpAttachment"))
+        {
+            <!-- <div class="full-width-header-bg">
+                 <div class="row">
+                     <div class="col-sm-8">
+                         <h3 class="popuphead"><i class="far fa-edit"></i> Attach Document</h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div> [Header]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-2 pll">
+                            <label class="control-label text-red" for="user">Document:</label>
+                        </div>
+                        <div class="col-sm-10 prm">                        
+                                <div class="col-sm-10 prm" id="filetxtbox">                              
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Help_Document_FileName").Name("Help_Document_FileName").Value(Model.Help_Document_FileName)
+                                                                                       .OnInitialized("OnFilenameInit").OnValueChanged("OnFilenameChange").ReadOnly(true))
+                                    @Html.ValidationMessageFor(model => model.Help_Document_FileName, "", new { @class = "text-danger" })
+                                
+                                </div>
+                                <div class="col-sm-2" id="btnfile">
+                                    @(Html.DevExtreme().FileUploader().SelectButtonText("Browse").ID("help_myFile").Name("help_myFile").Multiple(false).Accept("*").UploadMode(FileUploadMode.UseForm).ShowFileList(false).OnUploadStarted("UploadStarted").OnUploaded("UploadedSuccess")
+                                          .OnUploadError("Help_Attach_UploadError").UploadUrl(@Url.Action("Upload", "Attachment", new { sessionvariable = SessionVariableName, ActionMethod=Model.ActionMethod.ToString(),CallFromHelpAttachment=Model.Help_CallFromHelpAttachment, SessionGUID = SessionGUID })).OnValueChanged("fileUploader_valueChanged").ReadOnly(IsVisible).Disabled(IsVisible))
+                                </div>
+                            </div>                       
+                        </div>
+                    </div>
+                    @*</div>
+                        </div>*@
+                    @*</div>*@
+                </div><!--[Browse]-->              
+            <div class="row">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-sm-2 pll">
+                                <label class="control-label text-red" for="user">Category:</label>
+                            </div>
+                            <div class="col-sm-10  prm">
+                            
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Help_Document_CategoryID").Name("Help_Document_CategoryID").Placeholder("Document Category").Value(Model.Help_Document_CategoryID)
+                                              .DisplayExpr("Category").ValueExpr("ID").DataSource(d => d.Mvc().Area("Help").Controller("Attachment").LoadAction("LookUp_GetDocument_Category").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                                              .ReadOnly(IsVisible).OnValueChanged("OnDocument_CategoryChanged").Disabled(IsVisible).ContentTemplate(@<text>@Html.Partial("Documents_Category_List")</text>))
+                                        @Html.ValidationMessageFor(model => model.Help_Document_CategoryID, "", new { @class = "text-danger" })
+                                 
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Document Category]-->             
+            <div class="row">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-sm-2 pll">
+                                <label class="control-label text-red" for="user">Name:</label>
+                            </div>
+                            <div class="col-sm-10 prm">
+                         
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Help_Document_NameID").Name("Help_Document_NameID").Placeholder("Document Name").DisplayExpr("Name").ValueExpr("ID").DataSource(d => d.Mvc().Area("Help").Controller("Attachment").LoadAction("LookUp_GetDocument_Name")
+                                              .Key("ID").LoadParams(new { CategoryName = new JS("function (){ return helpreturnCategory;}") }).LoadMode(DataSourceLoadMode.Raw)).OnValueChanged("OnDocument_NameChanged").Value(Model.Help_Document_NameID)
+                                              .ReadOnly(IsVisible).Disabled(IsVisible).ContentTemplate(@<Text> @Html.Partial("Documents_Name_List") </Text>))
+                                        @Html.ValidationMessageFor(model => model.Help_Document_NameID, "", new { @class = "text-danger" })
+                                 
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Document Name]-->            
+            <div class="row">
+                    <div class="">
+                        <div class="col-sm-5 col-md-5 col-lg-5">
+                            <div class="row">
+                                <div class="form-field height52">
+                                    <div class="container-fluid">
+                                        <div class="col-sm-5 col-md-5 col-lg-5 pll">
+                                            <label class="control-label" id="Label_HelpFromDate" for="Help_Doc_From_Date"></label>
+                                        </div>
+                                        <div class="col-sm-7 col-md-7 col-lg-7 prm">
+                                          
+                                                    @(Html.DevExtreme().DateBoxFor(m => m.Help_Doc_From_Date).CustomDateBox().Placeholder("Select Date..").ID("Help_Doc_From_Date").Name("Help_Doc_From_Date").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                       .ReadOnly(IsVisible).Disabled(IsVisible).Min("01/01/1936"))
+                                             
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[From Date]-->
+                        <div class="col-sm-5 col-md-5 col-lg-5">
+                            <div class="row">
+                                <div class="form-field height52">
+                                    <div class="container-fluid">
+                                        <div class="col-sm-5 col-md-5 col-lg-5 pll">
+                                            <label class="control-label" id="Label_HelpToDate" for="user"></label>
+                                        </div>
+                                        <div class="col-sm-7 col-md-7 col-lg-7 prm">                                     
+                                                    @(Html.DevExtreme().DateBoxFor(m => m.Help_Doc_To_Date).CustomDateBox().Placeholder("Select Date..").ID("Help_Doc_To_Date").Name("Help_Doc_To_Date").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                          .ReadOnly(IsVisible).Disabled(IsVisible).Min("01/01/1936"))
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[To Date]-->
+                        <div class="col-sm-2 col-md-2 col-lg-2">
+                            <div class="row">
+                                <div class="form-field height52">
+                                    <div class="container-fluid">
+                                        @(Html.DevExtreme().CheckBox().ID("Help_Doc_LifetimeValid").Name("Help_Doc_LifetimeValid").ReadOnly(IsVisible)
+                                              .ReadOnly(IsVisible).Disabled(IsVisible).Text("Valid Till Eternity").OnValueChanged("LifetimeValid_ValueChange"))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                </div><!--[Date From To]-->                               
+            <div class="row">
+                                    <div class="form-field">
+                                        <div class="container-fluid">
+                                            <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                                                <label class="control-label" id="Label_HelpDescription" for="user"></label>
+                                            </div>
+                                            <div class="col-sm-10 col-md-10 col-lg-10  prm">
+                                             
+                                                        @(Html.DevExtreme().TextAreaFor(m => m.Help_Document_Description).ID("Help_Document_Description").Name("Help_Document_Description").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                                                           .Height(150).ReadOnly(IsVisible).Disabled(IsVisible).MaxLength(4000) )
+                                                        @Html.ValidationMessageFor(model => Model.Help_Document_Description, "", new { @class = "text-danger" })
+                                                 
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--[Description]-->                        
+            <div class="row">
+                                    <div class="form-field">
+                                        <div class="container-fluid">
+                                            <div class="col-sm-12 styleActionBtn">
+                                                @*@if (Model.ActionMethod.ToString().Trim() == "New")
+                                                {
+                                                    @(Html.DevExtreme().Button().Text("View Document").ID("help_View_Document_New").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5")
+                                                                                                                                                                                                               .FocusStateEnabled(true).OnClick(@<Text> function () { OnAttachmentViewClick_NewMode(); } </Text>))
+                                                }
+                                                else
+                                                {
+                                                    @(Html.DevExtreme().Button().Text("View Document").ID("help_View_Document").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5")
+                                                                                                                                                                                                               .FocusStateEnabled(true).OnClick(@<Text> function () { OnAttachmentViewClick_EditMode(); } </Text>))
+                                                }*@
+
+                                                @if (Model.ActionMethod.ToString().Trim() == "View")
+                                                {
+                                                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Close").ID("helpDocument_Cancle")
+                                                                                                                                                       .FocusStateEnabled(true).OnClick(@<text> function () { close_helppopup(); } </text>))
+                                                }
+                                                @if (Model.ActionMethod.ToString().Trim() == "Delete")
+                                                {
+                                                    @(Html.DevExtreme().Button().Text("Delete").CustomSaveButton().ID("helpDocument_deleteSave").Icon("fas fa-check-circle btn-icons checkred icon-rgt-space5").UseSubmitBehavior(true))
+                                                    @(Html.DevExtreme().Button().Text("Cancel").CustomCloseButton().ID("helpDocument_Cancl")
+                                                                                                                                                                                        .FocusStateEnabled(true).OnClick(@<text> function () {close_helppopup(); } </text>))
+                                                }
+                                                @if (Model.ActionMethod.ToString().Trim() == "New" || Model.ActionMethod.ToString().Trim() == "Edit")
+                                                {
+                                                    @(Html.DevExtreme().Button().Text(buttontext).CustomSaveButton().ID("helpDocument_Save").UseSubmitBehavior(false).OnClick("Attachment_SaveClick"))
+                                                    @(Html.DevExtreme().Button().Text("Cancel").CustomCloseButton().ID("helpDocument_Cancle")
+                                                                                                                                                                                        .FocusStateEnabled(true).OnClick(@<text> function () { close_helppopup(); } </text>))
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--[Buttons]-->
+                              
+        }                            
+    }                         
+    </div><!--[Form Div]-->
+<script>  
+    var helpreturnCategory = "@Model.Help_Document_CategoryID" == "OTHERS" ? "" : "@Model.Help_Document_CategoryID";   
+    $(document).ready(async function ()
+    {
+        var form = "ID_Frm_Help_Document_Attach";
+        ShowLoader_Ready();     
+        InitAttachmentDropdown();
+        AssignIDtoLabel(form, "Attachment");
+        if ("@Model.Help_Post_Controller_Name" == "Attachment")//pritam: to be set for only those screens which are using post function of help attachment
+        {
+            sessionclearpath = "/Help/Attachment/Sessionclear?ByteSessionVariable="+"@Model.Help_Byte_SessionName";
+            dontaskpopupcloseconfirmation = false;
+            PopupCloseCallFromAttachment = true;
+        }
+        if ("@Model.Help_CallFromHelpAttachment" == "True" && "@Model.ActionMethod" == "New")
+        {
+           $("#help_myFile").dxFileUploader("instance").option("multiple", true);
+            //$("#help_myFile").dxFileUploader("instance").option("showFileList", true);
+        }
+        if ("@Model.ActionMethod" == "Edit")
+        {
+            //$("#Help_Document_NameID").dxDropDownBox("instance").option("readOnly", true); //redmine Bug #133089 fixed
+            //$("#Help_Document_CategoryID").dxDropDownBox("instance").option("readOnly", true);
+        }
+        if ("@Model.Help_Document_NameID".length == 0)
+        {
+            Attachment_SetAndValidateFields();
+        }
+        @*if ("@Model.Help_Document_CategoryID".length > 0)
+        {
+            var value_Help_Document_CategoryID = "@Model.Help_Document_CategoryID";
+            if (value_Help_Document_CategoryID.includes("&amp"))
+            {
+                value_Help_Document_CategoryID = value_Help_Document_CategoryID.replace("&amp;", "&");
+            }
+            await Help_Document_Category_DG.selectRows(value_Help_Document_CategoryID, false);
+          }*@
+        if ("@Model.Help_Document_NameID".length > 0)
+        {
+           await OnDocument_NameChanged(null, true);
+            @*await Help_Document_Name_DG.selectRows("@Model.Help_Document_NameID", false);*@
+        }
+        if ("@Model.Help_Doc_To_Date".length > 0)
+        {
+            if ("@Model.Help_Doc_To_Date".includes("31-12-2999"))
+            {
+                $("#Help_Doc_LifetimeValid").dxCheckBox("instance").option("value", true);
+            }
+        }
+      //  setTimeout(function ()
+       // {
+            if ("@Model.ActionMethod" == "View")
+            {
+                Set_Form_View_Delete_Mode("#000080", "ID_Frm_Help_Document_Attach");
+            }
+            else if ("@Model.ActionMethod" == "Delete")
+            {
+                Set_Form_View_Delete_Mode("#696969", "ID_Frm_Help_Document_Attach");
+            }
+            else
+            {
+                Focus_FirstEditable_Field(form);
+            }      
+            HideLoader_Ready();
+       // }, Timeout500);
+        HideLoader();       
+    });
+    function ParamValidations()
+    {
+        $("#Help_Doc_From_Date").dxDateBox({})
+            .dxValidator({
+                validationRules: [{
+                    type: 'custom',
+                    validationCallback: function (options) {
+                        var result = true;
+                        if ($("#Help_FromDate_Label").val() != null && $("#Help_FromDate_Label").val().length>0)
+                        {
+                            if ($("#Help_ParamMandatory").val() == "true" || $("#Help_ParamMandatory").val() == "True")
+                            {
+                                if (options.value == null)
+                                {
+                                    result = false;
+                                }
+                            }
+                        }
+                        return result;
+                    },
+                    reevaluate: true,
+                    message: $("#Help_FromDate_Label").val()+" Cannot Be Blank..!!"
+                }],
+                validationGroup: "HelpAttachment"
+            });
+                $("#Help_Doc_To_Date").dxDateBox({})
+            .dxValidator({
+                validationRules: [{
+                    type: 'custom',
+                    validationCallback: function (options) {
+                        var result = true;
+                        if ($("#Help_ToDate_Label").val() != null && $("#Help_ToDate_Label").val().length>0)
+                        {
+                            if ($("#Help_ParamMandatory").val() == "true" || $("#Help_ParamMandatory").val() == "True")
+                            {
+                                if (options.value == null)
+                                {
+                                    result = false;
+                                }
+                            }
+                        }
+                        return result;
+                    },
+                    reevaluate: true,
+                    message: $("#Help_ToDate_Label").val()+" Cannot Be Blank..!!"
+                }],
+                validationGroup: "HelpAttachment"
+            });
+        $("#Help_Document_Description").dxTextArea({})
+            .dxValidator({
+                validationRules: [{
+                    type: 'custom',
+                    validationCallback: function (options) {
+                        var result = true;
+                        if ($("#Help_Description_Label").val() != null && $("#Help_Description_Label").val().length > 0)
+                        {
+                            if ($("#Help_ParamMandatory").val() == "true" || $("#Help_ParamMandatory").val() == "True")
+                            {
+                                if (options.value == null)
+                                {
+                                    result = false;
+                                }
+                            }
+                        }
+                        return result;
+                    },
+                    reevaluate:true,
+                    message: $("#Help_Description_Label").val()+" Cannot Be Blank..!!"
+                }],
+                validationGroup: "HelpAttachment"
+            });
+    }
+    function Attachment_SetAndValidateFields()
+    {
+        if ($("#Help_FromDate_Label").val() != null && $("#Help_FromDate_Label").val().length > 0)
+        {
+            $("#Label_HelpFromDate").text($("#Help_FromDate_Label").val());
+        }
+        else
+        {
+            $("#Label_HelpFromDate").text("Applicable From:");
+        }
+        if ($("#Help_ToDate_Label").val() != null && $("#Help_ToDate_Label").val().length > 0)
+        {
+            $("#Label_HelpToDate").text($("#Help_ToDate_Label").val());
+        }
+        else
+        {
+            $("#Label_HelpToDate").text("Applicable To:");
+        }
+        if ($("#Help_Description_Label").val() != null && $("#Help_Description_Label").val().length > 0)
+        {
+            $("#Label_HelpDescription").text($("#Help_Description_Label").val());
+            $("#Help_Document_Description").dxTextArea("instance").option("placeholder", "Enter " + $("#Help_Description_Label").val());
+        }
+        else
+        {
+            $("#Label_HelpDescription").text("Description:");
+            $("#Help_Document_Description").dxTextArea("instance").option("placeholder", "Enter Description");
+        }
+        if ($("#Help_ParamMandatory").val() == "true" || $("#Help_ParamMandatory").val() == "True")
+        {
+            if ($("#Help_Description_Label").val() != null && $("#Help_Description_Label").val().length > 0)
+            {
+                $("#Label_HelpDescription").addClass("text-red");
+            }
+            else
+            {
+                $("#Label_HelpDescription").removeClass("text-red");
+            }
+            if ($("#Help_FromDate_Label").val() != null && $("#Help_FromDate_Label").val().length > 0)
+            {
+                $("#Label_HelpFromDate").addClass("text-red");
+            }
+            else
+            {
+                $("#Label_HelpFromDate").removeClass("text-red");
+            }
+            if ($("#Help_ToDate_Label").val() != null && $("#Help_ToDate_Label").val().length > 0)
+            {
+                $("#Label_HelpToDate").addClass("text-red");
+            }
+            else
+            {
+                $("#Label_HelpToDate").removeClass("text-red");
+            }
+        }
+        else
+        {
+            $("#Label_HelpFromDate").removeClass("text-red");
+            $("#Label_HelpToDate").removeClass("text-red");
+            $("#Label_HelpDescription").removeClass("text-red");
+        }
+        ParamValidations();
+    }
+    function Attachment_SaveClick(e)
+    {
+        var result = e.validationGroup.validate();
+        var form = $("#ID_Frm_Help_Document_Attach");
+        if (result.isValid)
+        {
+            if ("@Model.ActionMethod" == "New" || "@Model.ActionMethod" == "Edit")
+            {
+                if ("@HelpSuperuser_Auditor" == "True" && "@Model.Help_Post_Area_Name" == "Help" && "@Model.Help_Post_Controller_Name" == "Attachment")
+                {
+                    var Checked_result = DevExpress.ui.dialog.confirm('Do you Want to Mark This Document as "Accepted"...?', "Confirm");
+                    Checked_result.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            document.getElementById('Help_Checked').value = true;
+                            Help_Attachment_Form_Submit();
+                        }
+                        else
+                        {
+                            document.getElementById('Help_Checked').value = false;
+                            Help_Attachment_Form_Submit();
+                        }
+                    });
+                }
+                else
+                {
+                    Help_Attachment_Form_Submit();
+                }
+            }
+            else
+            {
+                Help_Attachment_Form_Submit();
+            }
+        }
+    }
+    function Help_Attachment_Form_Submit()
+    {
+        ShowLoader("Uploading File", false);
+        var formdata = new FormData($('#ID_Frm_Help_Document_Attach').get(0));
+        formdata.append('Help_uploadControlName', "help_myFile");
+        $.ajax({
+            xhr: function ()
+            {
+                var xhr = new window.XMLHttpRequest();
+
+                // Upload progress
+                xhr.upload.addEventListener("progress", function (evt)
+                {
+                    if (evt.lengthComputable) {
+                        var percentComplete = ((evt.loaded / evt.total) * 100).toFixed();
+                        var message = "Uploading File: " + percentComplete + "%";
+                        if (percentComplete == "100") {
+                            message = "Writing Files To Disk...";
+                        }
+                        ChangeTextOfLoader(message);
+                    }
+                }, false);
+
+                // Download progress
+                //xhr.addEventListener("progress", function (evt) {
+                //    if (evt.lengthComputable) {
+                //        var percentComplete = ((evt.loaded / evt.total) * 100).toFixed(2);
+                //        // Do something with download progress
+                //        console.log(percentComplete);
+                //    }
+                //}, false);
+
+                return xhr;
+            },
+            type: 'POST',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            cache: false,
+            data: formdata,
+            processData: false,
+            contentType: false,
+            success: function (data)
+            {
+                var fn = window["@PostSucessFunctionName"];
+                if (typeof fn == "function")
+                {
+                    fn(data);
+                }              
+            },
+            error: function (jqXHR, textStatus, errorThrown)
+            {
+                HideLoader();
+                console.log(jqXHR);
+                console.log(textStatus);
+                console.log(errorThrown);
+                DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+            }
+        });
+    }
+    function close_helppopup()
+    {
+        if ("@Model.Help_Document_PopupName" == "Dynamic_Content_popup")
+        {
+            sessionclearpath = "/Help/Attachment/Sessionclear";
+            dontaskpopupcloseconfirmation = false;
+        }
+        var popupid = "#" + "@Model.Help_Document_PopupName";
+        $(popupid).dxPopup("hide");
+    }
+    function OnAttachmentViewClick_NewMode()
+    {
+        if ("@Help_Attachments_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        var sessionname = "@Model.Help_Byte_SessionName";
+        if (Help_FileName == undefined || Help_FileName == "undefined" || Help_FileName == null || Help_FileName == "")
+        {
+            DevExpress.ui.dialog.alert("No Document To View", 'Inform');
+            return;
+        }
+        if (Help_MultipleAttachmentCount > 1)
+        {
+            DevExpress.ui.dialog.alert("Cannot View If Multiple Attachment Uploaded", 'Inform');
+            return;
+        }
+        ShowLoader();
+        var protocol = window.location.protocol;
+        var hostname = window.location.host;
+        window.open(StandardizeCallURL(protocol + "//" + hostname + "/Help/Attachment/Frm_Attachment_ViewFile?filename=" + Help_FileName + "&SessionVariable=" + sessionname),"_blank");
+        HideLoader();
+    }
+    function OnAttachmentViewClick_EditMode()
+    {
+        if ("@Help_Attachments_ViewRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        var sessionname = "@Model.Help_Byte_SessionName";
+        var recid = "@Model.ID";
+        if (Help_FileName == undefined || Help_FileName == "undefined" || Help_FileName == null || Help_FileName == "") {
+            DevExpress.ui.dialog.alert("No Document To View", 'Inform');
+            return;
+        }
+        ShowLoader();
+
+        ViewDocument(recid, Help_FileName, null, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'),true);
+        //var protocol = window.location.protocol;
+        //var hostname = window.location.host;
+        //var urlParams = new URLSearchParams(window.location.search);
+
+       // window.open(StandardizeCallURL(protocol + "//" + hostname + "/Help/Attachment/Frm_Attachment_ViewFile?filename=" + Help_FileName + "&SessionVariable=" + sessionname + "&ID=" + recid ), "_blank");
+
+        HideLoader();
+    }
+    function Frm_Documents_Window_Help_OnSuccess(data)
+    {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        PopupCloseCallFromAttachment = false;
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            if ("@Model.ActionMethod" == "New")
+            {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Help/Attachment/Sessionclear_AddMore",
+                    cache: false,
+                    data: { ByteSessionVariable: "@Model.Help_Byte_SessionName" },
+                    success: function ()
+                    {
+                       HideLoader();
+                       $("#Help_Document_FileName").dxTextBox("instance").reset();
+                       $("#help_myFile").dxFileUploader("instance").reset();
+
+                       Help_MultipleAttachmentCount = 0;
+                       Help_MultipleAttachmentSucessCount = 0;
+                   }
+                });
+            }
+        }
+        else
+        {
+            var alert = DevExpress.ui.dialog.alert(data.Message, "Success");
+            alert.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    var GridInstance = $('#CashBookListGrid').data("dxDataGrid")
+                    if (GridInstance !== void 0)
+                    {
+                        RefreshGridView("CashBookListGrid")
+                    }
+                    else if (typeof CashBookListGrid !== "undefined" && ASPxClientUtils.IsExists(CashBookListGrid) && CashBookListGrid.GetMainElement())
+                    {
+                        CashBookListGrid.Refresh();
+                    }
+                    GridInstance = $('#ITR_PostedGrid').data("dxDataGrid")
+                    if (GridInstance !== void 0) {
+                        RefreshGridView("ITR_PostedGrid")
+                        RefreshGridView("ITR_PendingGrid")
+                    }
+                    else if (typeof ITR_PostedGrid !== "undefined" && ASPxClientUtils.IsExists(ITR_PostedGrid) && ITR_PostedGrid.GetMainElement())
+                    {
+                        ITR_PostedGrid.Refresh();
+                        ITR_PendingGrid.Refresh();
+                    }
+                    if ("@Model.Help_CallFromHelpAttachment" == "True")
+                    {
+                        PopupCloseCallFromAttachment = true;
+                        if ("@Model.ActionMethod" == "New")
+                        {
+                            var confirm = DevExpress.ui.dialog.confirm("Add More Attachment?", "Confirm");
+                            confirm.done(function (Result)
+                            {
+                                if (Result)
+                                {
+                                    ShowLoader();
+                                    $.ajax({
+                                        type: 'GET',
+                                        url: "/Help/Attachment/Sessionclear_AddMore",
+                                        cache: false,
+                                        data: { ByteSessionVariable:"@Model.Help_Byte_SessionName"},
+                                        success: function ()
+                                        {
+                                            HideLoader();
+                                            AttachmentWindowRecurringCount = AttachmentWindowRecurringCount + 1;
+                                            $("#help_myFile").dxFileUploader("instance").reset();
+                                            $("#Help_Document_FileName").dxTextBox("instance").reset();
+                                            document.getElementById('ID_Frm_Help_Document_Attach').getElementsByClassName('dx-fileuploader-button')[0].click();
+                                        }
+                                    });
+
+
+                                    //document.getElementById('ID_Frm_Help_Document_Attach').getElementsByClassName('dx-fileuploader-button')[0].click();
+                                    //var DocumentCategory = $("#Help_Document_CategoryID").dxDropDownBox("instance").option("value");
+                                    //var DocumentName = $("#Help_Document_NameID").dxDropDownBox("instance").option("value");
+                                    //var DocumentDescription = $("#Help_Document_Description").dxTextArea("instance").option("value");
+                                    //OnAttachmentNewClick(DocumentCategory[0], DocumentName[0], DocumentDescription);
+                                }
+                                else
+                                {
+                                    AttachmentWindowRecurringCount = 0;
+                                    var GridInstance = $('#AttachmentListGrid_dx').data("dxDataGrid")
+                                    if (GridInstance !== void 0) {
+                                        AttachmentListGrid_dx_Refresh();
+                                    }
+                                    if (typeof AttachmentListGrid !== "undefined" && ASPxClientUtils.IsExists(AttachmentListGrid) && AttachmentListGrid.GetMainElement()) {
+                                        AttachmentListGrid.Refresh();
+                                    }
+                                    $("#Dynamic_Content_popup").dxPopup("hide");
+                                }
+                            })
+                        }
+                    }
+                    else
+                    {
+                        var GridInstance = $('#AttachmentListGrid_dx').data("dxDataGrid")
+                        if (GridInstance !== void 0) {
+                            AttachmentListGrid_dx_Refresh();
+                        }
+                        if (typeof AttachmentListGrid !== "undefined" && ASPxClientUtils.IsExists(AttachmentListGrid) && AttachmentListGrid.GetMainElement())
+                        {
+                            AttachmentListGrid.Refresh();
+                        }
+                        $("#Dynamic_Content_popup").dxPopup("hide");
+                    }
+                }
+            });
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+    }
+</script>
+<script>
+    var Help_uploadErrorDuetoFilesize = false;
+    var Help_uploadErrorDuetoDots = false;
+    var Help_uploadErrorDuetoFileCount = false;
+    var Help_uploadErrorDuetoHtml = false;
+    var Help_uploadErrorDuetoFilename = false;
+    var Help_MultipleAttachmentCount = 0;
+    var Help_MultipleAttachmentSucessCount = 0;
+    function UploadStarted(e)
+    {
+        ShowLoader();
+        if (Help_uploadErrorDuetoFileCount == true)
+        {
+            e.request.abort();
+        }
+        else if ((e.file.type).includes("html"))
+        {
+            Help_uploadErrorDuetoHtml = true;
+            e.request.abort();
+        }
+        //else if (e.file.size > 20971520) //pritam:remove file size validation
+        //{
+        //    Help_uploadErrorDuetoFilesize = true;
+        //    e.request.abort();          
+        //}  
+        //else if (Help_FileName.split('.').length > 2)
+        //{
+        //    Help_uploadErrorDuetoDots = true;
+        //    e.request.abort();      
+        //}    
+        //else if (Help_FileName.length > 0)
+        //{
+        //    var regEX = /^([a-zA-Z0-9 _.]+)$/;
+        //    if (regEX.test(Help_FileName) == false)
+        //    {
+        //        Help_uploadErrorDuetoFilename = true;
+        //        e.request.abort();        
+        //    }
+        //}        
+    }
+    function UploadedSuccess(e)
+    {
+        Help_MultipleAttachmentSucessCount++;
+        if (Help_MultipleAttachmentSucessCount == Help_MultipleAttachmentCount)
+        {
+            HideLoader();
+        }
+    }
+    function Help_Attach_UploadError(e)
+    {
+        HideLoader();
+        console.log(e.error);
+        console.log(e.event);
+        console.log(e.file);
+        var message = "";
+       if (Help_uploadErrorDuetoHtml == true)
+       {
+            Help_uploadErrorDuetoHtml = false;
+           message = "<b>Html files are not allowed</b><br>";
+       }
+        else if (Help_uploadErrorDuetoFilesize == true)
+        {
+            Help_uploadErrorDuetoFilesize = false;
+            message = "<b>Max File Size Allowed is 20MB</b><br>";
+        }
+        else if (Help_uploadErrorDuetoFilename == true)
+        {
+            Help_uploadErrorDuetoFilename = false;
+            message = "<b>Only alphaNumeric . _ is allowed in File Name</b><br>";
+        }
+        else if (Help_uploadErrorDuetoDots == true)
+        {
+            Help_uploadErrorDuetoDots = false;
+            message = "<b>File Name Must Not Contain More Than One Dot</b><br>";
+        }
+        if (e.error.statusText.length > 0)
+        {
+            message = message + e.error.status + ": " + e.error.statusText + "<br>";
+        }
+        if (Help_uploadErrorDuetoFileCount == false)
+        {
+            DevExpress.ui.dialog.alert(message + e.file.name + "<br>Did Not Upload<br>Kindly Check The File", 'Upload Error..');
+        }       
+        if ("@Model.ActionMethod" == "New")
+        {
+            if (Help_MultipleAttachmentCount > 0) 
+            {
+                ShowLoader();              
+                $("#Help_Document_FileName").dxTextBox("instance").reset();
+                $("#help_myFile").dxFileUploader("instance").reset();
+                Help_MultipleAttachmentCount = 0;
+                Help_MultipleAttachmentSucessCount = 0;
+                $.ajax({
+                    type: 'GET',
+                    url: "/Help/Attachment/Sessionclear_AddMore",
+                    cache: false,
+                    data: { ByteSessionVariable: "@Model.Help_Byte_SessionName" },
+                    success: function ()
+                    {
+                        HideLoader();  
+                    }
+                });
+            }
+        }
+        else
+        {
+            $("#Help_Document_FileName").dxTextBox("instance").reset();
+            $("#help_myFile").dxFileUploader("instance").reset();         
+            Help_MultipleAttachmentCount = 0;
+            Help_MultipleAttachmentSucessCount = 0;
+        } 
+    }
+
+    function fileUploader_valueChanged(e)
+    {
+        Help_MultipleAttachmentCount = 0;        
+        var files = e.value;
+        var filename = "";        
+        Help_MultipleAttachmentCount = files.length;
+        if (Help_MultipleAttachmentCount > 25)
+        {
+            Help_uploadErrorDuetoFileCount = true;
+            DevExpress.ui.dialog.alert("You Have Selected " + Help_MultipleAttachmentCount+ " Files To Upload<br><b>More Than 25 Files Cannot Be Uploaded At Once<b>", 'Upload Error..');   
+            $("#Help_Document_FileName").dxTextBox("instance").reset();
+            $("#help_myFile").dxFileUploader("instance").reset();
+            Help_MultipleAttachmentCount = 0;
+            Help_MultipleAttachmentSucessCount = 0;
+            return;
+        }
+        if (Help_MultipleAttachmentCount > 0 && Help_MultipleAttachmentCount < 26)
+        {
+            var NotAllowedFilePresent = false;
+            Help_uploadErrorDuetoFileCount = false;
+            var totalContent = 0;           
+            for (var i = 0; i < Help_MultipleAttachmentCount; i++)
+            {
+                var ErrMsg = PreventFileUpload(files[i])
+                if (ErrMsg != null && ErrMsg.length > 0)
+                {
+                    NotAllowedFilePresent = true;
+                    DevExpress.ui.dialog.alert(ErrMsg, 'Upload Error..');
+                    break;
+                }       
+                else
+                {
+                    if (i == 0)
+                    {
+                        filename = files[i].name;
+                    }
+                    else
+                    {
+                        filename = filename + "/" + files[i].name;
+                    }
+                    totalContent = totalContent + files[i].size;
+                }
+            }
+            if (NotAllowedFilePresent == true)
+            {
+                $("#Help_Document_FileName").dxTextBox("instance").reset();
+                $("#help_myFile").dxFileUploader("instance").reset();
+                Help_MultipleAttachmentCount = 0;
+                Help_MultipleAttachmentSucessCount = 0;
+                return;
+            }    
+            if (totalContent < 524288000)
+            {
+                Help_FileName = filename;
+                $("#Help_Document_FileName").dxTextBox("instance").option("value", filename);           
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert("You Have Selected <b>" + formatBytes(totalContent) + "</b> To Upload<br><b>Upto 500 MB Can Be Uploaded At Once<b>", 'Upload Error..');
+                $("#Help_Document_FileName").dxTextBox("instance").reset();
+                $("#help_myFile").dxFileUploader("instance").reset();
+                Help_MultipleAttachmentCount = 0;
+                Help_MultipleAttachmentSucessCount = 0;
+            }          
+        }      
+    }
+    function OnFilenameChange(e)
+    {  
+        var textbox = $("#Help_Document_FileName").dxTextBox("instance");
+        Help_FileName = textbox.option("value");
+    }
+    function OnFilenameInit(e)
+    {
+        var textbox = $("#Help_Document_FileName").dxTextBox("instance");
+        Help_FileName = textbox.option("value");
+    }
+</script>@*File upload Fn*@
+<script>
+    var Help_Document_Name_DG;
+    var Help_Document_Category_DG;
+    var DocumentName_Category = "";
+
+    function InitAttachmentDropdown()
+    {
+        var $Help_Document_Category_DG = $("#LookUp_DocumentCategory_List_datagrid");
+        if ($Help_Document_Category_DG.length)
+        {
+            Help_Document_Category_DG = $Help_Document_Category_DG.dxDataGrid("instance");
+        }
+        var $Help_Document_Name_DG = $("#LookUp_DocumentNames_List_datagrid");
+        if ($Help_Document_Name_DG.length)
+        {
+            Help_Document_Name_DG = $Help_Document_Name_DG.dxDataGrid("instance");
+        }
+    }
+    var AttachmentCategoryFirstValueChange = true;
+    async function OnDocument_CategoryChanged(e,FirstCall=false)
+    {
+        if (e)
+        {
+            helpreturnCategory = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                Help_Document_Category_DG.clearSelection();
+                helpreturnCategory = "";
+                await Help_Document_Name_DG.refresh();
+                return;
+            }
+        }
+        else
+        {
+            helpreturnCategory = $("#Help_Document_CategoryID").dxDropDownBox("option", "value");
+        }
+        await Help_Document_Category_DG.selectRows(helpreturnCategory);
+        if (Help_Document_Category_DG.getSelectedRowsData().length > 0)
+        {
+           // if (DocumentName_Category != helpreturnCategory)
+           // {
+                await Help_Document_Name_DG.refresh();
+            //}
+        }
+    }
+    async function OnDocument_NameChanged(e, FirstCall = false)
+    {
+        var DocName;
+        if (e)
+        {
+            DocName = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+            {
+                Help_Document_Name_DG.clearSelection();
+                DocumentName_Category = "";
+                return;
+            }
+        }
+        else
+        {
+            DocName = $("#Help_Document_NameID").dxDropDownBox("option", "value");
+        }
+        await Help_Document_Name_DG.selectRows(DocName);
+        if (Help_Document_Name_DG.getSelectedRowsData().length > 0)
+        {
+            var item = Help_Document_Name_DG.getSelectedRowsData()[0];
+            $("#Help_Document_Name").val(item.Name);
+            $("#Help_ToDate_Label").val(item.To_Date_Label);
+            $("#Help_FromDate_Label").val(item.From_Date_Label);
+            $("#Help_Description_Label").val(item.Description_Label);
+            $("#Help_ParamMandatory").val(item.Param_Mandatory);
+            Attachment_SetAndValidateFields();
+            if (helpreturnCategory == "" || item.Category != DocumentName_Category)
+            {
+                DocumentName_Category = item.Category;
+               await Help_Document_Category_DG.selectRows(item.Category, false);
+            }
+        }
+    }
+</script>@*DD*@
+<script>
+    function LifetimeValid_ValueChange(e)
+    {
+        if (e.value == true)
+        {
+            $("#Help_Doc_To_Date").dxDateBox("instance").option("readOnly", true);
+            var ToDate = moment("31/12/2999","DD/MM/YYYY");          
+            $("#Help_Doc_To_Date").dxDateBox("instance").option("value", ToDate );
+        }
+        else
+        {
+            $("#Help_Doc_To_Date").dxDateBox("instance").option("readOnly", false);
+            $("#Help_Doc_To_Date").dxDateBox("instance").option("value",null);
+        }
+    }
+</script>@*Life Time Valid*@
+   </div>

@@ -1,0 +1,194 @@
+﻿<div class="DailyBalanceBankReconcile_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@{
+    string xBankAccID = ViewBag.xBankAccID;
+    string xDate=ViewBag.xDate;
+    string lblTxnBalance = ViewBag.lblTxnBalance;
+    bool DailyBalances_ExportRight = (bool)ViewData["DailyBalances_ExportRight"];
+
+}
+    <style>
+        .textRight {
+            text-align: right;
+            color: #6469E6;
+        }
+            .textRight > label {
+                font-weight:normal;
+            }
+    </style>
+<div id="recon_db_content" class="col-md-12 report_header_div_main">
+    <div class="col-md-8 report_header_div">
+        <label class="report_header_label">@ViewBag.Reconciletext</label>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("ReconcileListPreview").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnReconcileListPreviewClick_DB(); } </text>) )
+        @(Html.DevExtreme().Button().ID("ReconcileCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$("#popup_frm_Reconcile").dxPopup("hide")} </text>) )
+    </div>
+</div>
+    <div class="row">
+        <div class="col-sm-4"></div>
+            <div class="col-sm-8">
+                <div class="row">                
+                    <div class="col-sm-7 textRight"><label>Balance as per Txn Dates (in Rs.):</label></div>               
+                    <div class="col-sm-5">    
+                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("lblBalance_recon_db").Name("lblBalance_recon_db")
+                          .Value(lblTxnBalance).ShowClearButton(true).ReadOnly(true))             
+                    </div>             
+                </div>    
+            </div>       
+    </div>   
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="Reconsile_Db_PartialView" class="parent_table">
+                @Html.Partial("Frm_Bank_Reconcile_Grid_dx")
+            </div>
+        </form>
+    </div>          
+    <div class="row">            
+        <div class="col-sm-4"></div>
+            <div class="col-sm-8">
+                <div class="row">
+                    <div class="col-sm-7 textRight"><label>Nett Difference (in Rs.):</label></div>
+                    <div class="col-sm-5">        
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Netbalance_recon_db").Name("Netbalance_recon_db").ReadOnly(true))                           
+                    </div>                 
+                </div>
+            </div>   
+    </div>       
+    <div class="row">        
+        <div class="col-sm-4"></div>          
+        <div class="col-sm-8">              
+            <div class="row">                 
+                <div class="col-sm-7 textRight"><label>Balance as per Clearing Dates (in Rs.):</label></div>
+                    <div class="col-sm-5">        
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("ClearingBalance_recon_db").Name("ClearingBalance_recon_db").ReadOnly(true))                       
+                    </div>                  
+            </div>
+        </div>     
+    </div>
+    <script>
+        var ReconcileListGrid = null;
+        $(document).ready(function ()
+        {
+
+
+        });
+        function OnReconcileListPreviewClick_DB()
+        {
+            if ("@DailyBalances_ExportRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                return;
+            }
+            var PopupTitle = $("#popup_frm_Reconcile").dxPopup("option","title")
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/DailyBalances/Frm_Export_Options_Reconcile_dx",
+                data:
+                {
+                    GridName:"ReconcileListGrid",
+                    title:PopupTitle + " @ViewBag.Reconciletext"
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("report_export_modal", "Export Option", null, "auto", 125,true,data);
+                }
+            });
+        }
+        function Bank_ReconcileListGrid_dx_OnLoaded(data)
+        {
+            let ClearingBalance = parseFloat("@lblTxnBalance")
+            for (var i = 0; i < data.length; i++)
+            {
+                let status = data[i].Status;
+                if (status != null) { status = status.toLowerCase() }
+                if (status.includes("add:")) {
+                    ClearingBalance += data[i].Amount
+                }
+                else
+                {
+                    ClearingBalance -= data[i].Amount
+                }
+            }
+            let netBalance = (parseFloat("@lblTxnBalance") - ClearingBalance).toFixed(2)
+            ClearingBalance = ClearingBalance.toFixed(2)
+            $("#Netbalance_recon_db").dxTextBox("option", "value", netBalance)
+            $("#ClearingBalance_recon_db").dxTextBox("option", "value", ClearingBalance)
+        }
+        function Bank_Reconcile_Grid_dx_OnInitialized(e)
+        {
+            ReconcileListGrid = e.component;
+        }
+        function Bank_Reconcile_Grid_dx_OnContextMenuPreparing(e) {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e);
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive"))
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                e.items = [{
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@DailyBalances_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnReconcileListPreviewClick_DB();
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            $("#popup_frm_Reconcile").dxPopup("hide")
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            ReconcileListGrid.refresh();
+                        }
+                    }]
+            }
+            else if (e.target == "content" && e.row == void 0) {
+                e.items = [
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            $("#popup_frm_Reconcile").dxPopup("hide")
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            ReconcileListGrid.refresh();
+                        }
+                    }
+                ]
+            }
+
+        }
+        function Bank_ReconcileListGrid_dx_OnBeforeSend(operation, ajaxOptions) {
+            var param = {};
+            param["xBankAccID"] = "@xBankAccID";
+            param["xDate"] = "@xDate";
+            ajaxOptions.data = param;
+        }
+    </script>
+
+</div>

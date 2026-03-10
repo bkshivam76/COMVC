@@ -1,0 +1,1286 @@
+﻿<div class="LandBuilding_Info_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool PropertyLB_AddRight = (bool)ViewData["PropertyLB_AddRight"];
+        bool PropertyLB_UpdateRight = (bool)ViewData["PropertyLB_UpdateRight"];
+        bool PropertyLB_ViewRight = (bool)ViewData["PropertyLB_ViewRight"];
+        bool PropertyLB_DeleteRight = (bool)ViewData["PropertyLB_DeleteRight"];
+        bool PropertyLB_ExportRight = (bool)ViewData["PropertyLB_ExportRight"];
+        bool PropertyLB_LockUnlockRight = (bool)ViewData["PropertyLB_LockUnlockRight"];
+        bool PropertyLB_ManageRemarks = (bool)ViewData["PropertyLB_ManageRemarks"];
+        bool PropertyLB_ViewRemarks = (bool)ViewData["PropertyLB_ViewRemarks"];
+        bool PropertyLB_SpecialGrouping = (bool)ViewData["PropertyLB_SpecialGrouping"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool PropertyLB_Auto_Vouching_Mode = (bool)ViewData["PropertyLB_Auto_Vouching_Mode"];
+    }
+    <div id="Property_ParentDiv">
+        <div id="content" class="col-md-12 report_header_div_main">
+            <div class="col-md-6 report_header_div">
+                <label class="report_header_label"> @ViewBag.TitleX</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("LandBVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("LandB_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("PropertyLBViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("PropertyLB_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @if (PropertyLB_LockUnlockRight != false)
+                {
+                    @(Html.DevExtreme().Button().ID("PropertyModelUnlock").Text("Unlock").Icon("fa fa-unlock").OnClick(@<text> function () { PropertyOnUnlockClick(); } </text>) )
+                    @(Html.DevExtreme().Button().ID("PropertyModelLock").Text("Lock").Icon("fa fa-lock").OnClick(@<text> function () { OnPropertyLockClick(); } </text>) )
+                }
+                @(Html.DevExtreme().Button() .ID("PropertyModelNew").Text("New").Icon("add").OnClick(@<text> function () { OnPropertyNewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnPropertyEditClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnPropertyDeleteClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelView").Text("View").Icon("doc").OnClick(@<text> function () { OnPropertyViewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { PropertychangeMode(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelListPreview").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnPropertyListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){ closeProfile_Property();  } </text>)  )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="PropertyreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Property_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer">
+            <div class="list_footer_left_margin col-md-10">
+                <div>
+                    <div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-locktext">
+                                <div id="Property_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="Property_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <p id="PropertyLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="PropertyLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="list_footer_right_margin_consistent col-md-1">
+                @*<i id="Property_LockICON" class="fa fa-lock lock_symbol"></i>*@
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "PropertyPrf_FAB,PropertyProfile_grid_DIV,Type1,PropertyProfile," + UserType) @*fab buttons*@
+
+    </div>
+
+    <script type="text/javascript">
+
+    var Property_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var PropertyLB_SetVouchingModeOn = "@PropertyLB_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_LandBPrf = "@UserType".toUpperCase();
+    var LandB_IsVouchingMode = false;
+    var PropertyLB_ViewMode = "Default";
+    $(document).ready(function ()
+    {
+        if ("@PropertyLB_AddRight" == "False")
+        {
+	        $("#PropertyModelNew").hide();
+        }
+        if ("@PropertyLB_UpdateRight" == "False")
+        {
+	        $("#PropertyModelEdit").hide();
+        }
+        if ("@PropertyLB_ViewRight" == "False")
+        {
+	        $("#PropertyModelView").hide();
+        }
+        if ("@PropertyLB_DeleteRight" == "False")
+        {
+	        $("#PropertyModelDelete").hide();
+        }
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        $("#PropertyModelUnlock").hide();
+	        $("#PropertyModelLock").hide();
+        }
+        HideUnreleasedFunctionality('Property_frm_Property_Info');
+        $(".PropertyListGrid_PreviewRow").hide();
+        GetSessionStorage("PropertyListGrid");
+        if (PropertyLB_SetVouchingModeOn == true)
+        {
+            $("#PropertyLBViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    function PropertyLB_ViewSwitch_ValueChange(e)
+    {
+        ShowLoader();
+        PropertyLB_ViewMode = e.value == false ? "Default" : "Compact";
+        if (PropertyLB_SetVouchingModeOn == true)
+        {
+            $("#LandBVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            if (LandB_IsVouchingMode == false)
+            {
+                PropertyPrf_FAB.SetVisible(false);
+            }
+            PropertyListGrid.CollapseAllDetailRows();
+        }
+        HideLoader();
+    }
+    function LandB_VouchingSwitch_ValueChange(e)
+    {
+        ShowLoader();
+        LandB_IsVouchingMode = e.value;
+        if (PropertyLB_SetVouchingModeOn == true) {
+            PropertyLB_SetVouchingModeOn = false;
+        }
+        else
+        {
+            PropertyPrf_FAB.SetVisible(false);
+        }
+        if (LandB_IsVouchingMode == true)
+        {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else
+        {
+            PropertyPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        PropertyListGrid_CollapseAllDetailRows();
+    }
+    function PropertyListGrid_CollapseAllDetailRows()
+    {
+        ShowLoader();
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.PropertyListGrid !== 'undefined')
+            {
+                if (typeof window.PropertyListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof PropertyListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        HideLoader();
+                        PropertyListGrid.SetFocusedRowIndex(-1);
+                        PropertyListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        PropertyListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function closeProfile_Property()
+    {
+        $(".TabPanalMenu-tabs .active span").click();
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+
+        ClearAllReferences_LandBuilding_Info();
+    });
+
+        function ClearAllReferences_LandBuilding_Info() {
+
+            Property_ShowHorizontalBar = null;
+            PropertyLB_SetVouchingModeOn = null;
+            UserType_LandBPrf = null;
+            LandB_IsVouchingMode = null;
+            PropertyLB_ViewMode = null;
+            PropertyInfo_IsDetailRowExpanded = null;
+            PropertyInfo_NestedRecord_FocusedRowIndex = null;
+            PropertyInfo_NestedGrid_AccessID = null;
+            PropertyInfo_AtachmentID = null;
+            PropertyInfo_FileName = null;
+            PropertyInfo_ParamMandatory = null;
+            PropertyInfo_FromDateLabel = null;
+            PropertyInfo_ToDateLabel = null;
+            PropertyInfo_DescriptionLabel = null;
+            PropertyInfo_Doc_ID = null;
+            PropertyInfo_Doc_Category = null;
+            PropertyInfo_MasterRowRecID = null;
+            PropertyInfo_MasterRowMID = null;
+            PropertyInfo_NestedRowMapID = null;
+            PropertyInfo_reason = null;
+            PropertyInfo_Attachment_RecStatus = null;
+            PropertyInfo_NestedRowReasonID = null;
+            PropertyInfo_NestedRowKeyValue = null;
+            PropertyID = null;
+            PropertyCategory = null;
+            PropertyConstruction_Year = null;
+            PropertyCrossed_Time_Limit = null;
+            PropertyDeposit_Amount = null;
+            PropertyCurr_Value = null;
+            Property_EditDate = null;
+            Property_AddDate = null;
+            Property_AddBy = null;
+            Property_EditBy = null;
+            Property_ActionStatus = null;
+            Property_ActionDate = null;
+            Property_ActionBy = null;
+            Property_EntryType = null;
+            YearID = null;
+            Property_FocusedRowBeforeRefresh = null;
+            Property_Select_xid = null;
+            Prop_ColumnToBeShownIndex = null;
+            Prop_ColumnToBeHidddenIndex = null;
+            PropertyGridLayout = null;
+
+            ClearAllReferences("LandBuilding_Info_ClearReferences");
+        }
+
+    </script> @* ready *@
+    <script>
+    var PropertyInfo_IsDetailRowExpanded = false;
+    var PropertyInfo_NestedRecord_FocusedRowIndex = -1;
+    var PropertyInfo_NestedGrid_AccessID;
+    var PropertyInfo_AtachmentID;
+    var PropertyInfo_FileName;
+    var PropertyInfo_ParamMandatory;
+    var PropertyInfo_FromDateLabel;
+    var PropertyInfo_ToDateLabel;
+    var PropertyInfo_DescriptionLabel;
+    var PropertyInfo_Doc_ID;
+    var PropertyInfo_Doc_Category;
+    var PropertyInfo_MasterRowRecID;
+    var PropertyInfo_MasterRowMID;
+    var PropertyInfo_NestedRowMapID;
+    var PropertyInfo_reason;
+    var PropertyInfo_Attachment_RecStatus;
+    var PropertyInfo_NestedRowReasonID;
+    var PropertyInfo_NestedRowKeyValue ;
+
+    function On_PropertyProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PropertyInfo_ParamMandatory == 1)
+            {
+                AddAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_Doc_ID, PropertyInfo_Doc_Category, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, "PropertyProfileAttachment", null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_Doc_ID, "PropertyProfileAttachment", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PropertyInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_AtachmentID, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, "PropertyProfileAttachment", null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_AtachmentID, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID, PropertyInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(PropertyInfo_AtachmentID, PropertyInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", "Land & Building Information", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (PropertyInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID, PropertyInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            PropertyPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (PropertyInfo_Nested_Doc_Status == "")
+            {
+                PropertyPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (PropertyInfo_Nested_Doc_Status == "NO")
+            {
+                PropertyPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (PropertyInfo_Nested_Doc_Status == "YES")
+            {
+                PropertyPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            PropertyInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            PropertyInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            PropertyInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnPropertyInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnPropertyInfo_RejectDoc();
+        }
+    }
+    function OnPropertyInfo_RejectDoc() {
+        if (PropertyInfo_AtachmentID == null || PropertyInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(PropertyInfo_AtachmentID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+    }
+    function OnPropertyInfo_AcceptDoc() {
+        if (PropertyInfo_AtachmentID == null || PropertyInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(PropertyInfo_AtachmentID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+    }
+    function PropertyInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (PropertyInfo_IsDetailRowExpanded == true || LandB_IsVouchingMode == true)
+        {
+            if (PropertyInfo_MasterRowRecID == null || PropertyInfo_MasterRowRecID == "")
+            {
+                Recid = ID;
+            }
+            else
+            {
+                Recid = PropertyInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ID;
+        }
+
+        Entry_AcceptwithoutRemarks(Recid, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_AtachmentID, PropertyInfo_NestedRowReasonID, PropertyInfo_NestedRowKeyValue);
+    }
+    function PropertyInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+
+        if (PropertyInfo_IsDetailRowExpanded == true || LandB_IsVouchingMode == true)
+        {
+            if (PropertyInfo_MasterRowRecID == null || PropertyInfo_MasterRowRecID == "")
+            {
+                Recid = ID;
+            }
+            else
+            {
+                Recid = PropertyInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_AtachmentID, PropertyInfo_NestedRowReasonID, PropertyInfo_NestedRowKeyValue);
+    }
+    function OnPropertyListGridNestedFocusedRowChange(s, e)
+    {
+        if (PropertyInfo_IsDetailRowExpanded == true || LandB_IsVouchingMode == true)
+        {
+            PropertyInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (PropertyInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                PropertyInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnPropertyInfo_GetGridRowValues);
+            }
+            else
+            {
+                PropertyPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnPropertyInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            PropertyPrf_FAB.SetVisible(true);
+            PropertyInfo_Nested_Doc_Status = values[0];
+
+            if (LandB_IsVouchingMode == true)
+            {
+                PropertyPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (PropertyInfo_Nested_Doc_Status == "")
+                {
+                    PropertyPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (PropertyInfo_Nested_Doc_Status == "NO")
+                {
+                    PropertyPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (PropertyInfo_Nested_Doc_Status == "YES")
+                {
+                    PropertyPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            PropertyInfo_ParamMandatory = values[1];
+            PropertyInfo_FromDateLabel = values[2];
+            PropertyInfo_ToDateLabel = values[3];
+            PropertyInfo_DescriptionLabel = values[4];
+            PropertyInfo_Doc_Category = values[5];
+            PropertyInfo_Doc_ID = values[6];
+            PropertyInfo_AtachmentID = values[7];
+            IndexAttachmentID = PropertyInfo_AtachmentID;
+            PropertyInfo_MasterRowRecID = values[8];
+            PropertyInfo_MasterRowMID = values[9];
+            PropertyInfo_NestedRowMapID = values[10];
+            PropertyInfo_reason = values[11];
+            PropertyInfo_FileName = values[12];
+            PropertyInfo_Attachment_RecStatus = values[13];
+            PropertyInfo_NestedRowKeyValue  = values[14];
+            if (LandB_IsVouchingMode == true)
+            {
+                if (PropertyInfo_FileName != null && PropertyInfo_FileName.length > 0)
+                {
+                    ViewDocument(PropertyInfo_AtachmentID, PropertyInfo_FileName, "PropertyPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        PropertyInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = PropertyInfo_NestedRowReasonID;
+    }
+    function PropertyGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = Property_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = LandB_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function PropertyGrid_DetailRowExpanding(s, e)
+    {
+        PropertyInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (LandB_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function PropertyGrid_DetailRowCollapsing(s, e)
+    {
+        PropertyInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (LandB_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            PropertyPrf_FAB.SetVisible(false);
+        }
+    }
+    </script> @* attachment and nested grid *@
+    <script>
+    var PropertyID;
+    var PropertyCategory;
+    var PropertyConstruction_Year;
+    var PropertyCrossed_Time_Limit;
+    var PropertyDeposit_Amount;
+    var PropertyCurr_Value;
+    var Property_EditDate;
+    var Property_AddDate;
+    var Property_AddBy;
+    var Property_EditBy;
+    var Property_ActionStatus;
+    var Property_ActionDate;
+    var Property_ActionBy;
+    var Property_EntryType;
+    var YearID;
+    var Property_FocusedRowBeforeRefresh;
+    var Property_Select_xid = "";
+    var Prop_ColumnToBeShownIndex = "";
+    var Prop_ColumnToBeHidddenIndex = "";
+    var PropertyGridLayout = null;
+    function PropertyOnInit(s, e)
+    {
+        PropertyAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            PropertyAdjustSize();
+        });
+        $("#PropertyListGrid").hover(function () {
+            PropertyListGrid.Focus()
+        });
+    }
+    function PropertyAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try
+        {
+            PropertyListGrid.SetHeight(height);
+        }
+        catch (err)
+        {
+
+        }
+    }
+    function PropertyGrid_BeginCallBack(s, e)
+    {
+        Property_FocusedRowBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Property_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = LandB_IsVouchingMode;
+        e.customArgs["ViewMode"] = PropertyLB_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Prop_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Prop_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = Property_Select_xid;
+    }
+    function OnGridPropertyListGrid_EndCallback(s, e)
+    {
+        Prop_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Prop_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        PropertyGridLayout = s.cpClientLayout;
+        $(".PropertyListGrid_PreviewRow").hide();
+        GetSessionStorage("PropertyListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH")
+        {
+            if (Property_FocusedRowBeforeRefresh == s.GetFocusedRowIndex())
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(Property_FocusedRowBeforeRefresh);
+            }
+            Property_Select_xid = "";
+        }
+    }
+    function OnPropertyGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            if (!PropertyListGrid.IsGroupRow(s.GetFocusedRowIndex()))
+            {
+                PropertyID = s.GetRowKey(s.GetFocusedRowIndex());
+                if (LandB_IsVouchingMode == true)
+                {
+                    PropertyPrf_FAB.SetVisible(true);
+                    PropertyPrf_FAB.SetActionContext("VouchingActionContext", true);
+                }
+                s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By;Entry_Type', PropertyOnGetRowValues);
+            }
+            else
+            {
+                PropertyID = null;
+                Property_UpdateFooterDetail(PropertyID, Property_ActionStatus, Property_AddDate, Property_AddBy,
+                    Property_ActionDate, Property_ActionBy, Property_EditDate, Property_EditBy);
+            }
+        }
+        else {
+            PropertyID = null;
+            Property_UpdateFooterDetail(PropertyID, Property_ActionStatus, Property_AddDate, Property_AddBy,
+                Property_ActionDate, Property_ActionBy, Property_EditDate, Property_EditBy);
+        }
+    }
+    function PropertyOnGetRowValues(values) {
+        PropertyID = values[0];
+        Property_EditDate = values[1];
+        Property_AddDate = values[2];
+        Property_AddBy = values[3];
+        Property_EditBy = values[4];
+        Property_ActionStatus = values[5];
+        Property_ActionDate = values[6];
+        Property_ActionBy = values[7];
+        Property_EntryType = values[8];
+        Property_UpdateFooterDetail(PropertyID, Property_ActionStatus, Property_AddDate, Property_AddBy,
+            Property_ActionDate, Property_ActionBy, Property_EditDate, Property_EditBy);
+
+        if (LandB_IsVouchingMode == true) {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Property", "LeftPaneContent", PropertyID, LandB_IsVouchingMode, "");
+        }
+    }
+    function Property_UpdateFooterDetail(ID, Property_Action_Status, Property_Add_Date, Property_Add_By, Property_Action_Date, Property_Action_By, Property_Edit_Date, Property_Edit_By) {
+        HideLoader();
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+        if (ID != null) {
+            Property_Add_Date = (moment(Property_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+            Property_Edit_Date = (moment(Property_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+            Property_Action_Date = (moment(Property_Action_Date,"DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+            Status = Property_Action_Status;
+            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "fa fa-lock";
+            }
+            else {
+                Pic_Status = "fa fa-unlock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED") {
+                    Lbl_Status_Color = "green";
+                }
+                else {
+                    Lbl_Status_Color = "red";
+                }
+            }
+            if (Property_Action_Date) {
+                Lbl_ActionOn = StatusStr + " On: " + Property_Action_Date;
+                Lbl_ActionBy = StatusStr + " By: " + Property_Action_By;
+            }
+
+            else {
+                Lbl_ActionOn = "";
+                Lbl_ActionBy = "";
+            }
+            if (Property_Add_Date) {
+                Lbl_Create = "Add On: " + Property_Add_Date + ", By: " + Property_Add_By;
+            }
+            else {
+                Lbl_Create = "";
+            }
+
+            if (Property_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Property_Edit_Date + ", By: " + Property_Edit_By;
+            }
+            else {
+                Lbl_Modify = "";
+            }
+        }
+        $('#PropertyLbl_Status').text(Lbl_Status);
+        $('#Property_Lbl_ActionOn').text(Lbl_ActionOn);
+        $('#Property_Lbl_ActionBy').text(Lbl_ActionBy);
+        $('#PropertyLbl_Create').text(Lbl_Create);
+        $('#PropertyLbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#PropertyLbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status == "fa fa-lock") {
+            $('#Property_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+        }
+        else if (Pic_Status == "fa fa-unlock") {
+            $('#Property_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+        }
+        else {
+            $('#Property_LockICON').removeClass("fa");
+            $('#Property_LockICON').removeClass("fa-lock");
+            $('#Property_LockICON').removeClass("fa-unlock");
+        }
+    }
+    function PropertychangeMode()
+    {
+        ShowLoader();
+        if (Property_ShowHorizontalBar == 0)
+        {
+            Property_ShowHorizontalBar = 1;
+            $("#PropertyToggleScrollBar").find("span").text("Default Data");
+            $("#PropertyToggleScrollBar").width(110);
+        }
+        else
+        {
+            Property_ShowHorizontalBar = 0;
+            $("#PropertyToggleScrollBar").find("span").text("Full Data");
+            $("#PropertyToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Property_Info_Grid", "Property")',
+            type: "GET",
+            data: { ShowHorizontalBar: Property_ShowHorizontalBar, Layout: PropertyGridLayout, VouchingMode: LandB_IsVouchingMode, ViewMode: PropertyLB_ViewMode, ColumnToBeHidddenIndex: Prop_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Prop_ColumnToBeShownIndex  },
+            success: function (res)
+            {
+                $("#PropertyreloadPartialView").html(res);
+                $(".PropertyListGrid_PreviewRow").hide();
+                GetSessionStorage("PropertyListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function Property_dblclickEdit(s, e)
+    {
+        OnPropertyEditClick();
+    }
+    function PropertyContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New')
+        {
+            OnPropertyNewClick();
+        }
+        if (e.item.name == 'Close')
+        {
+            closeProfile_Property();
+        }
+        else if (e.item.name == 'Edit')
+        {
+            OnPropertyEditClick();
+        }
+        else if (e.item.name == 'Delete')
+        {
+            OnPropertyDeleteClick();
+        }
+        else if (e.item.name == 'View')
+        {
+            OnPropertyViewClick();
+        }
+        else if (e.item.name == 'ChangeRent')
+        {
+            OnPropertyChangeRentClick();
+        }
+        else if (e.item.name == 'ListPreview')
+        {
+            OnPropertyListPreviewClick();
+        }
+        else if (e.item.name == 'NewAudit')
+        {
+            OnNewAuditClick_P();
+        }
+        else if (e.item.name == 'ViewAudit')
+        {
+            OnViewAuditClick_P();
+        }
+        else if (e.item.name == 'Lock') {
+            OnPropertyLockClick();
+        }
+        else if (e.item.name == 'Unlock') {
+            PropertyOnUnlockClick();
+        }
+        else if (e.item.name == 'Refresh')
+        {
+            PropertyListGrid.Refresh();
+        }
+        else if (e.item.name == 'ChangePropertyType') {
+            OnPropertyEditClick(false, true);
+        }
+
+    }
+    </script> @* Main Grid *@
+<script>
+    function OnPropertyNewClick()
+    {
+        if ("@PropertyLB_AddRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/Frm_Property_Window_Profile",
+            data: { Tag:"New" },
+            cache: false,
+            success: function (data)
+            {
+                OpenDynamicPopup("New ~ Property", null, "auto", 1100, true, data);
+            }
+        });
+    }
+    function OnPropertyEditClick(_MultiUserConformation = false, isCallForPropertyTypeChange = false)
+    {
+        if ("@PropertyLB_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID==null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "Edit", ID: PropertyID, MultiUserConfirmation: _MultiUserConformation, isCallForPropertyTypeChange: isCallForPropertyTypeChange},
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "Edit",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            defaultPropCategory: data.defaultPropCategory,
+                            Address: data.Address,
+                            EntryType: data.EntryType,
+                            isCallForPropertyTypeChange: isCallForPropertyTypeChange,
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("Edit ~ Property", null, "auto", 1100, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyEditClick(true);
+                            }
+                            else
+                            {
+                                RefreshGridView("PropertyListGrid");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            RefreshGridView("PropertyListGrid");
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function OnPropertyViewClick()
+    {
+        if ("@PropertyLB_ViewRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "View", ID: PropertyID },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "View",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            Address: data.Address,
+                            Txt_LB_Amount: data.Txt_LB_Amount
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("View ~ Property", null, "auto", 1100, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    if (data.jsonParam.refreshgrid == true) {
+                        RefreshGridView("PropertyListGrid");
+                    }
+                }
+            }
+        });
+    }
+    function OnPropertyDeleteClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_DeleteRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "Delete", ID: PropertyID, MultiUserConfirmation: _MultiUserConformation},
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "Delete",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            Address: data.Address,
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("Delete ~ Property", null, "auto", 1150, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyDeleteClick(true);
+                            }
+                            else
+                            {
+                                RefreshGridView("PropertyListGrid");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            RefreshGridView("PropertyListGrid");
+                        }
+                    }
+                }
+            }
+        });
+        }
+        function OnPropertyChangeRentClick()
+        {
+            if ("@PropertyLB_UpdateRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                return;
+            }
+            if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Property/Frm_Property_Change_Rented_Detail",
+                data:
+                {
+                    xID: PropertyID,
+                    Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(Property_EditDate),
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenDynamicPopup("Edit ~ Property", null, "auto", 650, true, data);
+                }
+            });
+        }
+    function OnPropertyLockClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "LOCKED",
+                ID: PropertyID,
+                MultiUserConfirmation: _MultiUserConformation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    RefreshGridView("PropertyListGrid");
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyLockClick(true);
+                            }
+                            else
+                            {
+                                RefreshGridView("PropertyListGrid");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            RefreshGridView("PropertyListGrid");
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function PropertyOnUnlockClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "UNLOCKED",
+                ID: PropertyID,
+                MultiUserConfirmation: _MultiUserConformation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    RefreshGridView("PropertyListGrid");
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                PropertyOnUnlockClick(true);
+                            }
+                            else
+                            {
+                                RefreshGridView("PropertyListGrid");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            RefreshGridView("PropertyListGrid");
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function OnNewAuditClick_P() {
+        if ("@PropertyLB_ManageRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (PropertyID == null || PropertyID == "undefined")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "ADD REMARKS",
+                ID: PropertyID
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    Add_Actions(PropertyID, "LAND_BUILDING_INFO", "Profile_LandAndBuilding", "LB_ActionItem_Popup", "PropertyListGrid");
+                }
+                else
+                {
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            }
+        });
+    }
+    function OnViewAuditClick_P()
+    {
+        if ("@PropertyLB_ViewRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (PropertyID == null || PropertyID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (Property_EntryType.toUpperCase() == "VOUCHER ENTRY")
+        {
+            DevExpress.ui.dialog.alert('Entries created from vouchers can be audited from vouchers only...!<br><br>Please unselect Entries Created from Voucher...!', "Information...");
+            return;
+        }
+        View_Actions(PropertyID, "LAND_BUILDING_INFO", "Profile_LandAndBuilding", Property_ActionStatus, "LB_ActionItem_Popup", "PropertyListGrid");
+    }
+    function OnPropertyListPreviewClick() {
+        if ("@PropertyLB_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+         OpenPopup("Property_report_modal", "Export Option", "/Profile/Property/Frm_Export_Options/", "auto", 125, false, false);
+    }
+</script> @* NEVD *@
+</div>

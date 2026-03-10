@@ -1,0 +1,205 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Requisition
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_View") || (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_Delete")) ? true : false);
+    bool IsDisabled = Model != null && (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_View") || (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_Delete")) ? true : false);
+
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("RequisitionDocumentsGridData", "RequestRegister", new { ActionMethodName =ViewData["RRActionMethod"], RR_ID =ViewData["RR_ID"] })
+    </div>
+</div>
+
+<div class="row btnsDiv marginAll8">
+    @(Html.DevExtreme().Button().ID("BUTRequisition_DocNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrmRequisition_Documents_New_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUTRequisition_DocEdit").Text("Edit").Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrmRequisition_Document_Edit_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUTRequisition_DocDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrmRequisition_Document_Delete_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUTRequisition_DocView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(Model.ActionMethod.ToString()=="_Delete").OnClick(@<text>function () {OnFrmRequisition_Document_View_Click()}</text>))
+</div>
+<script>
+    var Document_Sr;
+    var Document_ID;
+    function OnRequisitionDocumentDetailsGridFocusedRowChanged(s, e)
+    {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr_No;ID', OnRequisitionDocumentsDetailsGridRowValues);
+    };
+    function OnRequisitionDocumentsDetailsGridRowValues(values)
+    {
+        Document_Sr = values[0];
+        Document_ID = values[1];
+    };
+    function OnFrmRequisition_Documents_New_Click()
+    {
+        $("#ID_Frm_Help_Document_Attach").remove();     
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            data: {
+                AM: "New",
+                PostSucessFunctionName: "Frm_Documents_Window_Requisition_OnSuccess",
+                Post_action_Name: "Requisition_Documents_Attachment",
+                Post_Controller_Name: "RequestRegister",
+                Post_Area_Name: "Stock",              
+                Document_Grid_PopupName: "FrmRequisition_Inner_Popup",
+                ByteSessionVariable:"RR_Documents"
+            },
+            cache: false,
+            success: function (data)
+            {                
+                OpenPopup("FrmRequisition_Inner_Popup", "New ~ Documents", null, "auto", "700", true, data);               
+            }
+        });      
+    }//Mantis 0000213 bug fixed
+    function OnFrmRequisition_Document_Edit_Click()
+    {
+        if (Document_Sr == 'undefined' || Document_Sr == undefined || Document_Sr == null || Document_Sr == "")
+        {
+              DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+              return;
+        }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+          $.ajax({
+              type: 'GET',
+              url: "/Help/Attachment/Frm_Attachment_Window",
+              data: {
+                  AM: "Edit",
+                  PostSucessFunctionName: "Frm_Documents_Window_Requisition_OnSuccess",
+                  Post_action_Name: "Requisition_Documents_Attachment",
+                  Post_Controller_Name: "RequestRegister",
+                  Post_Area_Name: "Stock",
+                  Document_Grid_Data_SessionName: "Requisition_Documents_Window_Grid_Data_RR",
+                  Document_Grid_SrNo: Document_Sr,
+                  ID: Document_ID,
+                  Document_Grid_PopupName: "FrmRequisition_Inner_Popup",
+                  ByteSessionVariable: "RR_Documents"        
+              },
+              cache: false,
+              success: function (data)
+              {                  
+                  OpenPopup("FrmRequisition_Inner_Popup", "Edit ~ Documents", null, "auto", "700", true, data);                  
+              }
+          });                 
+    }//Mantis 0000213 bug fixed
+    
+    function OnFrmRequisition_Document_Delete_Click()
+    {
+        if (Document_Sr == 'undefined' || Document_Sr == undefined || Document_Sr == null || Document_Sr == "")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (Document_ID)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/RequestRegister/RR_Documents_Attachment_LinkCheck",
+                data: { DocId: Document_ID, RRId: "@Model.RR_ID" },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        var deleteResultDocument = DevExpress.ui.dialog.confirm(data.message, "Confirm changes");
+                        deleteResultDocument.done(function (dialogResult)
+                        {
+                            if (dialogResult)
+                            {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Stock/RequestRegister/Frm_DocumentsDetail_Window_Delete_Grid_Record",
+                                    data: { ActionMethod: "Unlink", SrID: Document_Sr, Doc_ID: Document_ID },
+                                    cache: false,
+                                    success: function (result)
+                                    {
+                                        RequisitionDocumentsGrid.SetFocusedRowIndex(-1);
+                                        RequisitionDocumentsGrid.Refresh();
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    else
+                    {
+                        RR_deletedocument();
+                    }
+                }
+            });
+        }
+        else
+        {
+            RR_deletedocument();
+        }
+    }
+    function RR_deletedocument()
+    {
+        var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        deleteResultPaymentDetail.done(function (dialogResult)
+        {
+            if (dialogResult)
+            {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/RequestRegister/Frm_DocumentsDetail_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", SrID: Document_Sr, Doc_ID: Document_ID },
+                    cache: false,
+                    success: function (result)
+                    {                    
+                        RequisitionDocumentsGrid.SetFocusedRowIndex(-1);
+                        RequisitionDocumentsGrid.Refresh();
+                    }
+                });
+            }
+        });
+    }
+    function OnFrmRequisition_Document_View_Click()
+    {
+        if (Document_Sr == 'undefined' || Document_Sr == undefined || Document_Sr == null || Document_Sr == "")
+        {
+              DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+              return;
+        }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+          $.ajax({
+              type: 'GET',
+              url: "/Help/Attachment/Frm_Attachment_Window",
+              data: {
+                  AM: "View",
+                  PostSucessFunctionName: "Frm_Documents_Window_Requisition_OnSuccess",
+                  Post_action_Name: "Requisition_Documents_Attachment",
+                  Post_Controller_Name: "RequestRegister",
+                  Post_Area_Name: "Stock",
+                  Document_Grid_Data_SessionName: "Requisition_Documents_Window_Grid_Data_RR",
+                  Document_Grid_SrNo: Document_Sr,
+                  ID: Document_ID,
+                  Document_Grid_PopupName: "FrmRequisition_Inner_Popup",
+                  ByteSessionVariable: "RR_Documents"        
+              },
+              cache: false,
+              success: function (data)
+              {                 
+                  OpenPopup("FrmRequisition_Inner_Popup", "View ~ Documents", null, "auto", "700", true, data);              
+              }
+          });      
+    }     
+
+
+    function Frm_Documents_Window_Requisition_OnSuccess(data)
+    {
+        HideLoader();
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else
+        {           
+            $("#FrmRequisition_Inner_Popup").dxPopup("hide");
+            RequisitionDocumentsGrid.SetFocusedRowIndex(-1);
+            RequisitionDocumentsGrid.Refresh();                    
+        }
+    }
+   
+</script>

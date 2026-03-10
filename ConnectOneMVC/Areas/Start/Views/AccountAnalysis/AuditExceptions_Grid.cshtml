@@ -1,0 +1,149 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var ExportGridHeaderLeft = ViewData["ExportGridHeaderLeft"] != null ? ViewData["ExportGridHeaderLeft"].ToString() : "";
+    var ExportGridHeaderRight = ViewData["ExportGridHeaderRight"] != null ? ViewData["ExportGridHeaderRight"].ToString() : "";
+    var ExportGridFooter = ViewData["ExportGridFooter"] != null ? ViewData["ExportGridFooter"].ToString() : "";
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "AuditExceptionsListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "AccountAnalysis",
+            Action = "AuditExceptions_Grid",
+            SessionGUID = SessionGUID
+        };
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+
+        if (Request.Browser.IsMobileDevice)
+        {            
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;            
+        }
+
+        settings.Settings.VerticalScrollableHeight = 100;
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+        settings.SettingsExport.PageHeader.Center = "Audit Exceptions";
+        settings.SettingsExport.PageHeader.Left = ExportGridHeaderLeft;
+        settings.SettingsExport.PageHeader.Right = ExportGridHeaderRight;
+        settings.SettingsExport.PageFooter.Right = ExportGridFooter;
+        //settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+
+        settings.Settings.GroupFormat = "{1}";
+        settings.Styles.Row.Wrap = DefaultBoolean.True;
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.NextColumn;
+        settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        settings.SettingsBehavior.AllowEllipsisInText = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = false;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsDataSecurity.AllowReadUnlistedFieldsFromClientApi = DefaultBoolean.True;
+        settings.Styles.Row.Font.Bold = true;
+
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+            }
+        };
+        settings.HtmlRowPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (e.RowType == GridViewRowType.Group)
+            {
+                e.Row.ForeColor = System.Drawing.Color.Blue;
+                e.Row.Font.Bold = true;
+            }
+        };
+        settings.PreRender = (sender, e) =>
+        {
+            ASPxGridView grid = (ASPxGridView)sender;
+            grid.FocusedRowIndex = -1;
+        };
+        settings.DataBound = (s, e) =>
+        {
+            MVCxGridView grid = s as MVCxGridView;
+            if (grid.Columns.IndexOf(grid.Columns["Priority"]) > -1)
+            {
+                grid.DataColumns["Priority"].GroupIndex = 0;
+            }
+            if (grid.Columns.IndexOf(grid.Columns["ID"]) > -1)
+            {
+                grid.DataColumns["ID"].Visible = false;
+            }
+            if (grid.Columns.IndexOf(grid.Columns["Name"]) > -1)
+            {
+                grid.DataColumns["Name"].PropertiesEdit.EncodeHtml = false;
+            }
+            grid.KeyFieldName = "ID";
+
+            grid.DetailRows.ExpandAllRows();
+
+            if (Request.Browser.IsMobileDevice)
+            {
+                grid.DataColumns["Name"].Width = System.Web.UI.WebControls.Unit.Percentage(100);
+            }
+        };
+
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = false;
+        settings.SettingsDetail.ShowDetailRow = true;
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            Html.RenderAction("AuditExceptions_DetailGrid", new { ID = DataBinder.Eval(c.DataItem, "ID") });
+        });
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+        {
+            int RecID = (int)DataBinder.Eval(e.DataItem, "ID");
+            GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Start.Controllers.AccountAnalysisController.NestedGridExportSettings(RecID));
+            grid.Bind(ConnectOneMVC.Areas.Start.Controllers.AccountAnalysisController.NestedGridExportData(RecID));
+            e.DetailGridViews.Add(grid);
+        };
+
+        settings.ClientSideEvents.Init = "AuditExeptionsGrid_init";
+        settings.ClientSideEvents.BeginCallback = "AuditExeptionsGrid_begincallback";
+        settings.ClientSideEvents.EndCallback = "AuditExeptionsGrid_endcallback";
+        settings.ClientSideEvents.ContextMenuItemClick = "AuditExceptionsGrid_ContextMenuClick";
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+    }).Bind(Model).GetHtml()
+
+

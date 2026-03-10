@@ -1,0 +1,173 @@
+﻿<div class="ChartInfo_Export_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress.XtraReports.UI;
+    <div>
+        @*@(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDatapdf")
+                    .Text("Export to PDF")
+                    //.Icon(DevExpress.Web.ASPxThemes.IconID.ActionsAdd32x32)
+                    .OnClick("ExportPDF")
+                    .Visible(false)
+                    .Width(120)
+        )<br />*@
+
+        @*@(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDataxls")
+                    .Text("Export to XLS")
+                    //.Icon("fa-file-excel-o")
+                    .OnClick("ExportXLS")
+                    .Visible(false)
+                    .Width(120)
+        )<br />*@
+        @*@(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDataxlsx")
+                    .Text("Export to XLSX")
+                    //.Icon(DevExpress.Web.ASPxThemes.IconID.ActionsAdd32x32)
+                    .OnClick("ExportXLSX")
+                    .Visible(false)
+                    .Width(120)
+        )*@
+        @(Html.DevExtreme().Button()
+                .ID("ChartResponsesInfo_ExportGridDataxlsx_dx")
+                .Text("Export to XLSX")
+                //.Icon(DevExpress.Web.ASPxThemes.IconID.ActionsAdd32x32)
+                .OnClick("CRExportXLSX_dx")
+                .Visible(true)
+                .Width(120)
+    )
+        @*@(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDatadocx")
+                    .Text("Export to DOCX")
+                    //.Icon("export_exporttodocx_16x16office2013")
+                    .OnClick("ExportDOCX")
+                    .Visible(false)
+                    .Width(120)
+        )<br />
+
+        @(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDatartf")
+                    .Text("Export to RTF")
+                    //.Icon(DevExpress.Web.ASPxThemes.IconID.ActionsAdd32x32)
+                    .OnClick("ExportRTF")
+                    .Visible(false)
+                    .Width(120)
+        )<br />
+
+        @(Html.DevExtreme().Button()
+                    .ID("ChartResponsesInfo_ExportGridDatacsv")
+                    .Text("Export to CSV")
+                    //.Icon(DevExpress.Web.ASPxThemes.IconID.ActionsAdd32x32)
+                    .OnClick("ExportCSV")
+                    .Visible(false)
+                    .Width(120)
+        )*@
+    </div>
+    <script>
+        function ExportPDF() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Pdf);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+        function ExportXLS() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Xls);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+        function ExportXLSX() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Xlsx);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+        function ExportCSV() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Csv);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+        function ExportDOCX() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Docx);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+        function ExportRTF() {
+            ChartResponsesInfoGrid.ExportTo(ASPxClientGridViewExportFormat.Rtf);
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+            }
+        function CRExportXLSX_dx() {
+            //debugger;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Sheet');
+            var gridComponent = $("#ChartResponsesInfoGrid_dx").dxDataGrid("instance");
+            var _columns = gridComponent.option("columns");
+            var iscompact = false;
+            var VisibleColumns_CRInfoGrid_dx = [];
+            gridComponent.beginUpdate();
+            for (var i = 0; i < _columns.length; i++)
+            {
+                var name = _columns[i].dataField;
+                var ColumnVisible = ChartResponsesInfoGrid_dx.columnOption(name, "visible");
+                if (name == "ChartResponsesInfoGrid_dx_Compact_Column")
+                {
+                    if (ColumnVisible == true)
+                    {
+                        iscompact = true;
+                    }
+                    gridComponent.columnOption("ChartResponsesInfoGrid_dx_Compact_Column", "visible", false);
+                    continue;
+                }
+                if (ColumnVisible == false)
+                {
+                    switch (name) //not visible in export
+                    {
+                        case "FeedbackFormInstID":
+                        case "TravelFormInstID":
+                        case "NextLinkedFormInstID":
+                        case "UserID":
+                        case "SHARE_MESSAGE":
+                        case "REC_STATUS":
+                        case "ConnectOne_User_ID":
+                        case "ConnectOne_Cen_ID":
+                        case "SummaryColumn":
+                            break;
+                        default:
+                            VisibleColumns_CRInfoGrid_dx.push(name);
+                            gridComponent.columnOption(name, "visible", true);
+                    }
+                }               
+            }
+            //gridComponent.option({
+            //    summary: {
+            //        totalItems: [{
+            //            column: "REGISTRATIONS",
+            //            summaryType: "count",
+            //            displayFormat: "Registration: {0}",
+            //            showInColumn: "ChartResponsesInfoGrid_dx_Compact_Column"
+            //        }]
+            //    }
+            //});
+            gridComponent.endUpdate();
+            DevExpress.excelExporter.exportDataGrid({
+                worksheet: worksheet,
+                component: gridComponent,
+                autoFilterEnabled: true,
+                keepColumnWidths: true,
+                customizeCell: function (options) {
+                    const { gridCell } = options;
+                    const { excelCell } = options;
+                    if (gridCell.rowType === 'totalFooter' && excelCell.value) {
+                        excelCell.font.italic = true;
+                    }
+                }
+            }).then(function (exportRange) {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'ChartResponsesInfoGrid_dx.xls');
+                });
+            }).then(function () {
+                gridComponent.beginUpdate();
+                for (var i = 0; i < VisibleColumns_CRInfoGrid_dx.length; i++)
+                {
+                    gridComponent.columnOption(VisibleColumns_CRInfoGrid_dx[i], "visible", false);
+                }
+                if (iscompact)
+                    gridComponent.columnOption("ChartResponsesInfoGrid_dx_Compact_Column", "visible", true);
+                gridComponent.endUpdate();
+            });
+            $("#ChartResponsesInfo_modal").dxPopup("hide");
+        }
+    </script>
+
+</div>

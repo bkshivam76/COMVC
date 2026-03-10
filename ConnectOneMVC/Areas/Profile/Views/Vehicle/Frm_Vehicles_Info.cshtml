@@ -1,0 +1,1450 @@
+﻿<div class="VehiclesProfile_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+
+
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Vehicle_Auto_Vouching_Mode = (bool)ViewData["Vehicle_Auto_Vouching_Mode"];
+        bool Manage_Remarks = (bool)ViewBag.Manage_Remarks;
+    }
+    <style>
+        .VehicleProfile_CellCss {
+            overflow-wrap: break-word;
+        }
+    </style>
+    <div id="VehiclesProfile_ParentDiv">
+        <div id="content" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">Vehicles Information</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("VehicleVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Vehicle_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("VehicleViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Vehicle_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("VehiclesModelUnlock").Text("Unlock").Icon("add").Visible(true).Disabled(false).OnClick(@<text> function () { onVehiclesUnlockClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelLock").Text("Lock").Icon("add").Visible(true).Disabled(false).OnClick(@<text> function () { OnVehiclesLockClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelInsurance").Text("Insurance").Icon("").Disabled(false).Visible(true).OnClick(@<text> function () { OnVehiclesInsuranceClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text> function () {VehicleProfile_OnNewClick();}</text>))
+                @(Html.DevExtreme().Button().ID("VehiclesModelEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text> function () { OnVehiclesEditClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { OnVehiclesDeleteClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () { OnVehiclesViewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { VehicleschangeMode(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelListPreview").Text("ListPreview").Icon("save").Width(80).OnClick(@<text> function () { OnVehiclesListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("VehiclesModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){closeProfile_Vehicles();} </text>) )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="VehiclesreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Vehicles_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="Vehicles_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="VehiclesLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="Vehicles_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="Vehicles_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="VehiclesLbl_Create" class="right_footertext_top"></p>
+                            <p id="VehiclesLbl_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "VehiclesPrf_FAB,VehiclesProfile_grid_DIV,Type1,VehiclesProfile," + UserType) @*fab buttons*@
+        <div class="col-md-12">
+            @*Add/Edit Popup*@
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                            .ID("Vehicles_report_modal")
+                                                             .OnShowing("PopupOnShowing")
+                                                            .Title("Vehicles List Preview")
+                                                            .FullScreen(false)
+                                                            .MaxWidth(125)
+                                                            .Height("auto")
+                                                            .ShowCloseButton(true)
+                                                            .ContentTemplate(@<text>
+                                                                <div id='Vehicles_report_modal_result'>
+                                                                </div>
+                                                            </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                            .ID("popup_frm_Vehicles_Window")
+                                                            .Title("Vehicles")
+                                                            .OnShowing("PopupOnShowing")
+                                                            .ShowCloseButton(true)
+                                                            .ContentTemplate(@<text>
+                                                                <div id="Vehiclesresult">
+                                                                </div>
+                                                            </text>)
+                                                                                    .OnHiding(@<text>
+                                                                                        function () {
+                                                                                        if(IsVehiclesSucessPopup == false && IsVehiclesViewPopup == false)
+                                                                                        {
+                                                                                        var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                                                                        result.done(function (dialogResult) {
+                                                                                        if(dialogResult){
+                                                                                        $("#popup_frm_Vehicles_Window").dxPopup("hide");
+                                                                                        }else
+                                                                                        {
+                                                                                        $("#popup_frm_Vehicles_Window").dxPopup("show");
+                                                                                        }
+                                                                                        });
+                                                                                        }
+                                                                                        }
+                                                                                    </text>)
+        )
+        </div>
+    </div>
+
+    @*Javascript Events*@
+<script type="text/javascript">
+    var IsVehiclesSucessPopup = false;
+    var IsVehiclesViewPopup = false;
+    var Vehicles_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var Vehicle_SetVouchingModeOn = "@Vehicle_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_VehiclePrf = "@UserType".toUpperCase();
+    var Vehicle_IsVouchingMode = false;
+    var Vehicle_ViewMode = "Default";
+    var Vehicle_AddRight = "@ViewData["Vehicle_AddRight"]";
+    var Vehicle_UpdateRight ="@ViewData["Vehicle_UpdateRight"]";
+    var Vehicle_ViewRight = "@ViewData["Vehicle_ViewRight"]";
+    var Vehicle_DeleteRight = "@ViewData["Vehicle_DeleteRight"]";
+    var Vehicle_ExportRight = "@ViewData["Vehicle_ExportRight"]";
+    var Vehicle_LockUnlockRight = "@ViewData["Vehicle_LockUnlockRight"]";
+    var Vehicle_AddHelp_ActionItemsRight = "@ViewData["Vehicle_AddHelp_ActionItemsRight"]";
+    var Vehicle_ListHelp_ActionItemsRight = "@ViewData["Vehicle_ListHelp_ActionItemsRight"]";
+    $(document).ready(function ()
+    {
+        if (Vehicle_AddRight == "False")
+        {
+            $("#VehiclesModelNew").hide();
+        }
+        if (Vehicle_UpdateRight == "False")
+        {
+            $("#VehiclesModelEdit").hide();
+        }
+        if (Vehicle_ViewRight == "False")
+        {
+            $("#VehiclesModelView").hide();
+        }
+        if (Vehicle_DeleteRight == "False")
+        {
+            $("#VehiclesModelDelete").hide();
+        }
+        if (Vehicle_ExportRight == "False")
+        {
+            $("#VehiclesModelListPreview").hide();
+        }
+        if (Vehicle_LockUnlockRight == "False")
+        {
+            $("#VehiclesModelUnlock").hide();
+            $("#VehiclesModelLock").hide();
+        }
+        IsVehiclesSucessPopup = false;
+        IsVehiclesViewPopup = false;
+        HideUnreleasedFunctionality('VEHICALS_frm_Vehicles_Info');
+        if (Vehicle_IsVouchingMode == true)
+        {
+            $(".VehiclesListGrid_PreviewRow").hide();
+        }
+        else
+        {
+            $(".VehiclesListGrid_PreviewRow").show();
+        }
+        GetSessionStorage("VehiclesListGrid");
+        if (Vehicle_SetVouchingModeOn == true)
+        {
+            $("#VehicleViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    function OnVehicleCellClick(event, cell,col, row)
+    {
+        if (UserType_VehiclePrf == "AUDITOR" || UserType_VehiclePrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function Vehicle_ViewSwitch_ValueChange(e)
+    {
+        Vehicle_ViewMode = e.value == false ? "Default" : "Compact";
+        if (Vehicle_SetVouchingModeOn == true)
+        {
+            $("#VehicleVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            VehiclesListGrid.CollapseAllDetailRows();
+        }
+    }
+    function Vehicle_VouchingSwitch_ValueChange(e)
+    {
+        Vehicle_IsVouchingMode = e.value;
+        if (Vehicle_SetVouchingModeOn == true)
+        {
+            Vehicle_SetVouchingModeOn = false;
+        }
+        else
+        {
+            VehiclesPrf_FAB.SetVisible(false);
+        }
+        if (Vehicle_IsVouchingMode == true)
+        {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else
+        {
+            VehiclesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        VehiclesListGrid_CollapseAllDetailRows();
+    }
+    function VehiclesListGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.VehiclesListGrid !== 'undefined')
+            {
+                if (typeof window.VehiclesListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof VehiclesListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        VehiclesListGrid.SetFocusedRowIndex(-1);
+                        VehiclesListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        VehiclesListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else {
+                alert('grid undefined')
+            }
+        }
+        else {
+            alert('window undefined')
+        }
+    }
+    function VehiclesOnInit(s, e)
+    {
+        VehiclesAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            VehiclesAdjustSize();
+        });
+        $("#VehiclesListGrid").hover(function ()
+        {
+            VehiclesListGrid.Focus();
+        });
+    }
+    var Vehicle_ColumnToBeShownIndex = "";
+    var Vehicle_ColumnToBeHidddenIndex = "";
+    var Select_xid_VPW;
+    var VehicleProfileFocusedRowIndexBeforeRefresh;
+
+    function OnGridVehiclesListGrid_EndCallback(s, e)
+    {
+        //VehiclesAdjustSize();
+        Vehicle_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Vehicle_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        VehiclesGridLayout = s.cpClientLayout;
+        if (Vehicle_IsVouchingMode == true)
+        {
+            $(".VehiclesListGrid_PreviewRow").hide();
+        }
+        else
+        {
+            $(".VehiclesListGrid_PreviewRow").show();
+        }
+        GetSessionStorage("VehiclesListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH")
+        {
+            if (VehicleProfileFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex())
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(VehicleProfileFocusedRowIndexBeforeRefresh);
+            }
+            Select_xid_VPW = "";
+        }
+    }
+    function VehiclesAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try
+        {
+            VehiclesListGrid.SetHeight(height);
+        } catch (err) { }
+    }
+    function VehicleschangeMode()
+    {
+                ShowLoader();
+        if (Vehicles_ShowHorizontalBar == 0)
+        {
+                    Vehicles_ShowHorizontalBar = 1;
+                    $("#VehiclesToggleScrollBar").find("span").text("Default Data");
+                    $("#VehiclesToggleScrollBar").width(110);
+                }
+                else {
+                    Vehicles_ShowHorizontalBar = 0;
+                    $("#VehiclesToggleScrollBar").find("span").text("Full Data");
+                    $("#VehiclesToggleScrollBar").width(90);
+                }
+                $.ajax({
+                    url: "/Profile/Vehicle/Frm_Vehicles_Info_Grid",
+                    type: "GET",
+                    data: { ShowHorizontalBar: Vehicles_ShowHorizontalBar, VouchingMode: Vehicle_IsVouchingMode, ViewMode: Vehicle_ViewMode, ColumnToBeHidddenIndex: Vehicle_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Vehicle_ColumnToBeShownIndex  },
+                    success: function (res) {
+                        $("#VehiclesreloadPartialView").html(res);
+                        if (Vehicle_IsVouchingMode == true) {
+                            $(".VehiclesListGrid_PreviewRow").hide();
+                        }
+                        else {
+                            $(".VehiclesListGrid_PreviewRow").show();
+                        }
+                        GetSessionStorage("VehiclesListGrid");
+                    }
+                });
+                HideLoader();
+            }
+
+
+
+    var VehiclesID;
+    var Vehicles_EditDate;
+    var Vehicles_AddDate;
+    var Vehicles_AddBy;
+    var Vehicles_EditBy;
+    var Vehicles_ActionStatus;
+    var Vehicles_YearId;
+    var Vehicles_ItemName;
+    var Vehicles_Make;
+    var Vehicles_model;
+    var Vehicles_Viregno;
+    var Vehicles_InsuaranceId;
+    var Vehicles_vi_ins_policy_no;
+    var Vehicles_E_Date;
+    var Vehicles_Ownership;
+    var Vehicles_TRID;
+    var Vehicles_openAction;
+    var Vehicles_openingvalue;
+    var Vehicles_Entrytype;
+    var AL_LOC_AL_ID;
+    var Vehicles_ActionDate;
+    var Vehicles_ActionBy;
+    function Vehicles_dblclickEdit(s, e)
+    {
+        //var key = s.GetRowKey(s.GetFocusedRowIndex());
+        //DepositsListGrid.GetValuesOnCustomCallback({ key: key }, DepositsOnGetRowValues);
+        //if (DepositsID != null || DepositsID == 'undefined' || DepositsID == undefined)
+        //    OnDepositsEditClick();
+        OnVehiclesEditClick();
+
+    }
+    function VehiclesGrid_BeginCallBack(s, e)
+    {
+        VehicleProfileFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Vehicles_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Vehicle_IsVouchingMode;
+        e.customArgs["ViewMode"] = Vehicle_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Vehicle_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Vehicle_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = Select_xid_VPW;
+    }
+    function OnVehicleGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            if (!s.IsGroupRow(s.GetFocusedRowIndex()))
+            {
+                if (Vehicle_IsVouchingMode)
+                {
+                    VehiclesPrf_FAB.SetVisible(true);
+                    VehiclesPrf_FAB.SetActionContext("VouchingActionContext", true);
+                }
+                VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+                VehiclesListGrid.GetValuesOnCustomCallback({ key: VehiclesID }, VehicleOnGetRowValues);
+            }
+            else
+            {
+                VehiclesID = null;
+                Vehicles_UpdateFooterDetail(VehiclesID, Vehicles_ActionStatus, Vehicles_AddDate, Vehicles_AddBy,
+                    Vehicles_ActionDate, Vehicles_ActionBy, Vehicles_EditDate, Vehicles_EditBy);
+            }
+        }
+        else
+        {
+            VehiclesID = null;
+            Vehicles_UpdateFooterDetail(VehiclesID, Vehicles_ActionStatus, Vehicles_AddDate, Vehicles_AddBy,
+                Vehicles_ActionDate, Vehicles_ActionBy, Vehicles_EditDate, Vehicles_EditBy);
+        }
+    }
+    function VehicleOnGetRowValues(VehiclesData)
+    {
+        var values = VehiclesData.split('![');
+        VehiclesID = values[0];
+        Vehicles_EditDate = values[1];
+        Vehicles_AddDate = values[2];
+        Vehicles_AddBy = values[3];
+        Vehicles_EditBy = values[4];
+        Vehicles_ActionStatus = values[5];
+        Vehicles_YearId = values[6];
+        Vehicles_ItemName = values[7];
+        Vehicles_Make = values[8];
+        Vehicles_model = values[9];
+        Vehicles_Viregno = values[10];
+        Vehicles_InsuaranceId = values[11];
+        Vehicles_vi_ins_policy_no = values[12];
+        Vehicles_E_Date = values[13];
+        Vehicles_Ownership = values[14];
+        Vehicles_openingvalue = values[15];
+        Vehicles_TRID = values[16];
+        Vehicles_openAction = values[17];
+        AL_LOC_AL_ID = values[18];
+        Vehicles_Entrytype = values[19];
+        Vehicles_ActionDate = values[20];
+        Vehicles_ActionBy = values[21];
+        Vehicles_UpdateFooterDetail(VehiclesID, Vehicles_ActionStatus, Vehicles_AddDate, Vehicles_AddBy,
+                Vehicles_ActionDate, Vehicles_ActionBy, Vehicles_EditDate, Vehicles_EditBy);
+        if (Vehicle_IsVouchingMode == true) {
+                   OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Vehicle", "LeftPaneContent", VehiclesID, Vehicle_IsVouchingMode, "");
+        }
+    }
+    function Vehicles_UpdateFooterDetail(VehiclesID, Vehicles_Action_Status, Vehicles_Add_Date, Vehicles_Add_By, Vehicles_Action_Date, Vehicles_Action_By, Vehicles_Edit_Date, Vehicles_Edit_By)
+    {
+                var Status = "";
+                var Lbl_Status = "";
+                var Lbl_StatusBy = "";
+                var Pic_Status = "";
+                var Lbl_Create = "";
+                var Lbl_Modify = "";
+                var Lbl_Status_Color = "";
+                var StatusStr = "";
+                var Lbl_ActionOn = "";
+                var Lbl_ActionBy = "";
+                if (VehiclesID != null) {
+                    Status = Vehicles_Action_Status;
+                    StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                    if (Status && Status.toUpperCase() == "LOCKED") {
+                        Lbl_Status = "Completed";
+                        Lbl_Status_Color = "blue";
+                        Pic_Status = "fa fa-lock";
+                    }
+                    else {
+                        Pic_Status = "fa fa-unlock";
+                        Lbl_Status = Status;
+                        if (Status && Status.toUpperCase() == "COMPLETED") {
+                            Lbl_Status_Color = "green";
+                        }
+                        else {
+                            Lbl_Status_Color = "red";
+                        }
+                    }
+                    if (Vehicles_Action_Date) {
+                        Lbl_ActionOn = StatusStr + " On: " + Vehicles_Action_Date;
+                        Lbl_ActionBy = StatusStr + " By: " + Vehicles_Action_By;
+                    }
+                    else {
+                        Lbl_ActionOn = "";
+                        Lbl_ActionBy = "";
+                    }
+                    if (Vehicles_Add_Date) {
+                        Lbl_Create = "Add On: " + Vehicles_Add_Date + ", By: " + Vehicles_Add_By;
+                    }
+                    else {
+                        Lbl_Create = "";
+                    }
+                    if (Vehicles_Edit_Date) {
+                        Lbl_Modify = "Edit On: " + Vehicles_Edit_Date + ", By: " + Vehicles_Edit_By;
+                    }
+                    else {
+                        Lbl_Modify = "";
+                    }
+                }
+                $('#VehiclesLbl_Status').text(Lbl_Status);
+                $('#Vehicles_Lbl_ActionOn').text(Lbl_ActionOn)
+                $('#Vehicles_Lbl_ActionBy').text(Lbl_ActionBy);
+                $('#VehiclesLbl_Create').text(Lbl_Create);
+                $('#VehiclesLbl_Modify').text(Lbl_Modify);
+                if (Lbl_Status_Color != "") {
+                    $('#VehiclesLbl_Status').css('color', Lbl_Status_Color);
+                }
+                if (Pic_Status == "fa fa-lock") {
+                    $('#Vehicles_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+                }
+                else if (Pic_Status == "fa fa-unlock") {
+                    $('#Vehicles_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+                }
+                else {
+                    $('#Vehicles_LockICON').removeClass("fa");
+                    $('#Vehicles_LockICON').removeClass("fa-lock");
+                    $('#Vehicles_LockICON').removeClass("fa-unlock");
+                }
+            }
+
+
+    function OnVehiclesInsuranceClick(_MultiUserConfirmation = false) {                
+                if (VehiclesID == null || VehiclesID == "" || VehiclesID == undefined) {
+                    DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                    return;
+                }
+                $.ajax({
+                    type: 'GET',
+                    url: "/Profile/Vehicle/DataNavigation",
+                    data: {
+                        ActionMethod: "CHANGE-INSURANCE",
+                        xID: VehiclesID,
+                        MultiUserConfirmation: _MultiUserConfirmation
+                    }, cache: false,
+                    success: function (data) {
+                        if (data.jsonParam.result == false) {
+                            var alertResult = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertResult.done(function () {
+                                VehiclesListGrid.Refresh();
+                            });
+                        }
+                        else {
+                            OpenPopup("Change_Vehicle_Insurance", data.jsonParam.popup_title, data.jsonParam.popup_form_path + "?" + data.jsonParam.popup_querystring, "auto", 800, false, null);
+                        }
+
+                        
+                    }
+                });
+            }
+
+    function VehiclesContextMenuFunction(s, e)
+    {
+                if (e.item.name == 'New') {
+                   VehicleProfile_OnNewClick();
+                }
+                if (e.item.name == 'Close') {
+                    closeProfile_Vehicles();
+                }
+                else if (e.item.name == 'Edit') {
+                    OnVehiclesEditClick();
+                }
+                else if (e.item.name == 'Delete') {
+                    OnVehiclesDeleteClick();
+                }
+                else if (e.item.name == 'View') {
+                    OnVehiclesViewClick();
+                }
+                else if (e.item.name == 'ListPreview') {
+                    OnVehiclesListPreviewClick();
+                }
+                else if (e.item.name == 'NewAudit') {
+                    OnNewAuditClick();
+                }
+                else if (e.item.name == 'ViewAudit') {
+                    OnViewAuditClick();
+                }
+                else if (e.item.name == 'Lock') {
+                    OnVehiclesLockClick();
+                }
+                else if (e.item.name == 'UnLock') {
+                    onVehiclesUnlockClick();
+                }
+                else if (e.item.name == 'Change_Insurance_Detail') {
+                    OnVehiclesInsuranceClick();
+                }
+                else if (e.item.name == 'Refresh') {
+                    VehiclesListGrid.Refresh();
+                }
+
+    }
+
+
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/SessionClear",
+            cache: false
+        });
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        ClearAllReferences_VehiclesProfile();
+    });
+
+        function ClearAllReferences_VehiclesProfile() {
+            VehiclesInfo_IsDetailRowExpanded = null;
+            VehiclesInfo_NestedRecord_FocusedRowIndex = null;
+            VehiclesInfo_NestedGrid_AccessID = null;
+            VehiclesInfo_AtachmentID = null;
+            VehiclesInfo_FileName = null;
+            VehiclesInfo_ParamMandatory = null;
+            VehiclesInfo_FromDateLabel = null;
+            VehiclesInfo_ToDateLabel = null;
+            VehiclesInfo_DescriptionLabel = null;
+            VehiclesInfo_Doc_ID = null;
+            VehiclesInfo_Doc_Category = null;
+            VehiclesInfo_MasterRowRecID = null;
+            VehiclesInfo_MasterRowMID = null;
+            VehiclesInfo_NestedRowMapID = null;
+            VehiclesInfo_reason = null;
+            VehiclesInfo_Attachment_RecStatus = null;
+            VehiclesInfo_NestedRowReasonID = null;
+            VehiclesInfo_NestedRowKeyValue = null;
+            VehiclesID = null;
+            Vehicles_EditDate = null;
+            Vehicles_AddDate = null;
+            Vehicles_AddBy = null;
+            Vehicles_EditBy = null;
+            Vehicles_ActionStatus = null;
+            Vehicles_YearId = null;
+            Vehicles_ItemName = null;
+            Vehicles_Make = null;
+            Vehicles_model = null;
+            Vehicles_Viregno = null;
+            Vehicles_InsuaranceId = null;
+            Vehicles_vi_ins_policy_no = null;
+            Vehicles_E_Date = null;
+            Vehicles_Ownership = null;
+            Vehicles_TRID = null;
+            Vehicles_openAction = null;
+            Vehicles_openingvalue = null;
+            Vehicles_Entrytype = null;
+            AL_LOC_AL_ID = null;
+            Vehicles_ActionDate = null;
+            Vehicles_ActionBy = null;
+            Vehicle_ColumnToBeShownIndex = null;
+            Vehicle_ColumnToBeHidddenIndex = null;
+            Select_xid_VPW = null;
+            VehicleProfileFocusedRowIndexBeforeRefresh = null;
+            IsVehiclesSucessPopup = null;
+            IsVehiclesViewPopup = null;
+            Vehicles_ShowHorizontalBar = null;
+            Vehicle_SetVouchingModeOn = null;
+            UserType_VehiclePrf = null;
+            Vehicle_IsVouchingMode = null;
+            Vehicle_ViewMode = null;
+            Vehicle_AddRight = null;
+            Vehicle_UpdateRight = null;
+            Vehicle_ViewRight = null;
+            Vehicle_DeleteRight = null;
+            Vehicle_ExportRight = null;
+            Vehicle_LockUnlockRight = null;
+            Vehicle_AddHelp_ActionItemsRight = null;
+            Vehicle_ListHelp_ActionItemsRight = null;
+
+            ClearAllReferences("VehiclesProfile_ClearReferences");
+        }
+</script>
+
+
+    <script>
+    var VehiclesInfo_IsDetailRowExpanded = false;
+    var VehiclesInfo_NestedRecord_FocusedRowIndex = -1;
+    var VehiclesInfo_NestedGrid_AccessID;
+    var VehiclesInfo_AtachmentID;
+    var VehiclesInfo_FileName;
+    var VehiclesInfo_ParamMandatory;
+    var VehiclesInfo_FromDateLabel;
+    var VehiclesInfo_ToDateLabel;
+    var VehiclesInfo_DescriptionLabel;
+    var VehiclesInfo_Doc_ID;
+    var VehiclesInfo_Doc_Category;
+    var VehiclesInfo_MasterRowRecID;
+    var VehiclesInfo_MasterRowMID;
+    var VehiclesInfo_NestedRowMapID;
+    var VehiclesInfo_reason;
+    var VehiclesInfo_Attachment_RecStatus;
+    var VehiclesInfo_NestedRowReasonID;
+    var VehiclesInfo_NestedRowKeyValue;
+
+    function On_VehiclesProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (VehiclesInfo_ParamMandatory == 1)
+            {
+                AddAttachment(VehiclesInfo_MasterRowRecID, "Profile_Vehicles", VehiclesInfo_Doc_ID, VehiclesInfo_Doc_Category, VehiclesInfo_ParamMandatory, VehiclesInfo_FromDateLabel, VehiclesInfo_ToDateLabel, VehiclesInfo_DescriptionLabel, "VehiclesProfileAttachment", null, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(VehiclesInfo_MasterRowRecID, "Profile_Vehicles", VehiclesInfo_Doc_ID, "VehiclesProfileAttachment", "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (VehiclesInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(VehiclesInfo_MasterRowRecID, "Profile_Vehicles", VehiclesInfo_AtachmentID, VehiclesInfo_ParamMandatory, VehiclesInfo_FromDateLabel, VehiclesInfo_ToDateLabel, VehiclesInfo_DescriptionLabel, "VehiclesProfileAttachment", null, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(VehiclesInfo_MasterRowRecID, "Profile_Vehicles", VehiclesInfo_AtachmentID, VehiclesInfo_ParamMandatory, VehiclesInfo_FromDateLabel, VehiclesInfo_ToDateLabel, VehiclesInfo_DescriptionLabel, null, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID, VehiclesInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(VehiclesInfo_AtachmentID, VehiclesInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(VehiclesInfo_MasterRowRecID, "Profile_Vehicles", "Vehicles Information", "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (VehiclesInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(VehiclesInfo_MasterRowRecID, VehiclesInfo_NestedRowMapID, "Profile_Vehicles", "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(VehiclesInfo_MasterRowRecID, VehiclesInfo_NestedRowMapID, "Profile_Vehicles", "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID, VehiclesInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(VehiclesInfo_MasterRowRecID, VehiclesInfo_NestedRowMapID, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            VehiclesPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (VehiclesInfo_Nested_Doc_Status == "")
+            {
+                VehiclesPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (VehiclesInfo_Nested_Doc_Status == "NO")
+            {
+                VehiclesPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (VehiclesInfo_Nested_Doc_Status == "YES")
+            {
+                VehiclesPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            VehiclesInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            VehiclesInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            VehiclesInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnVehiclesInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnVehiclesInfo_RejectDoc();
+        }
+    }
+    function OnVehiclesInfo_RejectDoc() {
+        if (VehiclesInfo_AtachmentID == null || VehiclesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(VehiclesInfo_AtachmentID, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+    }
+    function OnVehiclesInfo_AcceptDoc() {
+        if (VehiclesInfo_AtachmentID == null || VehiclesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(VehiclesInfo_AtachmentID, "VehiclesListGrid", VehiclesInfo_NestedGrid_AccessID);
+    }
+
+    function VehiclesInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (VehiclesInfo_IsDetailRowExpanded == true || Vehicle_IsVouchingMode == true)
+        {
+            if (VehiclesInfo_MasterRowRecID == null || VehiclesInfo_MasterRowRecID == "")
+            {
+                Recid = VehiclesID;
+            }
+            else
+            {
+                Recid = VehiclesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = VehiclesID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_Vehicles", "VehiclesListGrid", VehiclesInfo_AtachmentID, VehiclesInfo_NestedRowReasonID, VehiclesInfo_NestedRowKeyValue);
+    }
+    function VehiclesInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (VehiclesInfo_IsDetailRowExpanded == true || Vehicle_IsVouchingMode == true)
+        {
+            if (VehiclesInfo_MasterRowRecID == null || VehiclesInfo_MasterRowRecID == "")
+            {
+                Recid = VehiclesID;
+            }
+            else
+            {
+                Recid = VehiclesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = VehiclesID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_Vehicles", "VehiclesListGrid", VehiclesInfo_AtachmentID, VehiclesInfo_NestedRowReasonID, VehiclesInfo_NestedRowKeyValue);
+    }
+    function OnVehiclesListGridNestedFocusedRowChange(s, e)
+    {
+        if (VehiclesInfo_IsDetailRowExpanded == true || Vehicle_IsVouchingMode == true)
+        {
+            VehiclesInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (VehiclesInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                VehiclesInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnVehiclesInfo_GetGridRowValues);
+            }
+            else
+            {
+                VehiclesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnVehiclesInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            VehiclesPrf_FAB.SetVisible(true);
+            VehiclesInfo_Nested_Doc_Status = values[0];
+            if (Vehicle_IsVouchingMode == true)
+            {
+                VehiclesPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (VehiclesInfo_Nested_Doc_Status == "")
+                {
+                    VehiclesPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (VehiclesInfo_Nested_Doc_Status == "NO")
+                {
+                    VehiclesPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (VehiclesInfo_Nested_Doc_Status == "YES")
+                {
+                    VehiclesPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            VehiclesInfo_ParamMandatory = values[1];
+            VehiclesInfo_FromDateLabel = values[2];
+            VehiclesInfo_ToDateLabel = values[3];
+            VehiclesInfo_DescriptionLabel = values[4];
+            VehiclesInfo_Doc_Category = values[5];
+            VehiclesInfo_Doc_ID = values[6];
+            VehiclesInfo_AtachmentID = values[7];
+            IndexAttachmentID = VehiclesInfo_AtachmentID;
+            VehiclesInfo_MasterRowRecID = values[8];
+            VehiclesInfo_MasterRowMID = values[9];
+            VehiclesInfo_NestedRowMapID = values[10];
+            VehiclesInfo_reason = values[11];
+            VehiclesInfo_FileName = values[12];
+            VehiclesInfo_Attachment_RecStatus = values[13];
+            VehiclesInfo_NestedRowKeyValue = values[14];
+            if (Vehicle_IsVouchingMode == true)
+            {
+                if (VehiclesInfo_FileName != null && VehiclesInfo_FileName.length > 0)
+                {
+                    ViewDocument(VehiclesInfo_AtachmentID, VehiclesInfo_FileName, "VehiclesPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        VehiclesInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = VehiclesInfo_NestedRowReasonID;
+    }
+    function VehiclesGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = Vehicles_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Vehicle_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function VehiclesGrid_DetailRowExpanding(s, e)
+    {
+        VehiclesInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Vehicle_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function VehiclesGrid_DetailRowCollapsing(s, e)
+    {
+        VehiclesInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Vehicle_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            VehiclesPrf_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+    <script>
+    function VehicleProfile_OnNewClick() {
+        if (Vehicle_AddRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/Frm_Vehicles_Window_Profile",
+            data:
+            {
+                ActionMethod: "New",
+            },
+            cache: false,
+            success: function (data) {
+                if (typeof data.jsonParam === "undefined") {
+                    // We are checking undefined 'coz when all conditions/checks satisfy then view is returned by the serverside function and not jsonParam.
+                    OpenDynamicPopup("New ~ Vehicle", null, "auto", 1024, true, data);
+                }
+                else {
+                    if (data.jsonParam.result == false) {
+                        DevExpress.ui.dialog.alert(jsonParam.message, jsonParam.title);
+                    }
+                }
+            }
+        });
+    }
+    function OnVehiclesEditClick(_MultiUserConfirmation = false) {
+        if (Vehicle_UpdateRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "")//pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "Edit",
+                xID: VehiclesID,
+                MultiUserConfirmation: _MultiUserConfirmation,
+            },
+            cache: false,
+            success: function (data) {
+                if (data.jsonParam.result == true) {
+                    openVehicleEditWindow(data._xSPID);
+                }
+                else {
+                    if (data.jsonParam.isconfirm == true) {
+                        var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false);
+                        confirmbox.done(function (confirmboxResult) {
+                            if (confirmboxResult) {
+                                OnVehiclesEditClick(true);
+                            }
+                            else {
+                                RefreshGridView("VehiclesListGrid");
+                            }
+                        });
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid) {
+                            RefreshGridView("VehiclesListGrid");
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function openVehicleEditWindow(xSPID_param) {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/Frm_Vehicles_Window_Profile",
+            data:
+            {
+                ActionMethod: "Edit",
+                xSPID: xSPID_param,
+                xID: VehiclesID,
+                Info_LastEditedOn: Vehicles_EditDate
+            },
+            cache: false,
+            success: function (data) {
+                if (typeof data.jsonParam === "undefined") {
+                    // We are checking undefined 'coz when all conditions/checks satisfy then view is returned by the serverside function and not jsonParam.
+                    OpenDynamicPopup("Edit ~ Vehicle", null, "auto", 1024, true, data);
+                }
+                else {
+                    if (data.jsonParam.result == false) {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    }
+                }
+            }
+        });
+        HideLoader();
+    };
+    function OnVehiclesDeleteClick(_MultiUserConfirmation = false)
+    {
+        if (Vehicle_DeleteRight == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+
+        if (VehiclesID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "")//pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "Delete",
+                xID: VehiclesID,
+                MultiUserConfirmation: _MultiUserConfirmation,
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    openVehicleDeleteWindow();
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false);
+                        confirmbox.done(function (confirmboxResult)
+                        {
+                            if (confirmboxResult)
+                            {
+                                OnVehiclesDeleteClick(true);
+                            }
+                            else
+                            {
+                                RefreshGridView("VehiclesListGrid");
+                            }
+                        });
+                    }
+
+                    else
+
+                    {
+
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid)
+                        {
+                            RefreshGridView("VehiclesListGrid");
+
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function openVehicleDeleteWindow()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/Frm_Vehicles_Window_Profile",
+            data:
+            {
+                ActionMethod: "Delete",
+                xID: VehiclesID,
+                Info_LastEditedOn: Vehicles_EditDate,
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (typeof data.jsonParam === "undefined")
+                {
+                    // We are checking undefined 'coz when all conditions/checks satisfy then view is returned by the serverside function and not jsonParam.
+                    OpenDynamicPopup("Delete ~ Vehicle", null, "auto", 1024, true, data);
+                }
+                else
+                {
+                    if (data.jsonParam.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(jsonParam.message, jsonParam.title);
+                    }
+                }
+            }
+        });
+    };
+    function OnVehiclesViewClick() {
+        if (Vehicle_ViewRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "")pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "View",
+                xID: VehiclesID,
+            },
+            cache: false,
+            success: function (data) {
+                if (data.jsonParam.result) {
+                    openVehicleViewWindow();
+                }
+                else {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    if (data.jsonParam.refreshgrid) {
+                        RefreshGridView("VehiclesListGrid");
+                    }
+                }
+            }
+        });
+    }
+    function openVehicleViewWindow() {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/Frm_Vehicles_Window_Profile",
+            data:
+            {
+                ActionMethod: "View",
+                xID: VehiclesID,
+                Info_LastEditedOn: Vehicles_EditDate,
+                Txt_VI_Amount: Vehicles_openingvalue,
+            },
+            cache: false,
+            success: function (data) {
+                if (typeof data.jsonParam === "undefined") {
+                    // We are checking undefined 'coz when all conditions/checks satisfy then view is returned by the serverside function and not jsonParam.
+                    OpenDynamicPopup("View ~ Vehicle", null, "auto", 1024, true, data);
+                }
+                else {
+                    if (data.jsonParam.result == false) {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    }
+                }
+            }
+        });
+    }
+    function OnVehiclesLockClick(_MultiUserConfirmation = false) {
+        if (Vehicle_LockUnlockRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "") {   //pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "Locked",
+                xID: VehiclesID,
+                MultiUserConfirmation: _MultiUserConfirmation,
+            },
+            cache: false,
+            success: function (data) {
+                if (data.jsonParam.isconfirm == true) {
+                    var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false);
+                    confirmbox.done(function (confirmboxResult) {
+                        if (confirmboxResult) {
+                            OnVehiclesLockClick(true);
+                        }
+                        else {
+                            RefreshGridView("VehiclesListGrid");
+                        }
+                    });
+                }
+                else {
+                    var alertBoxDone = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                    alertBoxDone.done(function (alertBoxResult) {
+                        if (data.jsonParam.refreshgrid) {
+                            RefreshGridView("VehiclesListGrid");
+                        }
+                    });
+                }
+            }
+        });
+    }
+    function onVehiclesUnlockClick(_MultiUserConfirmation = false) {
+        if (Vehicle_LockUnlockRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "") //pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "Unlocked",
+                xID: VehiclesID,
+                MultiUserConfirmation: _MultiUserConfirmation,
+            },
+            cache: false,
+            success: function (data) {                
+                if (data.jsonParam.isconfirm == true) {
+                    var confirmbox = CreateCustomConfirmDialog(data.jsonParam.title, data.jsonParam.message, false);
+                    confirmbox.done(function (confirmboxResult) {
+                        if (confirmboxResult) {
+                            onVehiclesUnlockClick(true);
+                        }
+                        else {
+                            RefreshGridView("VehiclesListGrid");
+                        }
+                    });
+                }
+                else {
+                    var alertBoxDone = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                    alertBoxDone.done(function (alertBoxResult) {
+                        if (data.jsonParam.refreshgrid) {
+                            RefreshGridView("VehiclesListGrid");
+                        }
+                    });
+                }
+            }
+        });
+    }
+    function OnNewAuditClick() {
+        if (Vehicle_AddHelp_ActionItemsRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "")//pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //    DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //    return;
+        //}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "AddRemarks",
+                xID: VehiclesID,
+            },
+            cache: false,
+            success: function (data) {
+                if (data.jsonParam.result == true) {
+                    OpenPopup("VPW_ActionItem_Popup", "New ~ Action", "/Help/ActionItems/Frm_Action_Items_Window/" + "?" + encodeURI("ActionMethod=New" + "&RefScreen=" + "Profile_Vehicles" + "&RefTable=" + "VEHICLES_INFO" + "&RefRecID=" + VehiclesID + "&PopupID=" + "VPW_ActionItem_Popup" + "&GridToBeRefreshed=" + "VehiclesListGrid"), "auto", 1000, false, false);
+                }
+                else {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title)
+                }
+            }
+        });
+    }
+    function OnViewAuditClick() {
+        if (Vehicle_ListHelp_ActionItemsRight == "False") {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (VehiclesID == null || VehiclesID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        //Details: The below if block is written because the VehiclesID takes time to fill up & if user clicks the row before that.
+        //if (VehiclesID == "")//pritam: commented it because handled it through  VehiclesID= s.GetRowKey(s.GetFocusedRowIndex());
+        //{
+        //  DevExpress.ui.dialog.alert('Please Select the row again', 'Alert ');
+        //  return;
+        //}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Vehicle/DataNavigation",
+            data:
+            {
+                ActionMethod: "Remarks",
+                xID: VehiclesID,
+            },
+            cache: false,
+            success: function (data) {
+                if (data.jsonParam.result == true) {
+                    OpenPopup("VPW_ActionItem_Popup", "Audit Actions", "/Help/ActionItems/Frm_Action_Items_Info/" + "?" + encodeURI("RefScreen=" + "Profile_Vehicles" + "&RefTable=" + "VEHICLES_INFO" + "&RefRecID=" + VehiclesID + "&Status=" + Vehicles_ActionStatus + "&PopupID=" + "VPW_ActionItem_Popup" + "&GridToBeRefreshed=VehiclesListGrid"), "auto", 1000, false, false);
+                }
+                else {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            }
+        });
+    }
+    function closeProfile_Vehicles() {
+        $(".TabPanalMenu-tabs .active span").click();
+
+    }
+    function OnVehiclesListPreviewClick()
+    {
+        if (Vehicle_ExportRight == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        OpenPopup("Vehicles_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Vehicle", new { @area = "Profile" })", "auto", 200, false, null);
+    }
+
+    </script>
+    @* Button Click *@
+
+</div>

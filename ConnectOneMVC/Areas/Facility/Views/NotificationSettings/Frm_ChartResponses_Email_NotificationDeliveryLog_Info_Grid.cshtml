@@ -1,0 +1,63 @@
+﻿<div class="emailDeliveryLog_notificationSet_ClearReferences">
+    @using System.Text.RegularExpressions;
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        var SessionGUID = Request.QueryString["SessionGUID"];
+        int ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    }
+    <style>
+        #RescheduleButtons_notificationSet .dx-buttongroup-item {
+            background: darkgray;
+            color: #fff;
+            border-color: #2f4396;
+            padding: 5px;
+            min-width: inherit;
+        }
+    </style>
+    <div class="row buttonFormatting" style="margin-top:10px; margin-bottom:10px;">      
+        <div class="col-sm-6">
+        <label style="font-size:14px;margin-left: 40px;">Select a Specific Button To Reschedule Failed Email Logs</label>           
+        @(Html.DevExtreme().DropDownButton().DropDownOptions(options => options.Width(200)).ID("RescheduleButtons_notificationSet").Text("Reschedule Failed Logs").OnItemClick("RescheduleEmailLogs_Click")
+            .DataSource(new[]{ "Failed in Last One Day","Failed in Last Week" ,"Failed in Last 30 Days", "Selected Logs To Queue"})
+        )
+        </div>
+        <div class="col-sm-6">
+            @(Html.DevExtreme().Button().ID("EmailDeliveryLogToggleScrollBar_notificationSet").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+            .Icon("toolbox").OnClick(@<text> function () { EmailDeliveryLogGridChangeMode_dx(); } </text>))
+        </div>
+    </div>
+
+    @(Html.DevExtreme().DataGrid().CustomDataGridListing(ShowHorizontalBar)
+    .ID("EmailDeliveryLogNotificationSetInfoGrid")
+    .DataSource(d => d.Mvc().Controller("NotificationSettings").LoadAction("EmailNotificationDeliveryLogsData_Load").LoadMode(DataSourceLoadMode.Raw)
+    .OnBeforeSend("EmailDeliveryLogNotificationSetInfoGrid_onBeforeSend").Key("REC_ID"))
+    .Columns(columns =>
+    {
+        columns.Add().DataField("SummaryColumn").Name("SummaryColumn").Caption("SummaryColumn").Visible(false).ShowInColumnChooser(false);//Bug #137209 Fix
+        columns.Add().DataField("iIcon").Name("iIcon").Caption("").CellTemplate(new JS("EmailDeliveryGrid_notificationSet_iIconTemplate")).Width(30)
+            .HeaderFilter(filter => filter.DataSource("DxGrid_HeaderFilterDataSource")).RenderAsync(true);
+        columns.Add().DataField("EmailDeliveryLogNotificationSetInfoGrid_Compact_Column").Name("EmailDeliveryLogNotificationSetInfoGrid_Compact_Column").Caption("").Visible(false)
+            .CellTemplate(new JS("EmailDeliveryLogNotificationSetInfoGrid_Compact_Column_Template")).CalculateCellValue("EmailDeliveryLogNotificationSetInfoGrid_Compact_Column_CellValue").Width("100%").RenderAsync(true);
+        columns.Add().DataField("EMAILER_NAME").Caption("Batch Name").Visible(true).MinWidth(150);
+        columns.Add().DataField("TO").Caption("To").Visible(true).MinWidth(230);
+        columns.Add().DataField("SENDERID").Caption("Sender Id").Visible(true).MinWidth(130);
+        columns.Add().DataField("SENT_ON").Caption("Sent On").Visible(true).MinWidth(130).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy");
+        columns.Add().DataField("STATUS").Caption("Status").Visible(true).MinWidth(130);
+        columns.Add().DataField("DETAILS").Caption("Details").Visible(false).MinWidth(130);
+        columns.Add().DataField("REC_ID").Visible(false).MinWidth(130);
+        columns.Add().DataField("CC").Caption("CC").Visible(true).MinWidth(130);
+        columns.Add().DataField("BCC").Caption("BCC").Visible(true).MinWidth(130);
+        columns.Add().DataField("REPLYTO").Caption("Reply To").Visible(true).MinWidth(130);
+
+    })
+    .Selection(s => s.Mode(SelectionMode.Multiple)
+        .ShowCheckBoxesMode(GridSelectionShowCheckBoxesMode.Always)
+        .AllowSelectAll(true))
+    .OnInitialized("EmailDeliveryLogNotificationSetInfoGrid_OnInitialized")
+    .OnCellPrepared("EmailDeliveryLogNotificationSetInfoGrid_OnCellPrepared")
+    .OnRowPrepared("EmailDeliveryLogNotificationSetInfoGrid_OnRowPrepared")
+    .OnContentReady("EmailDeliveryLogNotificationSetInfoGrid_OnContentReady")
+    //.OnCellDblClick("EmailDeliveryLogNotificationSetInfoGrid_OnCellDblClick")
+    .OnSelectionChanged("EmailDeliveryLogNotificationSetInfoGrid_OnSelectionChanged")
+) 
+</div>

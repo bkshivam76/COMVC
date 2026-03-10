@@ -1,0 +1,208 @@
+﻿<div class="VoucherWIPExisiting_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        bool From_DNK = (bool)ViewBag.FromDNK;
+        var Ref_Rec_ID = ViewBag.Ref_Rec_ID;
+    }
+    <style>
+        .disabledDiv {
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        #Payment_ExistingWIP_content {
+            padding-right: 0px;
+            padding-left: 0px;
+        }
+    </style>
+    <div id="Payment_ExistingWIP_content" class="col-md-12">
+        <div class="full-width-header-bg2">
+            <div class="row">
+                <div class="col-sm-8 pll">
+                    <h3 class="popuphead pll10"><i class="far fa-edit"></i>Select Reference</h3>
+                </div>
+            </div>
+        </div><!--[Header]-->
+        <fieldset id="Reference_Type_Info_Grid_Div">
+            <div id="VoucherReferenceTypeGridPartialView">
+                @Html.Partial("Frm_Reference_Type_Info_Grid", Model)
+            </div>
+        </fieldset>
+        <br />
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="styleActionBtn">
+                    @(Html.DevExtreme().Button() .ID("ReferenceTypeGridItemOk").CustomSaveButton().Text("Ok") .OnClick(@<text> function () { OnReferenceTypeGridItemOkClick() } </text>) )
+                    @(Html.DevExtreme().Button() .ID("ReferenceTypeGridItemCancel").CustomCloseButton().Text("Cancel") .OnClick("CloseWipreference"))
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+    function CloseWipreference(e)
+    {
+        if ("@From_DNK" == "True")  //from DNK
+        {
+            $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+        }
+        else //from payment
+        {
+
+            $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+        }
+        $("#Frm_References_Popup").dxPopup("hide");
+    }
+    $(document).ready(function ()
+    {
+        ASPxClientControl.AdjustControls(document.getElementById("Payment_ExistingWIP_content"));
+        if ("@From_DNK"=="True")  //from DNK
+        { }
+        else //from payment
+        {
+            if ($("#Txt_Amt").dxNumberBox("instance").option("readOnly"))
+            {
+                document.getElementById("Reference_Type_Info_Grid_Div").disabled = true;
+                $("#Reference_Type_Info_Grid_Div").addClass("disabledDiv");
+                DevExpress.ui.dialog.alert('Referenced Property has been sold / transferred', 'Information');
+            }
+        }
+        setTimeout(function () { $("#ReferenceTypeListGrid").focus() }, Timeout500);
+        HideLoader();
+    });
+    var reference_recid;
+    var reference_name;
+    var reference_opening;
+    var reference_closing;
+    var reference_NextyearclosingValue;
+
+    function OnReferenceTypeGridFocusedRowChanged(s, e)
+    {
+        s.Focus();
+        if (s.GetFocusedRowIndex() < 0)
+        {
+            reference_recid = null;
+            reference_name = null;
+            reference_opening = null;
+            reference_closing = null;
+            reference_NextyearclosingValue = null;
+        }
+    }
+    function ReferenceTypeOnGetRowValues(ReferenceTypeData)
+    {
+        if (ReferenceTypeData[0] != null)
+        {
+           reference_recid=ReferenceTypeData[0];
+           reference_name=ReferenceTypeData[1];
+           reference_opening=ReferenceTypeData[2];
+           reference_closing=ReferenceTypeData[3];
+            reference_NextyearclosingValue = ReferenceTypeData[4];
+
+            ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Account/ProfilePaymentVoucher/AddToExistingWIPReference",
+            cache: false,
+            data:
+            {
+                Reference_RefRecId: reference_recid,
+                Reference_Name: reference_name,
+                Reference_Opening: reference_opening,
+                Reference_Closing: reference_closing,
+                Reference_NextYearClosingValue: reference_NextyearclosingValue,
+                Txt_Amount: "@From_DNK" == "True" ? parseFloat($("#Txt_Amount_DNK_Itm").dxNumberBox("instance").option("value")) : parseFloat($("#Txt_Amt").dxNumberBox("instance").option("value")),
+                iRefType: "@From_DNK" == "True" ? $("#iRefType_DNK_Itm").val() : $("#iRefType").val(),
+                Ref_RecID: "@From_DNK" == "True" ? $("#Ref_RecID_DNK_Itm").val() : $("#Ref_RecID").val(),
+                Specific_ItemID: "@From_DNK" == "True" ? $("#iSpecific_ItemID_DNK_Itm").val() : $("#iSpecific_ItemID").val(),
+                Txn_M_ID: "@From_DNK" == "True" ? $("#iTxnM_ID_DNK_Itm").val() : $("#iTxnM_ID").val(),
+                From_DNK: "@From_DNK" == "True" ? true : false
+            },
+            success: function (data)
+            {
+                OnReferenceTypeGridItemOkSuccess(data);
+            }
+        });
+        }
+    }
+    function OnReferenceTypeGridInit(s, e)
+    {
+        if ("@Ref_Rec_ID".length>0)
+        {
+            for (var i = 0; i < ReferenceTypeListGrid.GetVisibleRowsOnPage(); i++)
+            {
+                var key = s.GetRowKey(i);
+                if (key == "@Ref_Rec_ID")
+                {
+                    s.SetFocusedRowIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+    function OnReferenceTypeGridItemOkClick()
+    {
+        HideLoader();
+        var FocusedRowIndex = ReferenceTypeListGrid.GetFocusedRowIndex();
+        if (FocusedRowIndex<0)
+        {
+            DevExpress.ui.dialog.alert('Data Not Found...!<br> Select A Row', 'Inform!');
+            ReferenceTypeListGrid.Focus();
+            return;
+        }
+        ReferenceTypeListGrid.GetRowValues(FocusedRowIndex, 'ID;Reference;Opening;Closing;Next_Year_Closing_Value', ReferenceTypeOnGetRowValues);
+    }
+    function OnReferenceTypeGridItemOkSuccess(data)
+    {
+        HideLoader();
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                        if ("@From_DNK" == "True")
+                        {
+                            $("#Frm_References_Popup").dxPopup("hide");
+                            $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+                        }
+                        else      //Calling from Payments screen
+                        {
+                            $("#Frm_References_Popup").dxPopup("hide");
+                            $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                        }
+
+                }
+            });
+        }
+        else
+        {
+            if ("@From_DNK"=="True")
+            {
+                $("#Ref_RecID_DNK_Itm").val(data.Ref_RecID);
+                $("#iRefType_DNK_Itm").val("EXISTING");
+                $("#iReference_DNK_Itm").val("");
+                Fill_Item_Grid_DonationInKindVoucher();
+            }
+            else      //Calling from Payments screen
+            {
+                $("#Ref_RecID").val(data.Ref_RecID);
+                $("#iRefType").val("EXISTING");
+                $("#iReference").val("");
+                Fillgrid1_PaymentVoucher();
+            }
+            $("#Frm_References_Popup").dxPopup("hide");
+        }
+    }
+    </script>
+    </div>

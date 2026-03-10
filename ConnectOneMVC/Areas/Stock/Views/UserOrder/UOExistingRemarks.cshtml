@@ -1,0 +1,119 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.NEVD_UserOrder
+@{
+    ViewBag.Test = Model.UO_ActionMethod;
+    bool IsVisible = Model != null && (Model.UO_ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.UO_ActionMethod == "View" || Model.UO_ActionMethod == "Delete") ? true : false;
+ }
+
+<div id="ExtRemark" class="tab-pane fade in">
+    <div class="row">
+        <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+
+            @Html.Action("UOExistingRemarksGridData", "UserOrder", new { ActionMethodName = Model.UO_ActionMethod, UOID = Model.UOID })
+
+        </div>
+    </div>
+    <div class="row btnsDiv formRow" >
+                        @(Html.DevExtreme().Button()
+                                                          .ID("But_UOExistRemDelete")
+                                                          .Text("Delete")
+                                                          //.Icon("fas fa-file btn-icons newfile icon-rgt-space5")
+                                                          .Disabled(IsDisabled)
+                                                          .OnClick(@<text>
+                                                            function () {
+                                                            OnFrm_UOExist_Remarks_Delete_Click()
+                                                            }
+                                                        </text>))
+                        @(Html.DevExtreme().Button()
+                                                            .ID("But_UOExistRemView")
+                                                            .Text("View")
+                                                            //.Icon("fas fa-file btn-icons newfile icon-rgt-space5")
+                                                            .Disabled(IsVisible)
+                                                            .OnClick(@<text>
+                                                                function(){
+                                                                OnFrm_UOExist_Remarks_View_Click()
+                                                                }
+                                                            </text>))
+    </div>
+</div>
+<script>
+    var uoremarkssr;
+    var UserExisRemarks_Id;
+    var uoRemarks = "";
+
+    function OnUOExistingRemarksGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr_No;ID;Remarks', OnRemarksDetailsGridRowValues);
+    };
+    function OnRemarksDetailsGridRowValues(values) {
+        uoremarkssr = values[0];
+        UserExisRemarks_Id = values[1];
+        uoRemarks = values[2];
+    };
+
+    $("#UserExistRemarks_Window_Grid").keydown(function (evt) {
+        switch (evt.keyCode) {
+
+            case 32: //space bar
+                OnFrm_UOExist_Remarks_View_Click();
+                break;
+            case 46://delete key
+                OnFrm_UOExist_Remarks_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_UOExist_Remarks_View_Click();
+        }
+    });
+
+    function OnFrm_UOExist_Remarks_Delete_Click() {
+
+        if ("@IsDisabled" == "true") { return; }
+
+        //if (remarkssr == 'undefined' || remarkssr == undefined || remarkssr== null) {
+        //    DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+        //    return;
+        //}
+        if (UserExisRemarks_Id == 'undefined' || UserExisRemarks_Id == undefined || UserExisRemarks_Id == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        deleteResultPaymentDetail.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/UserOrder/Frm_UserOrderExistingRemarks_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", ID: UserExisRemarks_Id },
+                    cache: false,
+                    success: function (Result) {
+                        if (Result.result == true) {
+                            DevExpress.ui.dialog.alert("Record Deleted", "Infom...");
+                         
+                            UserExistRemarks_Window_Grid.SetFocusedRowIndex(-1);
+                            UserExistRemarks_Window_Grid.Refresh();
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(Result.message, "Error");
+                        }
+                    }
+                });
+            }
+        });
+    }
+    function OnFrm_UOExist_Remarks_View_Click()
+    {
+        if (UserExisRemarks_Id == 'undefined' || UserExisRemarks_Id == undefined || UserExisRemarks_Id == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+
+        OpenPopup("UserOrderinnergrid", "View Remarks", "@Url.Action("Frm_UOViewRemarks", "UserOrder", new {@area= "Stock" })?SR=" + encodeURIComponent(uoremarkssr), "auto", 900, false, null);
+    }
+    //view click
+
+</script>

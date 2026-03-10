@@ -1,0 +1,1075 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@{
+
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_layoutDashboard.cshtml";
+}
+<style>
+    /*.dx-texteditor-container {
+        overflow: visible
+    }*/
+    .dx-dialog-message {
+        padding: 10px 10px 10px 50px;
+        margin-left: 10px;
+        background-image: url("../../../../Icons/About Us3.png");
+        background-repeat: no-repeat;
+        background-position: left center;
+    }
+
+    .dx-overlay-content {
+        overflow: auto !important;
+    }
+</style>
+<div class="row"><div id="date-time"></div></div>
+<div id="footer" style="text-align: right;width: 100%;border-bottom: 1px solid #A6C7FF;border-left: 1px solid #A6C7FF;border-right: 1px solid #A6C7FF;padding: 5px 10px;color:whitesmoke; background: grey;">
+    <span id="footer_content"></span>
+</div>
+@(Html.DevExtreme().Popup().CustomPopup()
+            .ID("Login_popup")
+            //.OnShowing("PopupOnShowing")
+            .CloseOnOutsideClick(false)
+            .ShowCloseButton(true)
+            .ShowTitle(true)
+            .Title("Connect One Relogin")
+            .ContentTemplate(@<text>
+                <div id="result_Login_popup">
+                    <a href="@Url.Action("Frm_COD_Selection", "Login", new { area = "Start" })@Request.Url.Query" onclick='$("#Login_popup").dxPopup("Hide");' target="_blank" class="btn btn-red btn-lg"> Login Again</a>
+                </div>
+            </text>))
+
+@(Html.DevExtreme().Popup().CustomPopup()
+            .ID("Dynamic_Content_popup")
+            .OnShowing("PopupOnShowing")
+            .CloseOnOutsideClick(false)
+            .OnHiding("Dynamic_Content_popup_hiding")
+            //.FullScreen(true)
+            //.ResizeEnabled(true)
+            .ShowCloseButton(true)
+            .ShowTitle(true)
+)
+<script>
+    var sessionclearpath = "";
+    var dontaskpopupcloseconfirmation = true;  
+    function Dynamic_Content_popup_hiding(e)
+    {
+        HideLoader();
+        if (dontaskpopupcloseconfirmation == false)
+        {
+            var result = DevExpress.ui.dialog.confirm("Are You Sure You want To Close...?", "Confirm");
+            result.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    $("#Dynamic_Content_popup").dxPopup("hide");
+                    //$('body').css('overflow', 'visible');
+                    if (sessionclearpath != "")
+                    {
+                        $.ajax({
+                            type: 'GET',
+                            url: sessionclearpath,
+                            cache: false,
+                            async:false
+                        });
+                        sessionclearpath = "";
+
+                    }
+                    dontaskpopupcloseconfirmation = true;
+                }
+                else
+                {
+                    $("#Dynamic_Content_popup").dxPopup("show");
+                    dontaskpopupcloseconfirmation =false;
+                }
+            });
+        }
+        else
+        {
+            if (sessionclearpath != "")
+            {
+                $.ajax({
+                    type: 'GET',
+                    url: sessionclearpath,
+                    cache: false,
+                    async: false
+                });
+                sessionclearpath = "";
+            }
+            dontaskpopupcloseconfirmation = true;
+        }
+    }
+
+    function PopupOnShowing()
+    {
+        $('.dx-overlay-wrapper').addClass('popupresponsive');
+        //$(".dx-popup-content").dxScrollView();
+        $(".dx-overlay-wrapper .dx-popup-content").each(function () {
+            if (!$(this).hasClass("dx-scrollable")) {
+                $(this).dxScrollView();
+            }
+        })
+    }
+    function ConvertJsonDateToString(inputdate) {
+        var newDate = new Date(parseInt(inputdate.substr(6)));
+        var datemonth = newDate.getMonth() + 1;
+        newDate = datemonth + "-" + newDate.getDate() + "-" + newDate.getFullYear();
+        return newDate;
+    }
+    String.prototype.toProperCase = function () {
+        return this.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
+    };
+    //this is for Validation message to show error message on hover event
+    $(document).on("mouseenter", "input[type='text']", function () {
+        if ($(this)[0].hasAttribute("aria-invalid") == true)
+            $("input[id=" + this.id + "]").focus()
+    })
+    function fillFooter() {
+        $.ajax({
+            type: 'GET',
+            url: "/Start/Home/get_Footer_Data",
+            data: {
+                // xFr_DateSelected: $("input[name=PeriodSelection]").val()
+            },
+            cache: false,
+            success: function (result) {
+                $("#footer_content").text(result.Footer);                
+            }
+        });
+    } 
+    function fill_Alerts_Data()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Start/Home/get_Alerts_Data",
+            data: {
+                // xFr_DateSelected: $("input[name=PeriodSelection]").val()
+            },
+            cache: false,
+            success: function (result) {
+                $("#Action_Item_Count").text(result.Action_Item_Count);
+                $("#Center_Remark_Count").text(result.Center_Remark_Count);
+                $("#Asset_Transfer_Count").text(result.Asset_Transfer_Count);
+                $("#Unread_Request_Count").text(result.Unread_Request_Count);
+            }
+        });
+    }
+    function TxtboxAllowAlphaNumeric(evt) { var e = evt.htmlEvent || window.event;
+        if (!(  (e.keyCode >= 48 && e.keyCode <= 57) ||
+                (e.keyCode >= 65 && e.keyCode <= 90) ||
+                (e.keyCode >= 96 && e.keyCode <= 105) ||
+               (e.keyCode == 8 || e.keyCode == 46 || e.keyCode == 37 ||
+                e.keyCode == 39)))
+                e.preventDefault();
+    }
+
+    function ShowLoader() {
+        //alert();
+        //$("#loadPanel").dxLoadPanel("instance").option("visible", true);
+        $("#loadPanel").dxLoadPanel({
+            closeOnOutsideClick: false,
+            visible: true ,
+            showPane: true,
+            shading:true
+           // elementAttr:"class","loadingpanel"
+        });
+    }
+
+    function HideLoader() {
+       // alert();
+        $("#loadPanel").dxLoadPanel("instance").option("visible", false);
+        //loadPanel.hide();
+    }
+
+    $(document).delegate(".dxpc-closeBtn", "click", function () {
+        $(this).closest(".tab-pane.active").find("div.column-chooser").find("i").removeClass("dx-icon-close").addClass("dx-icon-add");
+    });
+
+    var Login_to_connect_cent_NO = "";
+
+
+        //For selecting grid from curtrent tab
+
+        //if (document.readyState == "complete") {
+
+        //}
+        $(document).on('keydown', '.dx-numberbox input', function (e) {
+            // prevent: "e", "=", ",", "-", "."
+            if ([69, 187, 188, 189, 190, 109, 107].includes(e.keyCode)) {
+                e.preventDefault();
+            }
+        });
+
+        function OnUnload() { }
+
+        $(document).ready(function () {   ///I found this line as incomplete and hence i moved it below above function - saurabh
+            SetMenuVisibility();fillFooter();fill_Alerts_Data();
+            ASPxClientUtils.AttachEventToElement(document, "keydown", function (evt) {
+            if (evt.ctrlKey && evt.shiftKey && evt.keyCode == 71) {
+                $("#" + $(".tab-content .tab-pane.active .dxgvTable_MetropolisBlue").attr("id").split('_')[0]).focus()
+                ASPxClientUtils.PreventEventAndBubble(evt);
+            }
+            if (evt.keyCode == 27 && $(".dx-popup-wrapper").length == 0) { // escape click
+                $(".TabPanalMenu-tabs .active span").trigger("click")
+            }
+
+            if (evt.ctrlKey && evt.keyCode == 9 && $(".dx-popup-wrapper").length == 0) { // CTRL + tab
+                evt.preventDefault();
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $(".TabPanalMenu-tabs .active").next().find("a").trigger("click")
+            }
+            if (evt.ctrlKey && evt.shiftKey && evt.keyCode == 9 && $(".dx-popup-wrapper").length == 0) { // CTRL + Shift +tab
+                evt.preventDefault();
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $(".TabPanalMenu-tabs .active").prev().find("a").trigger("click")
+            }
+            if (evt.keyCode == 27 && $(".dx-popup-wrapper").length != 0 && (document.activeElement.type == "text" || (document.activeElement.hasAttribute("role") && document.activeElement.getAttribute("role") == "button"))) {
+                $(".dx-popup").each(function () {
+                    $("#" + this.id).dxPopup("focus")
+                });
+                ASPxClientUtils.PreventEventAndBubble(evt);
+            }
+            if (evt.keyCode == 116 && !evt.altKey && !evt.ctrlKey && !evt.shiftKey) { // F5
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                window[$(".tab-content .tab-pane.active .dxgvTable_MetropolisBlue").attr("id").split('_')[0]].Refresh();
+            }
+
+            // Open screens of key press
+            if (evt.altKey && evt.keyCode == 66 && evt.shiftKey ) {//B
+                //bank
+                OpenTabControl('BANK_frm_Bank_Info', 'Bank Account', '@Url.Action("Frm_bank_info","Bank",new { @area = "Profile" })');
+            } // Open screens of key press
+            if (evt.altKey && evt.keyCode == 71 && evt.shiftKey) {//g
+                //GoldSilver
+                OpenTabControl('GoldSilver_frm_GoldSilver_Info','Gold/Silver','@Url.Action("Frm_GoldSilver_Info","GoldSilver",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 84 && evt.shiftKey ) {//T
+                //telephone
+                OpenTabControl('Telephone_Frm_Telephone_Info', 'Telephone', '@Url.Action("Frm_Telephone_Info","Telephone",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 86 && evt.shiftKey) {//V
+                //Vehicles
+                OpenTabControl('VEHICALS_frm_Vehicles_Info', 'Vehicles', '@Url.Action("Frm_Vehicles_info","Vehicle",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 76 && evt.shiftKey) {//L
+                //Core
+                OpenTabControl('Core_Info','Core Information','@Url.Action("Frm_Core_Info","Core",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 68 && evt.shiftKey) {//D
+                //FD
+                OpenTabControl('FD_Frm_FD_Info','F.D.','@Url.Action("Frm_FD_Info","FD",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 79 && evt.shiftKey) {//O
+                //Core
+                OpenTabControl('OpeningBalances_Frm_OpeningBalances_Info','Opening Balances','@Url.Action("Frm_OpeningBalances_Info","OpeningBalances",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 77 && evt.shiftKey) {//M
+                //Core
+                OpenTabControl('Frm_Asset_Info','Movable Asset','@Url.Action("Frm_Asset_Info","Asset",new { @area = "Profile" })');
+            }
+            if (evt.altKey && evt.keyCode == 65 && evt.shiftKey) {//A
+                //Core
+                OpenTabControl('Advances_frm_Advances_Info','Advances','@Url.Action("Frm_Advances_info", "Advances", new { @area = "Profile" })');
+            }
+           //Accounts
+            console.log(evt.key)
+            if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 88) {//X
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Accounts_Voucher_CollectionBox").trigger("click");
+            }
+
+            //Statements
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 79) {//o
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_Potamel").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 67) {//C
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_CashBook").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 88) {//X
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_CollectionBox").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 68) {//D
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_Donation").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 80) {//P
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_Property").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 65) {//A
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_Movable").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 86) {//V
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_Vehicle").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 71) {//G
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_GS").trigger("click");
+            }
+            if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 70) {//F
+                ASPxClientUtils.PreventEventAndBubble(evt);
+                $("#Statement_FD").trigger("click");
+            }
+
+            //Suppressed for Release 1.0
+            //if ($(".dx-popup-wrapper").length == 0 && evt.altKey && evt.ctrlKey && evt.keyCode == 84) {//T
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Statement_Telaphonebill").trigger("click");
+            //}
+            //if ($(".dx-popup-wrapper").length == 0 && !evt.ctrlKey && !evt.shiftKey && evt.keyCode == 118) {//C
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Cashbook").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 67) {//C
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_CashBank").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 66) {//B
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_BankToBank").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 80) {//p
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Payment").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 82) {//R
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Receipt").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 68) {//D
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Donation").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 75) {//K
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Gift").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 70) {//F
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_FD").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.altKey && evt.keyCode == 84) {//T
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Internal_Transfer").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 65) {//A
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_AssetTransfer").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 83) {//S
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_SaleOfAsset").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 74) {//J
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Accounts_Voucher_Journal").trigger("click");
+            //} else if ($(".dx-popup-wrapper").length == 0 && evt.ctrlKey && evt.shiftKey && evt.keyCode == 87) {//w
+            //    ASPxClientUtils.PreventEventAndBubble(evt);
+            //    $("#Voucher_IPFinalization").trigger("click");
+            //}
+                //End
+            });
+
+            setTimeout(function () {
+                var  docWidth = (document.documentElement.clientWidth);
+                if (docWidth<768){$("#btn_menu_mobile").trigger("click");}
+            }, 2000);
+    });
+
+    function BracketKeyPressEvent(e) {
+        if (e.key == "[") {
+            $(this).val($(this).val() + "(");
+            e.preventDefault();
+        }
+        if (e.key == "]") {
+            $(this).val($(this).val() + ")");
+            e.preventDefault();
+        }
+        if (e.key == "'") {
+            $(this).val($(this).val() + "`");
+            e.preventDefault();
+        }
+    }
+
+    function OnKeyDown_certificate_no(e) {
+        if (e.jQueryEvent.which == 13) {
+            e.jQueryEvent.preventDefault();
+            popup_frm_COD_Selection();
+        }
+    }
+
+    //function PopupOnShowing() {
+    //    $(".dx-overlay-wrapper .dx-popup-content").each(function () {
+    //        if (!$(this).hasClass("dx-scrollable"))
+    //        {
+    //            $(this).dxScrollView();
+    //        }
+    //    })
+    //}
+
+    function PopupOnShowing() {
+        $('.dx-overlay-wrapper').addClass('popupresponsive');
+        //$(".dx-popup-content").dxScrollView();
+        $(".dx-overlay-wrapper .dx-popup-content").each(function () {
+            if (!$(this).hasClass("dx-scrollable")) {
+                $(this).dxScrollView();
+            }
+        })
+    }
+
+    function OpenDynamicPopup(PopupTitle, LoadURL,maxHeight="100%",maxWidth="100%") {
+        $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup'></div>")
+        $("#Dynamic_Content_popup").dxPopup("instance").option("title", PopupTitle)
+
+        //added height & width as few popups were getting very short dimensions
+        $("#Dynamic_Content_popup").dxPopup("instance").option("height", "65%")
+        $("#Dynamic_Content_popup").dxPopup("instance").option("width", "65%")
+
+        //$("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", maxHeight)
+        //$("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", maxWidth)
+        $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+        $("#result_Dynamic_Content_popup").html(null);
+        $("#Dynamic_Content_popup").dxPopup("show");
+        ShowLoader();
+
+        $("#result_Dynamic_Content_popup").load(LoadURL, function () {
+            HideLoader();
+        });
+    }
+
+        
+            function OpenInternalTransferTypePopup(PopupTitle, LoadURL,maxHeight="100%",maxWidth="100%") {
+                $.ajax({//checks whether pending list has to be opened or not ?
+                    type: 'GET',
+                    url: "/Account/InternalTransfer/Pending_List",
+                    data: { Tag: "_New", Selected_Item_ID: "" },
+                    cache: false,
+                    success: function (data) {
+
+                        $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup'></div>")
+                        if (data.result == true) {
+                            $("#Dynamic_Content_popup").dxPopup("show");
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", PopupTitle);
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", maxHeight)
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", maxWidth)
+                            ShowLoader();
+                            $("#result_Dynamic_Content_popup").load(data.PopupFormPath, function () {
+                                HideLoader();
+                                $(".dx-popup-content").dxScrollView()
+                            });
+
+                            $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide of pending transfers screen
+                                "onHidden", function (e) {
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                        "onHidden", function (e) {// removed hiding propertof popup.
+                                        });
+                                    //alert(_ID);
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Match ~ Internal Transfer Entries");
+                                    var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                    $("#result_Dynamic_Content_popup").load("@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?"+ qs , function () {
+                                        HideLoader();
+                                    });
+                                });
+
+                        }
+                        else {
+
+                            $("#Dynamic_Content_popup").dxPopup("show");
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "New ~ Internal Transfer Entries");
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", maxHeight)
+                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", maxWidth)
+                            ShowLoader();
+                            $("#result_Dynamic_Content_popup").load("@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?ActionMethod=New", function () {
+                                HideLoader();
+                            });
+                        }
+
+                    }
+                });
+
+            }
+                function OpenFDTypePopup(PopupTitle, LoadURL,maxHeight="100%",maxWidth="100%") {
+                    $("#Dynamic_Content_popup").dxPopup("show");
+                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", PopupTitle);
+                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", maxHeight)
+                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", maxWidth)
+                    $("#Dynamic_Content_popup").dxPopup("instance").option("onHidden", function (e) {
+                        $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", maxHeight)
+                        $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", maxWidth)
+                    });
+                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup'></div>")
+                    ShowLoader();
+                    $("#result_Dynamic_Content_popup").load(LoadURL, function () {
+                        HideLoader();
+                    });
+                }
+
+
+                    function numberBox_valueChanged(data) {
+                        Login_to_connect_cent_NO = data.value
+                    }
+
+                    function btnCloseActiveTab() {
+                        $(".TabPanalMenu-tabs .active span").click()
+                    }
+
+                    ///Opens Statements with Flexible From and To Dates Filter
+                    function ShowStatement(ReportPath, ReportActionName, ReportTitle){
+                        var url = '@Url.Action("123", "PrintableStatements", new { @area = "Statements" })';
+                        url = url.replace("123",ReportActionName);
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Statements/PrintableStatements/Check_Restrictions",
+                            data: {  },
+                            cache: false,
+                            success: function (data) {
+                                var confirm_auditor = false;
+                                if (data.UserType != "CLIENT ROLE" && data.result == false)
+                                {
+                                    var result = DevExpress.ui.dialog.confirm(data.message + "<div class='msgbox-body' style='font-sizr:20px'><br/> Do You still want to Open " + ReportTitle +" Statement?</div>", "Confirmation...");
+                                    result.done(function (dialogResult) {
+                                        if (dialogResult) {
+                                            ShowLoader();
+                                            var  docWidth = (document.documentElement.clientWidth);
+                                            //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for " + ReportTitle +" Report");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth>780) ? 170 : 200)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 420)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                            ShowLoader();
+                                            $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                                HideLoader();
+                                                $(".dx-popup-content").dxScrollView()
+                                            });
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                                    "onHidden", function (e) {
+                                                        $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                            "onHidden", function (e) {// removed hiding propertof popup.
+                                                            });
+                                                        if (_OK == true)
+                                                        {
+                                                            ShowLoader();
+                                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                            //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                                            $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                            });
+                                                            HideLoader();
+                                                        }
+                                                    });
+                                        }
+                                    });
+                                }
+                                if (data.UserType != "CLIENT ROLE" && data.result == true)
+                                {
+                                    //result.done(function (dialogResult) {
+                                    //if (dialogResult) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for the Report");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth>780) ? 170 : 200)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 420)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    ShowLoader();
+                                    $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                                    $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                    // }
+                                    // });
+                                }
+                                if (data.UserType == "CLIENT ROLE" && data.result == true ) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for the Report");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth>780) ? 170 : 200)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 420)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    //ShowLoader();
+
+                                    $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+
+                                                    $("#result_Dynamic_Content_popup").load( url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                }
+                                if(data.UserType == "CLIENT ROLE" && data.result == false) //Some Restriction is applicable and so cannot open statement
+                                {
+                                    DevExpress.ui.dialog.alert(data.message,"Message...");
+                                    //alert(data.message);
+                                }
+                            }});
+                    }
+                    //End Cash Book Load Function
+
+                    ///Opens Statements with Fixed "From Period" box
+                    function ShowStatement_Fixed_Fromdate(ReportPath, ReportActionName, ReportTitle){
+                        var url = '@Url.Action("123", "PrintableStatements", new { @area = "Statements" })';
+                        url = url.replace("123",ReportActionName);
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Statements/PrintableStatements/Check_Restrictions",
+                            data: {  },
+                            cache: false,
+                            success: function (data) {
+                                var confirm_auditor = false;
+                                if (data.UserType != "CLIENT ROLE" && data.result == false)
+                                {
+                                    var result = DevExpress.ui.dialog.confirm(data.message + "<div class='msgbox-body' style='font-sizr:20px'><br/> Do You still want to Open " + ReportTitle +" Statement?</div>", "Confirmation...");
+                                    result.done(function (dialogResult) {
+                                        if (dialogResult) {
+                                            ShowLoader();
+                                            var  docWidth = (document.documentElement.clientWidth);
+                                            //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for " + ReportTitle +"  Report");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth > 990) ? 145 : 205)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 450)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                            ShowLoader();
+                                            $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                                HideLoader();
+                                                $(".dx-popup-content").dxScrollView()
+                                            });
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                                    "onHidden", function (e) {
+                                                        $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                            "onHidden", function (e) {// removed hiding propertof popup.
+                                                            });
+                                                        if (_OK == true)
+                                                        {
+                                                            ShowLoader();
+                                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                            $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                            });
+                                                            HideLoader();
+                                                        }
+                                                    });
+                                        }
+                                    });
+                                }
+                                if (data.UserType != "CLIENT ROLE" && data.result == true)
+                                {
+                                    //result.done(function (dialogResult) {
+                                    //if (dialogResult) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for the Report");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth>780) ? 170 : 200)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 420)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    ShowLoader();
+                                    $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                                    $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                    // }
+                                    // });
+                                }
+                                if (data.UserType == "CLIENT ROLE" && data.result == true ) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Period for the Report");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", (docWidth>780) ? 170 : 200)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 420)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    //ShowLoader();
+
+                                    $("#result_Dynamic_Content_popup").load(ReportPath, function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", ReportTitle);
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+
+                                                    $("#result_Dynamic_Content_popup").load( url+ "?_FrDate='" + _fromDate + "'&_ToDate='" + _toDate + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                }
+                                if(data.UserType == "CLIENT ROLE" && data.result == false) //Some Restriction is applicable and so cannot open statement
+                                {
+                                    DevExpress.ui.dialog.alert(data.message,"Message...");
+                                    //alert(data.message);
+                                }
+                            }});
+                    }
+                    //End Cash Book Load Function
+
+                    ///Opens Telephone Statements
+                    function ShowTelephoneStatement(){
+                        var url = '@Url.Action("TelephoneStatement", "TelePhonebill", new { @area = "Statements" })';
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Statements/PrintableStatements/Check_Restrictions",
+                            data: {  },
+                            cache: false,
+                            success: function (data) {
+                                var confirm_auditor = false;
+                                if (data.UserType != "CLIENT ROLE" && data.result == false)
+                                {
+                                    var result = DevExpress.ui.dialog.confirm(data.message + "<div class='msgbox-body' style='font-sizr:20px'><br/> Do You still want to Open Telephone Statement?</div>", "Confirmation...");
+                                    result.done(function (dialogResult) {
+                                        if (dialogResult) {
+                                            ShowLoader();
+                                            var  docWidth = (document.documentElement.clientWidth);
+                                            //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Values for Telephone Statement");
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", docWidth > 768 ? 200 : 420)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 690)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                            ShowLoader();
+                                            $("#result_Dynamic_Content_popup").load('/Statements/TelePhonebill/Dialog_Telephone_Bill', function () {
+                                                HideLoader();
+                                                $(".dx-popup-content").dxScrollView()
+                                            });
+                                            $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                                    "onHidden", function (e) {
+                                                        $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                            "onHidden", function (e) {// removed hiding propertof popup.
+                                                            });
+                                                        if (_OK == true)
+                                                        {
+                                                            ShowLoader();
+                                                            $("#Dynamic_Content_popup").dxPopup("show");
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Telephone Statement");
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                            $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                            //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                                            $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + TelephoneSt_fromDate + "'&_ToDate='" + TelephoneSt_toDate + "'&TelephoneID='" + TelephoneSt_TelephoneID + "'" , function () {
+                                                            });
+                                                            HideLoader();
+                                                        }
+                                                    });
+                                        }
+                                    });
+                                }
+                                if (data.UserType != "CLIENT ROLE" && data.result == true)
+                                {
+                                    //result.done(function (dialogResult) {
+                                    //if (dialogResult) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Values for Telephone Statement");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", 250)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 690)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    ShowLoader();
+                                    $("#result_Dynamic_Content_popup").load('/Statements/TelePhonebill/Dialog_Telephone_Bill', function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Telephone Statement");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+                                                    $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + TelephoneSt_fromDate + "'&_ToDate='" + TelephoneSt_toDate + "'&TelephoneID='" + TelephoneSt_TelephoneID + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                    // }
+                                    // });
+                                }
+                                if (data.UserType == "CLIENT ROLE" && data.result == true ) {
+                                    ShowLoader();
+                                    var  docWidth = (document.documentElement.clientWidth);
+                                    //OpenDynamicPopup('Cash Book Statement', '/Statements/PrintableStatements/Frm_ReportInput?Statement=Cash_Book',200,700);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup' style='background-color:#fff'></div>")
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Choose Values for Telephone Statement");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", 250)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", 690)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", false)
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("ElementAttr", "overflow:auto")
+                                    //ShowLoader();
+
+                                    $("#result_Dynamic_Content_popup").load('/Statements/TelePhonebill/Dialog_Telephone_Bill', function () {
+                                        HideLoader();
+                                        $(".dx-popup-content").dxScrollView()
+                                    });
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option(//on hide
+                                            "onHidden", function (e) {
+                                                $("#Dynamic_Content_popup").dxPopup("instance").option(
+                                                    "onHidden", function (e) {// removed hiding propertof popup.
+                                                    });
+                                                if (_OK == true)
+                                                {
+                                                    ShowLoader();
+                                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Telephone Statement");
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxHeight", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("maxWidth", "100%")
+                                                    $("#Dynamic_Content_popup").dxPopup("instance").option("fullScreen", true)
+                                                    //var qs ="ActionMethod=" + "New" + "&_Date=" + (_P_Date == undefined || _P_Date == "undefined" ? "" : encodeURIComponent(_P_Date)) + "&_Item_ID=" +( _ITEM_ID == undefined ||_ITEM_ID == "undefined" ? "" : _ITEM_ID)  + "&_Mode=" + (_Mode == undefined || _Mode == "undefined" ? "CASH" : encodeURIComponent(_Mode)) +  "&_CEN_ID=" + (_CEN_ID == undefined || _CEN_ID == "undefined" ? "" : _CEN_ID)  + "&_BI_ID=" + (_BI_ID == undefined || _BI_ID == "undefined" ? "" : _BI_ID) + "&_BI_ACC_NO=" + (_Bank_Ac_No == undefined || _Bank_Ac_No == "undefined" ? "": _Bank_Ac_No)+ "&_REF_BI_ID=" + ( _REF_BI_ID == undefined || _REF_BI_ID == "undefined" ? "" : _REF_BI_ID) + "&_REF_BRANCH=" + (_Ref_Branch == undefined || _Ref_Branch == "undefined" ? "" : encodeURIComponent(_Ref_Branch)) + "&_REF_OTHERS=" + (_Ref_Others == undefined || _Ref_Others == "undefined" ? "" : _Ref_Others) + "&_BI_REF_NO=" + (_Ref_No == undefined || _Ref_No == "_Ref_No" ? "" : _Ref_No) + "&_BI_REF_DT=" + ( _Ref_Date == undefined || _Ref_Date == "undefined" ? "" : encodeURIComponent(_Ref_Date)) + "&_Amount=" + (_Amount == undefined || _Amount == "undefined" ? "" : _Amount) + "&_PUR_ID=" + ( _PUR_ID  == undefined || _PUR_ID == "undefined" ? "" : _PUR_ID ) + "&_ID=" + (_ID == undefined || _ID == "undefined" ? "" : _ID) + "&_M_ID=" + (_M_ID == undefined || _M_ID == "undefined" ? "" : _M_ID) + "&_EDIT_DATE=" + (_Edit_Date == undefined || _Edit_Date == "undefined" ? "" : encodeURIComponent(_Edit_Date)) + "&_REF_BANK_ACC_NO=" + (_Ref_Bank_AccNo == undefined || _Ref_Bank_AccNo == "undefined" ? "" : _Ref_Bank_AccNo);
+
+                                                    $("#result_Dynamic_Content_popup").load(url+ "?_FrDate='" + TelephoneSt_fromDate + "'&_ToDate='" + TelephoneSt_toDate + "'&TelephoneID='" + TelephoneSt_TelephoneID + "'" , function () {
+                                                    });
+                                                    HideLoader();
+                                                }
+                                            });
+                                }
+                                if(data.UserType == "CLIENT ROLE" && data.result == false) //Some Restriction is applicable and so cannot open statement
+                                {
+                                    DevExpress.ui.dialog.alert(data.message,"Message...");
+                                    //alert(data.message);
+                                }
+                            }});
+                    }
+                    //End Telephone statement Function
+
+                    $(".TabPanalMenu-tabs").on("click", "li", function (event) {
+                        var calling_id = event.target.toString();
+                        if (calling_id.indexOf('#') != -1) {//should happen only for Navigation tabs
+                            $(".TabPanalMenu-tabs li").removeClass("active");
+                            $(this).addClass("active");
+                        }
+                    });
+
+
+                    $(".TabPanalMenu-tabs").on("click", "span", function () {
+                        $(".TabPanalMenu-tabs li.active").prev().addClass("active");
+                        $(".TabPanalMenu-tabs li.active").prev().find("a").trigger("click");
+                        var anchor = $(this).siblings('a');
+                        $(anchor.attr('href')).remove();
+                        $(this).parent().remove();
+                        $(".TabPanalMenu li").children('a').first().click();
+                        AllOpenControlTabs.splice($.inArray(anchor.attr('href').split('#')[1], AllOpenControlTabs), 1);
+
+                    });
+
+                    ///Sets Menu options Visibilities
+                    function SetMenuVisibility()
+                    {
+                        ///Sets Menu options Visibilities as per user type
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Start/Home/Allow_Superuser_Auditor_Operations",
+                            data: {  },
+                            cache: false,
+                            success: function (data) {
+                                var confirm_auditor = false;
+                                if (data.result == false) //center Login - Hide those which are not to be shown, show all others
+                                {
+                                    //StartMenu
+                                    $("#Start_Auditor_li").hide();
+                                    //Statements
+                                    $("#Statement_Vehicle").hide();
+                                    $("#Statement_Property").hide();
+                                    //Profiles
+                                    //$("#Profile_OpeningBalances").hide(); knowlingly removed as i think there is no logic hiding it
+                                    //Reports
+                                    $("#Report_AssetInsurance_Breakup").hide();
+                                    $("#Report_BS").hide();
+                                    $("#Report_TB").hide();
+                                    $("#Report_Income_Expenditure").hide();
+                                    $("#Report_LedgerReport").hide();
+                                    //Accounts
+
+                                }
+                            }
+                        });
+                        ///Sets Menu options Visibilities as per other factors
+                        //1.check options which should be available without login too like Reset Password
+                        //2.check options which should be set as per HQ
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Start/Home/Allow_HQ_Operations",
+                            data: {  },
+                            cache: false,
+                            success: function (data) {
+                                var confirm_HQ = false;
+                                if (data.result == false) //Non-HQ center Login - Hide those which are not to be shown, show all others
+                                {
+                                    //Reports
+                                    $("#Report_Bank_Account_List").hide();
+                                }
+                            }
+                        });
+                        //3.check options which should be set as per accounting type
+                        //4.check options which should be set as per Inurance Rights for user
+                        //Hide Options that are not part of release
+
+                        //#region "Screens not released in Beta Version 1.0"
+                        $("#Start_Auditor_Submit_Report").hide();
+                        $("#Start_Auditor_Return_Correction").hide();
+                        $("#Start_Auditor_Verify_Audit").hide();
+                        $("#Start_Auditor_Audit_Verification").hide();
+                        $("#Start_Auditor_Audit_Info").hide();
+                        $("#Start_Auditor_Remove_Notification").hide();
+                        $("#Start_Auditor_Notify").hide();
+                        $("#Start_Account_Analysis").hide();
+                        $("#Start_Auditor_Notify").hide();
+                        $("#Start_Accounts_submission").hide();
+                        $("#Start_Submit_Accounts").hide();
+                        $("#Start_Submission_History").hide();
+
+                        $("#Profile_Surrendered").hide();
+                        $("#Profile_Deposit_Slips").hide();
+                      //  $("#Profile_Stock").hide();
+
+
+                        $("#Accounts_Voucher_CashBank").show();
+                        $("#Accounts_Voucher_BankToBank").show();
+                        $("#Accounts_Voucher_Payment").hide();
+                        $("#Accounts_Voucher_Receipt").hide();
+                        $("#Accounts_Voucher_Donation").hide();
+                        $("#Accounts_Voucher_Gift").hide();
+                       // $("#Accounts_Voucher_FD").show();
+                        $("#Accounts_Voucher_Internal_Transfer").hide();
+                        $("#Accounts_Voucher_AssetTransfer").show();
+                        $("#Accounts_Voucher_SaleOfAsset").show();
+                        $("#Accounts_Voucher_Journal").hide();
+                        $("#Accounts_Voucher_WIP_Finalization").hide();
+                       // $("#Accounts_Cashbook").hide();
+                        $("#Accounts_Notebook").hide();
+                        $("#Account_InternalTrf_Register").hide();
+                        $("#Account_TDS_Register").hide();
+                       // $("#Account_stock_keeping").hide();
+
+
+                     //   $("#Report_Daily_Balances").hide();
+                        $("#Report_Deposit_Slips").hide();
+
+
+                        $("#Facility_Center_Purpose").hide();
+                        $("#Facility_Magazine_Request").hide();
+
+                       // $("#Help_Attachment").hide();
+
+                        $("#Options_ChangePassword").hide();
+                        //#endregion
+                    }
+
+                    //function OpenChangeCenter() {
+                    //    var OPEN_INS_ID;
+                    //    var OPEN_INS_NAME;
+                    //    var OPEN_INS_SHORT;
+
+                    //    $.ajax({
+                    //        type: 'POST',
+                    //        url: "/Start/Login/Frm_COD_Selection_Auditor",
+                    //        data: { xIns_ID:OPEN_INS_ID, xINS_NAME:OPEN_INS_NAME,xINS_SHORT:OPEN_INS_SHORT },
+                    //        cache: false,
+                    //        success: function (result) {
+                    //            $("#popup_frm_COD_Selection_Auditor").dxPopup("show");
+                    //            $("#resultLogin").html(result);
+                    //        }
+                    //    });
+
+                //}
+        //    }}}}
+</script>
+
+
+

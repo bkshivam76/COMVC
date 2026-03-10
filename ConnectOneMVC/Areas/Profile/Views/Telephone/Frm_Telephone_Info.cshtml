@@ -1,0 +1,1110 @@
+﻿<div class="TelephoneProfile_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool Telephone_AddRight = (bool)ViewData["Telephone_AddRight"];
+        bool Telephone_UpdateRight = (bool)ViewData["Telephone_UpdateRight"];
+        bool Telephone_ViewRight = (bool)ViewData["Telephone_ViewRight"];
+        bool Telephone_DeleteRight = (bool)ViewData["Telephone_DeleteRight"];
+        bool Telephone_ExportRight = (bool)ViewData["Telephone_ExportRight"];
+        var xid = (string)ViewData["xid"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Telephone_Auto_Vouching_Mode = (bool)ViewData["Telephone_Auto_Vouching_Mode"];
+    }
+
+    <style>
+        .wrapText {
+            word-break: break-all;
+        }
+    </style>
+    <div id="TelephoneProfile_ParentDiv">
+        <div id="content_TelephoneProfile" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">Telephone Information</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("TelephoneVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Telephone_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("TelephoneViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Telephone_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button().ID("TelephoneModelNew").Text("New").Icon("add").OnClick(@<text> function () { OnTelephoneNewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneModelEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnTelephoneEditClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneModelDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnTelephoneDeleteClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneModelView").Text("View").Icon("doc").OnClick(@<text> function () { OnTelephoneViewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { TelephonechangeMode(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneModelListExport").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnTelephoneListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("TelephoneModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){closeProfile_Telephone();} </text>) )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="TelephonereloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Telephone_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="Telephone_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        <div class="footer-locktext">
+                            <div id="Telephone_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="Telephone_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="TelephoneLbl_Create" class="right_footertext_top"></p>
+                            <p id="TelephoneLbl_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "TelephonePrf_FAB,TelephoneProfile_grid_DIV,Type1,TelephoneProfile," + UserType) @*fab buttons*@
+        <div class="col-md-12">
+            @*Add/Edit Popup*@
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                                                    .ID("Telephone_report_modal")
+                                                                                    .Title("Telephone List Preview")
+                                                                                    .FullScreen(false)
+                                                                                    .MaxWidth(125)
+                                                                                    .Height("auto")
+                                                                                    .ShowCloseButton(true)
+                                                                                    .ContentTemplate(@<text>
+                                                                                        <div id='Telephone_report_modal_result'>
+                                                                                        </div>
+                                                                                    </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                                                                    .ID("popup_frm_Telephone_Window")
+                                                                                    .Title("Telephone")
+                                                                                    .OnShowing("PopupOnShowing")
+                                                                                    .DragEnabled(true)
+                                                                                    .MaxHeight("auto")
+                                                                                    .MaxWidth(1000)
+                                                                                    .ShowCloseButton(true)
+                                                                                    .ContentTemplate(@<text>
+                                                                                        <div id="Telephoneresult">
+                                                                                        </div>
+                                                                                    </text>)
+                                                                                                                                .OnHiding(@<text>function(){TelephonePopupOnHiding();}</text>))
+
+        </div>
+    </div>
+    @*Javascript Events*@
+
+<script type="text/javascript">
+    var IsSucessPopup = false;
+    var IsViewPopup = false;
+    var IsTelephoneNewPopup = false;
+    var Telephone_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var Telephone_TotalRowCount;
+    var TelephoneLayout = null;
+    var Telephone_xid = "@xid";
+    var Telephone_SetVouchingModeOn = "@Telephone_Auto_Vouching_Mode" == "True" ? true : false;
+    var TelephoneFocusRowIndexBeforeRefresh;
+    var Select_xid_Telephone;
+    var UserType_TelephonePrf = "@UserType".toUpperCase();
+    var Telephone_IsVouchingMode = false;
+    var Telephone_ViewMode = "Default";
+    $(document).ready(function ()
+    {
+        if ("@Telephone_AddRight" == "False")
+        {
+	        $("#TelephoneModelNew").hide();
+        }
+        if ("@Telephone_UpdateRight" == "False")
+        {
+            $("#TelephoneModelEdit").hide();
+        }
+        if ("@Telephone_ViewRight" == "False")
+        {
+            $("#TelephoneModelView").hide();
+        }
+        if ("@Telephone_DeleteRight" == "False")
+        {
+            $("#TelephoneModelDelete").hide();
+        }
+        if ("@Telephone_ExportRight" == "False")
+        {
+            $("#TelephoneModelListExport").hide();
+        }
+        Grid_Display_Telephone();
+        $("#TelephoneListGrid").hover(function ()
+        {
+            TelephoneListGrid.Focus()
+        });
+        $(".TelephoneListGrid_PreviewRow").hide();
+        GetSessionStorage("TelephoneListGrid");
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Telephone/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        ClearAllReferences_TelephoneProfile();
+
+    });
+        function ClearAllReferences_TelephoneProfile() {
+            IsSucessPopup = null;
+            IsViewPopup = null;
+            IsTelephoneNewPopup = null;
+            Telephone_ShowHorizontalBar = null;
+            Telephone_TotalRowCount = null;
+            TelephoneLayout = null;
+            Telephone_xid = null;
+            Telephone_SetVouchingModeOn = null;
+            TelephoneFocusRowIndexBeforeRefresh = null;
+            Select_xid_Telephone = null;
+            UserType_TelephonePrf = null;
+            Telephone_IsVouchingMode = null;
+            Telephone_ViewMode = null;
+            Tele_ColumnToBeShownIndex = null;
+            Tele_ColumnToBeHidddenIndex = null;
+            TelephoneID = null;
+            tP_NOField = null;
+            telMiscIdField = null;
+            Telephone_categoryField = null;
+            Telephone_typeField = null;
+            Telephone_EditDate = null;
+            Telephone_AddDate = null;
+            Telephone_AddBy = null;
+            Telephone_EditBy = null;
+            Telephone_ActionStatus = null;
+            TelephoneInfo_IsDetailRowExpanded = null;
+            TelephoneInfo_NestedRecord_FocusedRowIndex = null;
+            TelephoneInfo_NestedGrid_AccessID = null;
+            TelephoneInfo_AtachmentID = null;
+            TelephoneInfo_FileName = null;
+            TelephoneInfo_ParamMandatory = null;
+            TelephoneInfo_FromDateLabel = null;
+            TelephoneInfo_ToDateLabel = null;
+            TelephoneInfo_DescriptionLabel = null;
+            TelephoneInfo_Doc_ID = null;
+            TelephoneInfo_Doc_Category = null;
+            TelephoneInfo_MasterRowRecID = null;
+            TelephoneInfo_MasterRowMID = null;
+            TelephoneInfo_NestedRowMapID = null;
+            TelephoneInfo_reason = null;
+            TelephoneInfo_Attachment_RecStatus = null;
+            TelephoneInfo_NestedRowReasonID = null;
+            TelephoneInfo_NestedRowKeyValue = null;
+
+            ClearAllReferences("TelephoneProfile_ClearReferences");
+        }
+
+    function OnTelephoneCellClick(event, cell,col, row)
+    {
+        if (UserType_TelephonePrf == "AUDITOR" || UserType_TelephonePrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+    function Telephone_VouchingSwitch_ValueChange(e)
+    {
+        Telephone_IsVouchingMode = e.value;
+        TelephoneListGrid.SetFocusedRowIndex(-1);
+        TelephonePrf_FAB.SetVisible(false);
+        if (Telephone_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            TelephonePrf_FAB.SetActionContext("AddAttachmentContext", false);
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        TelephoneListGrid_CollapseAllDetailRows();
+    }
+    function TelephoneListGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.TelephoneListGrid !== 'undefined')
+            {
+                if (typeof window.TelephoneListGrid.CollapseAllDetailRows !== 'undefined')
+                {
+                    if (typeof TelephoneListGrid.CollapseAllDetailRows == 'function')
+                    {
+                        TelephoneListGrid.SetFocusedRowIndex(-1);
+                        TelephoneListGrid.CollapseAllDetailRows();
+                    }
+                    else
+                    {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        TelephoneListGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+    function Telephone_ViewSwitch_ValueChange(e)
+    {
+        Telephone_ViewMode = e.value == false ? "Default" : "Compact";
+        if (Telephone_SetVouchingModeOn == true)
+        {
+            $("#TelephoneVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            TelephoneListGrid.CollapseAllDetailRows();
+        }
+    }
+</script>
+
+    <script>
+
+    function TelephoneOnInit(s, e)
+    {
+        TelephoneAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            TelephoneAdjustSize();
+        });
+        $(".TelephoneListGrid_PreviewRow").hide();
+    }
+
+    var Tele_ColumnToBeShownIndex = "";
+    var Tele_ColumnToBeHidddenIndex = "";
+    function TelephoneListGrid_EndCallback(s, e)
+    {
+        //TelephoneAdjustSize();
+        Tele_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Tele_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        TelephoneLayout = s.cpClientLayout;
+        $(".TelephoneListGrid_PreviewRow").hide();
+        if (e.command == "REFRESH")
+        {
+            if (TelephoneFocusRowIndexBeforeRefresh == s.GetFocusedRowIndex())
+            {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(TelephoneFocusRowIndexBeforeRefresh);
+            }
+            Select_xid_Telephone = "";
+        }
+        else if (e.command == "CUSTOMCALLBACK")
+        {
+            $(".TelephoneListGrid_PreviewRow").hide();
+            if (TelephoneFocusRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(TelephoneFocusRowIndexBeforeRefresh);
+            }
+            Select_xid_Telephone = "";
+        }
+
+        GetSessionStorage("TelephoneListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        ASPxClientControl.AdjustControls(document.getElementById("TelephoneProfile_ParentDiv"));
+    }
+    function TelephoneAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+            try{TelephoneListGrid.SetHeight(height);}catch(err){}
+    }
+    function TelephonechangeMode()
+    {
+        ShowLoader();
+        if (Telephone_ShowHorizontalBar == 0)
+        {
+            Telephone_ShowHorizontalBar = 1;
+            $("#TelephoneToggleScrollBar").find("span").text("Default Data");
+            $("#TelephoneToggleScrollBar").width(110);
+        }
+        else {
+            Telephone_ShowHorizontalBar = 0;
+            $("#TelephoneToggleScrollBar").find("span").text("Full Data");
+            $("#TelephoneToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Telephone_Info_Grid", "Telephone")',
+            type: "GET",
+            data: { ShowHorizontalBar: Telephone_ShowHorizontalBar, Layout: TelephoneLayout, VouchingMode: Telephone_IsVouchingMode, ViewMode: Telephone_ViewMode, ColumnToBeHidddenIndex: Tele_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Tele_ColumnToBeShownIndex  },
+            success: function (res)
+            {
+                $("#TelephonereloadPartialView").html(res);
+                $(".TelephoneListGrid_PreviewRow").hide();
+                GetSessionStorage("TelephoneListGrid");
+            }
+        });
+        HideLoader();
+    }
+
+    var TelephoneID;
+    var tP_NOField;
+    var telMiscIdField;
+    var Telephone_categoryField;
+    var Telephone_typeField;
+    var Telephone_EditDate;
+    var Telephone_AddDate;
+    var Telephone_AddBy;
+    var Telephone_EditBy;
+    var Telephone_ActionStatus;
+
+        function TelephonedblclickEdit(s, e)
+        {
+        //if (TelephoneID != null || TelephoneID == 'undefined' || TelephoneID == undefined)
+        //    OnTelephoneEditClick();
+    }
+
+    function TelephoneGrid_BeginCallBack(s, e)
+    {
+        TelephoneFocusRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Telephone_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Telephone_IsVouchingMode;
+        e.customArgs["ViewMode"] = Telephone_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Tele_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Tele_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = Select_xid_Telephone;
+    }
+
+    function OnTelephoneGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() > -1)
+        {
+                var key = s.GetRowKey(s.GetFocusedRowIndex());
+                TelephoneListGrid.GetValuesOnCustomCallback({ key: key }, TelephoneOnGetRowValues);
+        }
+        else
+        {
+            TelephoneID = null;
+        }
+    }
+
+    function TelephoneOnGetRowValues(TelephoneData)
+    {
+        var values = TelephoneData.split("![");
+        TelephoneID = values[0];
+        TP_NO = values[1];
+        telMiscIdField = values[2];
+        Telephone_categoryField = values[3];
+        Telephone_typeField = values[4];
+        Telephone_EditDate = values[5];
+        Telephone_AddDate = values[6];
+        Telephone_AddBy = values[7];
+        Telephone_EditBy = values[8];
+        Telephone_ActionStatus = values[9];
+        var actiondate = values[10];
+        var actionby = values[11];
+        Telephone_UpdateFooterDetail(TelephoneID, Telephone_ActionStatus, Telephone_AddDate, Telephone_AddBy,
+            actiondate, actionby, Telephone_EditDate, Telephone_EditBy);
+        if (Telephone_IsVouchingMode == true) {
+            OpenLeftPane();
+            LoadDocumentAndAdditionalInfoInLeftPane("Profile", "Telephone", "LeftPaneContent", TelephoneID, Telephone_IsVouchingMode, "");
+        }
+    }
+
+        function Telephone_UpdateFooterDetail(TelephoneID, Telephone_Action_Status, Telephone_Add_Date, Telephone_Add_By, Telephone_Action_Date, Telephone_Action_By, Telephone_Edit_Date, Telephone_Edit_By)
+        {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            Status = Telephone_Action_Status;
+            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "fa fa-lock";
+            }
+            else {
+                Pic_Status = "fa fa-unlock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED") {
+                    Lbl_Status_Color = "green";
+                }
+                else {
+                    Lbl_Status_Color = "red";
+                }
+            }
+            if (Telephone_Add_Date) {
+                Lbl_Create = "Add On: " + Telephone_Add_Date + ", By: " + Telephone_Add_By;
+            }
+            if (Telephone_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Telephone_Edit_Date + ", By: " + Telephone_Edit_By;
+            }
+
+                Lbl_ActionOn = StatusStr + " On: " + Telephone_Action_Date;
+
+
+                Lbl_ActionBy = StatusStr + " By: " + Telephone_Action_By;
+
+            $('#TelephoneLbl_Status').text(Lbl_Status);
+            $('#TelephoneLbl_Create').text(Lbl_Create);
+            $('#TelephoneLbl_Modify').text(Lbl_Modify);
+            $('#Telephone_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#Telephone_Lbl_ActionBy').text(Lbl_ActionBy);
+            if (Lbl_Status_Color != "") {
+                $('#TelephoneLbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#Telephone_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#Telephone_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#Telephone_LockICON').removeClass("fa").removeClass("fa-lock").removeClass("fa-unlock");
+            }
+
+        }
+
+
+
+    function OnTelephoneNewClick()
+    {
+        if ("@Telephone_AddRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        ShowLoader();
+        OpenPopup("popup_frm_Telephone_Window", "New ~ Telephone", "@Url.Action("frm_Telephone_window", "Telephone", new { @area = "Profile" })?ActionMethod=" + "New", "auto",800, false, null);
+    }
+    function OnTelephoneEditClick()
+    {
+        if ("@Telephone_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (TelephoneID == 'undefined' || TelephoneID == undefined || TelephoneID == null || TelephoneID.length<1)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Telephone/DataNavigation",
+            data:
+            {
+                ActionMethod: "Edit", id: TelephoneID
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Telephone/frm_Telephone_window",
+                        data:
+                        {
+                            ActionMethod: "Edit",
+                            ID: TelephoneID,
+                            EditedOn: Telephone_EditDate
+                        },
+                        success: function (data)
+                        {
+                            ShowLoader();
+                            OpenPopup("popup_frm_Telephone_Window", "Edit ~ Telephone",null, "auto",800,true,data);
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Information...');
+                    Grid_Display_Telephone();
+                }
+            }
+        });
+    }
+
+    function OnTelephoneViewClick()
+    {
+        if ("@Telephone_ViewRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (TelephoneID == 'undefined' || TelephoneID == undefined || TelephoneID == null || TelephoneID == "")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Telephone/DataNavigation",
+            data: { ActionMethod: "View", id: TelephoneID },
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Telephone/frm_Telephone_window",
+                        data:
+                        {
+                            ActionMethod: "View",
+                            ID: TelephoneID,
+                            EditedOn: Telephone_EditDate
+                        },
+                        success: function (data)
+                        {
+                            ShowLoader();
+                            OpenPopup("popup_frm_Telephone_Window", "View ~ Telephone",null, "auto",800,true,data);
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Information...');
+                    Grid_Display_Telephone();
+                }
+            }
+        });
+    }
+
+    function OnTelephoneDeleteClick()
+    {
+        if ("@Telephone_DeleteRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (TelephoneID == 'undefined' || TelephoneID == undefined || TelephoneID == null || TelephoneID == "")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Telephone/DataNavigation",
+            data: { ActionMethod: "Delete", id: TelephoneID },
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Telephone/frm_Telephone_window",
+                        data:
+                        {
+                            ActionMethod: "Delete",
+                            ID: TelephoneID,
+                            EditedOn: Telephone_EditDate
+                        },
+                        success: function (data) {
+                            ShowLoader();
+                            OpenPopup("popup_frm_Telephone_Window", "Delete ~ Telephone", null, "auto",800, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Information...');
+                    Grid_Display_Telephone();
+                }
+            }
+        });
+    }
+
+    function OnTelephoneListPreviewClick()
+    {
+        if ("@Telephone_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        Grid_Display_Telephone();
+        @*$("#Telephone_report_modal").dxPopup("show");
+        $("#Telephone_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#Telephone_report_modal").html('');
+        ShowLoader();
+        $("#Telephone_report_modal_result").load("@Url.Action("Frm_Export_Options", "Telephone", new { @area = "Profile" })", function () {
+            HideLoader();
+        });*@
+        OpenPopup("Telephone_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Telephone", new { @area = "Profile" })", "auto", 125, false, null);
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function TelephoneContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            OnTelephoneNewClick();
+        }
+        if (e.item.name == 'Close') {
+            closeProfile_Telephone();
+        }
+        else if (e.item.name == 'Edit') {
+            OnTelephoneEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnTelephoneDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnTelephoneViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnTelephoneListPreviewClick();
+        }
+        else if (e.item.name == 'Discontinue') {
+            OnTelephoneDiscontinueClick();
+        }
+        else if (e.item.name == 'continue') {
+            OnTelephonecontinueClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Grid_Display_Telephone();
+        }
+        }
+
+        function closeProfile_Telephone() {
+            $(".TabPanalMenu-tabs .active span").click();
+
+        }
+        //$(".TabPanalMenu-tabs .active span").on("click", function () {
+        //    $.ajax({
+        //        type: 'GET',
+        //        url: "/Profile/Telephone/SessionClear",
+        //        cache: false
+        //    });
+        //    var pane = Mainspliter.GetPaneByName('RightPane');
+        //    pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        //});
+        function TelephonePopupOnHiding() { }
+    </script>
+    <script>
+        function Grid_Display_Telephone() {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Telephone/Grid_Display",
+                async: false,
+                cache: false,
+                success: function (data) {
+                    if (data.result == false) {
+                        DevExpress.ui.dialog.alert(data.message, "Error!!");
+                    }
+                    else {
+                        ShowLoader();
+                        Telephone_TotalRowCount = data.TotalRowCount;
+                        TelephoneRefresh();
+
+                    }
+                }
+            });
+            HideLoader();
+        }
+        function TelephoneRefresh() {
+            if (typeof window !== 'undefined') {
+                if (typeof window.TelephoneListGrid !== 'undefined') {
+                    if (typeof window.TelephoneListGrid.Refresh !== 'undefined') {
+                        if (typeof TelephoneListGrid.Refresh == 'function') {
+                            //window.TelephoneListGrid.Refresh();
+                            if (Telephone_SetVouchingModeOn == true) {
+                                $("#TelephoneViewModeSwitch").dxSwitch("instance").option("value", true);
+                            }
+                            else {
+                                TelephoneListGrid.PerformCallback({});
+                            }
+
+                        }
+                        else {
+                            alert("refresh is not a function");
+                        }
+                    }
+                    else {
+                        ShowLoader();
+                        setTimeout(function () {
+                            TelephoneRefresh();
+                            HideLoader();
+                        }, Timeout100);
+                    }
+                }
+                else {
+                    alert('grid undefined')
+                }
+            }
+            else {
+                alert('window undefined')
+            }
+        }
+    </script>
+    <script>
+    var TelephoneInfo_IsDetailRowExpanded = false;
+    var TelephoneInfo_NestedRecord_FocusedRowIndex = -1;
+    var TelephoneInfo_NestedGrid_AccessID;
+    var TelephoneInfo_AtachmentID;
+    var TelephoneInfo_FileName;
+    var TelephoneInfo_ParamMandatory;
+    var TelephoneInfo_FromDateLabel;
+    var TelephoneInfo_ToDateLabel;
+    var TelephoneInfo_DescriptionLabel;
+    var TelephoneInfo_Doc_ID;
+    var TelephoneInfo_Doc_Category;
+    var TelephoneInfo_MasterRowRecID;
+    var TelephoneInfo_MasterRowMID;
+    var TelephoneInfo_NestedRowMapID;
+    var TelephoneInfo_reason;
+    var TelephoneInfo_Attachment_RecStatus;
+    var TelephoneInfo_NestedRowReasonID;
+    var TelephoneInfo_NestedRowKeyValue;
+
+    function On_TelephoneProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (TelephoneInfo_ParamMandatory == 1)
+            {
+                AddAttachment(TelephoneInfo_MasterRowRecID, "Profile_Telephone", TelephoneInfo_Doc_ID, TelephoneInfo_Doc_Category, TelephoneInfo_ParamMandatory, TelephoneInfo_FromDateLabel, TelephoneInfo_ToDateLabel, TelephoneInfo_DescriptionLabel, "TelephoneProfileAttachment", null, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(TelephoneInfo_MasterRowRecID, "Profile_Telephone", TelephoneInfo_Doc_ID, "TelephoneProfileAttachment", "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (TelephoneInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(TelephoneInfo_MasterRowRecID, "Profile_Telephone", TelephoneInfo_AtachmentID, TelephoneInfo_ParamMandatory, TelephoneInfo_FromDateLabel, TelephoneInfo_ToDateLabel, TelephoneInfo_DescriptionLabel, "TelephoneProfileAttachment", null, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(TelephoneInfo_MasterRowRecID, "Profile_Telephone", TelephoneInfo_AtachmentID, TelephoneInfo_ParamMandatory, TelephoneInfo_FromDateLabel, TelephoneInfo_ToDateLabel, TelephoneInfo_DescriptionLabel, null, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID, TelephoneInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(TelephoneInfo_AtachmentID, TelephoneInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(TelephoneInfo_MasterRowRecID, "Profile_Telephone", "Telephone Information", "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (TelephoneInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(TelephoneInfo_MasterRowRecID, TelephoneInfo_NestedRowMapID, "Profile_Telephone", "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(TelephoneInfo_MasterRowRecID, TelephoneInfo_NestedRowMapID, "Profile_Telephone", "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID, TelephoneInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(TelephoneInfo_MasterRowRecID, TelephoneInfo_NestedRowMapID, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            TelephonePrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (TelephoneInfo_Nested_Doc_Status == "")
+            {
+                TelephonePrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (TelephoneInfo_Nested_Doc_Status == "NO")
+            {
+                TelephonePrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (TelephoneInfo_Nested_Doc_Status == "YES")
+            {
+                TelephonePrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            TelephoneInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            TelephoneInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            TelephoneInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnTelephoneInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnTelephoneInfo_RejectDoc();
+        }
+    }
+    function OnTelephoneInfo_RejectDoc() {
+        if (TelephoneInfo_AtachmentID == null || TelephoneInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(TelephoneInfo_AtachmentID, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+    }
+    function OnTelephoneInfo_AcceptDoc() {
+        if (TelephoneInfo_AtachmentID == null || TelephoneInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(TelephoneInfo_AtachmentID, "TelephoneListGrid", TelephoneInfo_NestedGrid_AccessID);
+    }
+    function TelephoneInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (TelephoneInfo_IsDetailRowExpanded == true || Telephone_IsVouchingMode == true)
+        {
+            if (TelephoneInfo_MasterRowRecID == null || TelephoneInfo_MasterRowRecID == "")
+            {
+                Recid = TelephoneID;
+            }
+            else
+            {
+                Recid = TelephoneInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = TelephoneID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_Telephone", "TelephoneListGrid", TelephoneInfo_AtachmentID, TelephoneInfo_NestedRowReasonID, TelephoneInfo_NestedRowKeyValue);
+    }
+    function TelephoneInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (TelephoneInfo_IsDetailRowExpanded == true || Telephone_IsVouchingMode == true)
+        {
+            if (TelephoneInfo_MasterRowRecID == null || TelephoneInfo_MasterRowRecID == "")
+            {
+                Recid = TelephoneID;
+            }
+            else
+            {
+                Recid = TelephoneInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = TelephoneID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_Telephone", "TelephoneListGrid", TelephoneInfo_AtachmentID, TelephoneInfo_NestedRowReasonID, TelephoneInfo_NestedRowKeyValue);
+    }
+    function OnTelephoneListGridNestedFocusedRowChange(s, e)
+    {
+        if (TelephoneInfo_IsDetailRowExpanded == true || Telephone_IsVouchingMode == true)
+        {
+            TelephoneInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (TelephoneInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                TelephoneInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnTelephoneInfo_GetGridRowValues);
+            }
+            else
+            {
+                TelephonePrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function OnTelephoneInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            TelephonePrf_FAB.SetVisible(true);
+            TelephoneInfo_Nested_Doc_Status = values[0];
+            if (Telephone_IsVouchingMode == true)
+            {
+                TelephonePrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (TelephoneInfo_Nested_Doc_Status == "")
+                {
+                    TelephonePrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (TelephoneInfo_Nested_Doc_Status == "NO")
+                {
+                    TelephonePrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (TelephoneInfo_Nested_Doc_Status == "YES")
+                {
+                    TelephonePrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            TelephoneInfo_ParamMandatory = values[1];
+            TelephoneInfo_FromDateLabel = values[2];
+            TelephoneInfo_ToDateLabel = values[3];
+            TelephoneInfo_DescriptionLabel = values[4];
+            TelephoneInfo_Doc_Category = values[5];
+            TelephoneInfo_Doc_ID = values[6];
+            TelephoneInfo_AtachmentID = values[7];
+            IndexAttachmentID = TelephoneInfo_AtachmentID;
+            TelephoneInfo_MasterRowRecID = values[8];
+            TelephoneInfo_MasterRowMID = values[9];
+            TelephoneInfo_NestedRowMapID = values[10];
+            TelephoneInfo_reason = values[11];
+            TelephoneInfo_FileName = values[12];
+            TelephoneInfo_Attachment_RecStatus = values[13];
+            TelephoneInfo_NestedRowKeyValue = values[14];
+            if (Telephone_IsVouchingMode == true)
+            {
+                if (TelephoneInfo_FileName != null && TelephoneInfo_FileName.length > 0)
+                {
+                    ViewDocument(TelephoneInfo_AtachmentID, TelephoneInfo_FileName, "TelephonePrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        TelephoneInfo_NestedRowReasonID = values[15];
+        IndexAttachmentReasonID = TelephoneInfo_NestedRowReasonID;
+    }
+    function TelephoneGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = Telephone_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Telephone_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function TelephoneGrid_DetailRowExpanding(s, e)
+    {
+        TelephoneInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Telephone_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function TelephoneGrid_DetailRowCollapsing(s, e)
+    {
+        TelephoneInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Telephone_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            TelephonePrf_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+
+</div>

@@ -1,0 +1,166 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    string UserType = (string)ViewBag.UserType;
+
+    bool DonationReg_ExportRight = (bool)ViewData["DonationReg_ExportRight"];
+    bool DonationReg_HelpAttachmentAddRight = (bool)ViewData["DonationReg_HelpAttachmentAddRight"];
+    bool DonationReg_HelpAttachmentListRight = (bool)ViewData["DonationReg_HelpAttachmentListRight"];
+    bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+    bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+    bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+    bool DonationReg_Auto_Vouching_Mode = (bool)ViewData["DonationReg_Auto_Vouching_Mode"];
+}
+<div id="DonationRegister_ParentDiv_dx">
+    <div id="content" class="report_header_div_main">
+
+        <div class="col-md-3 report_header_div">
+            <label class="report_header_label">Donation Register</label>
+        </div>
+        
+        <div id="content">
+                @*Buttons*@
+                <div class="report_button_div">
+                    @(Html.DevExtreme().Switch().ID("DonRegVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("DonRegister_VouchingSwitch_ValueChange_dx").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                    @(Html.DevExtreme().Switch().ID("DonRegViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("DonRegister_ViewSwitch_ValueChange_dx").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                    @(Html.DevExtreme().Button().ID("DonRegister80GReceipt").Text("Download 80G Receipt")
+                            .Icon("download").OnClick("Download_80GReceipt")//.Width(180)
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterPrintForm").Text("Print Form").Visible(true)
+                            .Icon("print").OnClick("Print_Form")//.Width(180)
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterPrintRect").Text("Print")
+                            .Icon("print").OnClick("Print_Receipt")//.Width(180)
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterRequestRect").Text("Generate")//.Width(180)
+                            .Icon("globe").OnClick("Generate_Receipt")
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterReject").Text("Reject")//.Width(180)
+                            .Icon("globe").OnClick("Reject_Receipt")
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterToggleScrollBar_dx").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                            .Icon("toolbox").OnClick("DonRegisterchangeMode_dx")
+                        )
+                    @(Html.DevExtreme().Button().ID("btndonationRegExpandAll").Icon("preferences").Text("Expand All").Hint("Expand/Collapse All")
+                            .OnClick("DonationRegisterExpandAll").Visible(false)
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterModelListPreview")
+                            .Text("Export").Icon("save").Width(85)
+                            .OnClick("OnDonRegisterListPreviewClick")
+                        )
+                    @(Html.DevExtreme().Button().ID("DonRegisterModelCLOSE")
+                            .Text("Close").Icon("clear").OnClick("closeDonationRegister")
+                        )
+                </div>
+            </div>
+        </div>
+    </div>
+    <form class="edit_form" style="">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-4 col-md-4 col-lg-6">
+                                <div class="input-group">
+                                    @(Html.DevExtreme().SelectBox().CustomSelectBox().ShowClearButton(false).ID("PeriodSelection_DonReg").Name("PeriodSelection_DonReg").DataSource(d => d.Mvc().Controller("DonationRegister").LoadAction("Fill_Change_Period_Items").Key("Value")).DisplayExpr("Text").ValueExpr("Value").Placeholder("Select Period").OnValueChanged(@<text> function () { PeriodSelectionChange_DonReg(); } </text>) )
+                                    <span class="input-group-btn">
+                                        @(Html.DevExtreme().Button().ID("btnChangePeriod_DonReg").Text("Change Period").Hint("Change Period").Disabled(true).OnClick(@<text> function () { ChangePeriodClick_DonReg(); } </text>) )
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-3">
+                                <div class="input-group">
+                                    <div class="pll4 prm" style="padding-top:4px;font:bolder" id="BE_View_Period_DonReg">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-3">
+                                <div class="input-group">
+                                    <div class="pll4 prm" style="padding-top:4px;font:bolder" id="selectedCount_div_DonReg"><label></label></div>
+                                    <span class="input-group-btn">
+                                        @(Html.DevExtreme().Button().ID("btnshow_DonReg").Text("Show").Hint("Show Donation Register").OnClick("DonationRegisterShowClick"))
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!--[]-->
+    </form>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="DonRegisterreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Donation_Register_Grid_dx")
+            </div>
+        </form>
+    </div>
+    <div class="footer-MainBoxdiv full-width-footer">
+        @*<div style="float:left;margin-top:5px">
+            @(Html.DevExtreme().Button()
+                .ID("btndonationRegExpandAll")
+                .ElementAttr("style", "padding-right:0px;margin-right:5px;")
+                .Icon("preferences")
+                .Hint("Expand/Collapse All")
+                .OnClick(@<text>
+                    function () {
+                    DonationRegisterExpandAll();
+                    }
+                </text>)
+            )
+            </div>*@
+        <div class="list_footer_left_margin">
+            <div class="footer-locktext">
+                <div id="DonRegister_Lbl_ActionOn" class="left_footertext_top"></div>
+                <div id="DonRegister_Lbl_ActionBy" class="left_footertext_bottom"></div>
+            </div>
+            @*<div class="footer-locktext">
+                    <div id="DonRegisterLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                </div>*@
+        </div>
+        <div class="list_footer_left_margin">
+            <p id="DonRegisterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="DonRegisterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+        <div class="list_footer_right_margin_consistent col-md-1">
+            @*<i id="DonRegister_LockICON" class="fa fa-lock lock_symbol"></i>*@
+        </div>
+        @*</div>
+                <div class="col-lg-4 listing_footer_filter_buttons_div">
+            </div>*@
+    </div>
+    @Html.Partial("AttachmentFAB", "DonationRegister_FAB,DonationRegister_grid_DIV,Type1,DonationRegister," + UserType) @*fab buttons*@
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                .ID("DonRegister_report_modal")
+                .OnShowing("PopupOnShowing")
+                .Title("DonRegister List Preview")
+                .FullScreen(false)
+                .MaxWidth(250)
+                .Height("auto")
+                .ShowCloseButton(true)
+                .ContentTemplate(@<text>
+                    <div id="DonRegister_report_modal_result" class="export_popup">
+                    </div>
+                </text>)
+            )
+    </div>
+    <div>
+        @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_Donation_Register_Attachment").ResizeEnabled(true).DragEnabled(true).Shading(false).CloseOnOutsideClick(false).ShowCloseButton(true)@*.OnShowing("PopupOnShowing")*@.Title("Attached Files").ContentTemplate( @<text>
+            <div id='popup_frm_Cash_Book_Attachment_result'>
+                <iframe id="DonRegAttachmentFrm" src="" style="height: 600px; width: 100%;"></iframe>
+                <div class="arrowdiv">
+                    <a id="linkPrevAttachment" class="arrowBtns" href="#" onclick="OnPrevAttachmentClick();"></a>
+                    <a id="linkNextAttachment" class="arrowBtns" href="#" onclick="OnNextAttachmentClick();"></a>
+                    <div id="info"></div>
+                </div>
+            </div>
+        </text>)
+        )
+    </div>

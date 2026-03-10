@@ -1,0 +1,195 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Param_paymentVoucherDetailsViewModel
+@{
+    bool IsVisible = (Model != null && Model.TempActionMethod == "_Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") ? true : false;
+}
+<div id="Frm_Voucher_Win_Gen_Pay_Grid_4_PartialView">
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Action("Frm_Voucher_Win_Gen_Pay_Grid_4", "PaymentVoucher")
+            <div class="btnsDiv marginAll2">
+                @(Html.DevExtreme().Button().ID("PayableAdjustmentEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick(); } </text>).Disabled(IsDisabled))
+                @(Html.DevExtreme().Button().ID("PayableAdjustmentDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_4_DeleteClick(); } </text>).Disabled(IsDisabled))
+                @(Html.DevExtreme().Button().ID("PayableAdjustmentView").Text("View").Icon("doc").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_4_ViewClick(); } </text>).Disabled(IsVisible))
+            </div>
+          </div>
+        </div>
+</div>
+<script>
+    function Frm_Voucher_Win_Gen_Pay_Grid_4_BeginCallBack(s, e)
+    {
+        e.customArgs['command'] = e.command;
+        e.customArgs['xParty_ID'] = $('#GLookUp_PartyList1_Tag').dxDropDownBox('instance').option('value');
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_4_Init(s, e)
+    {
+        //ASPxClientUtils.AttachEventToElement(
+        //    s.GetMainElement(),
+        //    "keydown",
+        //    function (evt) {
+        //        switch (evt.keyCode) {
+                  
+        //            case 13: //enter key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick();
+        //                break;
+        //            case 32: //space bar
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_4_ViewClick();
+        //                break;
+        //            case 46://delete key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_4_DeleteClick();
+        //                break;
+        //        }
+        //    });
+    }
+    var PAGridRow;
+    var Payment_Grid4_PageData;
+    function OnPayableAdjustmentGridFocusedRowChanged(s, e)
+    {
+        s.Focus();
+        //s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;', OnPayableAdjustmentGetRowValues);
+    }
+    function OnPayableAdjustmentGetRowValues(values)
+    {
+        PAGridRow = values[0];
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_4_DblClick(s, e)
+    {
+        OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick();
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick(LB_AdjustedAmount=0,PA_Sr=0)
+    {
+        if ("@IsDisabled" == "False")
+        {        
+            if ($("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value"))
+            {
+                if (PA_Sr != 0)
+                {
+                    PAGridRow = PA_Sr;
+                }
+                else if (Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() < 0)
+                {
+                    DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                    return;
+                }
+                else
+                {
+                    Payment_Grid4_PageData = Frm_Voucher_Win_Gen_Pay_Grid_4.cpPagedata;                    
+                    PAGridRow = Payment_Grid4_PageData[Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_4.GetTopVisibleIndex()];
+                }
+                if (PAGridRow)
+                {
+                    ShowLoader();
+                    var url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_LB", "PaymentVoucher", new { @area = "Account" })?ActionMethod=Edit&iPartyID=" + $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value") + "&SrID=" + PAGridRow + "&AdjustedAmount=" + LB_AdjustedAmount
+                    OpenPopup("Frm_Voucher_Item_popup", "Edit ~ Payable Adjustment", url, "auto", 685, false, null);
+                }             
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Party Not Selected...!', "Error"); return;
+            }
+        }
+    }
+
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_4_DeleteClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if ($('#GLookUp_PartyList1_Tag').dxDropDownBox('instance').option('value'))
+            {
+                if (Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() >= 0)
+                {
+                    Payment_Grid4_PageData = Frm_Voucher_Win_Gen_Pay_Grid_4.cpPagedata;
+                    PAGridRow = Payment_Grid4_PageData[Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_4.GetTopVisibleIndex()];
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Account/PaymentVoucher/FillGrid4",
+                        data: {
+                            TempActionMethod: "_Delete",
+                            Sr: PAGridRow,
+                            Payment_Credit_Amt: $("#Txt_CreditAmt").dxNumberBox("instance").option("value")
+                        },
+                        cache: false,
+                        async: false,
+                        success: function (data) {
+                            if (data.result == "true" || data.result == true)
+                            {                             
+                                $("#Txt_LB_Amt").dxNumberBox("instance").option("value", data.Txt_LB_Amt);
+                                Frm_Voucher_Win_Gen_Pay_Grid_4.SetFocusedRowIndex(-1);
+                                Frm_Voucher_Win_Gen_Pay_Grid_4.PerformCallback();
+                            }
+                        }
+                    });
+
+                }
+                else {
+                    DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                }
+
+            }
+            else {
+                DevExpress.ui.dialog.alert('Party Not Selected...!', "Error"); return;
+            }
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_4_ViewClick(LB_AdjustedAmount = 0, PA_Sr = 0)
+    {
+        if ("@IsVisible" == "False")
+        {      
+            if ($("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value"))
+            {
+                if (PA_Sr != 0)
+                {
+                    PAGridRow = PA_Sr;
+                }
+                else if (Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() < 0)
+                {
+                    DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                    return;
+                }
+                else
+                {
+                    Payment_Grid4_PageData = Frm_Voucher_Win_Gen_Pay_Grid_4.cpPagedata;
+                    PAGridRow = Payment_Grid4_PageData[Frm_Voucher_Win_Gen_Pay_Grid_4.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_4.GetTopVisibleIndex()];
+                }
+                if (PAGridRow)
+                {              
+                    ShowLoader();
+                    var url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_LB", "PaymentVoucher", new { @area = "Account" })?ActionMethod=View&iPartyID=" + $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value") + "&SrID=" + PAGridRow + "&AdjustedAmount=" + LB_AdjustedAmount
+                    OpenPopup("Frm_Voucher_Item_popup", "View ~ Payable Adjustment", url, "auto", 685, false, null);
+                }           
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Party Not Selected...!', "Error"); return;
+            }
+        }
+    }
+
+    function Frm_Voucher_Win_Gen_Pay_Grid_4_ContextMenuFunction(s, e)
+    {       
+       if (e.item.name == 'Edit')
+        {
+           OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick();
+        }
+        else if (e.item.name == 'Delete')
+        {
+           OnFrm_Voucher_Win_Gen_Pay_Grid_4_DeleteClick();
+        }
+        else if (e.item.name == 'View')
+        {
+           OnFrm_Voucher_Win_Gen_Pay_Grid_4_ViewClick();
+        }   
+        else if (e.item.name == 'Refresh')
+        {
+           Frm_Voucher_Win_Gen_Pay_Grid_4.Refresh();
+        }
+    }
+    </script>
+
+
+
+

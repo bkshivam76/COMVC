@@ -1,0 +1,403 @@
+﻿
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    //var gridname = ViewBag.GridName;
+    //var viewmode = ViewBag.viewmode;
+    //var LoginUser = ViewBag.LoginUser;
+    //var mr = ViewBag.mainEvntsRowCnt;
+    //var organizer = ViewBag.Organizer;
+    var inchargeimage = ViewBag.inchargeImg;
+}
+
+@Html.DevExpress().CardView(
+settings =>
+{
+    settings.Name = "Frm_FeedQuery_DetailsSection";
+    settings.CallbackRouteValues = new
+    {
+        Controller = "Feedback_Query_Mgmt",
+        Action = "Frm_FeedQuery_DetailsCardView",
+        Area = "Facility",
+        //gridname = gridname,
+        SessionGUID = SessionGUID
+    };
+    //settings.Width = Unit.Percentage(100);
+    settings.SettingsPager.EnableAdaptivity = true;
+    settings.KeyFieldName = "FQR_RECID";
+    //settings.Theme = "MaterialCompact";
+    //settings.CardLayoutProperties.ColumnCount = 3;
+
+    settings.CustomJSProperties = (s, e) =>
+    {
+        MVCxCardView cardView = (MVCxCardView)s;
+        //cardView.JSProperties["cprowCount"] = mr;
+        //cardView.JSProperties["cpviewmode"] = viewmode;
+        //cardView.JSProperties["cporganizer"] = organizer;
+    };
+    var inchargeimage_src = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+    //if (inchargeimage != null)
+    //{
+    //    var base64 = Convert.ToBase64String(inchargeimage);
+    //    inchargeimage_src = String.Format("data:image/gif;base64,{0}", base64);
+    //    //<img src="@imgSrc" style="max-height: 600px;" />
+    //}
+    //else
+    //{
+    //    inchargeimage_src = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+    //}
+    settings.Columns.Add(column =>
+    {
+        column.Name = "EventDetails_Compact_Column";
+        column.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        column.ExportCellStyle.Wrap = DefaultBoolean.True;
+        column.SetDataItemTemplateContent(c =>
+        {
+            var source = DataBinder.Eval(c.DataItem, "FQR_SOURCE").ToString();
+            var datetime = Convert.ToDateTime(DataBinder.Eval(c.DataItem, "FQR_DATE")).ToString("MMM dd yyyy @h:mm tt");
+            var UserNameO = DataBinder.Eval(c.DataItem, "USERNAME").ToString();
+            UserNameO = UserNameO.Replace("_", " ");
+            var UserName = UserNameO.Replace(" ", "_");
+            var text = DataBinder.Eval(c.DataItem, "FQR_TEXT").ToString();
+            var FeedOrQuery_recid = DataBinder.Eval(c.DataItem, "FQI_REC_ID").ToString().Trim();
+            var Fqr_recid = DataBinder.Eval(c.DataItem, "FQR_RECID").ToString().Trim();
+            var next_FeedOrQuery_recid = "";
+            var userid = DataBinder.Eval(c.DataItem, "FQI_USERID").ToString();
+            var userabid = DataBinder.Eval(c.DataItem, "FQI_AB_ID")==null?"": DataBinder.Eval(c.DataItem, "FQI_AB_ID").ToString();
+            var eventrecid = DataBinder.Eval(c.DataItem, "FQI_EVENT_REC_ID").ToString();
+            if (c.CardView.GetCardValues(c.VisibleIndex + 1, "FQI_REC_ID") != null)
+            {
+                next_FeedOrQuery_recid = c.CardView.GetCardValues(c.VisibleIndex + 1, "FQI_REC_ID").ToString().Trim();
+            }
+            else
+            {
+                next_FeedOrQuery_recid = null;
+            }
+            var card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+            var isanonymous = true;
+            isanonymous = (bool)DataBinder.Eval(c.DataItem, "FQR_ISANONYMOUS");
+            if (source != "response")
+            {
+                isanonymous = (bool)DataBinder.Eval(c.DataItem, "FQR_ISANONYMOUS");
+                if (isanonymous)
+                {
+                    card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+                }
+                else
+                {
+                    card_view_img_url = DataBinder.Eval(c.DataItem, "USER_IMAGE").ToString();
+                    if (card_view_img_url == "")
+                    {
+                        card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/no_image.jpg";
+                    }
+                }
+            }
+            var showinPublic = DataBinder.Eval(c.DataItem, "FQR_SHOWINPUBLIC").ToString();
+            var chkd = "";
+            var onclk = "";
+            if (showinPublic == "True")
+            {
+                chkd = "checked";
+                onclk = "onclick = showinpublic(this,'"+ Fqr_recid + "') " + chkd;
+            }
+            else {
+                chkd = "";
+                onclk = "onclick = showinpublic(this,'" + Fqr_recid + "')";
+            }
+            
+            var attachment = DataBinder.Eval(c.DataItem, "ALI_REF_REC_ID").ToString();
+            var attachmentcnt = DataBinder.Eval(c.DataItem, "attachmentCnt").ToString();
+            if (attachmentcnt == "0" || attachmentcnt == null) { attachmentcnt = ""; }
+            var paperclipClass = "";
+            if(attachment != "" || attachment.Length > 0)
+            {
+                paperclipClass = "fa fa-paperclip";
+            }
+            else if (attachment == null || attachment == "" || attachment.Length ==0)
+            {
+                paperclipClass = "";
+            }
+            var disabled = "";
+            var respondbtnclass = "message my-message";
+            var btntext = "Respond " + UserNameO;
+            if (userid == "0" && isanonymous)
+            {
+                respondbtnclass = "message my-message"; //hide wala class
+                disabled = "disabled title='You can not respond to This user' data-toggle='tooltip'";
+                btntext = "You can not respond to this user";
+            }
+            var rating = 0;
+            if (string.IsNullOrEmpty(DataBinder.Eval(c.DataItem, "FQR_FEEDBACK_RATING").ToString()))
+            {
+
+            }
+            else
+            {
+                rating = Convert.ToInt32(DataBinder.Eval(c.DataItem, "FQR_FEEDBACK_RATING"));
+            }
+            string c1 = "", c2 = "", c3 = "", c4 = "", c5 = "";
+            switch (rating)
+            {
+                case 1:
+                    c1 = "fa fa-star fill";
+                    c2 = "fa fa-star";
+                    c3 = "fa fa-star";
+                    c4 = "fa fa-star";
+                    c5 = "fa fa-star";
+                    break;
+                case 2:
+                    c1 = "fa fa-star fill";
+                    c2 = "fa fa-star fill";
+                    c3 = "fa fa-star";
+                    c4 = "fa fa-star";
+                    c5 = "fa fa-star";
+                    break;
+                case 3:
+                    c1 = "fa fa-star fill";
+                    c2 = "fa fa-star fill";
+                    c3 = "fa fa-star fill";
+                    c4 = "fa fa-star";
+                    c5 = "fa fa-star";
+                    break;
+                case 4:
+                    c1 = "fa fa-star fill";
+                    c2 = "fa fa-star fill";
+                    c3 = "fa fa-star fill";
+                    c4 = "fa fa-star fill";
+                    c5 = "fa fa-star";
+                    break;
+                case 5:
+                    c1 = "fa fa-star fill";
+                    c2 = "fa fa-star fill";
+                    c3 = "fa fa-star fill";
+                    c4 = "fa fa-star fill";
+                    c5 = "fa fa-star fill";
+                    break;
+                default:
+                    c1 = "fa fa-star";
+                    c2 = "fa fa-star";
+                    c3 = "fa fa-star";
+                    c4 = "fa fa-star";
+                    c5 = "fa fa-star";
+                    break;
+            }
+            var referenceName = DataBinder.Eval(c.DataItem, "FQI_REFERENCE").ToString();
+            var referenceRecid = DataBinder.Eval(c.DataItem, "FQI_REFERENCE_REC_ID").ToString();
+            if (source == "feedback" && (next_FeedOrQuery_recid == null || next_FeedOrQuery_recid != FeedOrQuery_recid))
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message info'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + card_view_img_url + "'>" +
+                            "<div class='message-body'>" +
+                                "<div class='message-info'>" +
+                                    "<h4>" + UserNameO + "</h4>" +
+                                    "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                    "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                    "<h5> <span class='badge badge-primary'>" + source + "</span> " + datetime + " </h5>" +
+                                    "<big>" +
+                                    "<span class='" + c1 + "'></span>" +
+                                    "<span class='" + c2 + "'></span>" +
+                                    "<span class='" + c3 + "'></span>" +
+                                    "<span class='" + c4 + "'></span>" +
+                                    "<span class='" + c5 + "'></span>" +
+                                    "</big>" +
+                                    "<p>" + text + "</p>" +
+                                //"<p>" + recid + "</p>" +
+                                //"<p>" + s + "</p>" +
+                                //"<hr>" +
+                                "</div>" +
+                            "</div>" +
+                        "</div>" +
+                        "<div class='" + respondbtnclass + "'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + inchargeimage_src + "'>" +
+                            "<button "+ disabled + " type='button' id=" + FeedOrQuery_recid + " class='button button-primary' " +
+                            "onclick=displayResponseBox('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>" + btntext + "</button>" +
+                            "<textarea name='post' placeholder='Please enter your reply here....' rows='4' class='form-control' style='display: none;'></textarea>" +
+                            "<aside style='display: none;'>" +
+                                "<button class='button button-primary' " +
+                                "onclick=submitresponse('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>Submit</button>" +
+                                    "<a class='button button-default' " +
+                                    "onclick=Cancelresponse('" + FeedOrQuery_recid + "')>Cancel</a>" +
+                                    "<a class='badge badge-primary' onclick=openBrowserPopup()><i class='bx bx-paperclip'></i> Upload</a>" +
+                                "</aside>" +
+                            "</div>" +
+                        "</div>" +
+                        "<hr>"
+                        );
+            }
+            else if (source == "feedback" && next_FeedOrQuery_recid == FeedOrQuery_recid)
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message info'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + card_view_img_url + "'>" +
+                            "<div class='message-body'>" +
+                                "<div class='message-info'>" +
+                                    "<h4>" + UserNameO + "</h4>" +
+                                    "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                    "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                    "<h5> <span class='badge badge-primary'>" + source + "</span> " + datetime + " </h5>" +
+                                    "<big>" +
+                                    "<span class='" + c1 + "'></span>" +
+                                    "<span class='" + c2 + "'></span>" +
+                                    "<span class='" + c3 + "'></span>" +
+                                    "<span class='" + c4 + "'></span>" +
+                                    "<span class='" + c5 + "'></span>" +
+                                    "</big>" +
+                                    "<p>" + text + "</p>" +
+                                //"<p>" + recid + "</p>" +
+                                //"<p>" + s + "</p>" +
+                                //"<hr>" +
+                                "</div>" +
+                        "</div>" +
+                    "</div>"
+
+                    );
+            }
+            else if (source == "response" && (next_FeedOrQuery_recid == null || next_FeedOrQuery_recid != FeedOrQuery_recid))
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message my-message'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + inchargeimage_src + "'>" +
+                            "<div class='message-body'>" +
+                                "<div class='message-body-inner'>" +
+                                    "<div class='message-info'>" +
+                                        "<h4>" + DataBinder.Eval(c.DataItem, "FQR_USERID") + "(You)</h4>" +
+                                        "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                        "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                        "<h5>" + datetime + "</h5>" +
+                                        "<p>" + text + "</p>" +
+                                    "</div>" +
+                                "</div>" +
+                            "</div>" +
+                        "</div>" +
+                        "<div class='" + respondbtnclass + "'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + inchargeimage_src + "'>" +
+                            "<button " + disabled + " type='button' id=" + FeedOrQuery_recid + " class='button button-primary' " +
+                            "onclick=displayResponseBox('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>" + btntext + "</button>" +
+                            "<textarea name='post' placeholder='Please enter your reply here....' rows='4' class='form-control' style='display: none;'></textarea>" +
+                            "<aside style='display: none;'>" +
+                                "<button class='button button-primary' " +
+                                "onclick=submitresponse('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>Submit</button>" +
+                                "<a class='button button-default' " +
+                                "onclick=Cancelresponse('" + FeedOrQuery_recid + "')>Cancel</a>" +
+                                "<a class='badge badge-primary' onclick=openBrowserPopup()><i class='bx bx-paperclip'></i> Upload</a>" +
+                            "</aside>" +
+                        "</div>" +
+                    "</div>" +
+                    "<hr>"
+                    );
+            }
+            else if (source == "response" && next_FeedOrQuery_recid == FeedOrQuery_recid)
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message my-message'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + inchargeimage_src + "'>" +
+                            "<div class='message-body'>" +
+                                "<div class='message-body-inner'>" +
+                                    "<div class='message-info'>" +
+                                        "<h4>" + DataBinder.Eval(c.DataItem, "FQR_USERID") + "(You)</h4>" +
+                                        "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                        "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                        "<h5>" + datetime + "</h5>" +
+                                        "<p>" + text + "</p>" +
+                                    "</div>" +
+                                "</div>" +
+                            "</div>" +
+                        "</div>" +
+                    "</div>"
+
+                    );
+            }
+            else if (source == "query" && (next_FeedOrQuery_recid == null || next_FeedOrQuery_recid != FeedOrQuery_recid))
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message info'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + card_view_img_url + "'>" +
+                        "<div class='message-body'>" +
+                            "<div class='message-info'>" +
+                                "<h4>" + UserNameO + "</h4>" +
+                                "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                "<h5> <span class='badge badge-red'>" + source + "</span> " + datetime + " </h5>" +
+                                "<p>" + text + "</p>" +
+                            //"<p>" + recid + "</p>" +
+                            //"<p>" + s + "</p>" +
+                            "</div>" +
+                        "</div>" +
+                        "</div>" +
+                        "<div class='" + respondbtnclass + "'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + inchargeimage_src + "'>" +
+                            "<button " + disabled + " type='button' id=" + FeedOrQuery_recid + " class='button button-primary' " +
+                            "onclick=displayResponseBox('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>" + btntext + "</button>" +
+                            "<textarea name='post' placeholder='Please enter your reply here....' rows='4' class='form-control' style='display: none;'></textarea>" +
+                            "<aside style='display: none;'>" +
+                                "<button class='button button-primary' " +
+                                "onclick=submitresponse('" + eventrecid + "','" + FeedOrQuery_recid + "','" + userid + "','" + UserName + "','" + isanonymous + "','" +
+                                userabid + "','" + referenceName + "','" + referenceRecid + "');>Submit</button>" +
+                                "<a class='button button-default' " +
+                                "onclick=Cancelresponse('" + FeedOrQuery_recid + "')>Cancel</a>" +
+                                "<a class='badge badge-primary' onclick=openBrowserPopup()><i class='bx bx-paperclip'></i> Upload</a>" +
+                            "</aside>" +
+                            "</div>" +
+                    "</div>" +
+                    "<hr>"
+                );
+            }
+            else if (source == "query" && next_FeedOrQuery_recid == FeedOrQuery_recid)
+            {
+                ViewContext.Writer.Write(
+                    "<div class='chat-body'>" +
+                        "<div class='message info'>" +
+                            "<img alt='' class='img-circle medium-image' src='" + card_view_img_url + "'>" +
+                        "<div class='message-body'>" +
+                            "<div class='message-info'>" +
+                                "<h4>" + UserNameO + "</h4>" +
+                                "<i class='" + paperclipClass + "' data-toggle='modal' data-target='#fileModal' onclick=getattachments_fq('" + Fqr_recid + "')></i><span class='badge badge-danger'>" + attachmentcnt + "</span>" +
+                                "<b><input type='checkbox' "+ onclk + "><small>Show In Public</small></b>" +
+                                "<h5> <span class='badge badge-red'>" + source + "</span> " + datetime + " </h5>" +
+                                "<p>" + text + "</p>" +
+                            //"<p>" + recid + "</p>" +
+                            //"<p>" + s + "</p>" +
+                            "</div>" +
+                        "</div>" +
+                        "</div>" +
+                    "</div>"
+                );
+            }
+        });
+    });
+
+    //Dynamically set total columns depending on the total rows
+    settings.SettingsPager.SettingsTableLayout.ColumnCount = 1;
+    settings.SettingsPager.Summary.Visible = true;
+    settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+    //settings.SettingsPager.EndlessPagingMode = CardViewEndlessPagingMode.OnScroll;
+    //settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.Styles.BreakpointsCard.Height = 320;
+
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.CardsPerRow = 3;
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.XLarge, 5);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Large, 4);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Medium, 2);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Small, 1);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(450, 1);
+
+    settings.ClientSideEvents.BeginCallback = "FeedQueryDetailsSec_BeginCallback";
+    settings.ClientSideEvents.EndCallback = "FeedQueryDetailsSec_EndCallback";
+    settings.ClientSideEvents.Init = "FeedQueryDetailsSec_Init";
+}).Bind(Model).GetHtml()
+
+
+
+

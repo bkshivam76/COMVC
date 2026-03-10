@@ -1,0 +1,1566 @@
+﻿<div class="DailyBalance_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+
+        Layout = null;
+        string xView_Sel_Id = ViewBag.xView_Sel_Id;
+        string xStatus_Choice = ViewBag.xStatus_Choice;
+        string BankNamewithAc = ViewBag.BankName;
+        string BankAccNo = ViewBag.BankAccNo;
+        string UserType = (string)ViewBag.UserType;
+        bool DailyBalances_ExportRight = (bool)ViewData["DailyBalances_ExportRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool DailyBalReport_Auto_Vouching_Mode = (bool)ViewData["DailyBalReport_Auto_Vouching_Mode"];
+
+    }
+    <style>
+        #lbldbtext {
+            font-size: 15px;
+            line-height: 21px;
+            padding: 3px 5px 0
+        }
+    </style>
+    <div id="Daily_Balances_ParentDiv">
+        <div class="report_header_div_main">
+            <div id="contentDaily_Balances" class="col-md-12 report_header_div_main">
+                <div class="col-md-8 padd report_header_div">
+                    <label class="report_header_label" id="lbldbtext">@ViewBag.Txt_TitleX</label>
+                </div>
+                @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("dailyBalanceVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("DailyBalance_VouchingSwitch_ValueChange").Width(100))
+                @(Html.DevExtreme().Switch().ID("dailyBalanceViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("dailyBalance_ViewSwitch_ValueChange").Width(70))
+                @(Html.DevExtreme().Button().ID("dailyBalancesEdit").Text("Edit").OnClick(@<text> function () { EditClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("dailyBalancesDelete").Text("Delete").OnClick(@<text> function () { DeleteClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("dailyBalancesView").Text("View").OnClick(@<text> function () { ViewClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("dailyBalancesModelOptions").Text("Options").OnClick(@<text> function () { OptionsClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("DailyBalancesModelSave").Icon("fa fa-check").Text("Save").OnClick(@<text> function () { OnSaveClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("DailyBalancesModelListPreview").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnListPreviewClick_DB(); } </text>) )
+                @(Html.DevExtreme().Button().ID("DailyBalanceToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { DailyBalance_changeMode(); } </text>))
+                @(Html.DevExtreme().Button().ID("btnDailyBalanceLinkAttachment").Text("Link By Sr No").Icon("unpin").OnClick(@<text> function () {OnDailyBalanceLinkAttachmentSrNo();}</text>))
+                @(Html.DevExtreme().Button().ID("btnDailyBalanceLinkAttachmentFileName").Text("Link By File Name").Icon("unpin").OnClick(@<text> function () {OnDailyBalanceLinkAttachmentFileName();}</text>))
+                @(Html.DevExtreme().Button().ID("DailyBalancesModelCLOSE").Text("Close").Icon("clear").OnClick("CloseDailyBalance") )
+            </div>
+            </div>
+        </div>
+        <div id="Daily_Balances_GRID_DIV" class="parent_table">
+            <form id="DailyBalncereloadPartialView">
+                @Html.Partial("Frm_Daily_Balances_Info_Grid_dx")
+            </form>
+        </div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12" style="text-align:right">
+                    <div class="row">
+                        <div class="col-sm-8 col-md-8 col-lg-8 pll">
+                            <label class="control-label" style="text-align:right">Balance as per Txn Dates(in Rs.) :</label>
+                        </div>
+                        <div class="col-sm-4 col-md-4 col-lg-4 prm ">
+                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("SetTxnBalance").Name("SetTxnBalance").ReadOnly(true))
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-8 col-md-8 col-lg-8 pll" style="text-align:right"><label class="control-label">Nett Difference(in Rs.):</label></div>
+                        <div class="col-sm-4 col-md-4 col-lg-4 prm ">
+                            @(Html.DevExtreme().TextBox() .ID("SetNetbalance") .Name("SetNetbalance").ReadOnly(true))
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-8 col-md-8 col-lg-8 pll" style="text-align:right"><label class="control-label">Balance as per Clearing Dates(in Rs.) :</label></div>
+                        <div class="col-sm-4 col-md-4 col-lg-4 prm ">
+                            @(Html.DevExtreme().TextBox() .ID("SetClearingDate") .Name("SetClearingDate").ReadOnly(true) )
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("AttachmentFAB", "Daily_BalancesPrf_FAB,Daily_Balances_ParentDiv,Type1,Daily_Balances," + UserType) @*fab buttons*@
+
+      
+<script>
+        var DailyBalance_IsVouchingMode = false;
+        var DailyBalance_layout = null;
+        var DailyBalance_ViewMode = "Default";
+        var DailyBalReport_SetVouchingModeOn = "@DailyBalReport_Auto_Vouching_Mode" == "True" ? true : false;
+        var DB_ITR_Date;
+        var DB_Item;
+        var DB_Mode;
+        var DB_RefNo;
+        var DB_Party;
+        var DB_Instrumentdate;
+        var DB_Clearingdate;
+        var DB_Debit;
+        var DB_Credit;
+        var DB_Balance;
+        var DB_iREC_ID;
+        var DB_iTR_M_ID;
+        var DB_iTR_TempID;
+        var DailyBalance_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+        var DailyBalancesListGrid = null;
+        var VisibleColumns_DailyBalancesListGrid = [];
+        var Expanded_Row_Key_DB_dx = null;
+        var otherCondition_DB = "@ViewBag.OtherCondition";
+        var Led_ID_DB  = "@ViewBag.Led_ID";
+        var DisplayType_DB  = "@ViewBag.DisplayType";
+        var Bank_Acc_ID_DB  = "@ViewBag.Bank_Acc_ID";
+        var FromDate_DB = "@ViewBag.FromDate";
+        var ToDate_DB = "@ViewBag.ToDate";
+        var changesList_DB = [];
+        var DB_Grid_PK = null;
+        var Daily_Balances_IsDetailRowExpanded = false;
+        var Daily_Balances_NestedRecord_FocusedRowIndex = -1;
+        var Daily_Balances_NestedGrid_AccessID;
+        var Daily_Balances_AtachmentID;
+        var Daily_Balances_FileName;
+        var Daily_Balances_ParamMandatory;
+        var Daily_Balances_FromDateLabel;
+        var Daily_Balances_ToDateLabel;
+        var Daily_Balances_DescriptionLabel;
+        var Daily_Balances_Doc_ID;
+        var Daily_Balances_Doc_Category;
+        var Daily_Balances_MasterRowRecID;
+        var Daily_Balances_MasterRowMID;
+        var Daily_Balances_NestedRowMapID;
+        var Daily_Balances_reason;
+        var Daily_Balances_Attachment_RecStatus;
+        var Daily_Balances_RecID_ForAttachment;
+        var Daily_Balances_NestedRowReasonID;
+    var DailyBal_NestedRowUniqueID;
+    var invalidRowKey_DailyBalances=null;
+
+        $(document).ready(function ()
+        {
+            if ("@DailyBalances_ExportRight" == "False")
+            {
+	            $("#DailyBalancesModelListPreview").hide();
+            }
+            if (LoginUserType != "SUPERUSER" && LoginUserType != "AUDITOR")
+            {
+                $("#dailyBalanceVouchingModeSwitch").dxSwitch("instance").option("visible", false);
+                $("#dailyBalanceViewModeSwitch").dxSwitch("instance").option("visible", false);
+            }
+            if (DailyBalReport_SetVouchingModeOn == true) {
+                $("#dailyBalanceViewModeSwitch").dxSwitch("instance").option("value", true);
+            }
+        });
+        function DailyBalance_VouchingSwitch_ValueChange(e)
+        {
+            DailyBalance_IsVouchingMode = e.value;
+            if (DailyBalReport_SetVouchingModeOn == true)
+            {
+                DailyBalReport_SetVouchingModeOn = false;
+            }
+            else
+            {
+                Daily_BalancesPrf_FAB.SetVisible(false);
+            }
+            if (DailyBalance_IsVouchingMode == true) {
+                OpenRightPane();
+                ClearLeftPane();
+                OpenLeftPane();
+            }
+            else {
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+            DailyBalancesListGrid.clearSelection();
+            DailyBalancesListGrid.option("masterDetail.enabled", !DailyBalance_IsVouchingMode)
+            DailyBalancesListGrid.repaint();
+        }
+        async function dailyBalance_ViewSwitch_ValueChange(e)
+        {
+            DailyBalance_ViewMode = e.value == false ? "Default" : "Compact";
+            if (DailyBalReport_SetVouchingModeOn == true)
+            {
+                $("#dailyBalanceVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            }
+            Daily_BalancesPrf_FAB.SetActionContext("AddAttachmentContext", false); //check it
+            if (Expanded_Row_Key_DB_dx != null && Expanded_Row_Key_DB_dx.length > 0)
+            {
+                await DailyBalancesListGrid.collapseRow(Expanded_Row_Key_DB_dx)
+            }
+            DailyBalancesListGrid.beginUpdate();
+            var columns = DailyBalancesListGrid.option("columns");
+            if (DailyBalance_ViewMode == "Compact")
+            {
+                VisibleColumns_DailyBalancesListGrid = [];
+                for (var i = 0; i < columns.length; i++)
+                {
+                    var name = columns[i].dataField;
+                    var ColumnVisible = DailyBalancesListGrid.columnOption(name, "visible");
+                    if (name == "DailyBalancesListGrid_dx_Compact_Column")
+                    {
+                        DailyBalancesListGrid.columnOption(name, "visible", true);
+                    }
+                    else if (ColumnVisible == true && name != "iIcon")
+                    {
+                        VisibleColumns_DailyBalancesListGrid.push(name);
+                        DailyBalancesListGrid.columnOption(name, "visible", false);
+                    }
+                }
+            }
+            else
+            {
+                DailyBalancesListGrid.columnOption("DailyBalancesListGrid_dx_Compact_Column", "visible", false);
+                for (var i = 0; i < VisibleColumns_DailyBalancesListGrid.length; i++)
+                {
+                    DailyBalancesListGrid.columnOption(VisibleColumns_DailyBalancesListGrid[i], "visible", true);
+                }
+            }
+            DailyBalancesListGrid.repaint();
+            DailyBalancesListGrid.endUpdate();
+        }
+        function DailyBalance_changeMode()
+        {
+            DailyBalancesListGrid.beginUpdate();
+            if (DailyBalance_ShowHorizontalBar == 0)
+            {
+                DailyBalance_ShowHorizontalBar = 1;
+                $("#DailyBalanceToggleScrollBar").find("span").text("Default Data");
+                $("#DailyBalanceToggleScrollBar").width(110);
+                DailyBalancesListGrid.option("columnHidingEnabled", false);
+                DailyBalancesListGrid.option("allowColumnResizing", true)
+            }
+            else
+            {
+                DailyBalance_ShowHorizontalBar = 0;
+                $("#DailyBalanceToggleScrollBar").find("span").text("Full Data");
+                $("#DailyBalanceToggleScrollBar").width(90);
+                DailyBalancesListGrid.option("columnHidingEnabled", true)
+                DailyBalancesListGrid.option("allowColumnResizing", false)
+            }
+            DailyBalancesListGrid.endUpdate();
+        }
+        function OnListPreviewClick_DB()
+        {
+            if ("@DailyBalances_ExportRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/DailyBalances/Frm_Export_Options_dx",
+                data:
+                {
+                    GridName:"DailyBalancesListGrid",
+                    title:"@ViewBag.Txt_TitleX"
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("report_export_modal", "Export Option", null, "auto", 125,true,data);
+                }
+            });
+        }
+        function OnPrintChequeClick_DB()
+        {
+            if (DisplayType_DB == "CASH") {
+                DevExpress.ui.dialog.alert('This functionality is for Bank Report only !!', 'Alert ');
+                return;
+            }
+            if (DB_Grid_PK == null)
+            {
+                DevExpress.ui.dialog.alert('Please Select A Row', 'Alert ');
+                return;
+            }
+            if (DB_Grid_PK == "NullOPENING BALANCE")
+            {
+                DevExpress.ui.dialog.alert('This functionality is not for Opening Balance', 'Alert ');
+                return;
+            }
+              $.ajax({
+                type: 'Get',
+                  url: "/Reports/DailyBalances/ChequePrinting",
+                data:
+                {
+                    Party: DB_Party,
+                    Amount: DB_Credit ,
+                    VchDate: DB_Instrumentdate
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("ChequePrinting", "Cheque Printing",null, "auto", "100%", true, data);
+                }
+            });
+    }
+    function EditClick_DB()
+    {
+        if (DB_Grid_PK == null)
+        {
+            DevExpress.ui.dialog.alert('Please select Entry to be Edited', 'Alert ');
+            return;
+        }
+        Vouchers_Edit_TxnEntryID(DB_iREC_ID, "Daily Balances", "DailyBalancesListGrid", DB_ITR_Date)
+    }
+    function DeleteClick_DB()
+    {
+        if (DB_Grid_PK == null) {
+            DevExpress.ui.dialog.alert('Please select Entry to be Edited', 'Alert ');
+            return;
+        }
+        Vouchers_Delete_TxnEntryID(DB_iREC_ID, "Daily Balances", "DailyBalancesListGrid", DB_ITR_Date)
+    }
+    function ViewClick_DB()
+    {
+        if (DB_Grid_PK == null) {
+            DevExpress.ui.dialog.alert('Please select Entry to be Edited', 'Alert ');
+            return;
+        }
+        Vouchers_View_TxnEntryID(DB_iREC_ID, "Daily Balances", "DailyBalancesListGrid", DB_ITR_Date)
+    }
+        function OnDailyBalanceLinkAttachmentSrNo(BySrNo = true) {
+            if (DailyBalancesListGrid.getSelectedRowsData() < 1) {
+                DevExpress.ui.dialog.alert("Please Select Main Grid Row..", "Error");
+                return;
+            }
+            var RefID = "";
+            if (DB_iTR_M_ID != null && DB_iTR_M_ID != "") {
+                RefID = DB_iTR_M_ID;
+            }
+            else if (DB_iREC_ID != null && DB_iREC_ID != "") {
+                RefID = DB_iREC_ID;
+            }
+            LinkAttachmentBySrNo(RefID, "Accounts_CashBook", "DailyBalancesListGrid", GetRowIndexAsPerDataSource("DailyBalancesListGrid", "dxDataGrid", DailyBalancesListGrid.getSelectedRowKeys()), "", BySrNo)
+        }
+        function OnDailyBalanceLinkAttachmentFileName() {
+            OnDailyBalanceLinkAttachmentSrNo(false);
+        }
+
+    async function OnSaveClick_DB(SaveClick = true, close = false)
+        {
+            DailyBalancesListGrid.clearFilter();
+            var invalid = await restrict_ifInvalid_DailyBalance()
+            if (invalid) { return }
+            var result =  await DevExpress.ui.dialog.confirm("Do you want to save changes...?", "Daily Balances Report");
+            if (result)
+            {
+                $.ajax({
+                    type: 'POST',
+                    url: "/Reports/DailyBalances/SaveClick_dx",
+                    data: { updateList: JSON.stringify(changesList_DB) },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (data.result == true)
+                        {
+                            changesList_DB = [];
+                            DailyBalancesListGrid.cancelEditData();
+                            if (close == true)
+                            {
+                                $(".TabPanalMenu-tabs .active span").click()
+                            }
+                            else
+                            {
+                                DBListGrid_dx_Refresh();
+                            }
+                        }
+                    }
+                });
+            }
+            else
+            {
+                if (SaveClick == false)
+                {
+                    changesList_DB = [];
+                    DailyBalancesListGrid.cancelEditData();
+                    DBListGrid_dx_Refresh();
+                }
+                if (close == true)
+                {
+                    changesList_DB = [];
+                    DailyBalancesListGrid.cancelEditData();
+                    $(".TabPanalMenu-tabs .active span").click()
+                }
+            }
+        }
+        function OptionsClick_DB()
+        {
+                $.ajax({
+                    type: 'Get',
+                    url: "/Reports/DailyBalances/Dialog_DailyBalances_dx",
+                    data:
+                    {
+                        xSelModeIndex: DisplayType_DB == "CASH" ? 0 : 1,
+                        xSelViewIndex: "@xView_Sel_Id",
+                        xStatus_Choice: "@xStatus_Choice",
+                        Bank_Acc_ID: Bank_Acc_ID_DB,
+                        ViaOptionClick:true
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        OpenDynamicPopup("Daily Balances Report", null, "auto", 500,true,data);
+                    }
+                });
+        }
+        async function OnReconsilebyClearingDate_DB()
+        {
+            if (DB_Grid_PK == null)
+            {
+                DevExpress.ui.dialog.alert('Please select a row', 'Alert ');
+                return;
+            }
+            var invalid = await restrict_ifInvalid_DailyBalance(DB_Grid_PK)
+            if (invalid) { return }
+            if (DisplayType_DB == "CASH") {
+                DevExpress.ui.dialog.alert('Reconciliation can be done in Bank Report only !!', 'Alert ');
+                return;
+            }
+            if (DB_Clearingdate==null||DB_Clearingdate == "")
+            {
+                DevExpress.ui.dialog.alert('Clearing Date  is Incorrect !!', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'Get',
+                url: "/Reports/DailyBalances/Frm_Bank_Reconcile_dx",
+                data:
+                {
+                    lblTxnBalance: DB_Balance,
+                    xDate: DB_Clearingdate ,
+                    xBankAccID: Bank_Acc_ID_DB
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("popup_frm_Reconcile", "@BankNamewithAc",null, "auto", 750, true, data);
+                }
+            });
+        }
+        async function OnReconsilebyTxnDate_DB()
+        {
+            //var invalid = await restrict_ifInvalid_DailyBalance()
+            //if (invalid) {return }
+            if (DisplayType_DB == "CASH")
+            {
+                DevExpress.ui.dialog.alert('Reconciliation can be done in Bank Report only !!', 'Alert ');
+                return;
+            }
+            if (DB_ITR_Date==null||DB_ITR_Date=="")
+            {
+                DevExpress.ui.dialog.alert('Txn Date  is Incorrect !!', 'Alert ');
+                return;
+            }
+            $.ajax({
+                type: 'Get',
+                url: "/Reports/DailyBalances/Frm_Bank_Reconcile_dx",
+                data:
+                {
+                    lblTxnBalance: DB_Balance,
+                    xDate:DB_ITR_Date ,
+                    xBankAccID: Bank_Acc_ID_DB
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("popup_frm_Reconcile", "@BankNamewithAc",null, "auto", 750, true, data);
+                }
+            });
+        }
+
+        async function CloseDailyBalance()
+        {
+            var invalid = await restrict_ifInvalid_DailyBalance()
+            var hasChanges = hasChanges_DailyBalance()
+            if (invalid) { return }
+            if (hasChanges)
+            {
+                OnSaveClick_DB(true, true);
+            }
+            else
+            {
+                $(".TabPanalMenu-tabs .active span").click()
+            }
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", async function (e) {
+
+            var invalid = await restrict_ifInvalid_DailyBalance()
+            var hasChanges = hasChanges_DailyBalance()
+            if (invalid) { return }
+            if (hasChanges) {
+                e.stopImmediatePropagation();
+                OnSaveClick_DB(true, true);
+            }
+            else
+            {
+                DxGrid_EventsOnScreenClose(DailyBalancesListGrid)
+                $.ajax({
+                    type: 'GET',
+                    url: "/Reports/DailyBalances/SessionClear_Report",
+                    cache: false
+                });
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+                ClearAllReferences_DailyBalance();
+            }
+        });
+        function ClearAllReferences_DailyBalance() {
+            changesList_DB = null;
+            DailyBalance_IsVouchingMode = null;
+            DailyBalance_layout = null;
+            DailyBalance_ViewMode = null;
+            DailyBalReport_SetVouchingModeOn = null;
+            DB_ITR_Date = null;
+            DB_Item = null;
+            DB_Mode = null;
+            DB_RefNo = null;
+            DB_Party = null;
+            DB_Instrumentdate = null;
+            DB_Clearingdate = null;
+            DB_Debit = null;
+            DB_Credit = null;
+            DB_Balance = null;
+            DB_iREC_ID = null;
+            DB_iTR_M_ID = null;
+            DB_iTR_TempID = null;
+            Add_Date = null;
+            Add_By = null;
+            Edit_Date = null;
+            Edit_By = null;
+            Action_Status = null;
+            Action_By = null;
+            Action_Date = null;
+            DB_FocusedRowBeforeRefresh = null;
+            DailyBalance_ColumnToBeShownIndex = null;
+            DailyBalance_ColumnToBeHidddenIndex = null;
+            DailyBalance_ShowHorizontalBar = null;
+            Daily_Balances_IsDetailRowExpanded = null;
+            Daily_Balances_NestedRecord_FocusedRowIndex = null;
+            Daily_Balances_NestedGrid_AccessID = null;
+            Daily_Balances_AtachmentID = null;
+            Daily_Balances_FileName = null;
+            Daily_Balances_ParamMandatory = null;
+            Daily_Balances_FromDateLabel = null;
+            Daily_Balances_ToDateLabel = null;
+            Daily_Balances_DescriptionLabel = null;
+            Daily_Balances_Doc_ID = null;
+            Daily_Balances_Doc_Category = null;
+            Daily_Balances_MasterRowRecID = null;
+            Daily_Balances_MasterRowMID = null;
+            Daily_Balances_NestedRowMapID = null;
+            Daily_Balances_reason = null;
+            Daily_Balances_Attachment_RecStatus = null;
+            Daily_Balances_RecID_ForAttachment = null;
+            Daily_Balances_NestedRowReasonID = null;
+            DailyBal_NestedRowUniqueID = null;
+            VisibleColumns_DailyBalancesListGrid = null;
+            Expanded_Row_Key_DB_dx = null;
+            DailyBalancesListGrid = null;
+            ClearAllReferences("DailyBalance_ClearReferences");
+        }
+</script>
+    <script>
+        function DailyBalanceReport_DS() {
+            // return new DevExpress.data.CustomStore({
+            return new DevExpress.data.DataSource({
+                key: "Grid_PK",
+                loadMode: "raw",
+                load: function (loadOptions) {
+                    const deferred = $.Deferred();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Reports/DailyBalances/Frm_Daily_Balances_Grid_Data",
+                        data:
+                        {
+                            OtherCondition: otherCondition_DB,
+                            Led_ID: Led_ID_DB,
+                            DisplayType: DisplayType_DB,
+                            Bank_Acc_ID: Bank_Acc_ID_DB,
+                            FromDate: FromDate_DB,
+                            ToDate: ToDate_DB
+                        },
+                        cache: false,
+                        success: function (data) {
+                            SetBalances_DB(data.GridData)
+                            deferred.resolve(data.GridData);
+                        }
+                    });
+                    return deferred.promise();
+                },
+                update: function (key, values) {
+
+                }
+            })
+        }
+        function DailyBalancesListGrid_dx_OnInitialized(e)
+        {
+            DxGrid_AdjustSize(e.component, $("#Daily_Balances_ParentDiv .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+            {
+                DxGrid_AdjustSize(e.component, $("#Daily_Balances_ParentDiv .report_button_div"), "", evt)
+            });
+            DailyBalancesListGrid = e.component;
+        }
+        function DailyBalancesListGrid_dx_OnCellPrepared(e)
+        {
+            if (e.rowType == "data")
+            {
+                let GridName = e.element[0].id;
+                let KeyValue = "";
+                if (e.data.iREC_ID == "NOTE-BOOK") {
+                    KeyValue = e.data.iTR_M_ID.ReplaceSpecialwith_() + e.data.iTR_ITEM_ID
+                }
+                else {
+                    KeyValue = e.data.Grid_PK.ReplaceSpecialwith_()
+                }
+                if (e.column.type == "detailExpand")
+                {
+                    if (e.key == "NullOPENING BALANCE") {
+                        $(e.cellElement[0].firstChild).css({ "display": "none" });
+                    }
+                }
+                if (DailyBalance_IsVouchingMode == true)
+                {
+                    if (e.column.dataField === "iIcon")
+                    {
+                        $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + KeyValue + "')");
+                        $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + KeyValue + "')");
+                    }
+                }
+                if (e.column.dataField === "Balance")
+                {
+                    e.cellElement.css({ "background-color": "goldenrod" });
+                }
+                $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + KeyValue + "|" + e.column.dataField);
+            }
+        }
+        function DailyBalancesListGrid_dx_OnRowPrepared(e) {
+            if (e.rowType == "data") {
+                var GridName = e.element[0].id;
+                let keyvalue = "";
+                if (e.data.iREC_ID == "NOTE-BOOK") {
+                    keyvalue = e.data.iTR_M_ID.ReplaceSpecialwith_() + e.data.iTR_ITEM_ID
+                }
+                else {
+                    keyvalue = e.data.Grid_PK.ReplaceSpecialwith_()
+                }
+                $(e.rowElement).addClass(GridName + "_DataRow_" + keyvalue)
+                DxGrid_CreatePreviewRow(e, DailyBalance_IsVouchingMode, "Master", null, keyvalue)
+            }
+            else if (e.rowType == "detailAdaptive") {
+                DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+            }
+        }
+        function DailyBalancesListGrid_dx_OnCellDblClick(e) {
+            if (e.rowType == "data") {
+                if (DailyBalance_IsVouchingMode == true && DailyBalance_ViewMode == "Default") {
+                    let KeyValue = "";
+                    if (e.data.iREC_ID == "NOTE-BOOK") {
+                        KeyValue = e.data.iTR_M_ID.ReplaceSpecialwith_() + e.data.iTR_ITEM_ID
+                    }
+                    else {
+                        KeyValue = e.data.Grid_PK.ReplaceSpecialwith_()
+                    }
+                    OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, KeyValue, e.column.dataField)
+                }
+                else if (DailyBalance_IsVouchingMode == false) {
+
+                }
+            }
+        }
+        function DailyBalancesListGrid_dx_ToolBarPreparing(e) {
+            var toolbarItems = e.toolbarOptions.items;
+            var saveButton = toolbarItems.find(x => x.name === "saveButton");
+            if (saveButton) {
+                saveButton.visible = false;
+            }
+            var revertButton = toolbarItems.find(x => x.name === "revertButton");
+            if (revertButton) {
+                revertButton.visible = false;
+            }
+            e.toolbarOptions.visible = false;
+            var SearchPanel = toolbarItems.find(x => x.name === "searchPanel");
+            if (SearchPanel) {
+                e.toolbarOptions.visible = true;
+            }
+        }
+        function DailyBalancesListGrid_dx_OnEditorPreparing(e)
+        {
+            DxGrid_onEditorPreparing(e)
+            if (e.parentType == 'dataRow')
+            {
+                if (e.dataField == "Clearingdate" && e.row.key == "NullOPENING BALANCE")
+                {
+                    e.editorOptions.disabled = true
+                }
+            }
+        }
+        function DailyBalancesListGrid_dx_OnEditorPrepared(e)
+        {
+            if (e.parentType == 'dataRow')
+            {
+                if (e.dataField == 'Clearingdate')
+                {
+                    const defaultValueChangeHandler = e.editorOptions.onValueChanged;
+                    e.editorElement.dxDateBox('instance').option('onValueChanged', args =>
+                    {
+                        defaultValueChangeHandler(args)
+                        let prevValue = args.previousValue == "" ? null : args.previousValue;
+                        let key = e.row.key;
+                        if (new Date(args.value) >= new Date(e.row.data.Instrumentdate) || args.value==null) {
+                            var index = changesList_DB.findIndex(x => x.key == key);
+                            if (index < 0)
+                            {
+                                changesList_DB.push(
+                                    {
+                                        "key": key,
+                                        "Cdate": JS_Date_toIsoString(args.value, false),
+                                        "orgValue": JS_Date_toIsoString(prevValue, false),
+                                        "iREC_ID":e.row.data.iREC_ID,
+                                        "TxnDate": e.row.data.ITR_Date,
+                                        "Ref": e.row.data.RefNo,
+                                        "Mode": e.row.data.Mode,
+                                        "iTR_M_ID": e.row.data.iTR_M_ID,
+                                        "valid": true
+                                    });
+                            }
+                            else {
+                                changesList_DB[index].Cdate = JS_Date_toIsoString(args.value, false);
+                                changesList_DB[index].valid = true;
+                            }
+                            //var RowIndex = e.component.getRowIndexByKey(key)
+                            //if (RowIndex>-1)
+                            //{
+                            //   e.component.cellValue(RowIndex, e.dataField, JS_Date_toIsoString(args.value, false))
+                            //}
+                            var DS = e.component.getDataSource()
+                            var store = DS.store();
+                            var dataIndex = store.__rawData.findIndex(x => x[store._key] == key);
+                            if (dataIndex > 0) {
+                                store.__rawData[dataIndex][e.dataField] = JS_Date_toIsoString(args.value, false)
+                            }
+                            SetBalances_DB(store.__rawData)
+                            DailyBalancesListGrid_dx_SelectedRowData()
+                        }
+                        else
+                        {
+                            var index = changesList_DB.findIndex(x => x.key == key);
+                            if (index < 0) {
+                                changesList_DB.push({
+                                    "key": key,
+                                    "Cdate": JS_Date_toIsoString(args.value, false),
+                                    "orgValue":JS_Date_toIsoString(prevValue, false),
+                                    "valid": false
+                                });
+                            }
+                            else {
+                                changesList_DB[index].valid = false;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        async function DailyBalancesListGrid_dx_OnContentReady(e)
+        {
+            await DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_DB_dx,null)
+            DxGrid_OnContentReady(e, DailyBalance_ShowHorizontalBar);
+            if (invalidRowKey_DailyBalances != null)
+            {
+                var rowIndex = DailyBalancesListGrid.getRowIndexByKey(invalidRowKey_DailyBalances)
+                if (rowIndex > 0)
+                {
+                    highlightinvalidRow_DailyBalance(rowIndex, invalidRowKey_DailyBalances)
+                    invalidRowKey_DailyBalances = null;
+                }
+            }
+        }
+        function DailyBalancesListGrid_dx_OnSelectionChanged(e)
+        {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0)
+            {
+                if (DailyBalance_IsVouchingMode)
+                {
+                    Daily_BalancesPrf_FAB.SetVisible(true);
+                    Daily_BalancesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+                DailyBalancesListGrid_dx_SelectedRowData(e.selectedRowsData);
+            }
+            else
+            {
+                DB_iTR_M_ID = null;
+                DB_iREC_ID = null;
+                DB_Grid_PK = null;
+            }
+        }
+        function DailyBalancesListGrid_dx_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = DailyBalancesListGrid.getSelectedRowsData();
+            }
+            if (selectedData != null && selectedData.length > 0)
+            {
+                var values = selectedData[0]
+                DB_ITR_Date = values["ITR_Date"];
+                DB_Item = values["Item"];
+                DB_Mode = values["Mode"];
+                DB_RefNo = values["RefNo"];
+                DB_Party = values["Party"];
+                DB_Instrumentdate = values["Instrumentdate"];
+                DB_Clearingdate = values["Clearingdate"];
+                DB_Debit = values["Debit"];
+                DB_Credit = values["Credit"];
+                DB_Balance = values["Balance"];
+                DB_iREC_ID = values["iREC_ID"];
+                DB_iTR_M_ID = values["iTR_M_ID"];
+                DB_iTR_TempID = values["iTR_TEMP_ID"];
+                DB_Grid_PK = values["Grid_PK"];
+                let KeyValue = "";
+                if (DB_iREC_ID == "NOTE-BOOK") {
+                    KeyValue = DB_iTR_M_ID.ReplaceSpecialwith_() + values["iTR_ITEM_ID"]
+                }
+                else {
+                    KeyValue = DB_Grid_PK.ReplaceSpecialwith_()
+                }
+                if (DailyBalance_IsVouchingMode == true)
+                {
+                    OpenLeftPane();
+                    LeftPaneContent_DailyBalancesListGrid("DailyBalancesListGrid", DB_iREC_ID, DB_iTR_M_ID, DailyBalance_IsVouchingMode, DailyBalance_ShowHorizontalBar, KeyValue)
+                }
+            }
+            else
+            {
+                DB_iTR_M_ID = null;
+                DB_iREC_ID = null;
+                DB_Grid_PK = null;
+            }
+        }
+        function DailyBalancesListGrid_dx_OnRowExpanding(e)
+        {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                e.component.collapseRow(Expanded_Row_Key_DB_dx)
+                e.component.selectRows(e.key);
+                Expanded_Row_Key_DB_dx = e.key;
+                Daily_Balances_IsDetailRowExpanded = true;
+                let KeyValue = "";
+                KeyValue = e.key.ReplaceSpecialwith_()
+                var DetailGridID = e.element[0].id + KeyValue;
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0)
+                {
+                    instance.state(null)
+                }
+            }
+            else
+            {
+                e.component.option("CustomProp.groupRowExpanded", true);
+            }
+        }
+        function DailyBalancesListGrid_dx_OnRowCollapsing(e) {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                let KeyValue = "";
+                KeyValue = e.key.ReplaceSpecialwith_()
+                var DetailGridID = e.element[0].id + KeyValue;
+                sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+                Daily_Balances_IsDetailRowExpanded = false;
+                e.component.selectRows(e.key);
+                if (DailyBalance_IsVouchingMode == false) {
+                    Daily_BalancesPrf_FAB.SetVisible(false);
+                }
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.clearSelection();
+                }
+            }
+            else {
+                e.component.option("CustomProp.groupRowCollapsed", true);
+            }
+        }
+        function DailyBalancesListGrid_dx_OnContextMenuPreparing(e) {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+
+                DxGrid_HeaderContextMenu(e,)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                if (DailyBalance_ViewMode == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+                                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+                    {
+                        text: "Expand Detail",
+                        icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                        disabled: expanded,
+                        visible: !DailyBalance_IsVouchingMode,
+                        onItemClick: function ()
+                        {
+                            if (expanded)
+                            {
+                            }
+                            else
+                            {
+                                e.component.expandRow(key);
+                            }
+                        }
+                    }, {
+                        text: "Collapse Detail",
+                        icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                        disabled: !expanded,
+                        visible: !DailyBalance_IsVouchingMode,
+                        onItemClick: function () {
+                            if (expanded) {
+                                e.component.collapseRow(key);
+                            }
+                            else {
+                            }
+                        }
+                    },
+                   {
+                       text: "Reconsile by Txn.Date",
+                       icon: "fa-solid fa-magnifying-glass text-info",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            OnReconsilebyTxnDate_DB();
+                        }
+                    },
+                    {
+                        text: "Reconsile by Clearing Date",
+                        icon: "fa-solid fa-magnifying-glass text-success",
+                        onItemClick: function ()
+                        {
+                            OnReconsilebyClearingDate_DB();
+                        }
+                    },
+                    {
+                        text: "Print Cheque",
+                        icon: "fa-solid fa-print text-info",
+                        visible: true,
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnPrintChequeClick_DB();
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@DailyBalances_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnListPreviewClick_DB();
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            CloseDailyBalance();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function ()
+                        {
+                            DBListGrid_dx_Refresh()
+                        }
+                    }]
+
+            }
+            else if (e.target == "content" && e.row == void 0) {
+                e.items = [
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            CloseDailyBalance();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            DBListGrid_dx_Refresh()
+                        }
+                    }
+                ]
+            }
+        }
+
+        function DailyBalancesListGrid_dx_iIconTemplate(container, templateData) {
+            var iREQ_ATTACH_COUNT = templateData.data.iREQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.iCOMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.iRESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.iREJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.iOTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.iALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var GridName = templateData.component.element()[0].id
+            var Screen = templateData.data.iREC_ID == null ? "" : templateData.data.iREC_ID;
+            var key;
+            if (Screen == "NOTE-BOOK") {
+                key = templateData.data.iTR_M_ID.ReplaceSpecialwith_() + templateData.data.iTR_ITEM_ID
+            }
+            else {
+                key = templateData.data.Grid_PK.ReplaceSpecialwith_()
+            }
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(GridName, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        function DailyBalancesListGrid_dx_Compact_Column_Template(container, templateData) {
+            var Name = templateData.component.element()[0].id;
+            var KeyValue;
+            var VouchingMode = DailyBalance_IsVouchingMode == true ? "True" : "False";
+            var Screen = templateData.data.iREC_ID == null ? "" : templateData.data.iREC_ID;
+            if (Screen == "NOTE-BOOK") {
+                KeyValue = templateData.data.iTR_M_ID.ReplaceSpecialwith_() + templateData.data.iTR_ITEM_ID
+            }
+            else {
+                KeyValue = templateData.data.Grid_PK.ReplaceSpecialwith_()
+            }
+
+            var htmlString = "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|ITR_Date' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.ITR_Date ?? ""), "DD-MM-YYYY") ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Item:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Item' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Item + "</div></div>";
+
+            if (DisplayType_DB == "BANK")
+            {
+                htmlString += "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                    "<label class='control-label'>Mode:</label></div>" +
+                    "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Mode' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    templateData.data.Mode + "</div>" +
+                    "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                    "<label class='control-label'>RefNo:</label></div>" +
+                    "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|RefNo' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    templateData.data.RefNo + "</div></div>";
+            }
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Party:</label></div>" +
+                "<div class='col-sm-12 col-md-9 col-lg-9 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Party' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Party + "</div></div>";
+
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Instrument Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Instrumentdate' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Instrumentdate ?? ""), "DD-MM-YYYY") ?? "") + "</div>";
+            if (DisplayType_DB == "BANK")
+            {
+                htmlString += "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                    "<label class='control-label'>Clearing Date:</label></div>" +
+                    "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Clearingdate' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    (JS_Json_Date_To_ddMMyyyy((templateData.data.Clearingdate ?? ""), "DD-MM-YYYY") ?? "") + "</div></div>";
+            }
+            else
+            {
+                htmlString += "</div>";
+            }
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Debit:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Debit' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                DxGrid_FormatNumber(templateData.data.Debit) + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Credit:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Credit' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                DxGrid_FormatNumber(templateData.data.Credit) + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Balance:</label></div>" +
+                "<div class='col-sm-12 col-md-9 col-lg-9 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Balance' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                "₹" + DxGrid_FormatNumber(templateData.data.Balance) + "</div></div></div>";
+
+            $(container).html(htmlString)
+        }
+        function DailyBalancesListGrid_dx_Compact_Column_CellValue(rowData) {
+            var data =
+                [
+                    rowData.ITR_Date, rowData.Item, rowData.Mode, rowData.RefNo, rowData.Party,
+                    rowData.Instrumentdate, rowData.Clearingdate, rowData.Debit, rowData.Credit, rowData.Balance
+                ]
+            return data.join(" ")
+        }
+
+
+        function DailyBalancesListGrid_dx_DetailTemplate(container, templateData)
+        {
+            var GridName = templateData.component.element()[0].id
+            var Grid_PK = templateData.data.Grid_PK;
+            var rec_ID = templateData.data.iREC_ID;
+            var MID = templateData.data.iTR_M_ID;
+            let KeyValue = "";
+            if (rec_ID == "NOTE-BOOK") {
+                KeyValue = MID.ReplaceSpecialwith_() + templateData.data.iTR_ITEM_ID
+            }
+            else {
+                KeyValue = Grid_PK.ReplaceSpecialwith_()
+            }
+            DailyBalancesListGrid_dx_Detail(container, GridName, rec_ID, MID, DailyBalance_IsVouchingMode, DailyBalance_ShowHorizontalBar, KeyValue);
+        }
+        function DailyBalancesListGrid_dx_Detail(container, GridName, RecID, MID, vouchingMode, AllColumns,key="")
+        {
+            var url = "/Reports/DailyBalances/Frm_Daily_Balances_info_DetailGrid_dx?MID=" + MID + "&VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url, "",key)
+            instance.option("onSelectionChanged", DBListGrid_dx_Detail_onSelectionChanged);
+        }
+        function DBListGrid_dx_Detail_onSelectionChanged(e)
+        {
+            if (Daily_Balances_IsDetailRowExpanded || DailyBalance_IsVouchingMode)
+            {
+                if (e.selectedRowsData != null && e.selectedRowsData.length > 0)
+                {
+                     Daily_Balances_NestedGrid_AccessID = e.element[0].id;
+                     DBListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+                }
+                else
+                {
+                    Daily_BalancesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+            }
+        }
+        function DBListGrid_dx_Detail_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = $("#" + Daily_Balances_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+            }
+            var values = selectedData[0];
+            DailyBal_NestedRowUniqueID = values["UniqueID"];
+            if (values["UniqueID"] != null) {
+                Daily_BalancesPrf_FAB.SetVisible(true);
+                Daily_Balances_Nested_Doc_Status = values["Doc_Status"];
+
+                if (DailyBalance_IsVouchingMode == true) {
+                    Daily_BalancesPrf_FAB.SetActionContext("AuditActionContext", true);
+                }
+                else {
+                    if (Daily_Balances_Nested_Doc_Status == "") {
+                        Daily_BalancesPrf_FAB.SetActionContext("AutoItemContext", true);
+                    }
+                    else if (Daily_Balances_Nested_Doc_Status == "NO") {
+                        Daily_BalancesPrf_FAB.SetActionContext("EditItemContext", true);
+                    }
+                    else if (Daily_Balances_Nested_Doc_Status == "YES") {
+                        Daily_BalancesPrf_FAB.SetActionContext("actionItemContext", true);
+                    }
+                }
+                Daily_Balances_ParamMandatory  = values["Params_Mandatory"];
+                Daily_Balances_FromDateLabel  = values["LABEL_FROM_DATE"];
+                Daily_Balances_ToDateLabel  = values["LABEL_TO_DATE"];
+                Daily_Balances_DescriptionLabel  = values["LABEL_DESCRIPTION"];
+                Daily_Balances_Doc_Category  = values["Document_Category"];
+                Daily_Balances_Doc_ID  = values["Document_ID"];
+                Daily_Balances_AtachmentID  = values["ATTACH_ID"];
+                IndexAttachmentID = Daily_Balances_AtachmentID ;
+                Daily_Balances_MasterRowRecID  = values["TxnID"];
+                Daily_Balances_MasterRowMID = values["TxnMID"];
+                Daily_Balances_NestedRowMapID  = values["MAP_ID"];
+                Daily_Balances_reason  = values["Reason"];
+                Daily_Balances_FileName  = values["ATTACH_FILE_NAME"];
+                Daily_Balances_Attachment_RecStatus = values["Attachment_Action_Status"];
+                if (Daily_Balances_MasterRowMID == null || Daily_Balances_MasterRowMID == "")
+                {
+                    Daily_Balances_RecID_ForAttachment = Daily_Balances_MasterRowRecID;
+                }
+                else if (Daily_Balances_MasterRowRecID == null || Daily_Balances_MasterRowRecID == "")
+                {
+                    Daily_Balances_RecID_ForAttachment = Daily_Balances_MasterRowMID;
+                }
+                if (DailyBalance_IsVouchingMode == true) {
+                    if (Daily_Balances_FileName != null && Daily_Balances_FileName .length > 0) {
+                        ViewDocument(Daily_Balances_AtachmentID, Daily_Balances_FileName, "Daily_BalancesPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            Daily_Balances_NestedRowReasonID  = values["ReasonID"];
+            IndexAttachmentReasonID = Daily_Balances_NestedRowReasonID ;
+        }
+
+        function LeftPaneContent_DailyBalancesListGrid(GridName, RecID, MID, vouchingMode, AllColumns = 0, key = "") {
+            $("#LeftPane_Div_Content").html(null);
+            $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+            DailyBalancesListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns, key)
+            setTimeout(function () {
+                AdditionalInfoGrid_DailyBalances_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, MID, vouchingMode, AllColumns, key)
+            })
+        }
+        function AdditionalInfoGrid_DailyBalances_dx(container, GridName, RecID, MID, vouchingMode, AllColumns, key = "") {
+            var url = "/Reports/DailyBalances/Frm_Daily_Balances_Info_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID + "&MID=" + MID
+            DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url, key)
+        }
+
+        function SetBalances_DB(data) {
+            let txnBalance = 0;
+            let netBalance = 0;
+            let clearingBalance = 0;
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].Debit) {
+                    txnBalance = txnBalance + data[i].Debit;
+                    if (data[i].Clearingdate) {
+                        clearingBalance = clearingBalance + data[i].Debit;
+                    }
+                }
+                if (data[i].Credit) {
+                    txnBalance = txnBalance - data[i].Credit;
+                    if (data[i].Clearingdate) {
+                        clearingBalance = clearingBalance - data[i].Credit;
+                    }
+                }
+            }
+            netBalance = txnBalance - clearingBalance;
+            $("#SetTxnBalance").dxTextBox("option", "value", new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(txnBalance))
+            $("#SetNetbalance").dxTextBox("option", "value", new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(netBalance))
+            $("#SetClearingDate").dxTextBox("option", "value", new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(clearingBalance))
+        }
+        function clearingDateValidation_DB(options)
+        {
+            if (new Date(options.value) < new Date(options.data.Instrumentdate)) {
+                return false;
+            }
+            return true
+        }
+        function clearingDateCustomSort_DB(value1, value2)
+        {
+            if (value1 == null && value2 == null)
+            {
+                return 0;
+            }
+            if (value1 == null) {
+                return -1;
+            }
+            else
+            {
+                if (value2 == null)
+                {
+                    return 1;
+                }
+                else
+                {
+                    return value1.toISOString().localeCompare(value2.toISOString());
+                }
+            }
+        }
+        function hasChanges_DailyBalance()
+        {
+            if (changesList_DB != null && changesList_DB.length > 0)
+            {
+                var validEntries = changesList_DB.filter(x => x.valid == true);
+                if (validEntries == null || validEntries.length == 0)
+                {
+                    return false
+                }
+                else
+                {
+                    var actualChanges = validEntries.filter(x => x.Cdate != x.orgValue)
+                    if (actualChanges == null || actualChanges.length == 0)
+                    {
+                        return false
+                    }
+                }
+            }
+            else
+            {
+                return false
+            }
+            return true
+        }
+        function hasInvalidChanges_DailyBalance(_key = null)
+        {
+            if (changesList_DB != null && changesList_DB.length > 0)
+            {
+                var invalidEntries = changesList_DB.filter(x => x.valid == false && (_key == null || x.key == _key));
+                if (invalidEntries == null || invalidEntries.length == 0)
+                {
+                    return null
+                }
+                else
+                {
+                    return invalidEntries
+                }
+            }
+            else
+            {
+                return null
+            }
+            return null
+        }
+        async function restrict_ifInvalid_DailyBalance(_key=null)
+        {
+            var invalidEntries = hasInvalidChanges_DailyBalance(_key)
+            if (invalidEntries != null && invalidEntries.length > 0)
+            {
+                await DevExpress.ui.dialog.alert('There are invalid clearing date cells', 'Alert ')
+                invalidRowKey_DailyBalances= invalidEntries[0].key;
+                await DailyBalancesListGrid.selectRows(invalidRowKey_DailyBalances)
+                var rowIndex = DailyBalancesListGrid.getRowIndexByKey(invalidRowKey_DailyBalances)
+                if (rowIndex > 0)
+                {
+                    highlightinvalidRow_DailyBalance(rowIndex, invalidRowKey_DailyBalances)
+                    invalidRowKey_DailyBalances = null;
+                }
+                else
+                {
+                    await DailyBalancesListGrid.navigateToRow(invalidRowKey_DailyBalances)
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        function highlightinvalidRow_DailyBalance(rowIndex,key)
+        {
+            var el = DailyBalancesListGrid.getCellElement(rowIndex, "Clearingdate")
+            if (el)
+            {
+                DailyBalancesListGrid.focus(el)
+                DailyBalancesListGrid.editCell(rowIndex, "Clearingdate");
+            }
+        }
+
+        async function DBListGrid_dx_Refresh()
+        {
+            var invalid = await restrict_ifInvalid_DailyBalance()
+            var hasChanges = hasChanges_DailyBalance();
+            if (invalid) { return }
+            if (hasChanges)
+            {
+                OnSaveClick_DB(false);
+            }
+            else
+            {
+                RefreshGridView("DailyBalancesListGrid")         
+            }
+        }
+    </script>
+    <script>
+        function On_Daily_Balances_FABActionItemClick(s, e)
+        {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            if (e.actionName === "add_attach")
+            {
+                if ("@Help_Attachment_AddRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (Daily_Balances_ParamMandatory == 1)
+                {
+                    AddAttachment(Daily_Balances_RecID_ForAttachment, "Accounts_CashBook", Daily_Balances_Doc_ID, Daily_Balances_Doc_Category, Daily_Balances_ParamMandatory, Daily_Balances_FromDateLabel, Daily_Balances_ToDateLabel, Daily_Balances_DescriptionLabel, "Daily_BalancesProfileAttachment", null, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+                }
+                else
+                {
+                    Attachment_DirectBrowse(Daily_Balances_RecID_ForAttachment, "Accounts_CashBook", Daily_Balances_Doc_ID, "Daily_BalancesProfileAttachment", "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "edit_attach")
+            {
+                if ("@Help_Attachment_EditRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (Daily_Balances_Attachment_RecStatus.toUpperCase() == "LOCKED")
+                {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(Daily_Balances_RecID_ForAttachment, "Accounts_CashBook", Daily_Balances_AtachmentID, Daily_Balances_ParamMandatory, Daily_Balances_FromDateLabel, Daily_Balances_ToDateLabel, Daily_Balances_DescriptionLabel, "Daily_BalancesProfileAttachment", null, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach")
+            {
+                if ("@Help_Attachment_DeleteRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                DeleteAttachment(Daily_Balances_RecID_ForAttachment, "Accounts_CashBook", Daily_Balances_AtachmentID, Daily_Balances_ParamMandatory, Daily_Balances_FromDateLabel, Daily_Balances_ToDateLabel, Daily_Balances_DescriptionLabel, null, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID, Daily_Balances_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach")
+            {
+                if ("@Help_Attachment_ViewRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                ViewDocument(Daily_Balances_AtachmentID, Daily_Balances_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach")
+            {
+                LinkAttachment(Daily_Balances_RecID_ForAttachment, "Accounts_CashBook", "Daily Balances Report", "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason")
+            {
+                if (Daily_Balances_Doc_Category.toLowerCase() == "others") {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else {
+                    AttachmentAddReason(Daily_Balances_RecID_ForAttachment, Daily_Balances_NestedRowMapID, "Accounts_CashBook", "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "Edit_Reason")
+            {
+                AttachmentEditReason(Daily_Balances_RecID_ForAttachment, Daily_Balances_NestedRowMapID, "Accounts_CashBook", "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID, Daily_Balances_reason);
+            }
+            else if (e.actionName === "Delete_Reason")
+            {
+                AttachmentDeleteReason(Daily_Balances_RecID_ForAttachment, Daily_Balances_NestedRowMapID, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+            }
+            else if (e.actionName == "AuditAction") {
+                s.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit") {
+                if (Daily_Balances_Nested_Doc_Status == "") {
+                    s.SetActionContext("AutoItemContext", true);
+                }
+                if (Daily_Balances_Nested_Doc_Status == "NO") {
+                    s.SetActionContext("EditItemContext", true);
+                }
+                if (Daily_Balances_Nested_Doc_Status == "YES") {
+                    s.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName === "Rotate")
+            {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut")
+            {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn")
+            {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit")
+            {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back")
+            {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "Accept")
+            {
+                OnDailyBalance_AcceptwithoutRemarks();
+            }
+            else if (e.actionName == "Reject")
+            {
+                OnDailyBalance_AcceptRejectVoucher("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks")
+            {
+                OnDailyBalance_AcceptRejectVoucher("Accept");
+            }
+            else if (e.actionName == "AcceptDoc")
+            {
+                OnDailyBalance_AcceptDoc();
+            }
+            else if (e.actionName == "RejectDoc")
+            {
+                OnDailyBalance_RejectDoc();
+            }
+        }
+        function OnDailyBalance_RejectDoc()
+        {
+        if (Daily_Balances_AtachmentID == null || Daily_Balances_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(Daily_Balances_AtachmentID, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+    }
+        function OnDailyBalance_AcceptDoc() {
+            if (Daily_Balances_AtachmentID == null || Daily_Balances_AtachmentID.length == 0) {
+                DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+                return;
+            }
+            AcceptAttachment(Daily_Balances_AtachmentID, "DailyBalancesListGrid", Daily_Balances_NestedGrid_AccessID);
+        }
+        function OnDailyBalance_AcceptwithoutRemarks()
+        {
+            var Recid;
+            if (Daily_Balances_IsDetailRowExpanded == true || DailyBalance_IsVouchingMode == true)
+            {
+                if (Daily_Balances_MasterRowMID == null || Daily_Balances_MasterRowMID == "")
+                {
+                    if (Daily_Balances_MasterRowRecID == null || Daily_Balances_MasterRowRecID == "")
+                    {
+                        Recid = (DB_iTR_M_ID == null || DB_iTR_M_ID == "") ? DB_iREC_ID : DB_iTR_M_ID;
+                    }
+                    else
+                    {
+                        Recid = Daily_Balances_MasterRowRecID;
+                    }
+                }
+                else
+                {
+                    Recid = Daily_Balances_MasterRowMID;
+                }
+            }
+            else
+            {
+                Recid = (DB_iTR_M_ID == null || DB_iTR_M_ID == "") ? DB_iREC_ID : DB_iTR_M_ID;
+            }
+
+            Entry_AcceptwithoutRemarks(Recid, "Report_Daily_Balances", "DailyBalancesListGrid", Daily_Balances_AtachmentID, Daily_Balances_NestedRowReasonID, DailyBal_NestedRowUniqueID);
+        }
+        function OnDailyBalance_AcceptRejectVoucher(_actionMethod)
+        {
+            var Recid;
+            if (Daily_Balances_IsDetailRowExpanded == true || DailyBalance_IsVouchingMode == true)
+            {
+                if (Daily_Balances_MasterRowMID == null || Daily_Balances_MasterRowMID == "")
+                {
+                    if (Daily_Balances_MasterRowRecID == null || Daily_Balances_MasterRowRecID == "")
+                    {
+                        Recid = (DB_iTR_M_ID == null || DB_iTR_M_ID == "") ? DB_iREC_ID : DB_iTR_M_ID;
+                    }
+                    else
+                    {
+                        Recid = Daily_Balances_MasterRowRecID;
+                    }
+                }
+                else
+                {
+                    Recid = Daily_Balances_MasterRowMID;
+                }
+            }
+            else
+            {
+                Recid = (DB_iTR_M_ID == null || DB_iTR_M_ID == "") ? DB_iREC_ID : DB_iTR_M_ID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Report_Daily_Balances", "DailyBalancesListGrid", Daily_Balances_AtachmentID, Daily_Balances_NestedRowReasonID, DailyBal_NestedRowUniqueID);
+        }
+
+    </script>
+    @*attachment*@
+</div>

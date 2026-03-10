@@ -1,0 +1,502 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.ProductionActualManpowerUsage
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "View") ? true : false;
+
+    bool Production_AddPersonnelRight = (bool)ViewData["Production_AddPersonnelRight"];
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+   
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    [type="radio"]:checked,
+    [type="radio"]:not(:checked) {
+        position: absolute;
+        left: -9999px;
+    }
+
+        [type="radio"]:checked + label,
+        [type="radio"]:not(:checked) + label {
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+            line-height: 15px;
+            display: inline-block;
+            color: #666;
+        }
+
+            [type="radio"]:checked + label:before,
+            [type="radio"]:not(:checked) + label:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #ddd;
+                border-radius: 100%;
+                background: #fff;
+            }
+
+            [type="radio"]:checked + label:after,
+            [type="radio"]:not(:checked) + label:after {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: #337ab7;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 100%;
+                -webkit-transition: all 0.2s ease;
+                transition: all 0.2s ease;
+            }
+
+            [type="radio"]:not(:checked) + label:after {
+                opacity: 0;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            [type="radio"]:checked + label:after {
+                opacity: 1;
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .dx-button-block {
+        display: block !important;
+    }
+
+    .intial {
+        float: initial !important;
+    }
+
+
+
+    .paddR9 {
+        padding-right: 9px !important;
+    }
+
+    .control-label-text {
+        font-weight: 500;
+        font-size: 14px;
+    }
+    #Frm_Actual_Manpower_Usage_Popup {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_Actual_Manpower_Usage_Popup" class="col-md-12">
+    @using (Ajax.BeginForm("Frm_Add_Manpower_Usage", "ProductionRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_Actual_Manpower_Usage_Popup",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "Frm_Manpower_Usage_OnSuccess"
+                       },
+                       new
+                       {
+                           id = "ID_Frm_Estimation_Window",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.Production_PersonName)
+        @Html.HiddenFor(x => x.Production_TotalCost)
+        @Html.HiddenFor(x => x.Production_PersonType)
+        @Html.HiddenFor(x => x.Production_ManpowerUnitsID)
+        @Html.HiddenFor(x => x.Production_Manpower_ChargesID)
+        @Html.HiddenFor(x => x.sr)
+        @Html.HiddenFor(x => x.PM_Joined_Date)//Mantis bug 0001045 resolved
+        @Html.HiddenFor(x => x.PM_Leave_Date)//Mantis bug 0001045 resolved
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <!-- <div class="full-width-header-bg3">
+                 <div class="row">
+
+                     <div class="col-sm-8 pll">
+                         <h3 class="popuphead"><i class="far fa-edit"></i> Add Manpower </h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div> [Header]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="col-sm-4 col-md-2 col-lg-2 paddLR5">
+                            <label class="control-label text-red" for="Name"> Person Name:</label>
+                        </div><!--[/leftpart]-->
+                        <div class="col-sm-4 col-md-7 col-lg-7 paddLR5">
+                            <div class="dx-texteditor dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Production_ManpowerID").Name("Production_ManpowerID").Value(Model.Production_ManpowerID).ValueExpr("ID").DisplayExpr("Name")
+                                                                          .DataSource(d => d.Mvc().Controller("ProductionRegister").LoadAction("LookUp_Get_Person_Names").Key("ID").LoadParams(new { storeid = new JS("function (){ return productionstoreid;}") }))
+                                                                          .Placeholder("Select Person name").ReadOnly(IsVisible).Disabled(IsVisible).OnValueChanged("Get_Person_Names_ChangeEvent").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ContentTemplate(@<text> @Html.Partial("LookUp_Get_Person_Names") </text>))
+                                    @Html.ValidationMessageFor(model => model.Production_PersonName, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div><!--[Manpower]-->
+                        <div class="col-sm-4 col-md-3 col-lg-3 prm pll">
+                            @(Html.DevExtreme().Button()
+                                                                                                                                                        .ID("Add_Person_Type")
+                                                                                                                                                        .Text("Add Person")
+                                                                                                                                                        .Disabled(IsVisible)
+                                                                                                                                                        .OnClick(@<text>
+                                                                                                                                                            function () {
+                                                                                                                                                            Add_Person_Click()
+                                                                                                                                                            }
+                                                                                                                                                        </text>))
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[Manpower]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class=" col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Work Period From:</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 paddLR5">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().DateBoxFor(model => model.Production_W_PeriodFrom).CustomDateBox().ID("Production_W_PeriodFrom").Name("Production_W_PeriodFrom")
+                                                                                                          .OnValueChanged("Get_Units_Rate_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Work Period From") )
+                                            @Html.ValidationMessageFor(model => model.Production_W_PeriodFrom, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!--[WorkPeriodFrom]-->
+                            <div class=" col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Work Period To:</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 paddLR5">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().DateBoxFor(model => model.Production_W_PeriodTo).CustomDateBox().ID("Production_W_PeriodTo").Name("Production_W_PeriodTo")
+                                                                                          .OnValueChanged("Get_Units_Rate_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Work Period To") )
+                                            @Html.ValidationMessageFor(model => model.Production_W_PeriodTo, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!--[WorkPeriodTo]-->
+
+                    </div>
+                </div>
+            </div> <!--[row2]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Unit of Work:</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 paddLR5">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_ManpowerUnits").Name("Production_ManpowerUnits").Value(Model.Production_ManpowerUnits).MaxLength(20)
+                                                                                                  .Placeholder("Unit Of Work").ReadOnly(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Disabled(IsVisible) )
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!--[Unit]-->
+                            <div class="col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Defined Rate/Unit:</label>
+                                </div>
+                                <div class="col-sm-5 col-md-5 col-lg-5 paddLR5">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_RatePerUnit").Name("Production_RatePerUnit").Placeholder("Rate/Unit").Value(Model.Production_RatePerUnit).ShowSpinButtons(true).Format("#0.00").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(false) )
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-md-3 col-lg-3 prm pll4">
+                                    @(Html.DevExtreme().Button().ID("View_Rates_Type").Text("View Rates").Disabled(IsVisible).OnClick(@<text> function () { View_Rates_Click() } </text>))
+                                </div>
+                            </div> <!--[Rate/unit]-->
+
+                        </div>
+
+                    </div>
+                </div>
+            </div> <!--[row3]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class=" col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Units Worked:</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 paddLR5">
+                                    <div class="dx-texteditor dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_Units_Worked").Name("Production_Units_Worked").Value(Model.Production_Units_Worked)
+                                                                                                          .Placeholder("No of hrs labour worked").OnValueChanged("Actual_Unit_ChangeEvent").ShowSpinButtons(true).Format("#0.00")
+                                                                                                          .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(IsVisible).Disabled(IsVisible) )
+                                            @Html.ValidationMessageFor(model => model.Production_Units_Worked, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                            </div> <!--[Actual unit]-->
+                            <div class=" col-sm-12 col-md-6">
+                                <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                    <label class="control-label text-red" for="Name">Total Amount:</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 paddLR5">
+                                    <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_TotalCost1").Name("Production_TotalCost1").Value(Model.Production_TotalCost).Placeholder("Total Amount")
+                                                                                          .Format("#0.00").ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true) )
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div> <!--[Total Amount]-->
+                        </div>
+                    </div>
+                </div>
+            </div> <!--[row4]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-4 col-md-2 col-lg-2 paddLR5">
+                                <label class="control-label" for="Name">Remarks:</label>
+                            </div>
+                            <div class="col-sm-8 col-md-10 col-lg-10 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_ManpowerRemarks").Value(Model.Production_ManpowerRemarks).Placeholder("Enter Remarks").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Name("Production_ManpowerRemarks").MaxLength(8000).ReadOnly(IsVisible).Disabled(IsVisible))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div> <!--[Remarks]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 btn-align prm styleActionBtn">
+
+                            @if(Model.ActionMethod.ToString().Trim() == "View")
+                            {
+                                @(Html.DevExtreme().Button().Text("Close").CustomCloseButton().ID("productionUsage_Cancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Productioninnergrid").dxPopup("hide"); } </text>))
+                            }
+                            @if(Model.ActionMethod.ToString().Trim() == "New" || Model.ActionMethod.ToString().Trim() == "Edit")
+                            {
+                                @(Html.DevExtreme().Button().Text("Save").CustomSaveButton().ID("Usage_Save").FocusStateEnabled(true).UseSubmitBehavior(true))
+                                @(Html.DevExtreme().Button().Text("Cancel").CustomCloseButton().ID("productionUsage_SaveCancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Productioninnergrid").dxPopup("hide"); } </text>))
+                            }
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+            </div><!--[button]-->
+        }
+
+    }
+</div>
+<script type="text/javascript">
+    var manpowerpersonid;
+    var manpowerworkfrom;
+    var manpowerworkto;
+    function Get_Person_Names_ChangeEvent(e)
+    {        
+        if (e.previousValue!=null&&e.previousValue != e.value)
+        {
+            $("#Production_W_PeriodFrom").dxDateBox("instance").reset();
+            $("#Production_W_PeriodTo").dxDateBox("instance").reset();
+            $("#Production_Units_Worked").dxNumberBox("instance").reset();
+            $("#Production_RatePerUnit").dxNumberBox("instance").reset();
+            $("#Production_ManpowerUnits").dxTextBox("instance").reset();
+        }
+        manpowerpersonid = $("#Production_ManpowerID").dxDropDownBox("instance").option("value")[0];
+        manpowerworkfrom = $("#Production_W_PeriodFrom").dxDateBox("instance").option("value");
+        manpowerworkto = $("#Production_W_PeriodTo").dxDateBox("instance").option("value");
+        var dropDownBox = $("#Production_ManpowerID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_Get_Persons_PM");//Mantis bug 0001045 resolved
+        if ($dataGrid.length) {            
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropDownBox.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                var PersonName = item.Name;       
+                var Leave_Date = item.Leaving_Date;
+                var Join_Date = item.Joining_Date;
+
+                $("#PM_Joined_Date").val(Join_Date);//Mantis bug 0001045 resolved
+                $("#PM_Leave_Date").val(Leave_Date);//Mantis bug 0001045 resolved
+                $("#Production_PersonName").val(PersonName);
+                $("#Production_PersonType").val(item["Type"]);
+                if (manpowerpersonid != null && manpowerworkfrom != null && manpowerworkto != null)
+                {
+                    var From_Date = formatDate(manpowerworkfrom);
+                    var To_Date = formatDate(manpowerworkto);
+                    Autocalculate_Rate_per_Unit(manpowerpersonid, From_Date, To_Date);
+                }
+            }
+        }
+    }
+    function Get_Units_Rate_ChangeEvent(e)
+    {        
+        var PersonName = $("#Production_ManpowerID").dxDropDownBox("instance").option("text");     
+        manpowerworkfrom = $("#Production_W_PeriodFrom").dxDateBox("instance").option("value");    
+        manpowerworkto = $("#Production_W_PeriodTo").dxDateBox("instance").option("value");
+        if (PersonName!= null && manpowerworkfrom != null && manpowerworkto != null) {
+            if (PersonName.length > 0) {
+                manpowerpersonid = $("#Production_ManpowerID").dxDropDownBox("instance").option("value")[0];
+                var From_Date = formatDate(manpowerworkfrom);
+                var To_Date = formatDate(manpowerworkto);
+                if (productionfromdate || productiontodate) {
+                    if (productionfromdate) {
+                        if (manpowerworkfrom < productionfromdate) {
+                            DevExpress.ui.dialog.alert("Manpower Work From Date Cannot Be Less Than Production From Date", 'Inform!');
+                            $("#Production_W_PeriodFrom").dxDateBox("instance").reset();
+                            return;
+                        }
+                        if (manpowerworkto < productionfromdate) {
+                            DevExpress.ui.dialog.alert("Manpower Work To Date Cannot Be Less Than Production From Date", 'Inform!');
+                            $("#Production_W_PeriodTo").dxDateBox("instance").reset();
+                            return;
+                        }
+                    }
+                    if (productiontodate) {
+                        if (manpowerworkfrom > productiontodate) {
+                            DevExpress.ui.dialog.alert("Manpower Work From Date Cannot Be More Than Production To Date", 'Inform!');
+                            $("#Production_W_PeriodFrom").dxDateBox("instance").reset();
+                            return;
+                        }
+                        if (manpowerworkto > productiontodate) {
+                            DevExpress.ui.dialog.alert("Manpower Work To Date Cannot Be More Than Production To Date", 'Inform!');
+                            $("#Production_W_PeriodTo").dxDateBox("instance").reset();
+                            return;
+                        }
+                    }
+                }
+                Autocalculate_Rate_per_Unit(manpowerpersonid, From_Date, To_Date);
+            }
+        }
+    }
+    function Autocalculate_Rate_per_Unit(PersonId, From_Date, To_Date)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProductionRegister/Autocalculate_Rate_per_Unit",
+            data: { PersonId: PersonId, WorkFrom: From_Date, WorkTo: To_Date},
+            cache: false,
+            success: function (data) {                
+                if (data.result == "true" || data.result == true) {
+                    $("#Production_RatePerUnit").dxNumberBox("instance").option("value", data.message[0].Rate_per_Unit);                
+                    $("#Production_ManpowerUnitsID").val(data.message[0].UnitID); 
+                    $("#Production_Manpower_ChargesID").val(data.message[0].REC_ID); 
+                    $("#Production_ManpowerUnits").dxTextBox("instance").option("value", data.message[0].Unit);
+                }
+                else {
+                   
+                }
+            }
+        });
+    }     
+    function Actual_Unit_ChangeEvent(e) {
+        var Production_RatePerUnit = $("#Production_RatePerUnit").dxNumberBox("instance").option("value");
+        var Production_Units_Worked = $("#Production_Units_Worked").dxNumberBox("instance").option("value");
+        var Total_value = Production_RatePerUnit * Production_Units_Worked;
+        $("#Production_TotalCost1").dxNumberBox("instance").option("value", Total_value);
+        $("#Production_TotalCost").val(Total_value);
+    }
+    function Add_Person_Click()
+    {
+        if ("@Production_AddPersonnelRight" != "True")
+        {
+                DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+                return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function View_Rates_Click()
+    {
+        if ("@Production_AddPersonnelRight" != "True")
+        {
+                DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+                return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function formatDate(date) {
+        var hours = date.getHours();
+        var minutes = date.getMinutes();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        var strTime = hours + ':' + minutes + ' ' + ampm;
+        return date.getMonth() + 1 + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+    }
+</script>
+<script>
+    $(document).ready(function ()
+    {
+        var form = "ID_Frm_Estimation_Window";
+        ShowLoader();
+        AssignIDtoLabel(form, "ProductionManpower");
+
+        if ("@Production_AddPersonnelRight" == "False")
+        {
+            $("#Add_Person_Type").hide(); 
+            $("#View_Rates_Type").hide();
+        }
+        setTimeout(function ()
+        {
+            if ("@Model.ActionMethod" == "View")
+            {
+                Set_Form_View_Delete_Mode("#000080", form);
+            }
+            else if ("@Model.ActionMethod" == "Delete")
+            {
+                Set_Form_View_Delete_Mode("#696969", form);
+            }
+            else
+            {
+                Focus_FirstEditable_Field(form);
+            }
+            HideLoader();
+        }, Timeout500);
+    });
+    </script>

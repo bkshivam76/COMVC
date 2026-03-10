@@ -1,0 +1,1904 @@
+﻿<div class="LandBuilding_Info_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        string UserType = (string)ViewBag.UserType;
+        bool PropertyLB_AddRight = (bool)ViewData["PropertyLB_AddRight"];
+        bool PropertyLB_UpdateRight = (bool)ViewData["PropertyLB_UpdateRight"];
+        bool PropertyLB_ViewRight = (bool)ViewData["PropertyLB_ViewRight"];
+        bool PropertyLB_DeleteRight = (bool)ViewData["PropertyLB_DeleteRight"];
+        bool PropertyLB_ExportRight = (bool)ViewData["PropertyLB_ExportRight"];
+        bool PropertyLB_LockUnlockRight = (bool)ViewData["PropertyLB_LockUnlockRight"];
+        bool PropertyLB_ManageRemarks = (bool)ViewData["PropertyLB_ManageRemarks"];
+        bool PropertyLB_ViewRemarks = (bool)ViewData["PropertyLB_ViewRemarks"];
+        bool PropertyLB_SpecialGrouping = (bool)ViewData["PropertyLB_SpecialGrouping"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool PropertyLB_Auto_Vouching_Mode = (bool)ViewData["PropertyLB_Auto_Vouching_Mode"];
+    }
+    <div id="Property_ParentDiv_dx">
+        <div id="content" class="col-md-12 report_header_div_main">
+            <div class="col-md-6 report_header_div">
+                <label class="report_header_label"> @ViewBag.TitleX</label>
+            </div>
+            @*Buttons*@
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("LandBVouchingModeSwitch_dx").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("LandB_VouchingSwitch_ValueChange_dx").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("PropertyLBViewModeSwitch_dx").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("PropertyLB_ViewSwitch_ValueChange_dx").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @if (PropertyLB_LockUnlockRight != false)
+                {
+                    @(Html.DevExtreme().Button().ID("PropertyModelUnlock").Text("Unlock").Icon("fa fa-unlock").OnClick(@<text> function () { PropertyOnUnlockClick(); } </text>) )
+                    @(Html.DevExtreme().Button().ID("PropertyModelLock").Text("Lock").Icon("fa fa-lock").OnClick(@<text> function () { OnPropertyLockClick(); } </text>) )
+                }
+                @(Html.DevExtreme().Button() .ID("PropertyModelNew").Text("New").Icon("add").OnClick(@<text> function () { OnPropertyNewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnPropertyEditClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnPropertyDeleteClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelView").Text("View").Icon("doc").OnClick(@<text> function () { OnPropertyViewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyToggleScrollBar_dx").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text> function () { PropertychangeMode_dx(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelListPreview").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnPropertyListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button() .ID("PropertyModelCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){ closeProfile_Property();  } </text>)  )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="PropertyreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Property_Info_Grid_dx")
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="Property_LockICON_dx" style="color:red;font-size:35px;"></i>
+                        </div>
+                        <div class="footer-locktext">
+                            <div id="Property_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="Property_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="PropertyLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="PropertyLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="list_footer_right_margin_consistent col-md-1">
+                @*<i id="Property_LockICON" class="fa fa-lock lock_symbol"></i>*@
+            </div>
+        </div>
+        @Html.Partial("AttachmentFAB", "PropertyPrf_FAB,Property_ParentDiv_dx,Type1,PropertyProfile," + UserType) @*fab buttons*@
+
+    </div>
+
+    <script type="text/javascript">
+
+    var UserType_LandBPrf = "@UserType".toUpperCase();
+    $(document).ready(function ()
+    {
+        if ("@PropertyLB_AddRight" == "False")
+        {
+	        $("#PropertyModelNew").hide();
+        }
+        if ("@PropertyLB_UpdateRight" == "False")
+        {
+	        $("#PropertyModelEdit").hide();
+        }
+        if ("@PropertyLB_ViewRight" == "False")
+        {
+	        $("#PropertyModelView").hide();
+        }
+        if ("@PropertyLB_DeleteRight" == "False")
+        {
+	        $("#PropertyModelDelete").hide();
+        }
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        $("#PropertyModelUnlock").hide();
+	        $("#PropertyModelLock").hide();
+        }
+        HideUnreleasedFunctionality('Property_frm_Property_Info');
+        $(".PropertyListGrid_PreviewRow").hide();
+        GetSessionStorage("PropertyListGrid");
+        if (PropertyLB_SetVouchingModeOn_dx == true)
+        {
+            $("#PropertyLBViewModeSwitch_dx").dxSwitch("instance").option("value", true);
+        }
+    });
+    function PropertyLB_ViewSwitch_ValueChange(e)
+    {
+        ShowLoader();
+        PropertyLB_ViewMode_dx = e.value == false ? "Default" : "Compact";
+        if (PropertyLB_SetVouchingModeOn_dx == true)
+        {
+            $("#LandBVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            if (LandB_IsVouchingMode == false)
+            {
+                PropertyPrf_FAB.SetVisible(false);
+            }
+            PropertyListGrid.CollapseAllDetailRows();
+        }
+        HideLoader();
+    }
+    function closeProfile_Property()
+    {
+        $(".TabPanalMenu-tabs .active span").click();
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        DxGrid_EventsOnScreenClose(PropertyListGrid_dx);
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/SessionClear",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+
+        ClearAllReferences_LandBuilding_Info();
+    });
+
+        function ClearAllReferences_LandBuilding_Info() {
+
+            Property_ShowHorizontalBar = null;
+            PropertyLB_SetVouchingModeOn_dx = null;
+            UserType_LandBPrf = null;
+            LandB_IsVouchingMode = null;
+            PropertyLB_ViewMode_dx = null;
+            PropertyInfo_IsDetailRowExpanded = null;
+            PropertyInfo_NestedRecord_FocusedRowIndex = null;
+            PropertyInfo_NestedGrid_AccessID = null;
+            PropertyInfo_AtachmentID = null;
+            PropertyInfo_FileName = null;
+            PropertyInfo_ParamMandatory = null;
+            PropertyInfo_FromDateLabel = null;
+            PropertyInfo_ToDateLabel = null;
+            PropertyInfo_DescriptionLabel = null;
+            PropertyInfo_Doc_ID = null;
+            PropertyInfo_Doc_Category = null;
+            PropertyInfo_MasterRowRecID = null;
+            PropertyInfo_MasterRowMID = null;
+            PropertyInfo_NestedRowMapID = null;
+            PropertyInfo_reason = null;
+            PropertyInfo_Attachment_RecStatus = null;
+            PropertyInfo_NestedRowReasonID = null;
+            PropertyInfo_NestedRowKeyValue = null;
+            PropertyID = null;
+            PropertyCategory = null;
+            PropertyConstruction_Year = null;
+            PropertyCrossed_Time_Limit = null;
+            PropertyDeposit_Amount = null;
+            PropertyCurr_Value = null;
+            Property_EditDate = null;
+            Property_AddDate = null;
+            Property_AddBy = null;
+            Property_EditBy = null;
+            Property_ActionStatus = null;
+            Property_ActionDate = null;
+            Property_ActionBy = null;
+            Property_EntryType = null;
+            YearID = null;
+            Property_FocusedRowBeforeRefresh = null;
+            Property_Select_xid = null;
+            Prop_ColumnToBeShownIndex = null;
+            Prop_ColumnToBeHidddenIndex = null;
+            PropertyGridLayout = null;
+
+
+             PropertyListGrid_dx = null;
+            Property_ShowHorizontalBar_dx = null;
+            LandB_IsVouchingMode = null;
+            PropertyLB_ViewMode_dx = null;
+            PropertyLB_SetVouchingModeOn_dx = null;
+            Expanded_Row_Key_Property_dx = null;
+
+            ClearAllReferences("LandBuilding_Info_ClearReferences");
+        }
+
+    </script> @* ready *@
+    <script>
+    var PropertyInfo_NestedRecord_FocusedRowIndex = -1;
+    var PropertyInfo_AtachmentID;
+    var PropertyInfo_FileName;
+    var PropertyInfo_ParamMandatory;
+    var PropertyInfo_FromDateLabel;
+    var PropertyInfo_ToDateLabel;
+    var PropertyInfo_DescriptionLabel;
+    var PropertyInfo_Doc_ID;
+    var PropertyInfo_Doc_Category;
+    var PropertyInfo_MasterRowRecID;
+    var PropertyInfo_MasterRowMID;
+    var PropertyInfo_NestedRowMapID;
+    var PropertyInfo_reason;
+    var PropertyInfo_Attachment_RecStatus;
+    var PropertyInfo_NestedRowReasonID;
+    var PropertyInfo_NestedRowKeyValue ;
+
+    function On_PropertyProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PropertyInfo_ParamMandatory == 1)
+            {
+                AddAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_Doc_ID, PropertyInfo_Doc_Category, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, "PropertyProfileAttachment", null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_Doc_ID, "PropertyProfileAttachment", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (PropertyInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_AtachmentID, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, "PropertyProfileAttachment", null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", PropertyInfo_AtachmentID, PropertyInfo_ParamMandatory, PropertyInfo_FromDateLabel, PropertyInfo_ToDateLabel, PropertyInfo_DescriptionLabel, null, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID, PropertyInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(PropertyInfo_AtachmentID, PropertyInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(PropertyInfo_MasterRowRecID, "Profile_LandAndBuilding", "Land & Building Information", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (PropertyInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_NestedGrid_AccessID, PropertyInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(PropertyInfo_MasterRowRecID, PropertyInfo_NestedRowMapID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            PropertyPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (PropertyInfo_Nested_Doc_Status == "")
+            {
+                PropertyPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (PropertyInfo_Nested_Doc_Status == "NO")
+            {
+                PropertyPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (PropertyInfo_Nested_Doc_Status == "YES")
+            {
+                PropertyPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            PropertyInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            PropertyInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            PropertyInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnPropertyInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnPropertyInfo_RejectDoc();
+        }
+    }
+    function OnPropertyInfo_RejectDoc() {
+        if (PropertyInfo_AtachmentID == null || PropertyInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(PropertyInfo_AtachmentID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+    }
+    function OnPropertyInfo_AcceptDoc() {
+        if (PropertyInfo_AtachmentID == null || PropertyInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(PropertyInfo_AtachmentID, "PropertyListGrid", PropertyInfo_NestedGrid_AccessID);
+    }
+    function PropertyInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (PropertyInfo_IsDetailRowExpanded == true || LandB_IsVouchingMode == true)
+        {
+            if (PropertyInfo_MasterRowRecID == null || PropertyInfo_MasterRowRecID == "")
+            {
+                Recid = PropertyID;
+            }
+            else
+            {
+                Recid = PropertyInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = PropertyID;
+        }
+
+        Entry_AcceptwithoutRemarks(Recid, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_AtachmentID, PropertyInfo_NestedRowReasonID, PropertyInfo_NestedRowKeyValue);
+    }
+    function PropertyInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+
+        if (PropertyInfo_IsDetailRowExpanded == true || LandB_IsVouchingMode == true)
+        {
+            if (PropertyInfo_MasterRowRecID == null || PropertyInfo_MasterRowRecID == "")
+            {
+                Recid = PropertyID;
+            }
+            else
+            {
+                Recid = PropertyInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = PropertyID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_LandAndBuilding", "PropertyListGrid", PropertyInfo_AtachmentID, PropertyInfo_NestedRowReasonID, PropertyInfo_NestedRowKeyValue);
+    }
+    </script> @* attachment and nested grid *@
+    <script>
+        var PropertyID;
+        var PropertyCategory;
+        var PropertyConstruction_Year;
+        var PropertyCrossed_Time_Limit;
+        var PropertyDeposit_Amount;
+        var PropertyCurr_Value;
+        var Property_EditDate;
+        var Property_AddDate;
+        var Property_AddBy;
+        var Property_EditBy;
+        var Property_ActionStatus;
+        var Property_ActionDate;
+        var Property_ActionBy;
+        var Property_EntryType;
+        var YearID;
+        var Property_FocusedRowBeforeRefresh;
+        var Property_Select_xid = "";
+        var Prop_ColumnToBeShownIndex = "";
+        var Prop_ColumnToBeHidddenIndex = "";
+        var PropertyGridLayout = null;
+        function PropertyContextMenuFunction(s, e) {
+            if (e.item.name == 'New') {
+                OnPropertyNewClick();
+            }
+            if (e.item.name == 'Close') {
+                closeProfile_Property();
+            }
+            else if (e.item.name == 'Edit') {
+                OnPropertyEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                OnPropertyDeleteClick();
+            }
+            else if (e.item.name == 'View') {
+                OnPropertyViewClick();
+            }
+            else if (e.item.name == 'ChangeRent') {
+                OnPropertyChangeRentClick();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnPropertyListPreviewClick();
+            }
+            else if (e.item.name == 'NewAudit') {
+                OnNewAuditClick_P();
+            }
+            else if (e.item.name == 'ViewAudit') {
+                OnViewAuditClick_P();
+            }
+            else if (e.item.name == 'Lock') {
+                OnPropertyLockClick();
+            }
+            else if (e.item.name == 'Unlock') {
+                PropertyOnUnlockClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                PropertyListGrid.Refresh();
+            }
+            else if (e.item.name == 'ChangePropertyType') {
+                OnPropertyEditClick(false, true);
+            }
+
+        }
+    </script> @* Main Grid *@
+    <script>
+    function OnPropertyNewClick()
+    {
+        if ("@PropertyLB_AddRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/Frm_Property_Window_Profile",
+            data: { Tag:"New" },
+            cache: false,
+            success: function (data)
+            {
+                OpenDynamicPopup("New ~ Land & Building", null, "auto", 1100, true, data);
+            }
+        });
+    }
+        function OnPropertyEditClick(_MultiUserConformation = false, isCallForPropertyTypeChange = false)
+    {
+        if ("@PropertyLB_UpdateRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID==null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "Edit", ID: PropertyID, MultiUserConfirmation: _MultiUserConformation, isCallForPropertyTypeChange: isCallForPropertyTypeChange},
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "Edit",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            defaultPropCategory: data.defaultPropCategory,
+                            Address: data.Address,
+                            EntryType: data.EntryType,
+                            isCallForPropertyTypeChange: isCallForPropertyTypeChange,
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("Edit ~ Land & Building", null, "auto", 1100, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyEditClick(true);
+                            }
+                            else
+                            {
+                                //RefreshGridView("PropertyListGrid");
+                                PropertyListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            //RefreshGridView("PropertyListGrid");
+                            PropertyListGrid_dx_Refresh();
+                        }
+                    }
+                }
+            }
+        });
+    }
+    function OnPropertyViewClick()
+    {
+        if ("@PropertyLB_ViewRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "View", ID: PropertyID },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "View",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            Address: data.Address,
+                            Txt_LB_Amount: data.Txt_LB_Amount
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("View ~ Land & Building", null, "auto", 1100, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    if (data.jsonParam.refreshgrid == true) {
+                        //RefreshGridView("PropertyListGrid");
+                        PropertyListGrid_dx_Refresh();
+                    }
+                }
+            }
+        });
+    }
+    function OnPropertyDeleteClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_DeleteRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data: { ActionMethod: "Delete", ID: PropertyID, MultiUserConfirmation: _MultiUserConformation},
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Profile",
+                        data: {
+                            Tag: "Delete",
+                            xID: PropertyID,
+                            Info_LastEditedOn: data.Info_LastEditedOn,
+                            Address: data.Address,
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("Delete ~ Land & Building", null, "auto", 1150, true, data);
+                        }
+                    });
+                }
+                else
+                {
+                    HideLoader();
+                    if (data.jsonParam.isconfirm == true)
+                    {
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyDeleteClick(true);
+                            }
+                            else
+                            {
+                                //RefreshGridView("PropertyListGrid");
+                                PropertyListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            //RefreshGridView("PropertyListGrid");
+                            PropertyListGrid_dx_Refresh();
+                        }
+                    }
+                }
+            }
+        });
+        }
+        function OnPropertyChangeRentClick()
+        {
+            if ("@PropertyLB_UpdateRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                return;
+            }
+            if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Profile/Property/Frm_Property_Change_Rented_Detail",
+                data:
+                {
+                    xID: PropertyID,
+                    Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(Property_EditDate),
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenDynamicPopup("Edit ~ Property", null, "auto", 650, true, data);
+                }
+            });
+        }
+    function OnPropertyLockClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null)
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "LOCKED",
+                ID: PropertyID,
+                MultiUserConfirmation: _MultiUserConformation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true){
+                    var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertClick.done(function (alertResult) {
+                        if (alertResult) {
+                            Property_Select_xid = PropertyID
+                            PropertyListGrid_dx_Refresh();
+                        }
+                    });                    
+                }
+                else{
+                    if (data.jsonParam.isconfirm == true){
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnPropertyLockClick(true);
+                            }
+                            else
+                            {                                
+                                PropertyListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else {
+                        var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        alertClick.done(function (alertResult) {
+                            if (alertResult) {
+                                if (data.jsonParam.refreshgrid == true) {
+                                    PropertyListGrid_dx_Refresh();
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+    function PropertyOnUnlockClick(_MultiUserConformation = false)
+    {
+        if ("@PropertyLB_LockUnlockRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        if (PropertyID == 'undefined' || PropertyID == undefined || PropertyID == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "UNLOCKED",
+                ID: PropertyID,
+                MultiUserConfirmation: _MultiUserConformation
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.jsonParam.result == true)
+                {
+                    var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertClick.done(function (alertResult) {
+                        if (alertResult) {
+                            Property_Select_xid = PropertyID
+                            PropertyListGrid_dx_Refresh();
+                        }
+                    });
+                }
+                else
+                {
+                    if (data.jsonParam.isconfirm == true){
+                        DevExpress.ui.dialog.confirm(data.jsonParam.message, data.jsonParam.title).done(function (result)
+                        {
+                            if (result)
+                            {
+                                PropertyOnUnlockClick(true);
+                            }
+                            else
+                            {
+                                PropertyListGrid_dx_Refresh();
+                            }
+                        });
+                    }
+                    else{
+                        var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        alertClick.done(function (alertResult) {
+                            if (alertResult) {
+                                if (data.jsonParam.refreshgrid == true) {
+                                    PropertyListGrid_dx_Refresh();
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+    function OnNewAuditClick_P() {
+        if ("@PropertyLB_ManageRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (PropertyID == null || PropertyID == "undefined")
+        {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/Property/DataNavigation",
+            data:
+            {
+                ActionMethod: "ADD REMARKS",
+                ID: PropertyID
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.jsonParam.result == true)
+                {
+                    Add_Actions(PropertyID, "LAND_BUILDING_INFO", "Profile_LandAndBuilding", "LB_ActionItem_Popup", "PropertyListGrid");
+                }
+                else
+                {
+                    HideLoader();
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            }
+        });
+    }
+    function OnViewAuditClick_P()
+    {
+        if ("@PropertyLB_ViewRemarks" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (PropertyID == null || PropertyID == "undefined") {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (Property_EntryType.toUpperCase() == "VOUCHER ENTRY")
+        {
+            DevExpress.ui.dialog.alert('Entries created from vouchers can be audited from vouchers only...!<br><br>Please unselect Entries Created from Voucher...!', "Information...");
+            return;
+        }
+        View_Actions(PropertyID, "LAND_BUILDING_INFO", "Profile_LandAndBuilding", Property_ActionStatus, "LB_ActionItem_Popup", "PropertyListGrid");
+    }
+        function OnPropertyCreationEntryEditClick() {
+            if (PropertyID == null || PropertyID == void 0) {
+                DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Edited. . . !', 'Information');
+                return;
+            }
+            var selectedData = PropertyListGrid_dx.getSelectedRowsData();
+
+            var M_ID = selectedData[0]["TR_ID"];
+            var Type = selectedData[0]["Entry_Type"];
+            if (Type == "Profile Entry") {
+                DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Edited. . . !', 'Information');
+                return;
+            }
+            Vouchers_Edit_CreatedProfileID(M_ID, PropertyID, "LAND_BUILDING", "LAND_BUILDING", "PropertyListGrid", false);
+        }
+        function OnPropertyCreationEntryDeleteClick() {
+            if (PropertyID == null || PropertyID == void 0) {
+                DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Deleted. . . !', 'Information');
+                return;
+            }
+            var selectedData = PropertyListGrid_dx.getSelectedRowsData();
+
+            var M_ID = selectedData[0]["TR_ID"];
+            var Type = selectedData[0]["Entry_Type"];
+            if (Type == "Profile Entry") {
+                DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Deleted. . . !', 'Information');
+                return;
+            }
+            Vouchers_Delete_CreatedProfileID(M_ID, PropertyID, "LAND_BUILDING", "LAND_BUILDING", "PropertyListGrid", false, false);
+        }
+        function OnPropertyCreationEntryViewClick()
+        {
+            if (PropertyID == null || PropertyID == void 0) {
+                DevExpress.ui.dialog.alert('Please select Entry whose Creation Voucher is to be Viewed. . . !', 'Information');
+                return;
+            }
+            var selectedData = PropertyListGrid_dx.getSelectedRowsData();
+
+            var M_ID = selectedData[0]["TR_ID"];
+            var Type = selectedData[0]["Entry_Type"];
+            if (Type == "Profile Entry") {
+                DevExpress.ui.dialog.alert('Creation Voucher of Current Year entries only can be Viewed. . . !', 'Information');
+                return;
+            }
+            Vouchers_View_CreatedProfileID(M_ID, PropertyID, "LAND_BUILDING", "LAND_BUILDING", "PropertyListGrid");
+        }
+    </script> @* NEVD *@
+    @*BEGIN DEvextreme*@
+<script>
+    var PropertyListGrid_dx = null;
+    var Property_ShowHorizontalBar_dx = parseInt("@ViewBag.ShowHorizontalBar");
+    var LandB_IsVouchingMode = false;
+    var PropertyLB_ViewMode_dx = "Default";
+    var PropertyLB_SetVouchingModeOn_dx = "@PropertyLB_Auto_Vouching_Mode" == "True" ? true : false;
+    var PropertyInfo_MasterRowRecID;
+    var PropertyInfo_IsDetailRowExpanded = false;
+    var PropertyInfo_NestedGrid_AccessID;
+    var Expanded_Row_Key_Property_dx = null;
+</script>
+    @*Button Functions*@
+<script>
+    function LandB_VouchingSwitch_ValueChange_dx(e) {
+        LandB_IsVouchingMode = e.value;
+        if (PropertyLB_SetVouchingModeOn_dx == true) {
+            PropertyLB_SetVouchingModeOn_dx = false;
+        }
+        else {
+            PropertyPrf_FAB.SetVisible(false);
+        }
+        if (LandB_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+        }
+        else {
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+        }
+        PropertyListGrid_dx.clearSelection();
+        PropertyListGrid_dx.option("masterDetail.enabled", !LandB_IsVouchingMode)
+        PropertyListGrid_dx.repaint();
+
+       /* PropertyListGrid_CollapseAllDetailRows();*/
+    }
+    function PropertyLB_ViewSwitch_ValueChange_dx(e)
+    {
+        PropertyLB_ViewMode_dx = e.value == false ? "Default" : "Compact";
+        if (PropertyLB_SetVouchingModeOn_dx == true) {
+            $("#LandBVouchingModeSwitch_dx").dxSwitch("instance").option("value", true);
+        }
+        PropertyListGrid_dx.beginUpdate();
+        var columns = PropertyListGrid_dx.option("columns");
+        if (PropertyLB_ViewMode_dx == "Compact") {
+            VisibleColumns_PropertyListGrid_dx = [];
+            for (var i = 0; i < columns.length; i++) {
+                var name = columns[i].dataField;
+                var ColumnVisible = PropertyListGrid_dx.columnOption(name, "visible");
+                if (name == "PropertyListGrid_dx_Compact_Column") {
+                    PropertyListGrid_dx.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon") {
+                    VisibleColumns_PropertyListGrid_dx.push(name);
+                    PropertyListGrid_dx.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            PropertyListGrid_dx.columnOption("PropertyListGrid_dx_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_PropertyListGrid_dx.length; i++) {
+                PropertyListGrid_dx.columnOption(VisibleColumns_PropertyListGrid_dx[i], "visible", true);
+            }
+        }
+        PropertyListGrid_dx.repaint();
+        PropertyListGrid_dx.endUpdate();
+    }
+    function PropertychangeMode_dx() {
+
+        PropertyListGrid_dx.beginUpdate();
+        if (Property_ShowHorizontalBar_dx == 0) {
+            Property_ShowHorizontalBar_dx = 1;
+            $("#PropertyToggleScrollBar_dx").find("span").text("Default Data");
+            $("#PropertyToggleScrollBar_dx").width(110);
+            PropertyListGrid_dx.option("columnHidingEnabled", false);
+            PropertyListGrid_dx.option("allowColumnResizing", true)
+        }
+        else {
+            Property_ShowHorizontalBar_dx = 0;
+            $("#PropertyToggleScrollBar_dx").find("span").text("Full Data");
+            $("#PropertyToggleScrollBar_dx").width(90);
+            PropertyListGrid_dx.option("columnHidingEnabled", true)
+            PropertyListGrid_dx.option("allowColumnResizing", false)
+        }
+        PropertyListGrid_dx.endUpdate();
+    }
+    function Property_UpdateFooterDetail_dx(ID, Property_Action_Status, Property_Add_Date, Property_Add_By, Property_Action_Date, Property_Action_By, Property_Edit_Date, Property_Edit_By) {
+        HideLoader();
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+        if (ID != null) {
+            Property_Add_Date = JS_Json_Date_To_ddMMyyyy(Property_Add_Date ?? "", "DD/MM/YYYY HH:mm:ss");
+            Property_Edit_Date = JS_Json_Date_To_ddMMyyyy(Property_Edit_Date ?? "", "DD/MM/YYYY HH:mm:ss");
+            Property_Action_Date = JS_Json_Date_To_ddMMyyyy(Property_Action_Date ?? "", "DD/MM/YYYY HH:mm:ss");
+            Status = Property_Action_Status;
+            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "fa fa-lock";
+            }
+            else {
+                Pic_Status = "fa fa-unlock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED") {
+                    Lbl_Status_Color = "green";
+                }
+                else {
+                    Lbl_Status_Color = "red";
+                }
+            }
+            if (Property_Action_Date) {
+                Lbl_ActionOn = StatusStr + " On: " + Property_Action_Date;
+                Lbl_ActionBy = StatusStr + " By: " + Property_Action_By;
+            }
+
+            else {
+                Lbl_ActionOn = "";
+                Lbl_ActionBy = "";
+            }
+            if (Property_Add_Date) {
+                Lbl_Create = "Add On: " + Property_Add_Date + ", By: " + Property_Add_By;
+            }
+            else {
+                Lbl_Create = "";
+            }
+
+            if (Property_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Property_Edit_Date + ", By: " + Property_Edit_By;
+            }
+            else {
+                Lbl_Modify = "";
+            }
+        }
+        $('#PropertyLbl_Status').text(Lbl_Status);
+        $('#Property_Lbl_ActionOn').text(Lbl_ActionOn);
+        $('#Property_Lbl_ActionBy').text(Lbl_ActionBy);
+        $('#PropertyLbl_Create').text(Lbl_Create);
+        $('#PropertyLbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#PropertyLbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status == "fa fa-lock") {
+            $('#Property_LockICON_dx').addClass(Pic_Status).removeClass("fa-unlock");
+        }
+        else if (Pic_Status == "fa fa-unlock") {
+            $('#Property_LockICON_dx').addClass(Pic_Status).removeClass("fa-lock");
+        }
+        else {
+            $('#Property_LockICON_dx').removeClass("fa");
+            $('#Property_LockICON_dx').removeClass("fa-lock");
+            $('#Property_LockICON_dx').removeClass("fa-unlock");
+        }
+    }
+    function OnPropertyListPreviewClick() {
+        if ("@PropertyLB_ExportRight" == "False")
+        {
+	        DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	        return;
+        }
+        OpenPopup("report_export_modal", "Export Option", "/Profile/Property/Frm_Export_Options_dx/?GridName=PropertyListGrid", "auto", 125, false, false);
+        }
+
+    function PropertyListGrid_dx_Refresh()
+    {
+        PropertyListGrid_dx.refresh().done(function () { ActionAfterDataGridRefresh_PropertyListGrid_dx() })      
+    }
+    function ActionAfterDataGridRefresh_PropertyListGrid_dx(ActionMethod=null)
+    {
+        if (ActionMethod != null)
+        {
+            if (ActionMethod == "_New")
+            {
+               var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "New ~ Land & Building");
+                confirm.done(function (Result)
+                {
+                    if (Result)
+                    {
+                        OnPropertyNewClick();
+                    }
+                });
+            }
+            else if (ActionMethod == "_Edit")
+            {
+                 if ("@PropertyLB_LockUnlockRight" == "True")
+                 {
+                     var confirm = DevExpress.ui.dialog.confirm('Do you want to <font color=red>Lock</font> this Entry...?', "Confirmation");
+                     confirm.done(function (Result)
+                     {
+                         if (Result)
+                         {
+                             OnPropertyLockClick();
+                         }
+                     });
+                }            
+            }
+        }
+        else
+        {
+            var selectedRowKeys = PropertyListGrid_dx.getSelectedRowKeys()
+            if (selectedRowKeys != null && selectedRowKeys.length > 0)
+            {
+                PropertyListGrid_dx.clearSelection()
+                PropertyListGrid_dx.selectRows(selectedRowKeys)
+            }
+        }
+    }
+</script>
+    @*Button Functions end*@
+    @*Grid Functions*@
+<script>
+    function PropertyListGrid_dx_OnInitialized(e) {
+
+        DxGrid_AdjustSize(e.component, $("#Property_ParentDiv_dx .report_button_div"))
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize(e.component, $("#Property_ParentDiv_dx .report_button_div"), "", evt)
+        });
+        PropertyListGrid_dx = e.component;
+    }
+    function PropertyListGrid_dx_OnCellPrepared(e) {
+        if (e.rowType == "data") {
+            if (LandB_IsVouchingMode == true) {
+                if (e.column.dataField === "iIcon") {
+                    $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                    $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                }
+            }
+            $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.key + "|" + e.column.dataField);
+            /*$(e.cellElement).addClass("col_" + e.column.dataField + " row_" + e.key);*/
+        }
+    }
+    function PropertyListGrid_dx_OnRowPrepared(e) {        
+        if (e.rowType == "data") {
+            var GridName = e.element[0].id;
+            $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+            if (e.data.RemarkStatus != null && (e.data.RemarkStatus == "OPEN" || e.data.RemarkStatus == "REOPENED")) {
+                $(e.rowElement).css("background-color", "gold");
+            }
+            if (e.data.RemarkStatus == null && e.data.Remarks != null && e.data.Remarks == true && e.data.Crossed_Time_Limit != null && parseInt(e.data.Crossed_Time_Limit) == 0) {
+                $(e.rowElement).css("background-color", "lightgreen");
+            }
+            if (e.data.Crossed_Time_Limit != null && parseInt(e.data.Crossed_Time_Limit) > 0) {
+                $(e.rowElement).css("background-color", "mistyrose");
+            }
+            DxGrid_CreatePreviewRow(e, LandB_IsVouchingMode, "Master", PropertyListGri_dx_PreviewRow_Template(e))
+        }
+        else if (e.rowType == "detailAdaptive") {
+            DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+        }
+    }
+    async function PropertyListGrid_dx_OnContentReady(e)
+    { 
+        //if (Property_Select_xid != null && Property_Select_xid.length > 0) {
+        //    e.component.clearSelection();
+        //    if (Expanded_Row_Key_Property_dx != null) {
+        //        await e.component.collapseRow(Expanded_Row_Key_Property_dx)
+        //    }
+        //    await e.component.selectRows(Property_Select_xid)
+        //    DxGrid_RowSelectionTobeCheckedAfterAnyAction(e.component, Expanded_Row_Key_Property_dx)
+        //    Property_Select_xid = null;
+        //}
+        //else {
+        //    DxGrid_RowSelectionTobeCheckedAfterAnyAction(e.component, Expanded_Row_Key_Property_dx)
+        //}        
+        await DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_Property_dx, Property_Select_xid)
+        Property_Select_xid = null;
+        DxGrid_OnContentReady(e, Property_ShowHorizontalBar_dx);
+    }
+    function PropertyListGrid_dx_OnCellDblClick(e) {
+        if (e.rowType == "data") {
+            if (LandB_IsVouchingMode == true && PropertyLB_ViewMode_dx == "Default") {
+                OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+            }
+            else if (LandB_IsVouchingMode == false) {
+                if (e.rowType == "data")
+                    OnPropertyEditClick();
+            }
+        }
+    }
+    function PropertyListGrid_dx_OnSelectionChanged(e) {       
+        var selectedRowKeys = e.selectedRowKeys;
+        if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+            if (LandB_IsVouchingMode) {
+                PropertyPrf_FAB.SetVisible(true);
+                PropertyPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }         
+            PropertyListGrid_dx_SelectedRowData(e.selectedRowsData);
+        }
+        else {
+            PropertyID = null;
+            Property_UpdateFooterDetail_dx(PropertyID, Property_ActionStatus, Property_AddDate, Property_AddBy,
+                Property_ActionDate, Property_ActionBy, Property_EditDate, Property_EditBy);
+        }
+    }
+    function PropertyListGrid_dx_SelectedRowData(selectedData = null) {
+        if (selectedData == null) {
+            selectedData = PropertyListGrid_dx.getSelectedRowsData();
+        }
+        if (selectedData != null && selectedData.length > 0) {
+            var values = selectedData[0]
+            PropertyID = values["ID"]
+            Property_EditDate = values["Edit_Date"];
+            Property_EditBy = values["Edit_By"];
+            Property_AddDate = values["Add_Date"];
+            Property_AddBy = values["Add_By"];
+            Property_ActionDate = values["Action_Date"];
+            Property_ActionBy = values["Action_By"];
+            Property_ActionStatus = values["Action_Status"];
+            Property_EntryType = values["Entry_Type"];
+            Property_UpdateFooterDetail_dx(PropertyID, Property_ActionStatus, Property_AddDate, Property_AddBy,
+                Property_ActionDate, Property_ActionBy, Property_EditDate, Property_EditBy);
+            if (LandB_IsVouchingMode == true) {
+                OpenLeftPane();
+                LeftPaneContent_Property_dx("PropertyListGrid", PropertyID, LandB_IsVouchingMode)
+            }
+        }
+        else {
+            PropertyID = null;
+        }
+    }
+    function PropertyListGrid_dx_OnRowExpanding(e) {     
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            e.component.collapseRow(Expanded_Row_Key_Property_dx)
+            e.component.selectRows(e.key);
+            Expanded_Row_Key_Property_dx = e.key;
+            PropertyInfo_IsDetailRowExpanded = true;
+            var DetailGridID = e.element[0].id + e.key;
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+            }
+            //e.component.collapseAll(-1);
+        }
+        else
+        {
+            e.component.option("CustomProp.groupRowExpanded", true);
+        }
+    }
+    function PropertyListGrid_dx_OnRowCollapsing(e) {     
+        if (Array.isArray(e.key) == false) //not group row
+        {
+            var DetailGridID = e.element[0].id + e.key;
+            sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+            PropertyInfo_IsDetailRowExpanded = false;
+            e.component.selectRows(e.key);
+            if (LandB_IsVouchingMode  == false) {
+                PropertyPrf_FAB.SetVisible(false);
+            }
+            var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+            if (instance != void 0) {
+                instance.clearSelection();
+            }
+        }
+        else {
+            e.component.option("CustomProp.groupRowCollapsed", true);
+        }
+    }
+    function PropertyListGrid_dx_OnContextMenuPreparing(e) {
+
+        if (!e.items) e.items = [];
+        if (e.target == "header") {
+
+            DxGrid_HeaderContextMenu(e, "@PropertyLB_SpecialGrouping")
+        }
+        else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+            if (PropertyLB_ViewMode_dx == "Compact")
+                DxGrid_FooterContextMenu(e, true);
+            else
+                DxGrid_FooterContextMenu(e);
+        }
+        else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+            var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+            e.component.selectRows(key);
+            var expanded = e.component.isRowExpanded(key);
+            e.items = [
+                {
+                    text: "Expand Detail",
+                    icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                    disabled: expanded,
+                    visible: !LandB_IsVouchingMode,
+                    onItemClick: function () {
+                        if (expanded) {
+                        }
+                        else {
+                            e.component.expandRow(key);
+                        }
+                    }
+                }, {
+                    text: "Collapse Detail",
+                    icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                    disabled: !expanded,
+                    visible: !LandB_IsVouchingMode,
+                    onItemClick: function () {
+                        if (expanded) {
+                            e.component.collapseRow(key);
+                        }
+                        else {
+                        }
+                    }
+                },
+                {
+                    text: "New",
+                    icon: "fa-solid fa-plus text-success",
+                    beginGroup: true,
+                    visible: "@PropertyLB_AddRight" == "True",
+                    onItemClick: function () {
+                        OnPropertyNewClick();
+                    }
+                },
+                {
+                    text: "Edit",
+                    icon: "fa-solid fa-pen text-info",
+                    visible: "@PropertyLB_UpdateRight" == "True",
+                    onItemClick: function () {
+                        OnPropertyEditClick();
+                    }
+                },
+                {
+                    text: "Delete",
+                    icon: "fa-solid fa-trash",
+                    visible: "@PropertyLB_DeleteRight" == "True",
+                    onItemClick: function () {
+                        OnPropertyDeleteClick();
+                    }
+                },
+                {
+                    text: "View",
+                    icon: "fa-regular fa-eye",
+                    visible: "@PropertyLB_ViewRight" == "True",
+                    onItemClick: function () {
+
+                        OnPropertyViewClick();
+                    }
+                }
+                ,
+                {
+                    text: "Change Rent Details",
+                    icon: "fa-solid fa-pen text-info",
+                    visible: "@PropertyLB_UpdateRight" == "True",
+                    onItemClick: function () {
+                        OnPropertyChangeRentClick();
+                    }
+                },
+                @*{
+                    text: "Change Property Type",
+                    icon: "fa-solid fa-pen text-info",
+                    visible: "@PropertyLB_UpdateRight" == "True",
+                    onItemClick: function () {
+                        OnPropertyEditClick(false, true);
+                    }
+                },*@
+                {
+                    text: "Export",
+                    icon: "fa-solid fa-file-export text-warning",
+                    visible: "@PropertyLB_ExportRight" == "True",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        OnPropertyListPreviewClick();
+                    }
+                },
+                {
+                    text: "Audit Actions",
+                    icon: "../../../../Icons/Audit Actions1_16x16.png",
+                    visible: true,
+                    items: [
+                        {
+                            text: "New",
+                            icon: "../../../../Icons/New button2_16x16.png",
+                            visible: "@PropertyLB_ManageRemarks" == "True",
+                            onItemClick: function () {
+                                OnNewAuditClick_P();
+                            }
+                        },
+                        {
+                            text: "View",
+                            icon: "../../../../Icons/View button1_16x16.png",
+                            visible: true,
+                            onItemClick: function () {
+                                OnViewAuditClick_P();
+                            }
+                        },
+                        {
+                            text: "Lock",
+                            icon: "../../../../Icons/Lock1_16x16.png",
+                            visible: "@PropertyLB_LockUnlockRight" == "True",
+                            onItemClick: function () {
+                                OnPropertyLockClick();
+                            }
+                        },
+                        {
+                            text: "Unlock",
+                            icon: "../../../../Icons/Unlock1_16x16.png",
+                            visible: "@PropertyLB_LockUnlockRight" == "True",
+                            onItemClick: function () {
+                                PropertyOnUnlockClick();
+                            }
+                        }
+                    ]
+                },
+                {
+                    text: "Creation Entry",
+                    icon: "fa-solid fa-gears text-primary",
+                    items: [
+                        {
+                            text: "Edit",
+                            icon: "fa-solid fa-pen text-info",
+                            visible: true,
+                            onItemClick: function () {
+
+                                OnPropertyCreationEntryEditClick();
+                            }
+                        },
+                        {
+                            text: "View",
+                            icon: "fa-regular fa-eye",
+                            visible: true,
+                            onItemClick: function () {
+                                OnPropertyCreationEntryViewClick();
+                            }
+                        },
+                        {
+                            text: "Delete",
+                            icon: "fa-solid fa-trash",
+                            visible: true,
+                            onItemClick: function () {
+                                OnPropertyCreationEntryDeleteClick();
+                            }
+                        }
+                    ]
+                },
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        closeProfile_Property();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        PropertyListGrid_dx_Refresh();
+                    }
+                }]
+        }
+        else if (e.target == "content" && e.row == void 0) {
+            e.items = [
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        closeProfile_Property();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        PropertyListGrid_dx_Refresh();
+                    }
+                }
+            ]
+        }
+    }
+
+    function PropertyListGrid_dx_Detail(container, GridName, RecID, vouchingMode, AllColumns)
+    {
+        var url = "/Profile/Property/Frm_Property_Info_DetailGrid_dx_Load?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+        var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+        instance.option("onSelectionChanged", PropertyListGrid_dx_Detail_onSelectionChanged);       
+    }
+    function PropertyListGrid_dx_Detail_onSelectionChanged(e) {
+        if (PropertyInfo_IsDetailRowExpanded || LandB_IsVouchingMode) {
+            if (e.selectedRowsData != null && e.selectedRowsData.length > 0) {
+                PropertyInfo_NestedGrid_AccessID = e.element[0].id;
+                PropertyListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+            }
+            else {
+                PropertyPrf_FAB.SetActionContext("AddAttachmentContext", false);
+            }
+        }
+    }
+    function PropertyListGrid_dx_Detail_SelectedRowData(selectedData = null) {
+        if (selectedData == null) {
+            selectedData = $("#" + PropertyInfo_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+        }
+        var values = selectedData[0];
+        PropertyInfo_NestedRowKeyValue = values["UniqueID"];
+        if (values["UniqueID"] != null) {
+            PropertyPrf_FAB.SetVisible(true);
+            PropertyInfo_Nested_Doc_Status = values["Doc_Status"];
+
+            if (LandB_IsVouchingMode  == true) {
+                PropertyPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else {
+                if (PropertyInfo_Nested_Doc_Status == "") {
+                    PropertyPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                else if (PropertyInfo_Nested_Doc_Status == "NO") {
+                    PropertyPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (PropertyInfo_Nested_Doc_Status == "YES") {
+                    PropertyPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            PropertyInfo_ParamMandatory = values["Params_Mandatory"];
+            PropertyInfo_FromDateLabel = values["LABEL_FROM_DATE"];
+            PropertyInfo_ToDateLabel = values["LABEL_TO_DATE"];
+            PropertyInfo_DescriptionLabel = values["LABEL_DESCRIPTION"];
+            PropertyInfo_Doc_Category = values["Document_Category"];
+            PropertyInfo_Doc_ID = values["Document_ID"];
+            PropertyInfo_AtachmentID = values["ATTACH_ID"];
+            IndexAttachmentID = PropertyInfo_AtachmentID;
+            PropertyInfo_MasterRowRecID = values["TxnID"];
+            PropertyInfo_MasterRowMID = values["TxnMID"];
+            PropertyInfo_NestedRowMapID = values["MAP_ID"];
+            PropertyInfo_reason = values["Reason"];
+            PropertyInfo_FileName = values["ATTACH_FILE_NAME"];
+            PropertyInfo_Attachment_RecStatus = values["Attachment_Action_Status"];
+
+            if (LandB_IsVouchingMode  == true) {
+                if (PropertyInfo_FileName != null && PropertyInfo_FileName.length > 0) {
+                    ViewDocument(PropertyInfo_AtachmentID, PropertyInfo_FileName, "PropertyPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else {
+                    CloseRightPane();
+                    ClearRightPane();
+                }
+            }
+        }
+        PropertyInfo_NestedRowReasonID = values["ReasonID"];
+        IndexAttachmentReasonID = PropertyInfo_NestedRowReasonID;
+    }
+
+
+</script>
+    @*Grid Functions end*@
+    @*Grid Related Methods end*@
+    <script>
+        function PropertyListGrid_dx_iIconTemplate(container, templateData) {
+            var iREQ_ATTACH_COUNT = templateData.data.REQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.COMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.RESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.REJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.OTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.ALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var UniqueID = templateData.component.element()[0].id
+            var key = templateData.data.ID
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        function PropertyListGri_dx_PreviewRow_Template(e) {
+            var htmlString = "";
+
+            if (LandB_IsVouchingMode == true) {
+                htmlString = DxGrid_AuditButtons(e.element[0].id, e.key, e.rowIndex);
+            }
+            else {
+                if (e.data.TYPE_CHANGE_LOG.length > 0) {                    
+                    htmlString = "<div>";
+                      var changeLogSplit = e.data.TYPE_CHANGE_LOG.split("|")
+                    for (var i = 0; i < changeLogSplit.length; i++) {
+                        htmlString += changeLogSplit[i] + "<br>";
+                    }
+                    htmlString  += "</div>";
+                }
+            }
+            return htmlString;
+        }
+        function PropertyListGrid_dx_GroupCell_Template(container, templateData) {
+            DxGrid_GroupCell_Template(container, templateData)
+        }
+        function PropertyListGrid_dx_Compact_Column_Template(container, templateData) {
+
+            var Name = templateData.component.element()[0].id;
+            var KeyValue = templateData.data.ID;
+            var VouchingMode = LandB_IsVouchingMode == true ? "True" : "False";
+            var htmlString = "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Category:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Category' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Category ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Type:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Type' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Type ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Property / Building Name:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LB_PRO_NAME' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.LB_PRO_NAME ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Address:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Address' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Address ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Use of Property:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Use_of_Property' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Use_of_Property ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Ownership:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Ownership' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Ownership ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Owner:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Owner' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Owner ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Survey No.:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LB_SURVEY_NO' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.LB_SURVEY_NO ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Total Plot Area (Sq.Ft.):</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LB_TOT_P_AREA' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.LB_TOT_P_AREA ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Constructed Area (Sq.Ft.):</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LB_CON_AREA' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.LB_CON_AREA ?? "") + "</div></div></div></div></div></div></div>" +
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Construction Year:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Construction_Year' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Construction_Year ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>RCC Roof:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|RCC_Roof' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.RCC_Roof ?? "") + "</div></div></div></div></div></div></div>";
+
+
+            if (UserType_LandBPrf.toUpperCase() === "SUPERUSER" || UserType_LandBPrf.toUpperCase() === "AUDITOR") {
+                htmlString = htmlString + "<div style='padding:0px 5px 0px 5px'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Opening Value:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Opening_Value' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DxGrid_FormatNumber(templateData.data.Opening_Value ?? "") + "</div></div></div></div></div>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Curr. Value:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Curr_Value' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    /*(JS_Json_Date_To_ddMMyyyy((templateData.data.BA_OPEN_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")*/
+                    DxGrid_FormatNumber(templateData.data.Curr_Value ?? "") + "</div></div></div></div></div></div></div>";
+
+            }
+
+            htmlString = htmlString + "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Deposit Amount:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Deposit_Amount' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                /*(JS_Json_Date_To_ddMMyyyy((templateData.data.BA_CLOSE_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")*/
+                DxGrid_FormatNumber(templateData.data.Deposit_Amount ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Paid Date:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Paid_Date' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Paid_Date ?? ""), "DD/MM/YYYY")??"") + "</div></div></div></div></div></div></div>" +
+
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Monthly Rent:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Monthly_Rent' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                /*(JS_Json_Date_To_ddMMyyyy((templateData.data.BA_CLOSE_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")*/
+                DxGrid_FormatNumber(templateData.data.Monthly_Rent ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Period From:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Period_From' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Period_From ?? ""), "DD/MM/YYYY")??"") + "</div></div></div></div></div></div></div>" +
+
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Period To:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Period_To' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                /*(JS_Json_Date_To_ddMMyyyy((templateData.data.BA_CLOSE_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")*/
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.Period_To ?? ""), "DD/MM/YYYY")??"") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Other Detail:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Other_Detail' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Other_Detail ?? "") + "</div></div></div></div></div></div></div>" +
+
+                "<div style='padding:0px 5px 0px 5px'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Reference:</label></div>" +
+                "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Special_Ref' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                /*(JS_Json_Date_To_ddMMyyyy((templateData.data.BA_CLOSE_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")*/
+                (templateData.data.Special_Ref ?? "") + "</div></div></div></div></div>" +
+                "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                "<div class='form-field'>" +
+                "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                "<label class='control-label'>Sale Status:</label></div>" +
+                "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Sale_Status' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Sale_Status ?? "") + "</div></div></div></div></div></div></div>";
+
+
+            $(container).html(htmlString)
+        }
+        function PropertyListGrid_dx_Compact_Column_CellValue(rowData) {
+            var data =
+                [
+                    rowData.Category, rowData.Type, rowData.LB_PRO_NAME, rowData.Address, rowData.Use_of_Property,
+                    rowData.Ownership, rowData.Owner, rowData.LB_SURVEY_NO,
+                    rowData.LB_TOT_P_AREA, rowData.LB_CON_AREA, rowData.Construction_Year, rowData.RCC_Roof, rowData.Opening_Value,
+                    rowData.Curr_Value, rowData.Deposit_Amount, rowData.Paid_Date, rowData.Monthly_Rent,
+                    rowData.Period_From, rowData.Period_To, rowData.Other_Detail, rowData.Special_Ref, rowData.Sale_Status
+
+                ]
+            return data.join(" ")
+
+        }
+        function PropertyListGrid_dx_DetailTemplate(container, templateData) {
+            var GridName = templateData.component.element()[0].id
+            var RecID = templateData.data.ID;
+            PropertyListGrid_dx_Detail(container, GridName, RecID, LandB_IsVouchingMode, Property_ShowHorizontalBar_dx);
+        }    
+
+        function LeftPaneContent_Property_dx(GridName, RecID, vouchingMode, AllColumns = 0) {
+            $("#LeftPane_Div_Content").html(null);
+            $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+            PropertyListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            setTimeout(function () {
+                AdditionalInfoGrid_Property_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            })
+        }
+        function AdditionalInfoGrid_Property_dx(container, GridName, RecID, vouchingMode, AllColumns) {
+            var url = "/Profile/Property/Frm_Property_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url)         
+        }
+
+    </script>
+    @*Grid Related Methods end*@
+
+    @*END DEvextreme*@
+</div>

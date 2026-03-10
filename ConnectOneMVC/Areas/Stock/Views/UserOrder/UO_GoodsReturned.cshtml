@@ -1,0 +1,233 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@*@model IEnumerable<dynamic>*@
+@model ConnectOneMVC.Areas.Stock.Models.NEVD_UserOrder
+
+@{
+    ViewBag.Test = Model.UO_ActionMethod;
+    bool IsVisible = (Model != null && Model.UO_ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.UO_ActionMethod == "View" || Model.UO_ActionMethod == "Delete") ? true : false;
+}
+
+<div id="gudrnd" class="tab-pane fade in">
+    <div class="row">
+        <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+          
+            @Html.Action("UO_GoodsReturnedGridData", "UserOrder", new { ActionMethodName = Model.UO_ActionMethod, UOID = Model.UOID })
+
+        </div>
+    </div>
+    <div class="row btnsDiv formRow">
+        @(Html.DevExtreme().Button().ID("UOIDNew").Text("New").Disabled(IsDisabled).OnClick(@<text>
+                function () {UserOrderReturned_NEVD("New");}
+        </text>))
+        @(Html.DevExtreme().Button().ID("UOIDEdit").Text("Edit").Disabled(IsDisabled).OnClick(@<text>
+                function () {UserOrderReturned_NEVD("Edit");}
+        </text>))
+        @(Html.DevExtreme().Button().ID("UOIDDelete").Text("Delete").Disabled(IsDisabled).OnClick(@<text>
+                function () {UserOrderReturned_NEVD("Delete");}
+        </text>))
+        @(Html.DevExtreme().Button().ID("UOIDView").Text("View").Disabled(IsVisible).OnClick(@<text>
+                function () {UserOrderReturned_NEVD("View");}
+        </text>))
+        @(Html.DevExtreme().Button().ID("UOBUT_ReRecd").Text("All Re- Recd").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_UO_GRet_Re_Recd_Click() } </text>))
+    </div>
+</div><!--[3]-->
+<script>
+    var Returned_Rec_Id;//sr
+    var UO_Ret_Id;//id
+    function UOReturnedGridFocusedRowChanged(s, e) {
+        
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID', Returned_GridRowValues);
+    }
+    function Returned_GridRowValues(values) {
+        
+        Returned_Rec_Id = values[0];
+        UO_Ret_Id = values[1];
+    }
+
+    $("#UO_Goods_Returned_Grid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                UserOrderReturned_NEVD("New")
+                break;
+            case 13: //enter key
+                UserOrderReturned_NEVD("Edit");
+                break;
+
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+           UserOrderReturned_NEVD("New");
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            UserOrderReturned_NEVD("Edit");
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            UserOrderReturned_NEVD("View");
+        }
+    }); 
+
+
+    function UserOrderReturned_NEVD(actionMethod)
+    {
+
+        if (actionMethod == "New") {
+            if ("@IsDisabled" == "true") { return; }
+
+      
+                var menucheck = UO_StatusFlowCheck("ADD-GOODS-RETURNED");
+            if (menucheck[1] == false) {
+                DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                return;
+            }
+                ShowLoader();
+          
+            OpenPopup("UserOrderinnergrid", "New Item Detail ~ Goods Returned", "@Url.Action("Frm_User_Order_Returned", "UserOrder", new {@area= "Stock" })?ActionMethod=New", "auto", 1000, false, null);
+        }
+            if (actionMethod == "Edit")
+            {
+                      if("@IsDisabled"== "true") { return; }
+
+                if (Returned_Rec_Id == null || Returned_Rec_Id == undefined || Returned_Rec_Id == "undefined") {
+                        DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                        return;
+                    }
+
+                    var menucheck = UO_StatusFlowCheck("UPDATE-GOODS-RETURNED");
+                    if (menucheck[1] == false) {
+                        DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                        return;
+                    }
+                var check = UO_Returned_datanavigation("Edit");
+                if (check[1] == false) {
+                    DevExpress.ui.dialog.alert(check[0], "Error");
+                    return;
+                }
+
+                ShowLoader();
+          
+            OpenPopup("UserOrderinnergrid", "Edit Item Detail ~ Goods Returned","@Url.Action("Frm_User_Order_Returned", "UserOrder", new {@area= "Stock" })?ActionMethod=Edit&SR=" + encodeURIComponent(Returned_Rec_Id), "auto", 1000, false, null);
+            }
+            
+            else if (actionMethod == "Delete")
+            {
+                    if ("@IsDisabled" == "true") {
+                        return;
+                    }
+                if (Returned_Rec_Id == 'undefined' || Returned_Rec_Id == undefined || Returned_Rec_Id == null || UO_Ret_Id == 'undefined' || UO_Ret_Id == undefined) {
+                        DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                        return;
+                }
+                var menucheck = UO_StatusFlowCheck("DELETE-GOODS-RETURNED");
+                if (menucheck[1] == false) {
+                    DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                    return;
+                }
+                var check = UO_Returned_datanavigation("Delete");
+                if (check[1] == false) {
+                    DevExpress.ui.dialog.alert(check[0], "Error");
+                    return;
+                }
+                    var Actual_Manpower_Details = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+                    Actual_Manpower_Details.done(function (dialogResult) {
+                        if (dialogResult) {
+                            $.ajax({
+                                type: 'GET',
+                                url: "/Stock/UserOrder/Check_Unsaved_Item_Entry_in_RetRecd_and_Recd_Grid", //mantis bug #925
+                                data: { RecID: UO_Ret_Id },
+                                cache: false,
+                                success: function (res) {
+                                    if (res.result == true)// no added row exists in ret-recd
+                                    {
+
+                                        
+                                        $.ajax({
+                                            type: 'GET',
+                                            url: "/Stock/UserOrder/Frm_GoodsRetn_DetailWin_Delete_Grid_Record",
+                                            data: { ActionMethod: "Delete", SrID: Returned_Rec_Id, Goods_Ret_Id: UO_Ret_Id },
+                                            cache: false,
+                                            success: function (data) {
+                                                if (data.result == false) {
+                                                    DevExpress.ui.dialog.alert(data.message, "Error");
+                                                }
+                                                else if (data.result == true) {
+                                                    DevExpress.ui.dialog.alert("Record Deleted Successfully", "Inform..");
+
+                                                    UO_Goods_Returned_Grid.SetFocusedRowIndex(-1);
+                                                    UO_Goods_Returned_Grid.Refresh();
+                                                }
+                                            }
+                                        });
+                                    }
+
+                                else if (res.result == false) {
+                                    DevExpress.ui.dialog.alert(res.message, 'Alert');
+                                }
+                            }
+                        });
+
+                    }
+                });
+            }
+
+
+            else if (actionMethod == "View")
+            {
+                debugger
+                  if ("@IsDisabled" == "true") {
+                        return;
+                    }
+                if (Returned_Rec_Id == null || Returned_Rec_Id == undefined || Returned_Rec_Id == "undefined")
+                {
+                    DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                    return;
+                }
+                 ShowLoader();
+          
+            OpenPopup("UserOrderinnergrid", "View Item Detail ~ Goods Returned","@Url.Action("Frm_User_Order_Returned", "UserOrder", new {@area= "Stock" })?ActionMethod=View&SR=" + encodeURIComponent(Returned_Rec_Id), "auto", 1000, false, null);
+            }
+
+    }
+
+   
+    function OnFrm_UO_GRet_Re_Recd_Click() {
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    //function Frm_User_Order_Returned_OnSuccess(data) {
+    //    HideLoader();
+    //    if (data.result == false) {
+    //        DevExpress.ui.dialog.alert(data.message, "Error");
+    //    }
+    //    else {
+    //        var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");
+    //        $("#UserOrderinnergrid").dxPopup("hide");
+    //        UO_Goods_Returned_Grid.SetFocusedRowIndex(-1);
+    //        UO_Goods_Returned_Grid.Refresh();
+    //    }
+    //}
+    function UO_Returned_datanavigation(_actionmethod) {
+        debugger
+        if (!_actionmethod) { _actionmethod = null; }
+
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Stock/UserOrder/DataNavigationReturned",
+            data: {
+                ActionMethod: _actionmethod,
+                ID: UO_Ret_Id,
+            },
+            cache: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+
+        return [msg, result];
+    }
+   </script>

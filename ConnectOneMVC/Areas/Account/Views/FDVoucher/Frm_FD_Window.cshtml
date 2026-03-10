@@ -1,0 +1,533 @@
+﻿<div class="FDWindow_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Model_FD_Window
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    bool FDVoucher_BankListRight = (bool) ViewData["FDVoucher_BankListRight"];
+}
+<style>
+ /*   #Txt_No_FD {
+        text-transform:uppercase;
+    }*/
+    #Lbl_Period {
+        margin-bottom:3px;
+    }
+    </style>
+<div id="FDWindow">
+    @using (Ajax.BeginForm("Frm_FD_Window_Save", "FDVoucher",
+                            new AjaxOptions
+                            {
+                                HttpMethod = "POST",
+                                UpdateTargetId = "FDWindow",
+                                InsertionMode = InsertionMode.InsertAfter,
+                                OnBegin = "AjaxBeginFormPost",
+                                OnSuccess = "FDAjaxSuccessForm"
+                            },
+                                new
+                                {
+                                    id = "id_Frm_FD_Window",
+                                    @class = "edit_form"
+                                }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.TxnID)
+        @Html.HiddenFor(x => x.Status)
+        @Html.HiddenFor(x => x.MatDate)
+        @Html.HiddenFor(x => x.Fdiaction)
+        @Html.HiddenFor(x => x.iAction_window)
+        @Html.HiddenFor(x => x.iRenewFrom)
+        @Html.HiddenFor(x => x.iRenewFDNo)
+        @Html.HiddenFor(x => x._action)
+        @Html.HiddenFor(x => x.xFdID)
+        @Html.HiddenFor(x => x.xID_FD)
+        @Html.HiddenFor(x => x.TempActionMethod)
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>Fixed Deposit(F.D.)</h3>
+                    </div>
+                    <div class="col-sm-6">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            </div><!--[Header]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-10">
+                            <div class="row" id="div_bank_fdwindow">
+                                @Html.Label("Bank Name:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_FD_Bank" })
+                                <br>
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Look_BankList_FD").Name("Look_BankList_FD").ValueExpr("ID").DisplayExpr("Name")
+                                      .DataSource(d => d.Mvc().Controller("FDVoucher").LoadAction("LookUp_GetBankList_FD").Key("ID").LoadMode(DataSourceLoadMode.Raw)).Value(Model.Look_BankList_FD)
+                                      .OnValueChanged("Look_BankList_EditValueChanged_FD").Placeholder("Select Bank...").ContentTemplate(@<text> @Html.Partial("FDWindow_LookUp_GetBankList") </text>) )
+
+                                <label id="Lbl_Branch" class="control-label" style="color:dodgerblue"></label>
+                                <br>
+                                <label id="Lbl_AccountNo" class="control-label" style="color:dodgerblue"></label>
+                            </div>
+                        </div><!--[bAnk]-->
+                        <div class="col-sm-2 pll prm">
+                            <div class="row" id="div_Manbank_fdwindow">
+                                @(Html.DevExtreme().Button().ID("BtnManageBank").Text("Manage Bank").Height("inherit").Width("100%").OnClick(@<text> function () { OnManageBankClick(); } </text>).Disabled(Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") )
+                            </div>
+                        </div><!--[Manage Bank]-->
+                    </div>
+                </div>
+            </div> <!--[Bank]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-4">
+                            <div class="row">
+                                @Html.Label("FD Account No:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_AccNo" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true,true).ID("Txt_No_FD").Name("Txt_No_FD").Placeholder("Type F.D. Account No...").MaxLength(20).Value(Model.Txt_No_FD))
+                            </div>
+                        </div><!--[Account No.]-->
+                        <div class="col-sm-4">
+                            <div class="row">
+                                @Html.Label("FD Date:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_FD_Date" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("Txt_Date_FD").Name("Txt_Date_FD").Placeholder("dd-MM-yyyy").OnValueChanged("ShowPeriod_FD").Value(Model.Txt_Date_FD) )
+                            </div>
+                        </div><!--[FD Date]-->
+                        <div class="col-sm-4">
+                            <div class="row">
+                                @Html.Label("As of Date:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_As_Of_Date" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("Txt_As_Date_FD").Name("Txt_As_Date_FD").OnValueChanged("ShowPeriod_FD").Value(Model.Txt_As_Date_FD).Min("01/01/1936") )
+                            </div>
+                        </div><!--[FD As Date]-->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-4">
+                            <div class="row">
+                                @Html.Label("FD Amount:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_FD_Amt" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Txt_Amount_FD").Name("Txt_Amount_FD").Format("#.##").Placeholder("Type F.D. Amount...").Value(Model.Txt_Amount_FD) )
+                            </div>
+                        </div><!--[Amount]-->
+                        <div class="col-sm-4">
+                            <div class="row">
+                                <label id="lbl_ROI" class="control-label text-red">Rate of Interest(% p.a):</label>
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("txt_Rate_FD").Name("txt_Rate_FD").Placeholder("Type F.D. Interest Rate...").Format("#0.00").Value(Model.txt_Rate_FD==0?(double?)null: Model.txt_Rate_FD))
+                            </div>
+                        </div><!--[Rate]-->
+                        <div class="col-sm-4">
+                            <div class="row">
+                                @Html.Label("Interest Payment Condition:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_paymt_cond" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Cmd_Type_FD").Name("Cmd_Type_FD").DataSource(new[] { "ON MATURITY", "MONTHLY", "QUARTERLY", "HALF YEARLY", "YEARLY" }).Placeholder("Select Type...").Value(string.IsNullOrEmpty(Model.Cmd_Type_FD)? "ON MATURITY" : Model.Cmd_Type_FD).ShowClearButton(false)) @*Redmine Bug #133636 fix*@
+                            </div>
+                        </div><!--[Mode]-->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                @Html.Label("Maturity Amount:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_mat_amt" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Txt_Mat_Amount_FD").Name("Txt_Mat_Amount_FD").Format("#.##").Placeholder("Type Maturity Amount...").Value(Model.Txt_Mat_Amount_FD) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Mat Amount]-->
+                <div class="col-sm-4">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                @Html.Label("Maturity Date:", htmlAttributes: new { @class = "control-label text-red", @id = "lbl_mat_date" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().DateBox().CustomDateBox().ID("Txt_Mat_Date_FD").Name("Txt_Mat_Date_FD").Placeholder("dd-MM-yyyy").OnValueChanged("ShowPeriod_FD").Value(Model.Txt_Mat_Date_FD).Min(new DateTime(1900,1,1)) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Mat Date]-->
+                <div class="col-sm-4">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                @Html.Label("Fd Period:", htmlAttributes: new { @class = "control-label ", @id = "lbl_fd_period" })
+                            </div>
+                            <div class="row">
+                                <label id="Lbl_Period" class="control-label"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Period]-->
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-md-12 pll">
+                            <div class="row">
+                                @Html.Label("Other Detail:", htmlAttributes: new { @class = "control-label", @id = "lbl_FD_remarks" })
+                            </div>
+                            <div class="row">
+                                @(Html.DevExtreme().TextBox().CustomTextBox(true).ID("Txt_Remarks_FD").Name("Txt_Remarks_FD").Placeholder("Type Any Other Details/Remarks...").MaxLength(250).Value(Model.Txt_Remarks_FD) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ Fixed Deposit (F.D.))...", Model.TempActionMethod.Substring(1)))
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <div class="styleActionBtn">
+                                @(Html.DevExtreme().Button().ID("BUT_SAVE_FD_win").CustomSaveButton().Text((Model.TempActionMethod.ToString().Trim() == "_New" || Model.TempActionMethod.ToString().Trim() == "_New_From_Selection" || Model.TempActionMethod.ToString().Trim() == "_Edit") ? "Save" : "Delete").UseSubmitBehavior(false).Visible(Model.TempActionMethod.ToString().Trim() == "_View" ? false : true).OnClick("Fd_win_save"))
+                                @(Html.DevExtreme().Button().ID("BUT_CANCEL_FD_win").CustomCloseButton().Text((Model.TempActionMethod.ToString().Trim() == "_New" || Model.TempActionMethod.ToString().Trim() == "_Edit" || Model.TempActionMethod.ToString().Trim() == "_Delete") ? "Cancel" : "Close").FocusStateEnabled(true).OnClick(@<text> function () { $("#Frm_Voucher_FD_popup").dxPopup("hide"); } </text>) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+        }
+    }
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("Frm_Voucher_FD_ManBank").OnShowing("PopupOnShowing").OnHiding("Managebank_popup_hiding").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ Item Detail").ContentTemplate(@<text> <div id="result_Voucher_FD_ManBank"> </div> </text>))
+<script>
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        if ("@FDVoucher_BankListRight" == "False")
+        {
+            $("#BtnManageBank").hide();
+        }
+        TransformTextForDB("id_Frm_FD_Window");
+        $("#div_Manbank_fdwindow").height($("#div_bank_fdwindow").height());
+        var $FDwindow_DepBank_DataGrid = $("#Frm_Win_FD_GLookUp_BankList_datagrid");
+        if ($FDwindow_DepBank_DataGrid.length) {
+            FDwindow_DepBank_DataGrid = $FDwindow_DepBank_DataGrid.dxDataGrid("instance");
+        }
+       // $("#txt_Rate_FD").dxNumberBox("instance").option("value", null);
+        $("#txt_Rate_FD").dxNumberBox("instance").option("isValid", true);
+        $("#Cmd_Type_FD").dxSelectBox("instance").option("isValid", true);
+        if ("@Model.Look_BankList_FD".length > 0)
+        {
+            await Look_BankList_EditValueChanged_FD(null, true)
+        }
+        if ("@Model.Txt_As_Date_FD".length > 0 && "@Model.Txt_Mat_Date_FD".length > 0)
+        {
+            ShowPeriod_FD();
+        }     
+        if ("@Model.Fdiaction" == "New_FD")
+        {
+            Control_SetReadOnly("Txt_Amount_FD", "dxNumberBox", true, "#696969");
+            Control_SetReadOnly("Txt_Date_FD", "dxDateBox", true, "#696969");
+            Control_SetReadOnly("Txt_As_Date_FD", "dxDateBox", true, "#696969");
+        }
+        if ("@Model.Fdiaction" == "Renew_FD")
+        {
+            Control_SetReadOnly("Look_BankList_FD", "dxDropDownBox", true, "#696969");
+            Control_SetReadOnly("Txt_Amount_FD", "dxNumberBox", true, "#696969");
+            Control_SetReadOnly("Txt_Date_FD", "dxDateBox", true, "#696969");
+        }
+        $("#Txt_No_FD").bind('paste', function (ev)
+        {
+            var $target = $(ev.target);
+            setTimeout(function ()
+            {
+                var data = $target.val();
+                var dataFull = data.replace(/[^a-zA-Z0-9\/]/gi, '');
+                $target.val(dataFull);
+            });
+        });// Bug #133643 fixed
+        FormInitialSettings("id_Frm_FD_Window", "@Model.TempActionMethod",false);
+    });
+</script>
+<script>
+    var FDwindow_DepBank_DataGrid;   
+    async function LookUp_GetBankList_Fd_Window(FirstCall=false)
+    {
+        if (FirstCall == false)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/FDVoucher/RefreshFDBankList",
+                cache: false,
+                success: function (_data)
+                {
+                    $("#Look_BankList_FD").dxDropDownBox("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "BA_ID",
+                        data: _data
+                    }))
+                    FDwindow_DepBank_DataGrid.option("dataSource", $("#Look_BankList_FD").dxDropDownBox("option", "dataSource"))
+                    ResetDropdownWithSameValue("Look_BankList_FD", FDwindow_DepBank_DataGrid)            
+                }
+            });      
+        }
+    }    
+    async function Look_BankList_EditValueChanged_FD(e, FirstCall = false)
+    {
+        var bank;
+        if (e) {
+            bank = e.value;
+            if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                FDwindow_DepBank_DataGrid.clearSelection();
+                $("#Lbl_Branch").text(null);
+                $("#Lbl_AccountNo").text(null);
+                return;
+            }
+        }
+        else
+        {
+            bank = $("#Look_BankList_FD").dxDropDownBox("option", "value");
+        }
+        await FDwindow_DepBank_DataGrid.selectRows(bank);
+        if (FDwindow_DepBank_DataGrid.getSelectedRowsData().length > 0)
+        {
+            var item = FDwindow_DepBank_DataGrid.getSelectedRowsData()[0];
+            $("#Lbl_Branch").text("Branch: " + item["Branch"]);
+            $("#Lbl_AccountNo").text("Customer No.: " + item["BA_CUST_NO"]);
+            $("#Look_BankList_RecEditOn").val(item["REC_EDIT_ON"]);
+        }
+    }
+    function ShowPeriod_FD()
+    {
+        var Txt_As_Date = $("#Txt_As_Date_FD").dxDateBox("instance").option("value");
+        var Txt_Mat_Date = $("#Txt_Mat_Date_FD").dxDateBox("instance").option("value");
+        if ($("#Txt_As_Date_FD").dxDateBox("instance").option("value"))
+        {
+            if ($("#Txt_Mat_Date_FD").dxDateBox("instance").option("value"))
+            {
+                var diff = moment(Txt_Mat_Date).diff(moment(Txt_As_Date), 'days');
+                $("#Lbl_Period").html(diff + " Day(s).");
+            }
+        }
+    }
+    function OnManageBankClick()
+    {
+        DevExpress.ui.dialog.alert("Please use Profile -> Bank Account!!", "Information..");
+        return;
+        if ("@FDVoucher_BankListRight" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection")
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'Get',
+                url: "/Profile/Bank/Frm_Bank_Info_dx",
+                async: false,
+                data:
+                {
+                    PopupId: "Frm_Voucher_FD_ManBank"
+                },
+                cache: false,
+                success:
+                    function (data)
+                    {                     
+                        OpenPopup("Frm_Voucher_FD_ManBank", "Bank Information (F.D.)...", null, "auto", 1280, true, data);
+                    }
+            });
+        }
+    }
+    function Managebank_popup_hiding(e)
+    {
+         LookUp_GetBankList_Fd_Window();
+    }   
+</script>
+<script>
+    async function Fd_win_save(e)
+    {
+        var prompt_data;
+        var ConfirmResult = true; @* Redmine Bug 132936 fixed *@
+        var formid = $("#id_Frm_FD_Window");
+        if (ValidateForm(e))
+        {
+            if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_New_From_Selection" || "@Model.TempActionMethod" == "_Edit") {
+                if ($("#txt_Rate_FD").dxNumberBox("instance").option("value") >= 15) {
+                    var confirm_result = DevExpress.ui.dialog.confirm('Please check the Rate of Interest...!<br>Do you want To Continue...?', "Confirm");
+                    await confirm_result.done(function (dialogResult) {
+                        if (!dialogResult) {
+                            ConfirmResult = false;
+                            $("#txt_Rate_FD").dxNumberBox("instance").focus();
+                            return;
+                        }
+                    });
+                }
+            }
+            if (ConfirmResult) {
+                if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit") {
+                    $.ajax({
+                        type: 'POST',
+                        url: "/Account/FDVoucher/CHECKduplicateAccNo",
+                        async: false,
+                        data:
+                        {
+                            Txt_No: $("#Txt_No_FD").dxTextBox("instance").option("value"),
+                            Look_BankList: $("#Look_BankList_FD").dxDropDownBox("instance").option('value'),
+                            xID: $("#xID_FD").val(),
+                            iRenewFDNo: $("#iRenewFDNo").val()
+                        },
+                        cache: false,
+                        success:
+                            function (data) {
+                                prompt_data = data;
+                            }
+                    });
+                    if (prompt_data.result == false) {
+                        DevExpress.ui.dialog.alert(prompt_data.message, "Error..");
+                        return;
+                    }
+                    if (prompt_data.result == "AccountNoSame") {
+                        var confirm = DevExpress.ui.dialog.confirm(prompt_data.message, "Confirm");
+                        await confirm.done(function (dialogResult) {
+                            if (!dialogResult) {
+                                ConfirmResult = false;
+                                $("#Txt_No_FD").dxTextBox("instance").focus();
+                                return;
+                            }
+                        });
+                    }
+                }
+            }
+            if (ConfirmResult) {
+                formid.submit();
+            }
+        }
+    }
+    function FDAjaxSuccessForm(data)
+    {
+        HideLoader();
+        var FDwindow_GridToRefresh = FDVoucher_GridToRefresh;
+        if (data.jsonParam.result == false)
+        {
+            if (data.jsonParam.closeform)
+            {
+                $("#Frm_Voucher_FD_popup").dxPopup("hide");
+                dontaskpopupcloseconfirmation = true;
+                $("#Dynamic_Content_popup").dxPopup("hide");
+            }
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.refreshgrid == true) {
+                        RefreshGridView(FDwindow_GridToRefresh);
+                    }
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+        }
+        else
+        {
+            var URL;
+            $("#xID_FDWindow").val(data.xid);
+            $("#Look_BankList").val($("#Look_BankList_FD").dxDropDownBox("instance").option("value"));
+            if ("@Model.Fdiaction" == "New_FD")
+            {
+                URL = "/Account/FDVoucher/NewFD_Functionality_Save";
+            }
+            else if ("@Model.Fdiaction" == "Renew_FD")
+            {
+                URL = "/Account/FDVoucher/RenewFD_Functonality_Save";
+            }
+            if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_New_From_Selection")
+            {
+                $("#In_UP_FD").val(JSON.stringify(data.InFD))
+                $("#In_UP_FDHty").val(JSON.stringify(data.InFDHty))
+                $("#In_UP_RenFDHis").val(JSON.stringify(data.InRenFDHis))
+            }
+            else if("@Model.TempActionMethod" == "_Edit")
+            {
+                $("#In_UP_FD").val(JSON.stringify(data.UpFD))
+                $("#In_UP_FDHty").val(JSON.stringify(data.UpFDHis))
+                $("#In_UP_RenFDHis").val(JSON.stringify(data.UpRenFDHty))
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'POST',
+                url: URL,
+                data: $("#id_Frm_Voucher_Win_FD").serialize(),
+                cache: false,
+                success: function (data)
+                {
+                    HideLoader();
+                    $("#Frm_Voucher_FD_popup").dxPopup("hide");
+                    if (data.jsonParam.result == false)
+                    {
+                        if (data.jsonParam.closeform)
+                        {
+                            dontaskpopupcloseconfirmation = true;
+                            $("#Dynamic_Content_popup").dxPopup("hide");
+                        }
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title).done(function ()
+                        {
+                            if (data.jsonParam.refreshgrid == true) {
+                                RefreshGridView(FDwindow_GridToRefresh);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        alertclick.done(function (result)
+                        {
+                            if (result)
+                            {
+                                if (FDVoucher_GridToRefresh != "CashBookListGrid")
+                                {
+                                    RefreshGridView(FDwindow_GridToRefresh);
+                                }
+                                if (/*typeof CashBookListGrid !== 'undefined'*/ $(".TabPanalMenu-tabs .active").attr("id") == "contact_Frm_Voucher_Info_CB")
+                                {
+                                    AfterVoucherClose_CB($("#FD_Txt_V_Date").dxDateBox("instance").option("value"), $("#ActionMethod").val(), IsUndefinedOrNull(data.CashbookGridPK) ? "" : data.CashbookGridPK);
+                                }
+                                dontaskpopupcloseconfirmation = true;
+                                $("#Dynamic_Content_popup").dxPopup("hide");
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    }
+    document.getElementById("Txt_No_FD").addEventListener('keydown', function (e)
+    {
+        var reg = /[a-zA-Z0-9\/]/;
+        if (reg.test(e.key))
+            return true;
+        e.preventDefault();
+        return false;
+    });
+</script>
+    </div>

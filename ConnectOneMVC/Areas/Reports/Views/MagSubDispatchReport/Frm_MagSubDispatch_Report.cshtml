@@ -1,0 +1,417 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using DevExpress;
+@using DevExpress.Web.Mvc;
+@model Common_Lib.DbOperations.Report_Ledgers.MagSubDispatchReport
+
+@{
+    var UserType = ViewBag.UserType;
+    bool MagSubDispatchReport_ExportRight = (bool)ViewData["MagSubDispatchReport_ExportRight"];
+    bool MagSubDispatchReport_Auto_Vouching_Mode = (bool)ViewData["MagSubDispatchReport_Auto_Vouching_Mode"];
+    var BeginDate = ViewBag.FinBegindate;
+    var EndDate = ViewBag.FinTodate;
+}
+<div id="MagSubDispatchRpt_content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Magazine Sub Dispatch Report</label>
+    </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Switch().ID("MagSubDispatchVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("MagSubDispatch_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+        @(Html.DevExtreme().Switch().ID("MagSubDispatchViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("MagSubDispatch_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+        @(Html.DevExtreme().Button().ID("btnshowMagSubDptRpt").Text("Show").Hint("Show Report").Disabled(false).Icon("folder").Width(70).OnClick(@<text> function () { showMagSubDptRpt(); } </text>) )
+        @(Html.DevExtreme().Button().ID("MagSubDptRptToggleScrollBar").Text("Full Data").Width(90).Icon("toolbox").OnClick(@<text> function () { MagSubDpt_changeMode(); } </text>) )
+        @(Html.DevExtreme().Button().ID("btnMagSubDptRptExport").Text("Export").Icon("save").Width(80).OnClick(@<text> function () { OnMagSubDispatchReportPreviewClick(); } </text>) )
+        @(Html.DevExtreme().Button().ID("MagSubDptRptCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){ $(".TabPanalMenu-tabs .active span").click() } </text>) )
+    </div>
+</div>
+<form class="edit_form" style="">
+    <div class="row">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-1 col-md-1 col-lg-1 pll"><label class="control-label" for="user">Magazine</label></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2 prm">
+                        @(Html.DevExtreme().DropDownBox().ID("GLookUp_MagList_Rpt").Name("GLookUp_MagList_Rpt").DisplayExpr("Name").ValueExpr("ID").DataSource(d => d.Mvc().Controller("MagSubDispatchReport").LoadAction("LookUp_GetMagazineList").Key("ID"))
+                                                              .OnValueChanged("GLookUp_MagList_Rpt_Value_Changed").Placeholder("Select value...").ContentTemplate(@<text> @Html.Partial("Frm_Magazine_LookUp_GetMagazineList") </text>))
+                    </div>
+                    <div class="col-sm-1 col-md-1 col-lg-1 pll"><label class="control-label" for="user">From Date</label></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2 prm">
+
+                        @(Html.DevExtreme().DateBox().CustomDateBox()
+                                                                                        .ID("MagSubDispatch_FromDate")
+                                                                                        .Name("MagSubDispatch_FromDate")
+                                                                               .OnValueChanged("MagSubDispatch_FromDateValueChange")
+                                                                               .Value(BeginDate)
+                                                                                .Max(Convert.ToDateTime(EndDate))
+                        )
+                    </div>
+                    <div class="col-sm-1 col-md-1 col-lg-1 pll"><label class="control-label" for="user">To Date</label></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2 prm">
+
+                        @(Html.DevExtreme().DateBox().CustomDateBox()
+                                                                                                           .ID("MagSubDispatch_ToDate")
+                                                                                                           .Name("MagSubDispatch_ToDate")
+                                                                                                  .OnValueChanged("MagSubDispatch_ToDateValueChange").Max(Convert.ToDateTime(EndDate)).Value(EndDate)
+                        )
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<form>
+    <div>
+        @(Html.DevExtreme().TabPanel().ID("MagSubDispatchReport_Gridpanel").Items(items =>
+                                                                                                                    {
+                                                                                                                        items.Add().Title("Report").Template(@<text> @ReportView() </text>);
+                                                                                                                            items.Add().Title("Summary").Template(@<text> @SummaryView() </text>);
+                                                                                                                            }).DeferRendering(false))
+        @helper ReportView()
+        {
+            <div id="MagSubDispatchReportreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_MagSubDispatch_Report_Grid", Model.Grid1)
+            </div>
+        }
+        @helper SummaryView()
+        {
+            <div id="MagSubDispatchReport2reloadPartialView" class="parent_table">
+                @Html.Partial("Frm_MagSubDispatch_Report_Grid2", Model.Grid2)
+            </div>
+        }
+    </div>@*Grid Tabs*@
+
+</form>
+<script>
+
+    var MagSubDpt_ShowHorizontalBar = 0;
+    var MagSubDpt_IsVouchingMode = false;
+    var MagSubDpt_SetVouchingModeOn = "@MagSubDispatchReport_Auto_Vouching_Mode" == "True" ? true : false;
+    var MagSubDpt_ViewMode = "Default";
+    var MagSubDpt_FromDate = null;
+    var MagSubDpt_ToDate = null;
+    var MagSubDpt_MagID = null;
+    var MagSubDpt_layout = null;
+    function MagSubDispatch_ViewSwitch_ValueChange(e)
+    {
+        MagSubDpt_ViewMode = e.value == false ? "Default" : "Compact";
+        if (MagSubDpt_SetVouchingModeOn == true)
+        {
+            MagSubDpt_SetVouchingModeOn = false;
+            $("#MagSubDispatchVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        else
+        {
+            MagSubDispatchReportListGrid.CollapseAllDetailRows();
+            MagSubDispatchReportListGrid2.CollapseAllDetailRows();
+        }
+    }
+    function MagSubDispatch_VouchingSwitch_ValueChange(e)
+    {
+        MagSubDpt_IsVouchingMode = e.value;
+        MagSubDispatchReportListGrid_PerformCallBack();
+        MagSubDispatchReportListGrid2_PerformCallBack();
+    }
+    function MagSubDispatch_FromDateValueChange(e)
+    {
+        MagSubDpt_FromDate = $("#MagSubDispatch_FromDate").dxDateBox("instance").option("value");
+    }
+    function MagSubDispatch_ToDateValueChange(e)
+    {
+        MagSubDpt_ToDate = $("#MagSubDispatch_ToDate").dxDateBox("instance").option("value");
+    }
+    function GLookUp_MagList_Rpt_Value_Changed(e)
+    {
+        e.component.close();
+        MagSubDpt_MagID = e.value;
+        var $dataGrid = $("#MagazineReportList");
+        if ($dataGrid.length)
+        {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.component.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0)
+            {
+                var item = dataGrid.getSelectedRowsData()[0];
+            }
+        }
+    }
+    function MagSubDispatchReportListGrid_PerformCallBack() {
+
+        if (typeof window !== 'undefined') {
+            if (typeof window.MagSubDispatchReportListGrid !== 'undefined') {
+                if (typeof window.MagSubDispatchReportListGrid.PerformCallback !== 'undefined') {
+                    if (typeof MagSubDispatchReportListGrid.PerformCallback == 'function') {
+                        MagSubDispatchReportListGrid.PerformCallback();
+                    }
+                    else {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function () {
+                      MagSubDispatchReportListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else {
+                alert('grid undefined')
+            }
+        }
+        else {
+            alert('window undefined')
+        }
+    }
+    function MagSubDispatchReportListGrid2_PerformCallBack() {
+
+        if (typeof window !== 'undefined') {
+            if (typeof window.MagSubDispatchReportListGrid2 !== 'undefined') {
+                if (typeof window.MagSubDispatchReportListGrid2.PerformCallback !== 'undefined') {
+                    if (typeof MagSubDispatchReportListGrid2.PerformCallback == 'function') {
+                        MagSubDispatchReportListGrid2.PerformCallback();
+                    }
+                    else {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function () {
+                        MagSubDispatchReportListGrid2_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }          
+            else {
+                alert('grid undefined')
+            }
+        }
+        else {
+            alert('window undefined')
+        }    
+    }
+    $(document).ready(function ()
+    {
+        MagSubDispatch_FromDateValueChange();
+        MagSubDispatch_ToDateValueChange();
+        if (MagSubDpt_IsVouchingMode == true)
+        {
+            $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+            $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+        }
+        else
+        {
+            $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+            $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+        }
+        GetSessionStorage("MagSubDispatchReportListGrid");
+        GetSessionStorage("MagSubDispatchReportListGrid2");
+        if (MagSubDpt_SetVouchingModeOn == true)
+        {
+            $("#MagSubDispatchViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {       
+        $.ajax({
+            type: 'POST',
+            url: "/Reports/MagSubDispatchReport/SessionClear"
+        });
+    });
+</script>
+<script>
+    function MagSubDispatchReport_OnInit(s, e)
+    {
+       MagSubDispatchReport_AdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+           MagSubDispatchReport_AdjustSize();
+        });
+    }
+    function MagSubDispatchReport_AdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try { MagSubDispatchReportListGrid.SetHeight(height); } catch (err) { }
+    }
+    function MagSubDispatchReport_OnbegincallBack(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = MagSubDpt_ShowHorizontalBar;
+        e.customArgs["FromDate"] = (moment(MagSubDpt_FromDate).format("DD/MM/YYYY HH:mm:ss"));
+        e.customArgs["ToDate"] = (moment(MagSubDpt_ToDate).format("DD/MM/YYYY HH:mm:ss"));
+        e.customArgs["MagID"] = MagSubDpt_MagID;
+        e.customArgs["VouchingMode"] = MagSubDpt_IsVouchingMode
+        e.customArgs["ViewMode"] = MagSubDpt_ViewMode;
+    }
+    function MagSubDispatchReport_EndCallback(s, e)
+    {
+        MagSubDpt_layout = s.cpClientLayout;
+        if (MagSubDpt_IsVouchingMode == true) {
+            $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+        }
+        else {
+            $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+        }
+        GetSessionStorage("MagSubDispatchReportListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH")
+        {
+            if (MAgReport_ShowClick == true)
+            {
+                MAgReport_ShowClick = false;
+                MagSubDispatchReportListGrid2.PerformCallback();
+            }
+        }
+    }
+    function MagSubDispatchReportContextMenuFunction(s, e)
+    {
+
+        if (e.item.name == 'Close')
+        {
+
+            btnCloseActiveTab();
+
+        }
+        else if (e.item.name == 'ListPreview')
+        {
+
+            OnMagSubDispatchReportPreviewClick();
+
+        }
+        else if (e.item.name == 'Refresh')
+        {
+
+            MagSubDispatchReportListGrid.Refresh();
+
+        }
+
+    }
+    function MagSubDpt_changeMode() {
+            ShowLoader();
+            if (MagSubDpt_ShowHorizontalBar == 0) {
+                MagSubDpt_ShowHorizontalBar = 1;
+                $("#MagSubDptRptToggleScrollBar").find("span").text("Default Data");
+                $("#MagSubDptRptToggleScrollBar").width(110);
+            }
+            else {
+                MagSubDpt_ShowHorizontalBar = 0;
+                $("#MagSubDptRptToggleScrollBar").find("span").text("Full Data");
+                $("#MagSubDptRptToggleScrollBar").width(90);
+        }
+        MagSubDpt2_changeMode();
+            $.ajax({
+                url: '@Url.Action("Frm_MagSubDispatch_Report_Grid", "MagSubDispatchReport")',
+                type: "GET",
+                data: { ShowHorizontalBar: MagSubDpt_ShowHorizontalBar, VouchingMode: MagSubDpt_IsVouchingMode, ViewMode: MagSubDpt_ViewMode, Layout: MagSubDpt_layout },
+                success: function (res) {
+                    $("#MagSubDispatchReportreloadPartialView").html(res);
+                    if (MagSubDpt_IsVouchingMode == true) {
+                        $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+                    }
+                    else {
+                        $(".MagSubDispatchReportListGrid_PreviewRow").hide();
+                    }
+                    GetSessionStorage("MagSubDispatchReportListGrid");
+                }
+            });
+            HideLoader();
+    }
+    function OnMagSubDispatchReportPreviewClick()
+    {
+        OpenPopup("ReportModalpopup", "Export Option", "@Url.Action("Frm_Export_Options", "MagSubDispatchReport", new { @area = "Reports" })?SelectedIndex=" + $("#MagSubDispatchReport_Gridpanel").dxTabPanel("instance").option("selectedIndex"),"auto","auto");
+    }
+</script>
+<script>
+    var MagSubDpt2_layout = null;
+    function MagSubDispatchReport2_OnInit(s, e)
+    {
+       MagSubDispatchReport2_AdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+           MagSubDispatchReport2_AdjustSize();
+        });
+    }
+    function MagSubDispatchReport2_AdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try { MagSubDispatchReportListGrid2.SetHeight(height); } catch (err) { }
+    }
+    function MagSubDispatchReport2_OnbegincallBack(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = MagSubDpt_ShowHorizontalBar;
+        e.customArgs["FromDate"] = (moment(MagSubDpt_FromDate).format("DD/MM/YYYY HH:mm:ss"));
+        e.customArgs["ToDate"] = (moment(MagSubDpt_ToDate).format("DD/MM/YYYY HH:mm:ss"));
+        e.customArgs["MagID"] = MagSubDpt_MagID;
+        e.customArgs["VouchingMode"] = MagSubDpt_IsVouchingMode
+        e.customArgs["ViewMode"] = MagSubDpt_ViewMode;
+    }
+    function MagSubDispatchReport2_EndCallback(s, e)
+    {
+        MagSubDpt2_layout = s.cpClientLayout;
+        if (MagSubDpt_IsVouchingMode == true) {
+            $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+        }
+        else {
+            $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+        }
+        GetSessionStorage("MagSubDispatchReportListGrid2");
+    }
+    function MagSubDispatchReport2ContextMenuFunction(s, e)
+    {
+
+        if (e.item.name == 'Close')
+        {
+
+            btnCloseActiveTab();
+
+        }
+        else if (e.item.name == 'ListPreview')
+        {
+
+            OnMagSubDispatchReportPreviewClick();
+
+        }
+        else if (e.item.name == 'Refresh')
+        {
+
+            MagSubDispatchReportListGrid2.Refresh();
+
+        }
+
+    }
+    function MagSubDpt2_changeMode() {
+            ShowLoader();       
+            $.ajax({
+                url: '@Url.Action("Frm_MagSubDispatch_Report_Grid2", "MagSubDispatchReport")',
+                type: "GET",
+                data: { ShowHorizontalBar: MagSubDpt_ShowHorizontalBar, VouchingMode: MagSubDpt_IsVouchingMode, ViewMode: MagSubDpt_ViewMode, Layout: MagSubDpt2_layout },
+                success: function (res) {
+                    $("#MagSubDispatchReport2reloadPartialView").html(res);
+                    if (MagSubDpt_IsVouchingMode == true) {
+                        $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+                    }
+                    else {
+                        $(".MagSubDispatchReportListGrid2_PreviewRow").hide();
+                    }
+                    GetSessionStorage("MagSubDispatchReportListGrid2");
+                }
+            });
+            HideLoader();
+    }
+</script>
+<script>
+    var MAgReport_ShowClick = false;
+    function showMagSubDptRpt() {
+        if (MagSubDpt_MagID == null) {
+            DevExpress.ui.dialog.alert("Please Select A Magazine", "Error"); return;
+        }
+        if (MagSubDpt_FromDate == null) {
+            DevExpress.ui.dialog.alert("Please select From Date", "Error"); return;
+        }
+        if (MagSubDpt_ToDate == null) {
+            DevExpress.ui.dialog.alert("Please select To Date", "Error"); return;
+        }
+        if (MagSubDpt_FromDate > MagSubDpt_ToDate) {
+            DevExpress.ui.dialog.alert("To Date Must Be Greater Than From Date", "Error"); return;
+        }
+        MAgReport_ShowClick = true;
+        MagSubDispatchReportListGrid.Refresh();      
+    }
+</script>

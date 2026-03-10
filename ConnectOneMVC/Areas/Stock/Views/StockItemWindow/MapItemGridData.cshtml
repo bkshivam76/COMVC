@@ -1,0 +1,184 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool DBData = ViewBag.DBData == null ? true : ViewBag.DBData;
+}
+
+  
+
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "MapItemListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "StockItemWindow",
+            Action = "MapItemGridData",
+            ShowGroupedColumns = true,
+            SessionGUID = SessionGUID
+        };
+        //settings.CustomActionRouteValues = new { Controller = "StockItemWindow", Action = "MapItem_Grid_Custom_Data" };
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.VerticalScrollableHeight = 300;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.SettingsBehavior.AutoExpandAllGroups = false;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.NextColumn;
+        settings.SettingsResizing.Visualization = ResizingMode.Live;
+        settings.SettingsBehavior.AllowEllipsisInText = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = false;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = false;
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = true;
+        settings.Settings.ShowFilterRow = false;
+        //settings.ClientSideEvents.FocusedRowChanged = "OrderItemFocusedRowChanged";
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = false;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+        //settings.CommandColumn.Visible = true;
+        // settings.CommandColumn.ShowSelectCheckbox = true;
+        //  settings.CommandColumn.ShowClearFilterButton = true;
+        //settings.CommandColumn.ShowClearFilterButton = true;
+        // settings.CommandColumn.SelectAllCheckboxMode = ViewBag.SelectAllCheckBoxMode;
+        //   settings.ClientSideEvents.SelectionChanged = "onSelectionChanged";
+        //settings.ClientSideEvents.BeginCallback = "OnBeginCallback";
+        //settings.ClientSideEvents.FocusedRowChanged = "MapItemStoreOnGridFocusedRow";
+        //settings.ClientSideEvents.SelectionChanged = "onSelectionChanged";
+        //settings.ClientSideEvents.Init = "siitemgridinit";
+        //settings.ClientSideEvents.In = "onEndCallback";
+        //settings.CustomColumnSort += (s, e) =>
+        //{
+        //    MVCxGridView gv = (MVCxGridView)s;
+        //    bool isRow1Selected = gv.Selection.IsRowSelectedByKey(e.GetRow1Value(gv.KeyFieldName));
+        //    bool isRow2Selected = gv.Selection.IsRowSelectedByKey(e.GetRow2Value(gv.KeyFieldName));
+        //    e.Handled = isRow1Selected != isRow2Selected;
+        //    if (e.Handled)
+        //    {
+        //        e.Result = isRow1Selected ? 1 : -1;
+        //    }
+
+        //settings.CustomJSProperties = (s, e) =>
+        //{
+        //    MVCxGridView gridView = (MVCxGridView)s;
+        //    var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+        //    e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+        //    e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        //};
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    //column.Settings.SortMode = DevExpress.XtraGrid.ColumnSortMode.Custom;
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var Selectall = e.CreateItem("Select All Items", "Select_All");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Selectall);
+
+            }
+        };
+
+
+        settings.KeyFieldName = "Item_ID";
+
+
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "StoreIDs_Mapped";
+            column.Caption = "Mapped";
+            column.CellStyle.HorizontalAlign = HorizontalAlign.Center;
+            column.SetDataItemTemplateContent(c =>
+            {
+                Html.DevExpress().CheckBox(txtSettings =>
+                {
+                    txtSettings.Name = "CheckBox" + c.VisibleIndex;
+                    //txtSettings.Properties.ClientSideEvents.CheckedChanged = string.Format("function(s,e) {{onSelectionChanged(s,e);}}");
+                    txtSettings.Properties.ClientSideEvents.CheckedChanged = string.Format("function(s,e) {{OnValueChanged(s,'{0}', '{1}','{2}','{3}');}}", c.Column.FieldName, c.KeyValue, c.DataItem, c.VisibleIndex);
+                    txtSettings.ReadOnly = false;
+                    // txtSettings.Properties.ValueType = typeof(GridViewSelectAllCheckBoxMode);
+                    //txtSettings.Properties.ValueType = typeof(string);
+                    //txtSettings.Properties.ValueChecked = "True";
+                    //txtSettings.Properties.ValueUnchecked = "False";
+                }).Bind(DataBinder.Eval(c.DataItem, c.Column.FieldName)).Render();
+            });
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Stock_Item_Name";
+                column.Caption = "Item Name";
+                column.Width = 130;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Item_Code";
+                column.Caption = "Item Code";
+                column.Width = 110;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Unit";
+                column.Caption = "Unit";
+                column.Width = 100;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Item_Category";
+                column.Caption = "Item Category";
+                column.Width = 130;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Item_Type";
+            column.Caption = "Item Type";
+            column.Width = 150;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "UnitID";
+            column.Visible = false;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Item_ID";
+            column.Caption = "Item_ID";
+            column.Visible = true;
+            column.Width = 150;
+        });
+        settings.SettingsContextMenu.Enabled = true;
+        // settings.ClientSideEvents.SelectionChanged = "function(s,e){ s.GetSelectedFieldValues('ItemID;UnitID;StoreIDs_Mapped;Stock_Item_Name;Item_Category', OnGetValues); }";
+        //settings.ClientSideEvents.Init = "OnGridViewInit";
+        //settings.ClientSideEvents.EndCallback = "OnGridViewEndCallback";
+        //settings.ClientSideEvents.BeginCallback = "OnGridViewBeginCallback";
+        settings.ClientSideEvents.ContextMenuItemClick = "StockStoreMapContextMenuFunction";
+
+    }).Bind(Model).GetHtml()

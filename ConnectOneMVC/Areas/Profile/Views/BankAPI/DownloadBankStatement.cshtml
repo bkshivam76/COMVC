@@ -1,0 +1,500 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using Newtonsoft.Json;
+@model ConnectOneMVC.Areas.Profile.Models.DownLoadBankStatements
+@{
+    Layout = "~/Views/Shared/_NoLoginDevExtremeLayout.cshtml";
+
+    var SessionGUID = Request.QueryString["SessionGUID"];
+}
+<style>
+    body {
+        padding-top:10px;
+    }
+</style>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3">
+            <div id="div_runOn">  <b>Run On - @Model.RunOn</b></div>
+        </div>     
+        <div class="col-sm-4">
+            <label id="lbl_totalSelected">Selected: </label>
+            <label id="lbl_Success">Success: </label>
+            <label id="lbl_Failed">Failed: </label>
+            <label id="lbl_Reference">Reference: </label>
+        </div>
+        <div class="col-sm-5">
+            @(Html.DevExtreme().Button().ID("BankStatment_DownloadStart").Text("Download").Width(80).OnClick("BankStatment_Download_Click"))
+            @(Html.DevExtreme().Button().ID("BankStatment_DownloadReference").Text("Download From Reference").Width(180).OnClick("BankStatment_Download_Reference_Click"))
+            @(Html.DevExtreme().Button().ID("BankStatment_DownloadRetry").Text("Retry Failed").Width(100).OnClick("BankStatment_Download_RetryFailed_Click"))
+            @(Html.DevExtreme().Button().ID("BankStatment_DownloadExport").Text("Export").Width(80).OnClick("BankStatment_DownloadExport_Click"))
+        </div>
+    </div>
+    <div class="row" style="padding-top:5px">
+        <div class="col-sm-12">
+            <div id="BankDataGrid" style="display:none"></div>       
+        </div>       
+    </div>       
+ </div>       
+<script>
+
+    var BankData =@Html.Raw(JsonConvert.SerializeObject(Model.Status));
+     var FailedAccno = "";
+     var ReferenceAccno = "";
+     var AllFailedSrNo = [];
+    var AllReferenceSrNo = [];
+    var AllSuccessSrNo = [];
+    var ReferenceDateTime = null;
+    var BankDataGrid;
+    var RunOn = "@Model.RunOn";
+    var FailedRetry = 0;
+    var ReferenceRetry = 0;
+    var AllFailedAccNo = [];
+    var AllReferenceAccNo = [];
+    $(document).ready(async function ()
+    {
+        console.log(BankData)
+        $("#BankDataGrid").show();
+        $("#BankDataGrid").dxDataGrid({
+            dataSource: BankData,
+            keyExpr: "SrNo",
+            showBorders: true,
+            selection: { mode: "multiple", allowSelectAll: true, selectAllMode: "allPages", showCheckBoxesMode: "always" },
+            headerFilter: { visible: true },
+            filterRow: { visible: true },
+            filterPanel: { visible: true },
+            showRowLines: true,
+            showColumnLines: true,
+            wordWrapEnabled: true,
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            height: 600,
+            sorting: {
+                mode: "multiple"
+            },
+            scrolling: { showScrollbar: "always", useNative: false },
+            pageSize: { pageSize: 20, enabled: true },
+            pager: {
+                showPageSizeSelector: true, showNavigationButtons: true, allowedPageSizes: [10, 20, 50, 100, 200], showInfo: true
+            },
+            onContentReady: function (e) {
+                //e.component.columnOption("Sheet_PK", "visible", false);
+                //e.component.columnOption("Sheet_Import_Info", "visible", ShowSheetImportInfo);
+                //e.component.columnOption("Sheet_Import_Info", "encodeHtml", false);
+            },
+            onSelectionChanged: function (e)
+            {
+                $("#lbl_totalSelected").text("Selected: "+e.selectedRowKeys.length)
+            },
+            onInitialized: function (e)
+            {
+                BankDataGrid = e.component;
+            },
+            onRowPrepared: function (e)
+            {
+                if (e.rowType == "data")
+                {
+                    if (e.data.Status != null && e.data.Status.length > 0) {
+                        if (e.data.Status == "Passed")
+                        {
+                            e.rowElement.css("background-color", "#C1E1C1");
+                        }
+                        else if (e.data.Status == "Skipped")
+                        {
+                            e.rowElement.css("background-color", "#FFD700");
+                        }
+                        else if (e.data.Status == "Reference")
+                        {
+                            e.rowElement.css("background-color", "#90D5FF");
+                        }
+                        else
+                        {
+                            e.rowElement.css("background-color", "#FAA0A0");
+                        }
+                    }
+                }
+            },
+            selectedRowKeys: null,
+            columns:
+                [
+                    {
+                        dataField: "SrNo", caption: "Sr No",visible:false
+                    },
+                    {
+                        dataField: "Bank_Account", caption: "Bank Account"
+                    },
+                    {
+                        dataField: "From", caption: "From"
+                    },
+                    {
+                        dataField: "To", caption: "To"
+                    },
+                    {
+                        dataField: "Status", caption: "Status"
+                    },
+                    {
+                        dataField: "Remarks", caption: "Remarks"
+                    },
+                    {
+                        dataField: "BankShort", caption: "BankShort"
+                    },
+                    {
+                        dataField: "Type", caption: "Type"
+                    }
+                ]
+        });
+        if ("@Model.Auto" == "True")
+        {
+            $("#BankStatment_DownloadStart").trigger("dxclick")
+        }
+    })
+
+    async function BankStatment_Download_Click(e)
+    {
+         ShowLoader("Downloading",false);
+         var SelectedRows = BankDataGrid.getSelectedRowsData()
+         if (SelectedRows == null || SelectedRows.length == 0)
+         {
+             await BankDataGrid.selectAll();
+         }
+         SelectedRows = BankDataGrid.getSelectedRowsData()
+         await DownloadBankAccStatement(SelectedRows)
+         if ("@Model.Auto" == "True")
+         {
+             await BankStatementRetry("Download")
+         }
+    }
+    async function BankStatment_Download_RetryFailed_Click(e)
+    {
+        debugger
+         if (AllFailedSrNo == null || AllFailedSrNo.length == 0)
+         {
+             DevExpress.ui.dialog.alert("No Failed Records", "Information");
+             return
+         }
+        ShowLoader("Retrying Failed " + FailedRetry,false);
+         var SelectedRows = BankDataGrid.getSelectedRowsData()
+         if (SelectedRows == null || SelectedRows.length == 0)
+         {
+             await BankDataGrid.selectRows(AllFailedSrNo,true);
+         }
+         SelectedRows = BankDataGrid.getSelectedRowsData()
+         await DownloadBankAccStatement(SelectedRows,"Failed")
+         if ("@Model.Auto" == "True")
+         {    
+             await BankStatementRetry("Failed")
+         }
+    }
+    async function BankStatment_Download_Reference_Click(e)
+    {
+        debugger
+        if (AllReferenceSrNo == null || AllReferenceSrNo.length == 0)
+        {
+            DevExpress.ui.dialog.alert("No Records With Reference Generated", "Information");
+            return
+        }
+        ShowLoader("Downloading References " + ReferenceRetry,false);
+        var SelectedRows = BankDataGrid.getSelectedRowsData()
+        if (SelectedRows == null || SelectedRows.length == 0)
+        {
+            await BankDataGrid.selectRows(AllReferenceSrNo, true);
+        }
+        SelectedRows = BankDataGrid.getSelectedRowsData()
+        var TimeDiff = BankStatement_Timediff();
+        if (TimeDiff< 15)
+        {
+            debugger
+            await new Promise(r => setTimeout(r, ((15 - TimeDiff)*60*1000)));
+        }
+        await DownloadBankAccStatement(SelectedRows,"Reference")
+        if ("@Model.Auto" == "True")
+        {
+            await BankStatementRetry("Reference")
+        }
+    }
+    async function DownloadBankAccStatement(SelectedRows,Action = "Download")
+    {
+        debugger
+        if (Action == "Download" || Action == "Failed")
+        {
+            AllFailedSrNo = [];
+            AllFailedAccNo = [];
+        }
+        if (Action == "Download" || Action == "Reference") {
+            AllReferenceSrNo = [];
+            ReferenceDateTime = null;
+            AllReferenceAccNo = [];
+        }    
+        AllSuccessSrNo = [];
+        FailedAccno = "";
+        ReferenceAccno = "";
+        RunOn = JS_Json_Date_To_ddMMyyyy(Date.now(),"DD/MM/YYYY HH:mm:ss")
+        $("#div_runOn").html("<b>Run On - " + RunOn + "</b>")
+        var BankDataLength = BankData.length;
+        var SelectedDataLength = SelectedRows.length;
+        for (let i = 0; i < SelectedDataLength; i++)
+         {
+             let index = BankData.findIndex(o => o.SrNo === SelectedRows[i].SrNo)
+             if (index > -1)
+             {
+                 var status = SelectedRows[i].Status;
+                 var FromDate = SelectedRows[i].From;
+                 var ToDate = SelectedRows[i].To;
+                 var accNO = SelectedRows[i].Bank_Account;
+                 var _Srno = SelectedRows[i].SrNo;
+                 var Remarks = SelectedRows[i].Remarks;
+                 var BankShort = SelectedRows[i].BankShort
+                 status = status == null ? "" : status;
+                 Remarks = Remarks == null ? "" : Remarks;
+                 BankShort = BankShort == null ? "" : BankShort.toLowerCase();
+                 if (accNO == FailedAccno)
+                 {
+                     BankData[index].Status = "Failed";
+                     BankData[index].Remarks = "Error In Previous Sub Period";
+                     AllFailedSrNo.push(_Srno)
+                     await BankDataGrid.refresh()
+                 }
+                 else if (accNO == ReferenceAccno)
+                 {
+                     BankData[index].Status = "Failed";
+                     BankData[index].Remarks = "Reference Generated In Previous Sub Period";
+                     AllFailedSrNo.push(_Srno)
+                     await BankDataGrid.refresh()
+                 }
+                 else if (status != "Passed" && Remarks != "Transactions Already Downloaded" && Remarks != "Duplicate")
+                 {
+                     if (status == "Reference")
+                     {
+                         var data = await GetStatement(accNO, FromDate, ToDate, BankShort, Remarks)
+                     }
+                     else
+                     {
+                         var data = await GetStatement(accNO, FromDate, ToDate, BankShort)
+                     }
+                     if (data.Status == "Failed")
+                     {
+                         FailedAccno = accNO;
+                         AllFailedSrNo.push(_Srno)
+                         AllFailedAccNo.push(accNO)
+                     }
+                     else
+                     {
+                         if (data.Status == "Reference")
+                         {
+                             AllReferenceSrNo.push(_Srno)
+                             ReferenceDateTime = Date.now();
+                             ReferenceAccno = accNO;
+                             AllReferenceAccNo.push(accNO)
+                         }
+                         else
+                         {
+                             AllSuccessSrNo.push(_Srno)
+                             ReferenceAccno = "";
+                         }
+                         FailedAccno = "";
+                     }
+                     BankData[index].Status = data.Status;
+                     BankData[index].Remarks = data.Remarks;
+                     await BankDataGrid.refresh()
+                 }
+                 await BankStatement_ChangePage(index)
+             }
+             $("#lbl_Failed").text("Failed: " + AllFailedSrNo.length)
+             $("#lbl_Reference").text("Reference: " + AllReferenceSrNo.length)
+             $("#lbl_Success").text("Success: " + AllSuccessSrNo.length)
+        }
+        if (Action == "Download" && "@Model.Auto" == "False")
+        {
+            for (let j = 0; j < BankDataLength; j++)//BankData.length
+            {
+                var status = BankData[j].Status;
+                var Remarks = BankData[j].Remarks;
+                status = status == null ? "" : status;
+                Remarks = Remarks == null ? "" : Remarks;
+                if (status == null || status.length == 0)
+                {
+                    BankData[j].Status = "Skipped";
+                    BankData[j].Remarks = "Already Done or Not Selected";
+                }
+                await BankStatement_ChangePage(j)
+            }
+        }
+         //BankData.sort(function (a, b)
+         //{
+         //    if (a.Status == null)
+         //    {
+         //        a.Status = "";
+         //    }
+         //    if (b.Status == null)
+         //    {
+         //        b.Status = "";
+         //    }
+         //    return a.Status.localeCompare(b.Status) || a.Bank_Account.localeCompare(b.Bank_Account);
+         //})    
+         BankDataGrid.clearSelection();
+         await BankDataGrid.refresh()
+        await BankDataGrid.pageIndex(0)
+        console.log("Failed Accounts:")
+        console.log(AllFailedAccNo)
+        console.log("Reference Generated Accounts:")
+        console.log(AllReferenceAccNo)
+         HideLoader();
+    }
+    async function GetStatement(Acc, Frdate, ToDate, BankShort, _Refno=null)
+    {
+        if (BankShort.startsWith("sb"))
+        {
+            return $.ajax({
+                type: 'GET',
+                url: "/Profile/BankAPI/GetSbiStatement",
+                data:
+                {
+                    Accs: Acc,
+                    FromDate: Frdate,
+                    Todate: ToDate,
+                    RefNo: _Refno
+                },
+                cache: false
+            });
+        }
+        else
+        {
+            return $.ajax({
+                type: 'GET',
+                url: "/Profile/BankAPI/GetBobStatement",
+                data:
+                {
+                    Accs: Acc,
+                    FromDate: Frdate,
+                    Todate: ToDate,
+                },
+                cache: false
+            });
+        }
+    }
+
+    async function BankStatment_DownloadExport_Click(e)
+    {
+        ShowLoader();
+        var SortedBankData = structuredClone(BankData)
+        SortedBankData.sort(function (a, b)
+        {
+             if (a.Status == null)
+             {
+                 a.Status = "";
+             }
+             if (b.Status == null)
+             {
+                 b.Status = "";
+             }
+             return a.Status.localeCompare(b.Status) || a.Bank_Account.localeCompare(b.Bank_Account);
+        })
+        BankDataGrid.option("dataSource", SortedBankData)
+        setTimeout(function ()
+        {
+            HideLoader();
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Sheet');
+            var filename = "Statement_download_" + RunOn + ".xlsx"
+            DevExpress.excelExporter.exportDataGrid({
+                worksheet: worksheet,
+                component: $("#BankDataGrid").dxDataGrid("instance"),
+                autoFilterEnabled: true,
+                customizeCell({ excelCell, gridCell }) {
+                }
+            }).then(function (exportRange) {
+                workbook.xlsx.writeBuffer().then(function (buffer)
+                {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), filename);
+                    BankDataGrid.option("dataSource", BankData)
+                });
+            });          
+        }, 1000)
+        BankStatement_Download_Email(SortedBankData)
+    }
+    function BankStatement_Download_Email(SortedBankData)
+    {
+        $.ajax({
+            type: 'POST',
+            url: "/Profile/BankAPI/SendEmailBankStatementDownload",
+            data:
+            {
+                RunOn: RunOn,
+                Email: "saurabh.acct@bkivv.org",
+                Data: JSON.stringify(SortedBankData),
+            },
+            cache: false,
+            success: function (data) { }
+        });
+    }
+    async function BankStatement_ChangePage(index)
+    {
+        var pageSize = BankDataGrid.pageSize()
+        var pageCount = BankDataGrid.pageCount()
+        var CurrIndex = BankDataGrid.pageIndex();
+        var PageIndex = Math.floor(index / pageSize);
+        if (PageIndex <= (pageCount - 1)) {
+            if (CurrIndex != PageIndex) {
+               await BankDataGrid.pageIndex(PageIndex)
+            }
+        }
+    }
+    function BankStatement_Timediff()
+    {
+        var diffMs = (Date.now() - ReferenceDateTime); // milliseconds
+        var diffDays = Math.floor(diffMs / 86400000); // days
+        var diffHrs = Math.floor((diffMs % 86400000) / 3600000); // hours
+        var diffMins = Math.round(((diffMs % 86400000) % 3600000) / 60000); // minutes
+        return diffMins
+    }
+    async function BankStatementRetry(Action)
+    {
+        if (Action == "Download")
+        {
+            if (AllReferenceSrNo.length > 0) {
+                ReferenceRetry++;
+                BankStatment_Download_Reference_Click()
+            }
+            else if (AllFailedSrNo.length > 0)
+            {
+                FailedRetry++;
+                BankStatment_Download_RetryFailed_Click()
+            }            
+            else
+            {
+                BankStatment_DownloadExport_Click()
+            }
+        }
+        else if (Action == "Reference")
+        {
+            if (AllFailedSrNo.length > 0 && FailedRetry < 3)
+            {
+                FailedRetry++;
+                BankStatment_Download_RetryFailed_Click()
+            }
+            else
+            {
+                BankStatment_DownloadExport_Click()
+            }
+        }
+        else if (Action == "Failed")
+        {
+            if (AllReferenceSrNo.length > 0 && ReferenceRetry < 3)
+            {
+                ReferenceRetry++;
+                BankStatment_Download_Reference_Click()
+            }
+            else if (AllFailedSrNo.length > 0 && FailedRetry < 3)
+            {
+                FailedRetry++;
+                BankStatment_Download_RetryFailed_Click()
+            }
+            else
+            {
+                BankStatment_DownloadExport_Click()
+            }
+        }
+            
+    }
+</script>

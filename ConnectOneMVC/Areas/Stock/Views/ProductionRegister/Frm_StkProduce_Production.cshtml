@@ -1,0 +1,438 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.ProductionStockProducedDetails
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "View") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<style>
+    .demo {
+        margin-bottom: -99999px !important;
+        padding-bottom: 99999px !important;
+    }
+
+    #equalheight {
+        overflow: hidden;
+    }
+
+    [type="radio"]:checked,
+    [type="radio"]:not(:checked) {
+        position: absolute;
+        left: -9999px;
+    }
+
+        [type="radio"]:checked + label,
+        [type="radio"]:not(:checked) + label {
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+            line-height: 15px;
+            display: inline-block;
+            color: #666;
+        }
+
+            [type="radio"]:checked + label:before,
+            [type="radio"]:not(:checked) + label:before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 16px;
+                height: 16px;
+                border: 1px solid #ddd;
+                border-radius: 100%;
+                background: #fff;
+            }
+
+            [type="radio"]:checked + label:after,
+            [type="radio"]:not(:checked) + label:after {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: #337ab7;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 100%;
+                -webkit-transition: all 0.2s ease;
+                transition: all 0.2s ease;
+            }
+
+            [type="radio"]:not(:checked) + label:after {
+                opacity: 0;
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            [type="radio"]:checked + label:after {
+                opacity: 1;
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+
+    .paddLR5 {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .margT18 {
+        margin-top: 18px !important;
+    }
+    .margT5 {
+        margin-top: 5px !important;
+    }
+
+    .buttonMrgTB {
+        margin-bottom: 15px;
+        margin-top: 15px;
+    }
+
+    #Frm_StkProduce_Popup {
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_StkProduce_Popup" class="col-md-12">
+    @using (Ajax.BeginForm("Frm_Add_StockProduce", "ProductionRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_StkProduce_Popup",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "Frm_StkProduce_OnSuccess"
+                       },
+                       new
+                       {
+                           id = "ID_Frm_StkProduce_Popup",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.sr)
+        @Html.HiddenFor(y => y.ID)
+        @Html.HiddenFor(y => y.StockID)
+        @Html.HiddenFor(y => y.Production_StkPrd_Item_Name)
+        @Html.HiddenFor(y => y.Production_StkPrd_Unit)
+        @Html.HiddenFor(y => y.StkPrd_UnitID)
+        @Html.HiddenFor(y => y.Production_StkPrd_Type)
+        @Html.HiddenFor(y => y.Production_StkPrd_Category)
+        @Html.HiddenFor(y => y.Production_StkPrd_Code)
+
+
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg3">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i> Item Produced</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+
+            </div> <!--[Header]-->
+            <div class="row form-field">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Item Name:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                            .ID("Production_StkPrd_Item_ID").Name("Production_StkPrd_Item_ID")
+                                                                            .Value(Model.Production_StkPrd_Item_ID)
+                                                                            .ValueExpr("Item_ID").DisplayExpr("Stock_Item_Name")
+                                                                            .DataSource(d => d.Mvc().Controller("ProductionRegister")
+                                                                            .LoadAction("LookUp_GetStock_Produced").Key("Item_ID")
+                                                                            .LoadParams(new { storeid = new JS("function (){ return productionstoreid;}") }))
+                                                                            .Placeholder("Select Item Name")
+                                                                            .ReadOnly(IsVisible).Disabled(IsVisible)
+                                                                            .OnInitialized("OnInitialized_OnStockProducedChanged")
+                                                                            .OnValueChanged("Get_StockProduced_ChangeEvent")                                                                        
+                                                                            .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                            .ContentTemplate(@<text> @Html.Partial("LookUp_Get_StockProduced_List") </text>) )
+                                @Html.ValidationMessageFor(model => model.Production_StkPrd_Item_ID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    @(Html.DevExtreme().Button().ID("CheckPriceHistory").Text("Check Price History").Disabled(IsVisible).OnClick(@<text> function () { Add_CheckPriceHistory_Click() } </text>))
+                </div>
+            </div><!--[Stock Produced]-->
+            <div class="row form-field">
+                <div class="col-sm-5 col-md-5 col-lg-5">
+                    <div class="col-sm-5 col-md-5 col-lg-5 pll"><label class="control-label" for="user">Item Category</label></div>
+                    <div class="col-sm-7 col-md-7 col-lg-7 prm">@*Mantis bug 0000948 fixed*@
+                        <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                            @*<div class="dx-texteditor-container">*@
+                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_StkPrd_Category1").Name("Production_StkPrd_Category1").Value(Model.Production_StkPrd_Category).MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Item Category").ReadOnly(true).Disabled(true))
+                            @*</div>*@
+                        </div>
+                    </div>
+                </div><!--[Category]-->
+                <div class="col-sm-4 col-md-4 col-lg-4">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Item type:</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm">
+                        <div class="dx-texteditor dx-sate-disabled dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_StkPrd_Type1").Name("Production_StkPrd_Type1").Value(Model.Production_StkPrd_Type).MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Item Type").ReadOnly(true).Disabled(true))
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Type]-->
+                <div class="col-sm-3 col-md-3 col-lg-3">@*Mantis bug 0000948 fixed*@
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Item Code:</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm">
+                        <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_StkPrd_Code1").Name("Production_StkPrd_Code1").Value(Model.Production_StkPrd_Code).MaxLength(20).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Item Code").ReadOnly(true).Disabled(true) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Code]-->
+            </div><!--[row2]-->
+            <div class="row form-field">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll  "><label class="control-label text-red" for="user">Unit:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm ">
+                        <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_StkPrd_Unit1").Name("Production_StkPrd_Unit1").Value(Model.Production_StkPrd_Unit).MaxLength(20).Placeholder("Unit").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(true) )
+                                @Html.ValidationMessageFor(model => Model.Production_StkPrd_Unit, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Unit]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Produced Qty:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm ">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_Produced_Qty").Name("Production_StkPrd_Produced_Qty").Value(Model.Production_StkPrd_Produced_Qty).ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Format("#0.00").Placeholder("Produced Quantity").ReadOnly(IsVisible).Disabled(IsVisible).OnValueChanged("ProducedQty_ChangeEvent") )
+                                @Html.ValidationMessageFor(model => Model.Production_StkPrd_Produced_Qty, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Produced Qty]-->
+            </div><!--[row3]-->
+            <div class="row form-field">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Accepted Qty:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_Accepted_Qty").Name("Production_StkPrd_Accepted_Qty").Value(Model.Production_StkPrd_Accepted_Qty).ShowSpinButtons(true).Format("#0.00").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).OnValueChanged("AcceptedQty_ChangeEvent").Placeholder("Accepted Quantity").ReadOnly(IsVisible).Disabled(IsVisible) )
+                                @Html.ValidationMessageFor(model => Model.Production_StkPrd_Accepted_Qty, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Accepted Qty]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Rejected Qty:</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                        <div class="dx-texteditor dx-state-disabled dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_Rejected_Qty").Name("Production_StkPrd_Rejected_Qty").Value(Model.Production_StkPrd_Rejected_Qty).ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Format("#0.00").Placeholder("Rejected Quantity").ReadOnly(IsVisible).Disabled(IsVisible) )
+                                @Html.ValidationMessageFor(model => Model.Production_StkPrd_Rejected_Qty, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Rejected Quantity]-->
+            </div><!--[row4]-->
+
+            <div class="row form-field">
+                <div class="col-sm-4 col-md-4 col-lg-4">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Market Rate:</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm pll">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_MarketRate").Name("Production_StkPrd_MarketRate").Value(Model.Production_StkPrd_MarketRate).ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Format("#0.00").Placeholder("Enter Rate").OnValueChanged("MarketRate_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Rate]-->
+                <div class="col-sm-4 col-md-4 col-lg-4">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Market Price:</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6prm">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_MarketPrice").Name("Production_StkPrd_MarketPrice").Value(Model.Production_StkPrd_MarketPrice).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ShowSpinButtons(true).Format("#0.00").Placeholder("Market Price").ReadOnly(true).Disabled(IsVisible) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[price]-->
+                <div class="col-sm-4 col-md-4 col-lg-4">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label text-red" for="user">% Of Total Value:</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Production_StkPrd_Percentage").Name("Production_StkPrd_Percentage").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Model.Production_StkPrd_Percentage).Placeholder("Percentage").ReadOnly(IsVisible).Disabled(IsVisible) )
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[percentage]-->
+            </div><!--[row5]-->
+            <div class="row form-field">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Remarks:</label></div>
+                    <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Production_StkPrd_Remarks").Name("Production_StkPrd_Remarks").Value(Model.Production_StkPrd_Remarks).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Placeholder("Enter Remarks...").MaxLength(8000).ReadOnly(IsVisible).Disabled(IsVisible) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Remarks]-->
+            <div class="marginAll8 styleActionBtn">
+                @if (Model.ActionMethod.ToString().Trim() == "View")
+                {
+                    @(Html.DevExtreme().Button().CustomCloseButton()
+                                                                       .Text("Close")
+                                                                       .ID("productionStockprod_Cancle")                                                                     
+                                                                       .FocusStateEnabled(true)
+                                                                       .OnClick(@<text> function () { $("#Productioninnergrid").dxPopup("hide"); } </text>) )
+                }
+                @if (Model.ActionMethod.ToString().Trim() == "New" || Model.ActionMethod.ToString().Trim() == "Edit")
+                {
+                    @(Html.DevExtreme().Button().CustomSaveButton()
+                                                        .Text("Save")
+                                                        .ID("productionStockprod_Save")                                                      
+                                                        .FocusStateEnabled(true)
+                                                        .UseSubmitBehavior(true)
+                    )
+                    @(Html.DevExtreme().Button().CustomCloseButton()
+                                                                    .Text("Cancel")
+                                                                    .ID("productionStockprod_Cancled")
+                                                                    .FocusStateEnabled(true)                                                                  
+                                                                    .OnClick(@<text>
+                                                                        function () {
+                                                                        $("#Productioninnergrid").dxPopup("hide");
+                                                                        }
+                                                                    </text>)
+                    )}
+            </div><!--[Buttons]-->
+
+        }
+    }
+</div>
+<script>
+    var stockprodhead;
+    var stockprodtype;
+    var stockprodcode;
+    var stockprodcategory;
+    var stockprodunit;
+    var stockprodname;
+    var stockaccqty;
+    var stockmktrate;
+    var stockmktprice;
+    var stockprdqty;
+    var stockrejqty;
+    var stockunitid;
+
+    function Get_StockProduced_ChangeEvent(e) {
+        var dropdown = $("#Production_StkPrd_Item_ID").dxDropDownBox("instance");
+        dropdown.close();
+        if (e.previousValue != null&&e.previousValue != e.value)
+        {
+            $("#Production_StkPrd_Accepted_Qty").dxNumberBox("instance").reset();
+            $("#Production_StkPrd_MarketRate").dxNumberBox("instance").reset();
+            $("#Production_StkPrd_Produced_Qty").dxNumberBox("instance").reset();
+            $("#Production_StkPrd_MarketPrice").dxNumberBox("instance").reset();
+            $("#Production_StkPrd_Percentage").dxNumberBox("instance").reset();
+        }
+        var $dataGrid = $("#LookUp_StockProduced_datagrid");
+        if ($dataGrid.length) {            
+            LookUp_StockProduced_datagrid
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropdown.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                stockprodname = item.Stock_Item_Name;
+                stockprodtype = item.Item_Type;
+                stockprodcategory = item.Item_Category;
+                stockprodcode = item.Item_Code;
+                stockprodunit = item.Unit;
+                stockunitid=item.UnitID;
+                $("#StkPrd_UnitID").val(stockunitid);
+                $("#Production_StkPrd_Item_Name").val(stockprodname);
+                $("#Production_StkPrd_Type").val(stockprodtype);
+                $("#Production_StkPrd_Code").val(stockprodcode);
+                $("#Production_StkPrd_Category").val(stockprodcategory);
+                $("#Production_StkPrd_Unit").val(stockprodunit);
+                $("#Production_StkPrd_Type1").dxTextBox("instance").option("value", stockprodtype);
+                $("#Production_StkPrd_Code1").dxTextBox("instance").option("value", stockprodcode);
+                $("#Production_StkPrd_Category1").dxTextBox("instance").option("value", stockprodcategory);
+                $("#Production_StkPrd_Unit1").dxTextBox("instance").option("value", stockprodunit);
+
+            }
+        }
+    }
+    function OnInitialized_OnStockProducedChanged(e)
+    {
+        if ("@Model.ActionMethod" != "New") {
+            $("#Production_StkPrd_Item_ID").dxDropDownBox("instance").option("value",@Model.Production_StkPrd_Item_ID);
+            e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length > 0) {
+                    var $dataGrid = $("#LookUp_StockProduced_datagrid");
+                    if ($dataGrid.length) {
+                        var dataGrid = $dataGrid.dxDataGrid("instance");
+                        dataGrid.selectRows($("#Production_StkPrd_Item_ID").dxDropDownBox("instance").option("value"), false);
+                    }
+                }
+            });
+        }
+        }
+
+    function MarketRate_ChangeEvent(e) {
+        stockaccqty = $("#Production_StkPrd_Accepted_Qty").dxNumberBox("instance").option("value");
+        stockmktrate = $("#Production_StkPrd_MarketRate").dxNumberBox("instance").option("value");
+        stockmktprice = stockaccqty * stockmktrate;
+        $("#Production_StkPrd_MarketPrice").dxNumberBox("instance").option("value", stockmktprice);
+    }
+    function AcceptedQty_ChangeEvent(e) {
+        stockprdqty = $("#Production_StkPrd_Produced_Qty").dxNumberBox("instance").option("value");
+        stockaccqty = $("#Production_StkPrd_Accepted_Qty").dxNumberBox("instance").option("value");
+        stockrejqty = stockprdqty - stockaccqty;      
+        $("#Production_StkPrd_Rejected_Qty").dxNumberBox("instance").option("value", stockrejqty);
+    }
+    function ProducedQty_ChangeEvent(e) {
+        stockprdqty = $("#Production_StkPrd_Produced_Qty").dxNumberBox("instance").option("value");
+        stockaccqty = $("#Production_StkPrd_Accepted_Qty").dxNumberBox("instance").option("value");
+        stockrejqty = stockprdqty - stockaccqty;       
+        $("#Production_StkPrd_Rejected_Qty").dxNumberBox("instance").option("value", stockrejqty);
+    }
+    function Add_CheckPriceHistory_Click() {
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+
+</script>
+<script>
+    $(document).ready(function ()
+    {
+        var form = "ID_Frm_StkProduce_Popup";
+        ShowLoader();
+        AssignIDtoLabel(form, "ProductionStock");
+        setTimeout(function ()
+        {
+            Set_Form_View_Delete_Mode(null, form, "@Model.ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.ActionMethod");
+            HideLoader();
+        }, Timeout500);
+    })
+
+</script>
+
+

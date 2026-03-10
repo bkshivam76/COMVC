@@ -1,0 +1,159 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Membership.Models.VoucherMembershipInfo
+@{
+    bool IsVisible = (Model != null && Model.TempActionMethod == "_Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") ? true : false;
+}
+<div id="Frm_Voucher_Membership_Bank_PartialView">
+    <div class="row">
+        <div class="col-sm-12">
+            @Html.Action("Frm_Voucher_Membership_Bank_Grid", "MembershipReceiptRegister")
+        </div>
+        <div class="col-sm-12">@*Redmine Bug #135833 fixed*@
+            @(Html.DevExtreme().Button().ID("BankPaymentNew_MRR").Text("New").Icon("add").FocusStateEnabled(false).OnClick(@<text> function () { OnFrm_Voucher_Membership_Bank_NewClick(); } </text>).Disabled(IsDisabled))
+            @(Html.DevExtreme().Button().ID("BankPaymentEdit_MRR").Text("Edit").Icon("edit").FocusStateEnabled(false).OnClick(@<text> function () { OnFrm_Voucher_Membership_Bank_EditClick(); } </text>).Disabled(IsDisabled))
+            @(Html.DevExtreme().Button().ID("BankPaymentDelete_MRR").Text("Delete").Icon("trash").FocusStateEnabled(false).OnClick(@<text> function () { OnFrm_Voucher_Membership_Bank_DeleteClick(); } </text>).Disabled(IsDisabled))
+            @(Html.DevExtreme().Button().ID("BankPaymentView_MRR").Text("View").Icon("doc").FocusStateEnabled(false).OnClick(@<text> function () { OnFrm_Voucher_Membership_Bank_ViewClick(); } </text>).Disabled(IsVisible))
+        </div>@*//Redmine Bug #135465 fixed*@
+    </div>
+</div>
+<script>
+    var BankPayment_Sr;
+    var Payment_BankGrid_Data;
+    function OnBankPaymentGridFocusedRowChanged_MRR(s, e)
+    {
+        s.Focus();       
+    }
+    function OnBankPaymentGetRowValues(values)
+    {
+       // BankPayment_Sr = values[0];
+    }
+    function Frm_Voucher_Membership_Grid_Init(s, e)
+    {
+        
+    }
+    function Frm_Voucher_Membership_Grid_DblClick(s, e)
+    {
+        OnFrm_Voucher_Membership_Bank_EditClick();
+    }
+    function OnFrm_Voucher_Membership_Bank_NewClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            var Url = "@Url.Action("Frm_Voucher_Membership_Bank", "MembershipReceiptRegister", new { @area = "Membership" })?ActionMethod=New";
+            ShowLoader();
+            OpenPopup("Frm_Voucher_Membership_popup", "New ~ Bank Payment", Url, "auto", 600, false, null);
+        }
+    }
+    function OnFrm_Voucher_Membership_Bank_EditClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if (Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex()<0)
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                return;
+            }
+            else
+            {
+                Payment_BankGrid_Data = Frm_Voucher_Membership_Bank_Grid.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex() - Frm_Voucher_Membership_Bank_Grid.GetTopVisibleIndex()];
+                var Url = "@Url.Action("Frm_Voucher_Membership_Bank", "MembershipReceiptRegister", new { @area = "Membership" })?ActionMethod=Edit&SrID=" + BankPayment_Sr;
+                ShowLoader();
+                OpenPopup("Frm_Voucher_Membership_popup", "Edit ~ Bank Payment", Url, "auto", 600, false, null);
+            }
+        }
+    }
+    function OnFrm_Voucher_Membership_Bank_DeleteClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if (Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex() >= 0)
+            {
+                Payment_BankGrid_Data = Frm_Voucher_Membership_Bank_Grid.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex() - Frm_Voucher_Membership_Bank_Grid.GetTopVisibleIndex()];
+                $.ajax({
+                    type: 'GET',
+                    url: "/Membership/MembershipReceiptRegister/Frm_Voucher_Membership_Bank",
+                    data: { ActionMethod: "Delete", SrID: BankPayment_Sr },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (data.jsonParam.result == true)
+                        {
+                            //$.ajax({
+                            //    type: 'GET',
+                            //    url: "/Membership/MembershipReceiptRegister/FillGrid",
+                            //    data: {
+                            //        TempActionMethod: "_Delete"
+                            //        //Payment_Credit_Amt: $("#Txt_CreditAmt_MRR").dxNumberBox("instance").option("value")
+                            //    },
+                            //    cache: false,                            
+                            //    success: function (data)
+                            //    {
+                            //        if (data.result == "true" || data.result == true)
+                            //        {
+                                        $("#Txt_DiffAmt_MRR").dxNumberBox("instance").option("value", data.Txt_DiffAmt);
+                                        $("#Txt_BankAmt_MRR").dxNumberBox("instance").option("value", data.Txt_BankAmt);
+                                        $("#Txt_CashAmt_MRR").dxNumberBox("instance").option("value", data.Txt_CashAmt);
+                            //Frm_Voucher_Membership_Bank_Grid.SetFocusedRowIndex(-1);
+                            PerformCallbackGridView("Frm_Voucher_Membership_Bank_Grid");
+                                        //Frm_Voucher_Membership_Bank_Grid.Refresh();
+                            //        }
+                            //    }
+                            //});
+                        }
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                return;
+            }
+        }
+    }
+    function OnFrm_Voucher_Membership_Bank_ViewClick()
+    {
+        if ("@IsVisible" == "False")
+        {
+            if (Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex() >= 0)
+            {
+                Payment_BankGrid_Data = Frm_Voucher_Membership_Bank_Grid.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Membership_Bank_Grid.GetFocusedRowIndex() - Frm_Voucher_Membership_Bank_Grid.GetTopVisibleIndex()];
+                var Url = "@Url.Action("Frm_Voucher_Membership_Bank", "MembershipReceiptRegister", new { @area = "Membership" })?ActionMethod=View&SrID=" + BankPayment_Sr;
+                ShowLoader();
+                OpenPopup("Frm_Voucher_Membership_popup", "View ~ Bank Payment", Url, "auto", 600, false, null);
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+                return;
+            }
+        }
+    }
+    function Frm_Voucher_Membership_ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New')
+        {
+            OnFrm_Voucher_Membership_Bank_NewClick();
+        }
+        else if (e.item.name == 'Edit')
+        {
+            OnFrm_Voucher_Membership_Bank_EditClick();
+        }
+        else if (e.item.name == 'Delete')
+        {
+            OnFrm_Voucher_Membership_Bank_DeleteClick();
+        }
+        else if (e.item.name == 'View')
+        {
+            OnFrm_Voucher_Membership_Bank_ViewClick();
+        }
+        //else if (e.item.name == 'Refresh')
+        //{
+        //    Frm_Voucher_Membership_Bank_Grid.Refresh();
+        //}
+    }
+
+</script>

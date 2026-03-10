@@ -1,0 +1,193 @@
+﻿<div class="QuizResult_SummaryFacility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string chartID = (string)ViewBag.chartID;
+        string eventid = (string)ViewBag.eventid;
+        string summary_type = (string)ViewBag.summary_type;
+        string FormName = (string)ViewBag.FormName;
+        string EventName = (string)ViewBag.EventName;
+        string EventFromDate = (string)ViewBag.EventFromDate;
+        string EventToDate = (string)ViewBag.EventToDate;
+        string EventOrForm = (string.IsNullOrWhiteSpace(FormName) ? ("Event: " + EventName) : ("Form: " + FormName));
+    }
+    <style>
+        #refreshInterval_AccomSummary {
+            max-width: 40px;
+            display: inline-block
+        }
+
+            #refreshInterval_AccomSummary + b {
+                display: inline-block
+            }
+
+        .show_Btn {
+            padding: 16px 0 0 0;
+            margin-right: 20px;
+            max-width: 80px;
+        }
+
+            .show_Btn .form-field {
+                border-right: 1px solid #ddd
+            }
+
+        @@media (max-width:768px) {
+            .show_Btn {
+                padding: 0 13px
+            }
+
+                .show_Btn .form-field {
+                    border-right: none;
+                }
+
+            #QuizResultSummary_Filters_Div > div {
+                margin-bottom: 5px;
+            }
+
+                #QuizResultSummary_Filters_Div > div.set_Interval {
+                    padding: 2px 17px
+                }
+        }
+    </style>
+    <div class="report_header_div_main">
+        <div class="clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">@summary_type &nbsp; [@EventOrForm]</label>
+            </div>
+            <div class="report_button_div">
+                @if (string.IsNullOrWhiteSpace(FormName))
+                {
+                    @Html.DevExtreme().Button().ID("Notify_QuizResult").Text("Notify").Icon("save").OnClick("Notify_Btn_QuizResult_Click")
+                }
+                @(Html.DevExtreme().Button().ID("ListPreview_QuizResult").Text("List Preview").Icon("save").OnClick("ListPreview_Btn_QuizResult_Click"))
+                @(Html.DevExtreme().Button().ID("Close_Btn_QuizResult").Text("Close").Icon("clear").OnClick("Close_Btn_QuizResult_Click") )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="QuizResultSummary_gridDiv">
+            <form>
+                <div class="parent_table">
+                    @Html.Partial("Frm_Quiz_Result_Info_Grid", Model)
+                </div>
+            </form>
+        </div>        
+    </div>
+    <script>
+
+        var Chart_Response_ID = "";
+        var Chart_Response_Status = "";
+        var Chart_Response_Remarks = "";
+        var Chart_ID = "@chartID";
+        var eventid = "@eventid";
+        var formName = "@FormName";
+        var eventName = "@EventName";
+        function Close_Btn_QuizResult_Click() {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ChartReports/SessionClearChartReports",
+                cache: false,
+                data: { SummaryType:"@summary_type"}
+            });
+        });
+        function ListPreview_Btn_QuizResult_Click()
+        {
+            ShowLoader();
+            OpenPopup("ListPreview_QuizResult_Model", "Export Option", "@Url.Action("Frm_Export_Options", "ChartReports", new { @area = "Facility" })?GridName=QuizResultInfoGrid", "auto",123);
+        }
+        async function QuizResultInfo_GetSelectedRowData(_Action, HighlightColor) {
+            if (QuizResultInfoGrid.GetSelectedRowCount() > 0) {
+                ShowLoader();
+                QuizResultInfoGrid.GetSelectedFieldValues("ID",
+                    function (values) { QuizResultInfo_GetSelectedFieldValuesCallback(values, _Action, HighlightColor) })
+            }
+        }
+
+        function QuizResultInfo_GetSelectedFieldValuesCallback(values, _Action, HighlightColor) {
+            let ID = null;
+            HideLoader();
+            if (values != null) {
+                for (var Index = 0; Index < values.length; Index++) {
+                    if (Index == 0) {
+                        ID = values[Index];
+                    }
+                    else {
+                        ID = ID + "," + values[Index];
+                    }
+                }
+                console.log(ID);
+            }
+            if (_Action.includes("Notify")) {
+                var confirm = DevExpress.ui.dialog.confirm("Are you certain you wish to proceed with sending the notification?", "Confirm");
+                confirm.done(function (dialogresult) {
+                    if (dialogresult) {
+                        $.ajax({
+                            type: 'POST',
+                            url: "/Facility/ChartReports/Add_Notification_Quiz_Result",
+                            cache: false,
+                            data:
+                            {
+                                "IDs": ID,
+                                "EventName": eventName,
+                                "EventFromDate" : "@EventFromDate",
+                                "EventToDate" :"@EventToDate"
+                            },
+                            success: function (data)
+                            {
+                                HideLoader();
+                                if (data.jsonParam.result)
+                                {
+                                    DevExpress.ui.dialog.alert(data.jsonParam.message, "Success!!!");
+                                }
+                                else
+                                {
+                                    DevExpress.ui.dialog.alert(data.jsonParam.message, "Error!!!");
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        async function Notify_Btn_QuizResult_Click()
+        {
+            QuizResultInfo_GetSelectedRowData("Notify");
+        }
+        function OnQuizResult_SummaryRefresh()
+        {
+            QuizResultInfoGrid.PerformCallback({ "EventID": eventid, "Chart_ID": Chart_ID,"summary_type": "@summary_type",  "command": "REFRESH",  form});
+        }
+        function QuizResultOnInit(s, e) {
+            s.ExpandAll();
+            QuizResult_SummaryInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                QuizResult_SummaryInfoAdjustSize();
+            });
+        }
+        function QuizResult_SummaryInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 80) / 100;
+            try {
+                QuizResultInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function OnQuizResult_InfoGridFocusedRowChanged(s, e) {
+
+        }
+        function QuizResult_FocusedRowChanged(s, e) {
+
+        }
+        function QuizResult_ChartReports_BeginCallback(s, e)
+        {
+            e.customArgs["command"] = e.command;
+            e.customArgs["Chart_ID"] = "@chartID";
+            e.customArgs["summary_type"] = "@summary_type";
+            e.customArgs["EventID"] = "@eventid";
+            e.customArgs["FormName"] = formName;
+            e.customArgs["EventName"] = eventName;
+        }
+    </script>
+
+</div>

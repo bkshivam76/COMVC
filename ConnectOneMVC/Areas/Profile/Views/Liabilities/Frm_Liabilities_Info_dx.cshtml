@@ -1,0 +1,1080 @@
+﻿<div class="LiabilitiesProfile_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        string UserType = (string)ViewBag.UserType;
+        bool Liabilities_AddRight = (bool)ViewData["Liabilities_AddRight"];
+        bool Liabilities_UpdateRight = (bool)ViewData["Liabilities_UpdateRight"];
+        bool Liabilities_ViewRight = (bool)ViewData["Liabilities_ViewRight"];
+        bool Liabilities_DeleteRight = (bool)ViewData["Liabilities_DeleteRight"];
+        bool Liabilities_ExportRight = (bool)ViewData["Liabilities_ExportRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Liabilities_Auto_Vouching_Mode = (bool)ViewData["Liabilities_Auto_Vouching_Mode"];
+    }
+    <div id="LiabilitiesProfile_ParentDiv_dx">
+        <div id="content" class="col-md-12 report_header_div_main">
+            <div class="col-md-4 report_header_div">
+                <label class="report_header_label">Liabilities Information</label>
+            </div>
+
+            <div class="report_button_div">
+                @(Html.DevExtreme().Switch().ID("LiabilitysVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Liabilitys_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Switch().ID("LiabilitiesViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("Liabilities_ViewSwitch_ValueChange").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                @(Html.DevExtreme().Button()
+                                                                                                            .ID("LiabilitiesModelNew")
+                                                                                                            .Text("New")
+                                                                                                            .Icon("add")
+                                                                                                            .Visible(false)
+                                                                                                            .Disabled(true)
+                                                                                                            .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                OnLiabilitiesNewClick();
+                                                                                                                }
+                                                                                                            </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                            .ID("LiabilitiesToggleScrollBar")
+                                                                                                            .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                                                                                            .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                                                                            .Icon("toolbox")
+                                                                                                            .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                LiabilitieschangeMode();
+                                                                                                                }
+                                                                                                            </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                            .ID("LiabilitiesModelListPreview")
+                                                                                                            .Text("Export")
+                                                                                                            .Icon("save")
+                                                                                                            .Width(80)
+                                                                                                            .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                OnLiabilitiesListPreviewClick();
+                                                                                                                }
+                                                                                                            </text>)
+            )
+                @(Html.DevExtreme().Button()
+                                                                                                            .ID("LiabilitiesModelCLOSE")
+                                                                                                            .Text("Close")
+                                                                                                            .Icon("clear")
+                                                                                                            .OnClick(@<text>
+                                                                                                                function (){closeProfile_Liabilities();}
+                                                                                                            </text>)
+
+            )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding">
+            <form>
+                <div id="LiabilitiesreloadPartialView" class="parent_table">
+                    @Html.Partial("Frm_Liabilities_Info_Grid_dx", Model)
+                </div>
+            </form>
+        </div>
+
+        <div class="footer-MainBoxdiv full-width-footer">
+            @*<div class="col-lg-8 report_footer_small_buttons_div" id="LiabilitiesFooterItem">*@
+            <div class="list_footer_left_margin col-md-10">
+                <div>
+                    @*class="footer_new_left"*@
+                    <div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-locktext">
+                                <div id="Liabilities_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="Liabilities_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                            @*<div class="footer-locktext">
+                                    <div id="LiabilitiesLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                                </div>*@
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <p id="LiabilitiesLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="LiabilitiesLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="list_footer_right_margin_consistent col-md-1">
+                @*<i id="Liabilities_LockICON" class="fa fa-lock lock_symbol"></i>*@
+            </div>
+            @*</div>
+                <div class="col-lg-4 listing_footer_filter_buttons_div">
+                </div>*@
+        </div>
+        @Html.Partial("AttachmentFAB", "LiabilitiesPrf_FAB,LiabilitiesProfile_grid_DIV,Type1,LiabilitiesProfile," + UserType) @*fab buttons*@
+
+        <div class="col-md-12">
+            @*Add/Edit Popup*@
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                            .ID("Liabilities_report_modal")
+                                            .OnShowing("PopupOnShowing")
+                                            .Title("Liabilities List Preview")
+                                            .FullScreen(false)
+                                            .MaxWidth(125)
+                                            .Height("auto")
+                                            .ShowCloseButton(true)
+                                            .ContentTemplate(@<text>
+                                                <div id="Liabilities_report_modal_result">
+                                                </div>
+                                            </text>)
+        )
+            @(Html.DevExtreme().Popup().CustomPopup()
+                                            .ID("popup_frm_Liabilities_Window")
+                                            .Title("Liabilities")
+                                            .OnShowing("PopupOnShowing")
+                                            .ContentTemplate(@<text>
+                                                <div id="Liabilitiesresult">
+                                                </div>
+                                            </text>)
+                                                        .OnHiding(@<text>
+                                                            function () {
+                                                            if(IsSucessPopup == false && IsViewPopup == false)
+                                                            {
+                                                            var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                                            result.done(function (dialogResult) {
+                                                            if(dialogResult){
+                                                            $("#popup_frm_Liabilities_Window").dxPopup("hide");
+                                                            }else
+                                                            {
+                                                            $("#popup_frm_Liabilities_Window").dxPopup("show");
+                                                            }
+                                                            });
+                                                            }
+                                                            }
+                                                        </text>)
+        )
+        </div>
+    </div>
+    @*Javascript Events*@
+    <script type="text/javascript">
+    var IsSucessPopup = false;
+    var IsViewPopup = false;
+    var Liab_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var Liabilities_SetVouchingModeOn = "@Liabilities_Auto_Vouching_Mode" == "True" ? true : false;
+    var UserType_LiabilitiesPrf = "@UserType".toUpperCase();
+    var Liabilitys_IsVouchingMode = false;
+    var Liabilitys_FocusedRowBeforeRefresh;
+    var Expanded_Row_Key_Deposits_dx = null;
+    var Liabilities_ViewMode = "Default";
+            $(document).ready(function () {
+                if ("@Liabilities_AddRight" == "False")
+                {
+	                $("#LiabilitiesModelNew").hide();
+                }
+                if ("@Liabilities_UpdateRight" == "False")
+                {
+                    $("#LiabilitiesModelEdit").hide();
+                }
+                if ("@Liabilities_ViewRight" == "False")
+                {
+                    $("#LiabilitiesModelView").hide();
+                }
+                if ("@Liabilities_DeleteRight" == "False")
+                {
+                    $("#LiabilitiesModelDelete").hide();
+                }
+                if ("@Liabilities_ExportRight" == "False")
+                {
+                    $("#LiabilitiesModelListPreview").hide();
+                }
+
+                IsSucessPopup = false;
+                IsViewPopup = false;
+
+                $(".LiabilitiesListGrid_PreviewRow").hide();
+                GetSessionStorage("LiabilitiesListGrid");
+                HideUnreleasedFunctionality('Liabilities_frm_Liabilities_Info_dx');
+                if (Liabilities_SetVouchingModeOn == true)
+                {
+                    $("#LiabilitiesViewModeSwitch").dxSwitch("instance").option("value", true);
+                }
+            });
+            $(".TabPanalMenu-tabs .active span").on("click", function () {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Profile/Liabilities/SessionClear",
+                    cache: false
+                });
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+                ClearAllReferences_LiabilitiesProfile();
+
+            });
+        function ClearAllReferences_LiabilitiesProfile() {
+            IsSucessPopup = null;
+            IsViewPopup = null;
+            Liab_ShowHorizontalBar = null;
+            Liabilities_SetVouchingModeOn = null;
+            UserType_LiabilitiesPrf = null;
+            Liabilitys_IsVouchingMode = null;
+            Liabilitys_FocusedRowBeforeRefresh = null;
+            Liabilities_ViewMode = null;
+            Liability_ColumnToBeShownIndex = null;
+            Liability_ColumnToBeHidddenIndex = null;
+            LiabilitiesID = null;
+            Liabilities_EditDate = null;
+            Liabilities_AddDate = null;
+            Liabilities_AddBy = null;
+            Liabilities_EditBy = null;
+            Liabilities_ActionStatus = null;
+            Liabilities_ActionDate = null;
+            Liabilities_ActionBy = null;
+            LiabilitiesInfo_IsDetailRowExpanded = null;
+            LiabilitiesInfo_NestedRecord_FocusedRowIndex = null;
+            LiabilitiesInfo_NestedGrid_AccessID = null;
+            LiabilitiesInfo_AtachmentID = null;
+            LiabilitiesInfo_FileName = null;
+            LiabilitiesInfo_ParamMandatory = null;
+            LiabilitiesInfo_FromDateLabel = null;
+            LiabilitiesInfo_ToDateLabel = null;
+            LiabilitiesInfo_DescriptionLabel = null;
+            LiabilitiesInfo_Doc_ID = null;
+            LiabilitiesInfo_Doc_Category = null;
+            LiabilitiesInfo_MasterRowRecID = null;
+            LiabilitiesInfo_MasterRowMID = null;
+            LiabilitiesInfo_NestedRowMapID = null;
+            LiabilitiesInfo_reason = null;
+            LiabilitiesInfo_Attachment_RecStatus = null;
+            LiabilitiesInfo_NestedRowReasonID = null;
+            LiabilitiesInfo_NestedRowKeyValue = null;
+
+
+            ClearAllReferences("LiabilitiesProfile_ClearReferences");
+        }
+
+    function LiabilitiesAjaxSuccessForm(data) {
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            IsSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_Liabilities_Window").dxPopup("hide");
+            LiabilitiesListGrid.Refresh();
+            IsSucessPopup = false;
+        }
+    }
+
+    function OnLiabilitiesNewClick() {
+                if ("@Liabilities_AddRight" == "False")
+                {
+	                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	                return;
+                }
+                IsViewPopup = false;
+                $("#popup_frm_Liabilities_Window").dxPopup("show");
+                $("#popup_frm_Liabilities_Window").dxPopup("instance").option("title", "New ~ Liabilities");
+                $("#Liabilitiesresult").html('');
+                ShowLoader();
+                $("#Liabilitiesresult").load("@Url.Action("Frm_Liabilities_Window", "Liabilities", new { @area = "Profile" })?ActionMethod=New", function () {
+                    HideLoader();
+                });
+            }
+
+
+    var Liability_ColumnToBeShownIndex = "";
+    var Liability_ColumnToBeHidddenIndex = "";
+
+     var LiabilitiesID;
+     var Liabilities_EditDate;
+     var Liabilities_AddDate;
+     var Liabilities_AddBy;
+     var Liabilities_EditBy;
+     var Liabilities_ActionStatus;
+     var Liabilities_ActionDate;
+     var Liabilities_ActionBy;
+
+
+    function closeProfile_Liabilities() {
+            $(".TabPanalMenu-tabs .active span").click();
+    }
+
+    </script>
+    <script>
+    var LiabilitiesInfo_IsDetailRowExpanded = false;
+    var LiabilitiesInfo_NestedRecord_FocusedRowIndex = -1;
+    var LiabilitiesInfo_NestedGrid_AccessID;
+    var LiabilitiesInfo_AtachmentID;
+    var LiabilitiesInfo_FileName;
+    var LiabilitiesInfo_ParamMandatory;
+    var LiabilitiesInfo_FromDateLabel;
+    var LiabilitiesInfo_ToDateLabel;
+    var LiabilitiesInfo_DescriptionLabel;
+    var LiabilitiesInfo_Doc_ID;
+    var LiabilitiesInfo_Doc_Category;
+    var LiabilitiesInfo_MasterRowRecID;
+    var LiabilitiesInfo_MasterRowMID;
+    var LiabilitiesInfo_NestedRowMapID;
+    var LiabilitiesInfo_reason;
+    var LiabilitiesInfo_Attachment_RecStatus;
+    var LiabilitiesInfo_NestedRowReasonID;
+    var LiabilitiesInfo_NestedRowKeyValue;
+
+    function On_LiabilitiesProfile_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (LiabilitiesInfo_ParamMandatory == 1)
+            {
+                AddAttachment(LiabilitiesInfo_MasterRowRecID, "Profile_Liabilities", LiabilitiesInfo_Doc_ID, LiabilitiesInfo_Doc_Category, LiabilitiesInfo_ParamMandatory, LiabilitiesInfo_FromDateLabel, LiabilitiesInfo_ToDateLabel, LiabilitiesInfo_DescriptionLabel, "LiabilitiesProfileAttachment", null, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(LiabilitiesInfo_MasterRowRecID, "Profile_Liabilities", LiabilitiesInfo_Doc_ID, "LiabilitiesProfileAttachment", "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (LiabilitiesInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(LiabilitiesInfo_MasterRowRecID, "Profile_Liabilities", LiabilitiesInfo_AtachmentID, LiabilitiesInfo_ParamMandatory, LiabilitiesInfo_FromDateLabel, LiabilitiesInfo_ToDateLabel, LiabilitiesInfo_DescriptionLabel, "LiabilitiesProfileAttachment", null, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            DeleteAttachment(LiabilitiesInfo_MasterRowRecID, "Profile_Liabilities", LiabilitiesInfo_AtachmentID, LiabilitiesInfo_ParamMandatory, LiabilitiesInfo_FromDateLabel, LiabilitiesInfo_ToDateLabel, LiabilitiesInfo_DescriptionLabel, null, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID, LiabilitiesInfo_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            ViewDocument(LiabilitiesInfo_AtachmentID, LiabilitiesInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(LiabilitiesInfo_MasterRowRecID, "Profile_Liabilities", "Liabilities Information", "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (LiabilitiesInfo_Doc_Category.toLowerCase() == "others")
+            {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else
+            {
+                AttachmentAddReason(LiabilitiesInfo_MasterRowRecID, LiabilitiesInfo_NestedRowMapID, "Profile_Liabilities", "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(LiabilitiesInfo_MasterRowRecID, LiabilitiesInfo_NestedRowMapID, "Profile_Liabilities", "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID, LiabilitiesInfo_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(LiabilitiesInfo_MasterRowRecID, LiabilitiesInfo_NestedRowMapID, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+        else if (e.actionName == "AuditAction")
+        {
+            LiabilitiesPrf_FAB.SetActionContext("AuditActionContext", true);
+        }
+        else if (e.actionName == "BackAudit")
+        {
+            if (LiabilitiesInfo_Nested_Doc_Status == "")
+            {
+                LiabilitiesPrf_FAB.SetActionContext("AutoItemContext", true);
+            }
+            if (LiabilitiesInfo_Nested_Doc_Status == "NO")
+            {
+                LiabilitiesPrf_FAB.SetActionContext("EditItemContext", true);
+            }
+            if (LiabilitiesInfo_Nested_Doc_Status == "YES")
+            {
+                LiabilitiesPrf_FAB.SetActionContext("actionItemContext", true);
+            }
+        }
+        else if (e.actionName == "Accept")
+        {
+            LiabilitiesInfo_AcceptwithoutRemarks();
+        }
+        else if (e.actionName == "Reject")
+        {
+            LiabilitiesInfo_AcceptRejectVoucher("Reject");
+        }
+        else if (e.actionName == "AcceptWithRemarks")
+        {
+            LiabilitiesInfo_AcceptRejectVoucher("Accept");
+        }
+        else if (e.actionName == "AcceptDoc") {
+
+            OnLiabilitiesInfo_AcceptDoc();
+        }
+        else if (e.actionName == "RejectDoc") {
+
+            OnLiabilitiesInfo_RejectDoc();
+        }
+    }
+    function OnLiabilitiesInfo_RejectDoc() {
+        if (LiabilitiesInfo_AtachmentID == null || LiabilitiesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        RejectAttachment(LiabilitiesInfo_AtachmentID, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+    }
+    function OnLiabilitiesInfo_AcceptDoc() {
+        if (LiabilitiesInfo_AtachmentID == null || LiabilitiesInfo_AtachmentID.length == 0) {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(LiabilitiesInfo_AtachmentID, "LiabilitiesListGrid", LiabilitiesInfo_NestedGrid_AccessID);
+    }
+    function LiabilitiesInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (LiabilitiesInfo_IsDetailRowExpanded == true || Liabilitys_IsVouchingMode == true)
+        {
+            if (LiabilitiesInfo_MasterRowRecID == null || LiabilitiesInfo_MasterRowRecID == "")
+            {
+                Recid = LiabilitiesID;
+            }
+            else
+            {
+                Recid = LiabilitiesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = LiabilitiesID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Profile_Liabilities", "LiabilitiesListGrid", LiabilitiesInfo_AtachmentID, LiabilitiesInfo_NestedRowReasonID, LiabilitiesInfo_NestedRowKeyValue);
+    }
+    function LiabilitiesInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (LiabilitiesInfo_IsDetailRowExpanded == true || Liabilitys_IsVouchingMode == true)
+        {
+            if (LiabilitiesInfo_MasterRowRecID == null || LiabilitiesInfo_MasterRowRecID == "")
+            {
+                Recid = LiabilitiesID;
+            }
+            else
+            {
+                Recid = LiabilitiesInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = LiabilitiesID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Profile_Liabilities", "LiabilitiesListGrid", LiabilitiesInfo_AtachmentID, LiabilitiesInfo_NestedRowReasonID, LiabilitiesInfo_NestedRowKeyValue);
+    }
+    </script>
+    @*attachment and nested grid*@
+    @*Dev Extreme*@
+    <script>
+        var LiabilitiesListGrid = null;
+        var VisibleColumns_LiabilitiesListGrid = [];
+        var Expanded_Row_Key_Liabilities_dx = null;
+    </script>
+
+    <script>
+
+    function Liabilitys_VouchingSwitch_ValueChange(e) {
+            Liabilitys_IsVouchingMode = e.value;
+            if (Liabilities_SetVouchingModeOn == true) {
+                Liabilities_SetVouchingModeOn = false;
+            }
+            else {
+                LiabilitiesPrf_FAB.SetVisible(false);
+            }
+            if (Liabilitys_IsVouchingMode == true) {
+                OpenRightPane();
+                ClearLeftPane();
+                OpenLeftPane();
+            }
+            else {
+                LiabilitiesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+        LiabilitiesListGrid.clearSelection();
+        LiabilitiesListGrid.option("masterDetail.enabled", !Liabilitys_IsVouchingMode);
+        LiabilitiesListGrid.repaint();
+        }
+    function Liabilities_ViewSwitch_ValueChange(e) {
+        Liabilities_ViewMode = e.value == false ? "Default" : "Compact";
+        if (Liabilities_SetVouchingModeOn == true) {
+            $("#LiabilitysVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        LiabilitiesListGrid.beginUpdate();
+        var columns = LiabilitiesListGrid.option("columns");
+        if (Liabilities_ViewMode == "Compact") {
+            VisibleColumns_LiabilitiesListGrid = [];
+            for (var i = 0; i < columns.length; i++) {
+                var name = columns[i].dataField;
+                var ColumnVisible = LiabilitiesListGrid.columnOption(name, "visible");
+                if (name == "LiabilitiesListGrid_dx_Compact_Column") {
+                    LiabilitiesListGrid.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon") {
+                    VisibleColumns_LiabilitiesListGrid.push(name);
+                    LiabilitiesListGrid.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            LiabilitiesListGrid.columnOption("LiabilitiesListGrid_dx_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_LiabilitiesListGrid.length; i++) {
+                LiabilitiesListGrid.columnOption(VisibleColumns_LiabilitiesListGrid[i], "visible", true);
+            }
+        }
+            LiabilitiesListGrid.repaint();
+            LiabilitiesListGrid.endUpdate();
+    }
+
+    function LiabilitieschangeMode() {
+            LiabilitiesListGrid.beginUpdate();
+            if (Liab_ShowHorizontalBar == 0) {
+                Liab_ShowHorizontalBar = 1;
+                $("#LiabilitiesToggleScrollBar").find("span").text("Default Data");
+                $("#LiabilitiesToggleScrollBar").width(110);
+                LiabilitiesListGrid.option("columnHidingEnabled", false);
+                LiabilitiesListGrid.option("allowColumnResizing", true);
+            }
+            else {
+                Liab_ShowHorizontalBar = 0;
+                $("#LiabilitiesToggleScrollBar").find("span").text("Full Data");
+                $("#LiabilitiesToggleScrollBar").width(90);
+                LiabilitiesListGrid.option("columnHidingEnabled", true);
+                LiabilitiesListGrid.option("allowColumnResizing", true);
+            }
+            LiabilitiesListGrid.endUpdate();
+    }
+
+    function closeProfile_Liabilities(){
+        DxGrid_EventsOnScreenClose(LiabilitiesListGrid)
+            $(".TabPanalMenu-tabs .active span").click();
+    }
+
+    function OnLiabilitiesListPreviewClick() {
+                if ("@Liabilities_ExportRight" == "False")
+                {
+	                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+	                return;
+                }
+                OpenPopup("Liabilities_report_modal", "Export Option", "@Url.Action("Frm_Export_Options_dx", "Liabilities", new { @area = "Profile" })", "auto", 125, false, null);
+    }
+    </script>
+
+    <script>
+        function LiabilitiesListGrid_dx_OnInitialized(e) {
+            DxGrid_AdjustSize(e.component, $("#LiabilitiesProfile_ParentDiv_dx .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#LiabilitiesProfile_ParentDiv_dx .report_button_div"), "", evt)
+            });
+            LiabilitiesListGrid = e.component;
+        }
+        function LiabilitiesListGrid_dx_OnCellPrepared(e) {
+            if (e.rowType == "data") {
+                if (Liabilitys_IsVouchingMode == true) {
+                    if (e.column.dataField === "iIcon") {
+                        $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                        $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.key + "')");
+                    }
+                }
+                $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.key + "|" + e.column.dataField);
+            }
+            if (e.rowType === "data") {
+                if (e.column.dataField === "Out_Standing") {
+                    if (e.data.Out_Standing > 0.00)
+                        e.cellElement.css({ "background-color": "lightpink" });
+                    //e.cellElement.addClass("BalanceBgColour");
+                }
+            }
+        }
+        function LiabilitiesListGrid_dx_OnRowPrepared(e)
+        {
+            if (e.rowType == "data")
+            {
+                var GridName = e.element[0].id;
+                $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+                if (e.data.RemarkStatus != null && e.data.RemarkStatus == "OPEN" || e.data.RemarkStatus == "REOPENED") {
+                    $(e.rowElement).css("background-color", "gold");
+                }
+                if (e.data.RemarkStatus == null && e.data.Remarks != null && e.data.Remarks == true && e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit == 0) {
+                    $(e.rowElement).css("background-color", "lightgreen");
+                }
+                if (e.data.CrossedTimeLimit != null && e.data.CrossedTimeLimit > 0) {
+                    $(e.rowElement).css("background-color", "mistyrose");
+                }
+                DxGrid_CreatePreviewRow(e, Liabilitys_IsVouchingMode, "Master")
+            }
+            else if (e.rowType == "detailAdaptive")
+            {
+                DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+            }
+        }
+        function LiabilitiesListGrid_dx_OnContentReady(e) {
+            DxGrid_OnContentReady(e, Liab_ShowHorizontalBar);
+        }
+        function LiabilitiesListGrid_dx_OnCellDblClick(e) {
+            if (e.rowType == "data") {
+                if (Liabilitys_IsVouchingMode == true && Liabilities_ViewMode == "Default") {
+                    OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+                }
+            }
+        }
+        function LiabilitiesListGrid_dx_OnSelectionChanged(e) {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                if (Liabilitys_IsVouchingMode) {
+                    LiabilitiesPrf_FAB.SetVisible(true);
+                    LiabilitiesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+                LiabilitiesListGrid_dx_SelectedRowData(e.selectedRowsData);
+            }
+            else {
+                LiabilitiesID = null;
+                Liabilities_UpdateFooterDetail(LiabilitiesID, Liabilities_ActionStatus, Liabilities_AddDate, Liabilities_AddBy,
+                    Liabilities_ActionDate, Liabilities_ActionBy, Liabilities_EditDate, Liabilities_EditBy);
+            }
+        }
+        function Liabilities_UpdateFooterDetail(LiabilitiesID, Liabilities_ActionStatus, Liabilities_AddDate, Liabilities_AddBy, Liabilities_ActionDate, Liabilities_ActionBy, Liabilities_EditDate, Liabilities_EditBy) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+
+            Status = Liabilities_ActionStatus;
+
+            if (Status && Status.toUpperCase() == "LOCKED") {
+                Lbl_Status = "Completed";
+                Lbl_Status_Color = "blue";
+                Pic_Status = "Fa Fa-Lock";
+            }
+            else {
+                Pic_Status = "Fa Fa-UnLock";
+                Lbl_Status = Status;
+                if (Status && Status.toUpperCase() == "COMPLETED")
+                    Lbl_Status_Color = "green";
+                else
+                    Lbl_Status_Color = "red";
+            }
+
+            if (Liabilities_AddDate) {
+                Lbl_Create = "Add On: " + Liabilities_AddDate + ", By: " + Liabilities_AddBy;
+            }
+            else {
+                Lbl_Create = "Add On: " + "?, By: " + Liabilities_AddBy;
+            }
+
+            if (Liabilities_EditDate) {
+                Lbl_Modify = "Edit On: " + Liabilities_EditDate + ", By: " + Liabilities_EditBy;
+            }
+            else {
+                Lbl_Modify = "Edit On: " + "?, By: " + Liabilities_EditBy;
+            }
+
+            if (Liabilities_ActionDate) {
+                Lbl_ActionOn = "UnLocked On: " + Liabilities_ActionDate;
+            }
+            else {
+                Lbl_ActionOn = "UnLocked On: " + "?";
+            }
+
+            Lbl_ActionBy = "UnLocked By: " + Liabilities_ActionBy;
+
+            $('#LiabilitiesLbl_Status').text(Lbl_Status);
+            $('#LiabilitiesLbl_Create').text(Lbl_Create);
+            $('#Liabilities_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#Liabilities_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#LiabilitiesLbl_Modify').text(Lbl_Modify);
+
+            if (Lbl_Status_Color != "") {
+                $('#LiabilitiesLbl_Status').css('color', Lbl_Status_Color);
+            }
+
+            if (Pic_Status != "") {
+                $('#Liabilities_LockICON').css('class', Pic_Status);
+            }
+        }
+        function LiabilitiesListGrid_dx_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = LiabilitiesListGrid.getSelectedRowsData();
+            }
+            if (selectedData != null && selectedData.length > 0) {
+                var values = selectedData[0]
+               
+                LiabilitiesID = values["ID"];
+                Liabilities_EditDate = values["EditDate"];
+                Liabilities_AddDate = values["AddDate"];
+                Liabilities_AddBy = values["AddBy"];
+                Liabilities_EditBy = values["EditBy"];
+                Liabilities_ActionStatus = values["ActionStatus"];
+                Liabilities_ActionDate = values["ActionDate"];
+                Liabilities_ActionBy = values["ActionBy"];
+                Liabilities_UpdateFooterDetail(LiabilitiesID, Liabilities_ActionStatus, Liabilities_AddDate, Liabilities_AddBy,
+                    Liabilities_ActionDate, Liabilities_ActionBy, Liabilities_EditDate, Liabilities_EditBy);
+                if (Liabilitys_IsVouchingMode == true) {
+                    OpenLeftPane();
+                    LeftPaneContent_Liabilities_dx("LiabilitiesListGrid", LiabilitiesID, Liabilitys_IsVouchingMode,"");
+                }
+            }
+        }
+        function LiabilitiesListGrid_dx_OnRowExpanding(e) {
+            if (Array.isArray(e.key) == false)
+            {
+                e.component.collapseRow(Expanded_Row_Key_Liabilities_dx)
+                e.component.selectRows(e.key);
+                Expanded_Row_Key_Liabilities_dx = e.key;
+                LiabilitiesInfo_IsDetailRowExpanded = true;
+                var DetailGridID = e.element[0].id + e.key;
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.state(null)
+                }
+            }
+            else {
+                e.component.option("CustomProp.groupRowExpanded", true);
+            }
+        }
+        function LiabilitiesListGrid_dx_OnRowCollapsing(e) {
+            if (Array.isArray(e.key) == false)
+            {
+                var DetailGridID = e.element[0].id + e.key;
+                sessionStorage.removeItem(DetailGridID + "_DetailGridState")
+                LiabilitiesInfo_IsDetailRowExpanded = false;
+                e.component.selectRows(e.key);
+                if (Liabilitys_IsVouchingMode == false) {
+                    LiabilitiesPrf_FAB.SetVisible(false);
+                }
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.clearSelection();
+                }
+            }
+            else {
+                e.component.option("CustomProp.groupRowCollapsed", true);
+            }
+        }
+        function LiabilitiesListGrid_dx_OnContextMenuPreparing(e) {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                if (Deposits_ViewMode == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+                    {
+                        text: "Expand Detail",
+                        icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                        disabled: expanded,
+                        visible: !Liabilitys_IsVouchingMode,
+                        onItemClick: function () {
+                            if (expanded) {
+                            }
+                            else {
+                                e.component.expandRow(key);
+                            }
+                        }
+                    }, {
+                        text: "Collapse Detail",
+                        icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                        disabled: !expanded,
+                        visible: !Liabilitys_IsVouchingMode,
+                        onItemClick: function () {
+                            if (expanded) {
+                                e.component.collapseRow(key);
+                            }
+                            else {
+                            }
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: "@Liabilities_ExportRight" == "True",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            OnLiabilitiesListPreviewClick();
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeProfile_Liabilities();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            LiabilitiesListGrid_dx_Refresh();
+                        }
+                    }]
+            }
+        }
+
+        function LiabilitiesListGrid_dx_DetailTemplate(container, templateData) {
+            var GridName = templateData.component.element()[0].id ;
+            var RecID = templateData.data ? templateData.data.ID : null;
+            LiabilitiesListGrid_dx_Detail(container, GridName, RecID, Liabilitys_IsVouchingMode, Liab_ShowHorizontalBar);
+        }
+        function LiabilitiesListGrid_dx_Detail(container, GridName, RecID, vouchingMode, AllColumns)
+        {
+            var url = "/Profile/Liabilities/Frm_Liabilities_Info_DetailGrid_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+            instance.option("onSelectionChanged", LiabilitiesListGrid_dx_Detail_onSelectionChanged);      
+        }    
+        function LiabilitiesListGrid_dx_Detail_onSelectionChanged(e) {
+            if (LiabilitiesInfo_IsDetailRowExpanded || Liabilitys_IsVouchingMode) {
+                if (e.selectedRowsData != null && e.selectedRowsData.length > 0) {
+                    LiabilitiesInfo_NestedGrid_AccessID  = e.element[0].id;
+                     LiabilitiesListGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+                }
+                else {
+                    LiabilitiesPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+            }
+        }
+        function LiabilitiesListGrid_dx_Detail_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = $("#" + LiabilitiesInfo_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+            }
+            var values = selectedData[0];
+            LiabilitiesInfo_NestedRowKeyValue = values["UniqueID"];
+            if (values["UniqueID"] != null) {
+                LiabilitiesPrf_FAB.SetVisible(true);
+                LiabilitiesInfo_Nested_Doc_Status = values["Doc_Status"];
+
+                if (Liabilitys_IsVouchingMode == true) {
+                    LiabilitiesPrf_FAB.SetActionContext("AuditActionContext", true);
+                }
+                else {
+                    if (LiabilitiesInfo_Nested_Doc_Status == "") {
+                        LiabilitiesPrf_FAB.SetActionContext("AutoItemContext", true);
+                    }
+                    else if (LiabilitiesInfo_Nested_Doc_Status == "NO") {
+                        LiabilitiesPrf_FAB.SetActionContext("EditItemContext", true);
+                    }
+                    else if (LiabilitiesInfo_Nested_Doc_Status == "YES") {
+                        LiabilitiesPrf_FAB.SetActionContext("actionItemContext", true);
+                    }
+                }
+                LiabilitiesInfo_ParamMandatory = values["Params_Mandatory"];
+                LiabilitiesInfo_FromDateLabel = values["LABEL_FROM_DATE"];
+                LiabilitiesInfo_ToDateLabel = values["LABEL_TO_DATE"];
+                LiabilitiesInfo_DescriptionLabel = values["LABEL_DESCRIPTION"];
+                LiabilitiesInfo_Doc_Category = values["Document_Category"];
+                LiabilitiesInfo_Doc_ID = values["Document_ID"];
+                LiabilitiesInfo_AtachmentID = values["ATTACH_ID"];
+                IndexAttachmentID = LiabilitiesInfo_AtachmentID;
+                LiabilitiesInfo_MasterRowRecID = values["TxnID"];
+                LiabilitiesInfo_MasterRowMID = values["TxnMID"];
+                LiabilitiesInfo_NestedRowMapID = values["MAP_ID"];
+                LiabilitiesInfo_reason = values["Reason"];
+                LiabilitiesInfo_FileName = values["ATTACH_FILE_NAME"];
+                LiabilitiesInfo_Attachment_RecStatus = values["Attachment_Action_Status"];
+                if (Liabilitys_IsVouchingMode == true) {
+                    if (LiabilitiesInfo_FileName != null && LiabilitiesInfo_FileName.length > 0) {
+                        ViewDocument(LiabilitiesInfo_AtachmentID, LiabilitiesInfo_FileName, "LiabilitiesPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            LiabilitiesInfo_NestedRowReasonID = values["ReasonID"];
+            IndexAttachmentReasonID = LiabilitiesInfo_NestedRowReasonID;
+        }
+     
+    </script>
+    <script>
+        function LiabilitiesListGrid_dx_Refresh() {
+            LiabilitiesListGrid_dx.refresh().done(function () { ActionAfterDataGridRefresh_LiabilitiesListGrid_dx() })
+        }
+        async function ActionAfterDataGridRefresh_LiabilitiesListGrid_dx() {
+            var selectedRowKeys = LiabilitiesListGrid_dx.getSelectedRowKeys()
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                //LiabilitiesListGrid.clearSelection()
+                LiabilitiesListGrid.selectRows(selectedRowKeys)
+            }
+        }
+
+        function LiabilitiesListGrid_dx_iIconTemplate(container, templateData) {
+            var iREQ_ATTACH_COUNT = templateData.data.REQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.COMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.RESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.REJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.OTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.ALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var UniqueID = templateData.component.element()[0].id
+            var key = templateData.data.ID != null ? templateData.data.ID.replace(/^0-9A-Za-z/gi, "_") : "";
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        function LiabilitiesListGrid_dx_Compact_Column_Template(container, templateData) {
+            var Name = templateData.component.element()[0].id;
+            var KeyValue = templateData.data.ID;
+            var VouchingMode = Liabilitys_IsVouchingMode == true ? "True" : "False";
+
+            var htmlString = "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Item Name:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|ITEM_NAME' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.ITEM_NAME + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Against Insurance:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|PARTY_NAME' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.PARTY_NAME + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Party Name:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LI_DATE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.LI_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Deposit Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LI_PAY_DATE' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.LI_PAY_DATE ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "") + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Period (Days):</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Amount' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Amount + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Interest Rate (%):</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Addition' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Addition ?? "") + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Maturity Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Adjusted' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Adjusted + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Deposit:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Paid' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Paid + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Addition:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Out_Standing' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Out_Standing ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Adjusted:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Reason' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Reason ?? "") + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Refund:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|LI_OTHER_DETAIL' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.LI_OTHER_DETAIL + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Out_Standing:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Type' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Type + "</div></div>";
+            htmlString += "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Reason:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Reason' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.RemarkCount + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Other Detail:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Special_Ref' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                templateData.data.Special_Ref + "</div></div>";
+
+            $(container).html(htmlString)
+        }
+        function LiabilitiesListGrid_dx_Compact_Column_CellValue(rowData) {
+            var data =
+                [
+                    rowData.ITEM_NAME, rowData.PARTY_NAME, rowData.LI_DATE, rowData.LI_PAY_DATE, rowData.Amount, rowData.Addition, rowData.Adjusted,
+                    rowData.Paid, rowData.Out_Standing, rowData.Reason, rowData.LI_OTHER_DETAIL, rowData.Type, rowData.RemarkCount,
+                    rowData.Special_Ref
+                ]
+            return data.join(" ")
+        }
+        function LiabilitiesListGrid_dx_GroupCell_Template(container, templateData) {
+            DxGrid_GroupCell_Template(container, templateData)
+        }
+
+        function LeftPaneContent_Liabilities_dx(GridName, RecID, vouchingMode, AllColumns = 0) {
+            $("#LeftPane_Div_Content").html(null);
+            $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+            LiabilitiesListGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            setTimeout(function () {
+                AdditionalInfoGrid_Liabilities_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, vouchingMode, AllColumns)
+            })
+        }
+        function AdditionalInfoGrid_Liabilities_dx(container, GridName, RecID, vouchingMode, AllColumns)
+        {
+            var url = "/Profile/Liabilities/AdditionalInfo_Grid_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID
+            DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url)     
+        }
+
+    </script>
+</div>

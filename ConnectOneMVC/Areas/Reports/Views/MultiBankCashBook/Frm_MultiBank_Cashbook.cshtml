@@ -1,0 +1,934 @@
+﻿<div class="MultiBankCashBook_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @{
+
+        var SessionGUID = Request.QueryString["SessionGUID"];
+        var UserType = (string)ViewBag.UserType;
+        bool isSuperuserOrAuditor = (UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR") ? true : false;
+        bool CashBook_ExportRight = (bool)ViewData["CashBook_ExportRight"];
+        bool self_posted = (bool)ViewBag.self_posted;
+        DateTime OpenYearSdt = ViewBag.OpenYearSdt;
+        DateTime OpenYearEdt = ViewBag.OpenYearEdt;
+        int ShowHorizontalBar = 1;
+    }
+    <style>
+        #MultiBankCashBookListGrid .hideDetail {
+            pointer-events: none;
+        }
+
+            #MultiBankCashBookListGrid .hideDetail > div {
+                display: none;
+            }
+
+        .col_CB_Compact_Column [class*=column] + [class*=column]:last-child {
+            float: left;
+        }
+
+        #MultiBankCashBookListGrid .dx-datagrid-summary-item.dx-datagrid-text-content {
+            white-space: pre-wrap;
+        }
+
+        #MultiBankCashBookListGrid .CbItemCol {
+            max-width: 200px;
+        }
+
+        #MultiBankCashBookListGrid .dxDatagridHeaderBand {
+            font-weight: bold;
+        }
+
+        #CB_BE_View_Period {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        #returnBalance {
+            margin-right: 10px;
+            padding: 0 8px;
+        }
+
+        .dx-switch-off {
+            font-size: 10px;
+            font-weight: bold;
+            color: black;
+        }
+
+        .dx-switch-on {
+            font-size: 10px;
+            font-weight: bold;
+            color: black;
+        }
+
+        #fab {
+            position: absolute;
+        }
+
+        #prdSelection {
+            padding: 0 8px;
+        }
+
+            #prdSelection > div {
+                margin-top: 4px;
+            }
+
+        #CashBookModelUnlock {
+            margin-right: 4px;
+        }
+
+        div#CB_PeriodSelection {
+            width: auto;
+        }
+
+        .addEditDiv {
+            padding: 2px 0;
+        }
+
+            .addEditDiv p {
+                margin: 0;
+            }
+
+        .wrapText {
+            /*word-break: break-word;
+            overflow-wrap: break-word;*/
+        }
+
+        /*.cb_column_label {
+            background-color: lightcyan;
+            border-color: black;
+            border: solid;
+            border-width: thin;
+            border-bottom-style:none;
+        }
+
+        .cb_column_data {
+            border-color: black;
+            border: solid;
+            border-width: thin;
+            border-bottom-style: none;
+        }*/
+        .cb_column_label {
+            padding: 0px 0px 0px 0px !important;
+            /*background-color: rgb(206,237,255);
+            border-color: black;
+            border: solid;
+            border-width: thin;*/
+            /*border-bottom-style:none;*/
+        }
+
+        .cb_column_data {
+            padding: 0px 0px 0px 0px !important;
+            /*border-color: black;
+            border: solid;
+            border-width: thin;*/
+            /*border-bottom-style: none;*/
+        }
+
+        .filter_btn i {
+            background: #86c13e;
+        }
+
+        .find_btn i {
+            background: #81b4df;
+        }
+
+        .rightDiv {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+    <div id="MultiBankCashbook_ParentDiv">
+        <div class="report_header_div_main" id="contentMultiBankCashbook">
+            <div class="col-sm-8" style="padding-top:10px">
+                <div style="display:inline-block">
+                    <input type="hidden" id="MultiBankCB_Fr_Date" value="" />
+                    <input type="hidden" id="MultiBankCB_To_Date" value="" />
+                    @(Html.DevExtreme().SelectBox().ID("MultiBankCB_PeriodSelection").Name("MultiBankCB_PeriodSelection").DataSource(d => d.Mvc().Controller("MultiBankCashBook").LoadAction("Fill_Change_Period_Items").Key("SelectedIndex").LoadMode(DataSourceLoadMode.Raw)).DisplayExpr("Period").ValueExpr("SelectedIndex").SearchEnabled(false).OnValueChanged("PeriodSelectionChange_MultiBankCB").Width("100%").Width(125).Value(ViewBag.PeriodSelectedIndex))
+                </div>
+                <div style="display:inline-block">
+                    @(Html.DevExtreme().Button().ID("MultiBankCB_btnChangePeriod").Text("Change Period").Hint("Change Period").Disabled(true).OnClick(@<text> function () { ChangePeriodClick_MultiBankCB(); } </text>).Width(110) )
+                </div>
+                <div style="display:inline-block">
+                    @(Html.DevExtreme().TextBox().ID("MultiBankCB_BE_View_Period").Name("MultiBankCB_BE_View_Period").Value("View Period").ReadOnly(true).FocusStateEnabled(false).Width(190))
+                </div>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Button().ID("MultiBankCashBookListPreview").Text("Export").Icon("print").OnClick(@<text> function () { OnMultiBankCashBookListPreviewClick(); } </text>) )
+                @(Html.DevExtreme().Button().ID("MultiBankCashBookToggleScrollBar").Text(ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text>function () {OnMultiBankCBChangeMode(); } </text>))
+                @(Html.DevExtreme().Button().ID("MultiBankCashBookCLOSE").Text("Close").Icon("close").OnClick(@<text> function (){CloseMultiBankCashBook();} </text>) )
+            </div>
+        </div>@* btns *@
+        <div id="MultiBankCB_GRID_DIV" class="parent_table">
+            <form id="MultiBankCashBookreloadPartialView">
+                @Html.Partial("Frm_MultiBank_Cashbook_Grid")
+            </form>
+        </div>   @*Grid*@
+        <div class="col-sm-12 footer_smallbtns" id="MultiBankCashbookFooterItem">
+            @(Html.DevExtreme().Button().ID("But_MultiBankShowTotal").Text("Show Total Bal.").Hint("Show Total Bal.").OnClick(@<text> function () { ShowGrandTotal_MultiBankCB(); } </text>) )
+            @(Html.DevExtreme().Button().ID("But_MultiBankNarration").Text("Show Narration").ElementAttr("class", "column-chooser").OnClick(@<text> function () { ShowNarration_MultiBankCB(); } </text>))
+        </div>  @* Ftr Btns*@
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="col-md-8">
+                <div class="setFooterItem">
+                    <div class="footer-inner">
+                        <div class="list_footer_left_margin">
+                            <div class="footericon">
+                                <i id="MultiBankCB_LockICON" style="color:red;font-size:35px;"></i>
+                            </div>
+                            @*<div class="footer-locktext">
+                                    <div id="MultiBankCBLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                                </div>*@
+                            <div class="footer-locktext">
+                                <div id="MultiBankCB_Lbl_ActionOn" class="left_footertext_top"></div>
+                                <div id="MultiBankCB_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                            </div>
+                        </div>
+                        <div class="list_footer_left_margin">
+                            <div class="footer-text">
+                                <p id="MultiBankCBLbl_Create" class="right_footertext_top"></p>
+                                <p id="MultiBankCBLbl_Modify" class="right_footertext_bottom"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>  @* Ftr add/edit details *@
+    </div>
+
+    @* Devextreme *@
+    <script>
+        var MultiBankCB_PeriodSelectionFirstTime = true;
+        var MultiBankCashBookListGrid;
+        var MultiBankCB_ShowDynamicBankColumns = true;
+        var MultiBankCB_ShowHorizontalBar = parseInt("@ShowHorizontalBar");  
+        var MultiBankCB_XID
+        var MultiBankCB_Grid_PK;
+        var MultiBankCB_REC_EDIT_BY;
+        var MultiBankCB_REC_EDIT_Date;
+        var MultiBankCB_ACTION_STATUS;
+        var MultiBankCB_REC_ADD_ON;
+        var MultiBankCB_REC_ADD_BY;
+        var MultiBankCB_REC_STATUS_BY;
+        var MultiBankCB_REC_STATUS_Date;
+        function ClearAllReferences_MultiBankCashBook()
+        {
+            MultiBankCB_PeriodSelectionFirstTime = null;
+            MultiBankCashBookListGrid = null;
+            MultiBankCB_ShowHorizontalBar = null;           
+            MultiBankCB_XID = null;
+            MultiBankCB_Grid_PK = null;
+            MultiBankCB_REC_EDIT_BY = null;
+            MultiBankCB_REC_EDIT_Date = null;
+            MultiBankCB_ACTION_STATUS = null;
+            MultiBankCB_REC_ADD_ON = null;
+            MultiBankCB_REC_ADD_BY = null;
+            MultiBankCB_REC_STATUS_BY = null;
+            MultiBankCB_REC_STATUS_Date = null;
+            MultiBankCB_ShowDynamicBankColumns = null;
+            ClearAllReferences("MultiBankCashBook_ClearReferences");
+        }
+    </script> @* Variables and clear references *@
+    <script>
+        $(document).ready(function ()
+        {
+            PeriodSelectionChange_MultiBankCB(null, true)
+        });
+        async function PeriodSelectionChange_MultiBankCB(e, FirstCall = false)
+        {
+            var PeriodSelectedIndex;
+            if (e)
+            {
+                PeriodSelectedIndex = e.value;
+            }
+            else
+            {
+                PeriodSelectedIndex = $("#MultiBankCB_PeriodSelection").dxSelectBox("option","value")
+            }
+            if (PeriodSelectedIndex == null || PeriodSelectedIndex < 0)
+            {
+                return;
+            }
+            var xFr_Date, xTo_Date, MonthText, DataSource, _xDate;
+            DataSource = $("#MultiBankCB_PeriodSelection").dxSelectBox("getDataSource");
+            var isLoaded = DataSource.isLoaded();
+            if (isLoaded == false)
+            {
+                await DataSource.load();
+            }
+            MonthText = $("#MultiBankCB_PeriodSelection").dxSelectBox("option", "text");
+            $("#MultiBankCB_btnChangePeriod").dxButton("instance").option("disabled", true);
+            if (PeriodSelectedIndex == 20)
+            {
+                $("#MultiBankCB_btnChangePeriod").dxButton("instance").option("disabled", false);
+                ChangePeriodClick_MultiBankCB();
+                return;
+            }
+            else if (PeriodSelectedIndex >= 0 && PeriodSelectedIndex <= 11)
+            {
+                var Sel_Mon = (MonthText.substr(0, 3)).toUpperCase();
+                var SEL_MM;
+                switch (Sel_Mon) {
+                    case "JAN": SEL_MM = 1; break;
+                    case "FEB": SEL_MM = 2; break;
+                    case "MAR": SEL_MM = 3; break;
+                    case "APR": SEL_MM = 4; break;
+                    case "MAY": SEL_MM = 5; break;
+                    case "JUN": SEL_MM = 6; break;
+                    case "JUL": SEL_MM = 7; break;
+                    case "AUG": SEL_MM = 8; break;
+                    case "SEP": SEL_MM = 9; break;
+                    case "OCT": SEL_MM = 10; break;
+                    case "NOV": SEL_MM = 11; break;
+                    case "DEC": SEL_MM = 12; break;
+                    default: SEL_MM = 4; break;
+                }
+                xFr_Date = moment(new Date(MonthText.substr(4, 4), (SEL_MM - 1), 1)) //js date starts from 0
+                _xDate = xFr_Date.clone() //moment fns are mutable
+                xTo_Date = _xDate.add(1, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 12)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 13)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 6, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 14)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 15)
+            {
+                xFr_Date = moment(new Date("@OpenYearEdt.Year", 0, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 16)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 17)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 18)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(9, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 19)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                xTo_Date = moment(new Date("@OpenYearEdt.Year",2, 31))
+            }
+            $("#MultiBankCB_Fr_Date").val(xFr_Date.format("DD-MM-YYYY"));
+            $("#MultiBankCB_To_Date").val(xTo_Date.format("DD-MM-YYYY"));
+            $("#MultiBankCB_BE_View_Period").dxTextBox("instance").option("value", ("Fr.: " + xFr_Date.format("DD-MMM, YYYY") + " to " + xTo_Date.format("DD-MMM, YYYY")));
+            MultiBankCB_PeriodSelectionFirstTime = false;
+            MultiBankCashBookListGrid.clearSelection()
+            var pageIndex = MultiBankCashBookListGrid.pageIndex();
+            if (pageIndex > 0) {
+                MultiBankCashBookListGrid.pageIndex(0);
+            }
+            MultiBankCashBookListGrid.refresh()
+        }
+        function ChangePeriodClick_MultiBankCB()
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/MultiBankCashBook/Frm_MultiBank_Cashbook_Specific_Period",
+                cache: false,
+                data:
+                {
+                    PeriodSelectionFirstTime: MultiBankCB_PeriodSelectionFirstTime,
+                    xFrDate: $("#MultiBankCB_Fr_Date").val(),
+                    xToDate: $("#MultiBankCB_To_Date").val()
+                },
+                success: function (data)
+                {
+                    OpenPopup("PopupCB_speceficPeriod", "Change Period", false, "auto", 250, true, data);
+                }
+            });
+        }
+        function Frm_Change_Period_Success_MultiBankCB(fromDate, ToDate)
+        {
+            var xFr_Date = JS_Json_DateToMomentDate(fromDate)
+            var xTo_Date = JS_Json_DateToMomentDate(ToDate)
+            $("#MultiBankCB_Fr_Date").val(xFr_Date.format("DD-MM-YYYY"));
+            $("#MultiBankCB_To_Date").val(xTo_Date.format("DD-MM-YYYY"));
+            $("#MultiBankCB_BE_View_Period").dxTextBox("instance").option("value", ("Fr.: " + xFr_Date.format("DD-MMM, YYYY") + " to " + xTo_Date.format("DD-MMM, YYYY")));
+            $("#PopupCB_speceficPeriod").dxPopup("hide");
+            MultiBankCashBookListGrid.refresh();
+        }
+
+        function MultiBankCashBook_DS()
+        {
+            return new DevExpress.data.CustomStore({
+                key: "Grid_PK",
+                loadMode:"raw",
+                load: function (loadOptions)
+                {
+                    var frmDate = $("#MultiBankCB_Fr_Date").val()
+                    if (frmDate == null || frmDate.length == 0)
+                    {
+                        return []
+                    }
+                    const deferred = $.Deferred();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Reports/MultiBankCashBook/GetMultiBankCashBookData",
+                        data:
+                        {
+                            xFrDate: $("#MultiBankCB_Fr_Date").val(),
+                            xToDate: $("#MultiBankCB_To_Date").val(),
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            //$("#MultiBankCB_BE_Cash_Bank").text("Cash: " + DxGrid_FormatNumber(data.Close_Cash_Bal) + "  Bank: " + DxGrid_FormatNumber(data.Close_Bank_Bal));                            
+
+                                AddDynamicColumns_MultiBankCashBookListGrid(data.GridData)
+                            //ActionAfter_MultiBankCashBookListGrid_Refresh(GridData, FilterString);
+                            deferred.resolve(data.GridData);
+                        }
+                    });
+                    return deferred.promise();
+                }
+            })
+        }
+        function AddDynamicColumns_MultiBankCashBookListGrid(data)
+        {
+            var _dt = data[0];
+            var ExisitngColumns = MultiBankCashBookListGrid.option("columns");
+            var FlattenedExisitingColumns = DxGrid_GetAllColumns(ExisitngColumns)
+            var _columns = Object.keys(_dt)
+            var DynamicColumns = _columns.filter((x) => x.startsWith("Dyn_"))
+            if (DynamicColumns && DynamicColumns.length > 0)
+            {
+                for (var i = 0; i < DynamicColumns.length; i++)
+                {
+                    var ColSplit = DynamicColumns[i].split("_");
+                    var band = ColSplit[1]
+                    var Caption = ColSplit[ColSplit.length - 1]
+                    var BandColumnIndex = ExisitngColumns.findIndex(x => x.caption && x.caption.startsWith(band) && x.isBand == true)
+                    var index = FlattenedExisitingColumns.findIndex(x => x.dataField == DynamicColumns[i]);
+                    if (index == -1)
+                    {
+                        //ExisitngColumns[BandColumnIndex].columns.push({
+                        //    dataField: DynamicColumns[i],
+                        //    caption: Caption + (band == "Rec" ? "(R)" : "(P)"),
+                        //    visible: CB_ShowDynamicBankColumns,
+                        //    showInColumnChooser: CB_ShowDynamicBankColumns,
+                        //    dataType: "number",
+                        //    format: DxGrid_FormatNumber,
+                        //    allowGrouping: false,
+                        //    minWidth:50
+                        //});
+                        var BankColIndex = ExisitngColumns[BandColumnIndex].columns.findIndex(x => x.caption == "Bank");
+                        BankColIndex = BankColIndex > -1 ? BankColIndex : 1;
+                        ExisitngColumns[BandColumnIndex].columns.splice(BankColIndex,0,{
+                            dataField: DynamicColumns[i],
+                            caption: Caption + (band == "Rec" ? "(R)" : "(P)"),
+                            visible: MultiBankCB_ShowDynamicBankColumns,
+                            showInColumnChooser: MultiBankCB_ShowDynamicBankColumns,
+                            dataType: "number",
+                            format: DxGrid_FormatNumber,
+                            allowGrouping: false,
+                            minWidth: 100
+                        });
+                    }
+                    else
+                    {                      
+                        var visible = MultiBankCashBookListGrid.columnOption(DynamicColumns[i], "visible");                        
+                        var ColIndex = ExisitngColumns[BandColumnIndex].columns.findIndex(item => item.dataField === DynamicColumns[i]);
+                        if (ColIndex !== -1)
+                        {
+                            ExisitngColumns[BandColumnIndex].columns[ColIndex]["showInColumnChooser"] = MultiBankCB_ShowDynamicBankColumns;
+                            ExisitngColumns[BandColumnIndex].columns[ColIndex]["visible"] = (MultiBankCB_ShowDynamicBankColumns && visible);
+                        }
+                    }
+                }
+            }
+            let RemovedDynamicCol = FlattenedExisitingColumns.filter((x) => x.dataField.startsWith("Dyn_") && DynamicColumns.includes(x.dataField) == false);
+            if (RemovedDynamicCol && RemovedDynamicCol.length > 0)
+            {
+                for (var i = 0; i < RemovedDynamicCol.length; i++)
+                {
+                    var ColSplit = RemovedDynamicCol[i].dataField.split("_");
+                    var band = ColSplit[1]
+                    var Caption = ColSplit[ColSplit.length - 1]
+                    var BandColumnIndex = ExisitngColumns.findIndex(x => x.caption && x.caption.startsWith(band) && x.isBand == true)
+                    var ColIndex = ExisitngColumns[BandColumnIndex].columns.findIndex(item => item.dataField === RemovedDynamicCol[i].dataField);
+                    if (ColIndex !== -1)
+                    {
+                        ExisitngColumns[BandColumnIndex].columns.splice(ColIndex,1)
+                    }
+                }
+            }
+            MultiBankCashBookListGrid.beginUpdate();
+            MultiBankCashBookListGrid.option("columns", ExisitngColumns);
+            MultiBankCashBookListGrid.option("summary.totalItems", AddDynamicColumnsSummary_MultiBankCashBookListGrid())
+            MultiBankCashBookListGrid.endUpdate();
+            //MultiBankCashBookListGrid.option("CustomProp.FilterBuilderFieldsReady",false)
+        }
+
+        function OnMultiBankCashBookListPreviewClick()
+        {
+            if ("@CashBook_ExportRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "NO Rights");
+                return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Reports/MultiBankCashBook/Frm_Export_Options",
+                cache: false,
+                data:
+                {
+                    GridName:"MultiBankCashBookListGrid"
+                },
+                success: function (data)
+                {
+                    OpenPopup("report_modal", "Export Option", null, "auto", 125, true, data);
+                }
+            });
+
+        }
+        async function OnMultiBankCBChangeMode()
+        {
+            MultiBankCashBookListGrid.beginUpdate();
+            if (MultiBankCB_ShowHorizontalBar == 0)
+            {
+                MultiBankCB_ShowHorizontalBar = 1;
+                $("#MultiBankCashBookToggleScrollBar").find("span").text("Default Data");
+                $("#MultiBankCashBookToggleScrollBar").width(110);
+                MultiBankCashBookListGrid.option("columnHidingEnabled", false);
+                MultiBankCashBookListGrid.option("allowColumnResizing", true)              
+            }
+            else
+            {
+                $("#MultiBankCashBookToggleScrollBar").find("span").text("Full Data");
+                $("#MultiBankCashBookToggleScrollBar").width(90);
+                MultiBankCashBookListGrid.option("columnHidingEnabled", true)
+                MultiBankCashBookListGrid.option("allowColumnResizing", false)            
+                var btntotal = $("#But_MultiBankShowTotal").dxButton("instance").option("text");
+                if (btntotal.toUpperCase() == 'HIDE TOTAL BAL.')
+                {
+                    await ShowGrandTotal_MultiBankCB();
+                }
+                MultiBankCB_ShowHorizontalBar = 0;
+            }
+            MultiBankCashBookListGrid.endUpdate();
+        }//full data button click
+        function CloseMultiBankCashBook()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function ()
+        {     
+            ClearAllReferences_MultiBankCashBook();
+            //CloseRightPane();
+            //ClearLeftPane();
+            //CloseLeftPane();
+        });
+        function MultiBankCB_CreationDetail(ID, Action_Status, Add_Date, Add_By, Action_Date, Action_By, Edit_Date, Edit_By)
+        {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (ID != null) {
+                Add_Date = (JS_Json_Date_To_ddMMyyyy((Add_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+                Edit_Date = (JS_Json_Date_To_ddMMyyyy((Edit_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+                Action_Date = (JS_Json_Date_To_ddMMyyyy((Action_Date ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "")
+                Status = Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+                if (Action_Date) {
+                    Lbl_ActionOn = StatusStr + " On: " + Action_Date;
+                    Lbl_ActionBy = StatusStr + " By: " + Action_By;
+                }
+
+                else {
+                    Lbl_ActionOn = "";
+                    Lbl_ActionBy = "";
+                }
+                if (Add_Date) {
+                    Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+
+                if (Edit_Date) {
+                    Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#MultiBankCBLbl_Status').text(Lbl_Status);
+            $('#MultiBankCB_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#MultiBankCB_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#MultiBankCBLbl_Create').text(Lbl_Create);
+            $('#MultiBankCBLbl_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#MultiBankCBLbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#MultiBankCB_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#MultiBankCB_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#MultiBankCB_LockICON').removeClass("fa");
+                $('#MultiBankCB_LockICON').removeClass("fa-lock");
+                $('#MultiBankCB_LockICON').removeClass("fa-unlock");
+            }
+        }
+    </script> @* Ready Period Selection Grid refresh fns *@
+    <script>
+        function MultiBankCashBookListGrid_dx_OnInitialized(e) {
+            DxGrid_AdjustSize(e.component, $("#MultiBankCashbook_ParentDiv .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#MultiBankCashbook_ParentDiv .report_button_div"), "", evt)
+            });
+            MultiBankCashBookListGrid = e.component;
+            $(".MultiBankCashBookListGrid_PreviewRow").hide();
+        }
+        function MultiBankCashBookListGrid_dx_OnRowPrepared(e) {
+            if (e.rowType == "data") {
+                let GridName = e.element[0].id;
+                let keyvalue = "";
+                if (e.data.iREC_ID == "NOTE-BOOK") {
+                    keyvalue = e.data.iTR_M_ID.replace(/[^\w]/gi, "_") + e.data.iTR_ITEM_ID
+                }
+                else {
+                    keyvalue = e.data.Grid_PK.replace(/[^\w]/gi, "_")
+                }
+                $(e.rowElement).addClass(GridName + "_DataRow_" + keyvalue)
+
+                let Remarks = e.data.iTR_NARRATION;
+                var PreviewRowContent = MultiBankCashBookListGrid_dx_PreviewRow_Template(e)
+                var PreviewRowClass = GridName + "_PreviewRow " + GridName + "_PreviewRow_" + keyvalue + " DataGridPreviewRow"
+                var PreviewRowOptions = ""; 
+                if (Remarks == null || Remarks.length == 0)
+                {
+                    PreviewRowOptions = "style='display:none'";
+                    PreviewRowClass += " empty";
+                }                
+                var EmptyTdshtml = "";
+                var emptyTd = $(e.rowElement).find('td.dx-datagrid-group-space').length
+                for (var i = 0; i < emptyTd; i++) {
+                    EmptyTdshtml += "<td></td>"
+                }
+                ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='" + e.columns.length + "'>" + PreviewRowContent + "</td></tr>")
+
+                if (e.data.iTR_REF_NO != null && e.data.iTR_REF_NO % 2 == 0) {
+                    $(e.rowElement).css("background-color", "linen");
+                }
+                else {
+                    $(e.rowElement).css("background-color", "aliceblue");
+                }
+                if (e.data.iCross_Ref_ID == null && (e.data.iTR_CODE != null && (e.data.iTR_CODE == 8 || e.data.iTR_CODE == 15))) {
+                    $(e.rowElement).css("background-color", "pink");
+                }
+            }
+        }
+        function MultiBankCashBookListGrid_dx_OnContentReady(e)
+        {
+            MultiBankCashBookListGrid_dx_ShowHideNarration();
+            DxGrid_RowSelectionTobeCheckedAfterAnyAction(e)
+            DxGrid_OnContentReady(e, MultiBankCB_ShowHorizontalBar);       
+        }
+        function MultiBankCashBookListGrid_dx_OnSelectionChanged(e)
+        {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0)
+            {
+                MultiBankCashBookListGrid_dx_SelectedRowData(e.selectedRowsData)
+            }
+            else
+            {               
+                MultiBankCB_Grid_PK = null;
+                MultiBankCB_XID = null;
+            }           
+            MultiBankCB_CreationDetail(MultiBankCB_XID, MultiBankCB_ACTION_STATUS, MultiBankCB_REC_ADD_ON, MultiBankCB_REC_ADD_BY, MultiBankCB_REC_STATUS_Date, MultiBankCB_REC_STATUS_BY, MultiBankCB_REC_EDIT_Date, MultiBankCB_REC_EDIT_BY);
+        }
+        function MultiBankCashBookListGrid_dx_SelectedRowData(selectedData = null)
+        {
+            if (selectedData == null)
+            {
+                selectedData = MultiBankCashBookListGrid.getSelectedRowsData();
+            }
+            if (selectedData != null && selectedData.length > 0)
+            {
+                var values = selectedData[0];             
+                MultiBankCB_XID = values.iREC_ID;
+                MultiBankCB_Grid_PK = values.Grid_PK;
+                MultiBankCB_ACTION_STATUS = values.iACTION_STATUS;
+                MultiBankCB_REC_STATUS_BY = values.iREC_STATUS_BY;
+                MultiBankCB_REC_STATUS_Date = values.iREC_STATUS_ON;
+                MultiBankCB_REC_ADD_BY = values.iREC_ADD_BY;
+                MultiBankCB_REC_ADD_ON = values.iREC_ADD_ON;
+                MultiBankCB_REC_EDIT_BY = values.iREC_EDIT_BY;
+                MultiBankCB_REC_EDIT_Date = values.iREC_EDIT_ON;
+            }
+        }
+        function MultiBankCashBookListGrid_dx_OnContextMenuPreparing(e) {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+                e.items = e.items.filter(x => x.text != "Group Panel" && x.text != "Group Footer") //remove group panel and group footer grouping not allowed
+            }
+            else if (e.target == "footer") {
+                // DxGrid_FooterContextMenu(e, CBGrid_ViewMode == "Compact");
+            }
+            else if (e.target == "content" && e.row && e.row.rowType == "data")
+            {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);        
+                e.items = [
+
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-file-export text-warning",
+                        visible: true,
+                        onItemClick: function () {
+                            OnMultiBankCashBookListPreviewClick();
+                        }
+                    },
+
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            CloseMultiBankCashBook();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        beginGroup: true,
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        onItemClick: function () { MultiBankCashBookListGrid.refresh(); }
+                    }
+                ]
+            }
+        }    
+        function MultiBankCashBookListGrid_dx_PreviewRow_Template(e) {
+            let htmlString = "";
+            if (e.data.iTR_NARRATION != null && e.data.iTR_NARRATION.length > 0) {
+                htmlString += "<span style = 'color: #008000' > <i>" + e.data.iTR_NARRATION + "</i></span><br><br>";
+            }
+            return htmlString;
+        }
+
+    </script> @* Main And Detail grid fns *@
+    <script>
+        async function ShowGrandTotal_MultiBankCB() {
+            if (MultiBankCB_ShowHorizontalBar == 0) {
+                await OnMultiBankCBChangeMode();
+            }
+            var btntotal = $("#But_MultiBankShowTotal").dxButton("instance").option("text");
+            var SummaryItems = MultiBankCashBookListGrid.option("summary.totalItems")
+            if (btntotal == "Show Total Bal.") {
+                var ValFormat = function (value) { return DxGrid_FormatNumber(value) };
+                SummaryItems.push(
+                    {
+                        "name": "iTR_DATE_iTR_PARTY_1_count", "column": "iTR_DATE", "summaryType": "count", "showInColumn": "iTR_PARTY_1", "recalculateWhileEditing": true, "displayFormat": "Total Payments:\nClosing Balance:\nTotal Receipts:",
+                    },
+                    {
+                        "name": "iTR_PAY_CASH_iTR_PAY_CASH_custom", /*"column": "iTR_PAY_CASH",*/ "summaryType": "custom", "showInColumn": "iTR_PAY_CASH", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_REC_CASH_iTR_PAY_CASH_sum", "column": "iTR_REC_CASH", "summaryType": "sum", "showInColumn": "iTR_PAY_CASH", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_PAY_BANK_iTR_PAY_BANK_custom", /*"column": "iTR_PAY_BANK",*/ "summaryType": "custom", "showInColumn": "iTR_PAY_BANK", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_REC_BANK_iTR_PAY_BANK_sum", "column": "iTR_REC_BANK", "summaryType": "sum", "showInColumn": "iTR_PAY_BANK", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_PAY_JOURNAL_iTR_PAY_JOURNAL_custom", /*"column": "iTR_PAY_JOURNAL",*/ "summaryType": "custom", "showInColumn": "iTR_PAY_JOURNAL", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_REC_JOURNAL_iTR_PAY_JOURNAL_sum", "column": "iTR_REC_JOURNAL", "summaryType": "sum", "showInColumn": "iTR_PAY_JOURNAL", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                    },
+                    {
+                        "name": "iTR_REC_TOTAL_iTR_PAY_TOTAL_sum", "column": "iTR_REC_TOTAL", "summaryType": "sum", "showInColumn": "iTR_PAY_TOTAL", "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "\n{0}",
+                    },
+                )
+                $("#But_MultiBankShowTotal").dxButton("instance").option("text", "Hide Total Bal.");
+                $("#But_MultiBankShowTotal").attr("title", "Hide Total Bal.");
+                SummaryItems = AddDynamicColumnsSummary_MultiBankCashBookListGrid(SummaryItems, ValFormat)
+                MultiBankCashBookListGrid.option("summary.totalItems", SummaryItems)
+                MultiBankCashBookListGrid.option("summary.calculateCustomSummary", MultiBankCB_CustomSummaryCalculation)
+            }
+            else {
+                //SummaryItems = SummaryItems.filter(x => x.name != "iTR_PARTY_1_iTR_PARTY_1_count" && x.name != "iTR_PAY_CASH_iTR_PAY_CASH_custom" && x.name != "iTR_PAY_BANK_iTR_PAY_BANK_custom" && x.name != "iTR_PAY_JOURNAL_iTR_PAY_JOURNAL_custom")
+                SummaryItems = SummaryItems.filter(x => x.column == x.showInColumn)
+                MultiBankCashBookListGrid.option("summary.totalItems", SummaryItems)
+                $("#But_MultiBankShowTotal").dxButton("instance").option("text", "Show Total Bal.");
+                $("#But_MultiBankShowTotal").attr("title", "Show Total Bal.");
+            }
+        }
+        function AddDynamicColumnsSummary_MultiBankCashBookListGrid(SummaryItems = null, ValFormat = null) {
+            var btntotal = $("#But_MultiBankShowTotal").dxButton("instance").option("text");
+            var ExisitngColumns = MultiBankCashBookListGrid.option("columns");
+            var FlattenedExisitingColumns = DxGrid_GetAllColumns(ExisitngColumns)
+            var DynamicColumns = FlattenedExisitingColumns.filter((x) => x.dataField.startsWith("Dyn_"))
+            if (SummaryItems == null) {
+                SummaryItems = MultiBankCashBookListGrid.option("summary.totalItems")
+            }
+            if (ValFormat == null) {
+                ValFormat = function (value) { return DxGrid_FormatNumber(value) };
+            }
+            for (var i = 0; i < DynamicColumns.length; i++) {
+                var dataField = DynamicColumns[i].dataField
+                var SummaryName = dataField + "_" + dataField;
+                var SummaryIndex = SummaryItems.findIndex(x => x.name == SummaryName + "_sum");
+                if (SummaryIndex == -1) {
+                    SummaryItems.push(
+                        {
+                            "name": SummaryName + "_sum", "column": dataField, "summaryType": "sum", "showInColumn": dataField, "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}",
+                        })
+                }
+                if (btntotal == "Hide Total Bal.") // total balance is shown
+                {
+                    var ColSplit = dataField.split("_");
+                    var band = ColSplit[1]
+                    if (band == "Pay") {
+                        var RecColName = dataField.replaceAll("Pay", "Rec");
+                        SummaryIndex = SummaryItems.findIndex(x => x.name == SummaryName + "_custom");
+                        if (SummaryIndex == -1) {
+                            SummaryItems.push(
+                                {
+                                    "name": SummaryName + "_custom", "summaryType": "custom", "showInColumn": dataField, "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}"
+                                })
+                        }
+                        SummaryIndex = SummaryItems.findIndex(x => x.name == RecColName + "_" + dataField + "_sum");
+                        if (SummaryIndex == -1) {
+                            SummaryItems.push(
+                                {
+                                    "name": RecColName + "_" + dataField + "_sum", "column": RecColName, "summaryType": "sum", "showInColumn": dataField, "recalculateWhileEditing": true, valueFormat: ValFormat, "displayFormat": "{0}"
+                                })
+
+                        }
+                    }
+                }
+            }
+            return SummaryItems;
+        }
+        function MultiBankCB_CustomSummaryCalculation(options) {
+            //if (options.name == "iTR_PAY_CASH_iTR_PAY_CASH_custom" || options.name == "iTR_PAY_BANK_iTR_PAY_BANK_custom" || options.name == "iTR_PAY_JOURNAL_iTR_PAY_JOURNAL_custom")
+            //{
+            if (options.summaryProcess) {
+                if (options.summaryProcess === "start") {
+                    options.totalValue = 0;
+                    options.RecSum = 0;
+                    options.PaySum = 0;
+
+                }
+                else if (options.summaryProcess === "calculate") {
+                    if (options.name == "iTR_PAY_CASH_iTR_PAY_CASH_custom") {
+                        options.RecSum += options.value.iTR_REC_CASH;
+                        options.PaySum += options.value.iTR_PAY_CASH;
+                    }
+                    else if (options.name == "iTR_PAY_BANK_iTR_PAY_BANK_custom") {
+                        options.RecSum += options.value.iTR_REC_BANK;
+                        options.PaySum += options.value.iTR_PAY_BANK;
+                    }
+                    else if (options.name == "iTR_PAY_JOURNAL_iTR_PAY_JOURNAL_custom") {
+                        options.RecSum += options.value.iTR_REC_JOURNAL;
+                        options.PaySum += options.value.iTR_PAY_JOURNAL;
+                    }
+                    else if (options.name.startsWith("Dyn")) {
+                        var DataField = (options.name.split("_Dyn"))[0]
+                        var OppositeDataFiled = DataField.replaceAll("Pay", "Rec")
+                        options.RecSum += options.value[OppositeDataFiled];
+                        options.PaySum += options.value[DataField];
+                    }
+                }
+                else if (options.summaryProcess === "finalize") {
+                    if (options.name == "iTR_PAY_CASH_iTR_PAY_CASH_custom") {
+                        options.totalValue = options.RecSum - options.PaySum
+                    }
+                    else if (options.name == "iTR_PAY_BANK_iTR_PAY_BANK_custom") {
+                        options.totalValue = options.RecSum - options.PaySum
+                    }
+                    else if (options.name == "iTR_PAY_JOURNAL_iTR_PAY_JOURNAL_custom") {
+                        options.totalValue = options.RecSum - options.PaySum
+                    }
+                    else if (options.name.startsWith("Dyn")) {
+                        options.totalValue = options.RecSum - options.PaySum
+                    }
+                }
+            }
+            // }
+        }
+        function ShowNarration_MultiBankCB()
+        {
+            var btn_text = $("#But_MultiBankNarration").dxButton("instance").option("text");
+            if (btn_text == "Show Narration")
+            {
+                $("#But_MultiBankNarration").dxButton("instance").option("text", "Hide Narration");
+                MultiBankCashBookListGrid_dx_ShowHideNarration("Hide Narration")
+            }
+            else
+            {
+                $("#But_MultiBankNarration").dxButton("instance").option("text", "Show Narration");
+                MultiBankCashBookListGrid_dx_ShowHideNarration("Show Narration")
+            }
+        }
+        function MultiBankCashBookListGrid_dx_ShowHideNarration(btn_text = "")
+        {
+            if (btn_text == null || btn_text.length == 0)
+            {
+                btn_text = $("#But_MultiBankNarration").dxButton("instance").option("text");
+            }     
+            if (btn_text == "Hide Narration")
+            {
+                $(".MultiBankCashBookListGrid_PreviewRow:not(.empty)").show();
+            }
+            else
+            {
+                $(".MultiBankCashBookListGrid_PreviewRow").hide();
+            }            
+        }
+    </script> @* bottom btn fns *@
+</div>

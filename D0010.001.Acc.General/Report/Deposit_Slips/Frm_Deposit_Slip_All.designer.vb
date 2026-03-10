@@ -1,0 +1,842 @@
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+Partial Class Frm_Deposit_Slip_All
+    Inherits DevExpress.XtraEditors.XtraForm
+
+    'Form overrides dispose to clean up the component list.
+    <System.Diagnostics.DebuggerNonUserCode()> _
+    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+        If disposing AndAlso components IsNot Nothing Then
+            components.Dispose()
+        End If
+        MyBase.Dispose(disposing)
+    End Sub
+
+    'Required by the Windows Form Designer
+    Private components As System.ComponentModel.IContainer
+
+    'NOTE: The following procedure is required by the Windows Form Designer
+    'It can be modified using the Windows Form Designer.  
+    'Do not modify it using the code editor.
+    <System.Diagnostics.DebuggerStepThrough()> _
+    Private Sub InitializeComponent()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Frm_Deposit_Slip_All))
+        Dim SuperToolTip1 As DevExpress.Utils.SuperToolTip = New DevExpress.Utils.SuperToolTip()
+        Dim ToolTipTitleItem1 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim SuperToolTip2 As DevExpress.Utils.SuperToolTip = New DevExpress.Utils.SuperToolTip()
+        Dim ToolTipTitleItem2 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim SerializableAppearanceObject1 As DevExpress.Utils.SerializableAppearanceObject = New DevExpress.Utils.SerializableAppearanceObject()
+        Dim SuperToolTip3 As DevExpress.Utils.SuperToolTip = New DevExpress.Utils.SuperToolTip()
+        Dim ToolTipTitleItem3 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim ToolTipItem1 As DevExpress.Utils.ToolTipItem = New DevExpress.Utils.ToolTipItem()
+        Dim ToolTipTitleItem4 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim SerializableAppearanceObject2 As DevExpress.Utils.SerializableAppearanceObject = New DevExpress.Utils.SerializableAppearanceObject()
+        Dim SuperToolTip4 As DevExpress.Utils.SuperToolTip = New DevExpress.Utils.SuperToolTip()
+        Dim ToolTipTitleItem5 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim ToolTipItem2 As DevExpress.Utils.ToolTipItem = New DevExpress.Utils.ToolTipItem()
+        Dim SuperToolTip5 As DevExpress.Utils.SuperToolTip = New DevExpress.Utils.SuperToolTip()
+        Dim ToolTipTitleItem6 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Dim ToolTipItem3 As DevExpress.Utils.ToolTipItem = New DevExpress.Utils.ToolTipItem()
+        Dim ToolTipSeparatorItem1 As DevExpress.Utils.ToolTipSeparatorItem = New DevExpress.Utils.ToolTipSeparatorItem()
+        Dim ToolTipTitleItem7 As DevExpress.Utils.ToolTipTitleItem = New DevExpress.Utils.ToolTipTitleItem()
+        Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
+        Me.Lbl_ToolMsg = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.Zoom1 = New DevExpress.XtraEditors.ZoomTrackBarControl()
+        Me.GridControl1 = New DevExpress.XtraGrid.GridControl()
+        Me.GridView1 = New DevExpress.XtraGrid.Views.Grid.GridView()
+        Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.Txt_TitleX = New DevExpress.XtraEditors.LabelControl()
+        Me.ContextMenuStrip1 = New System.Windows.Forms.ContextMenuStrip()
+        Me.T_PrintSlip = New System.Windows.Forms.ToolStripMenuItem()
+        Me.T_Print = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem1 = New System.Windows.Forms.ToolStripSeparator()
+        Me.T_Refresh = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem3 = New System.Windows.Forms.ToolStripSeparator()
+        Me.T_Close = New System.Windows.Forms.ToolStripMenuItem()
+        Me.Lbl_Separator1 = New DevExpress.XtraEditors.LabelControl()
+        Me.Lbl_Create = New System.Windows.Forms.Label()
+        Me.Lbl_Modify = New System.Windows.Forms.Label()
+        Me.Lbl_Separator3 = New DevExpress.XtraEditors.LabelControl()
+        Me.But_Find = New DevExpress.XtraEditors.SimpleButton()
+        Me.But_Filter = New DevExpress.XtraEditors.SimpleButton()
+        Me.Lbl_Separator2 = New DevExpress.XtraEditors.LabelControl()
+        Me.Lbl_Status = New DevExpress.XtraEditors.LabelControl()
+        Me.Pic_Status = New DevExpress.XtraEditors.PictureEdit()
+        Me.Cmb_View = New DevExpress.XtraEditors.ComboBoxEdit()
+        Me.LabelControl2 = New DevExpress.XtraEditors.LabelControl()
+        Me.LabelControl3 = New DevExpress.XtraEditors.LabelControl()
+        Me.BE_View_Period = New DevExpress.XtraEditors.ButtonEdit()
+        Me.LabelControl4 = New DevExpress.XtraEditors.LabelControl()
+        Me.GLookUp_BankList = New DevExpress.XtraEditors.GridLookUpEdit()
+        Me.GLookUp_BankListView = New DevExpress.XtraGrid.Views.Grid.GridView()
+        Me.BANK_NAME = New DevExpress.XtraGrid.Columns.GridColumn()
+        Me.BANK_BRANCH = New DevExpress.XtraGrid.Columns.GridColumn()
+        Me.BANK_ACC_NO = New DevExpress.XtraGrid.Columns.GridColumn()
+        Me.BA_ID = New DevExpress.XtraGrid.Columns.GridColumn()
+        Me.LabelControl6 = New DevExpress.XtraEditors.LabelControl()
+        Me.BE_Bank_Acc_No = New DevExpress.XtraEditors.ButtonEdit()
+        Me.LabelControl5 = New DevExpress.XtraEditors.LabelControl()
+        Me.BE_Bank_Branch = New DevExpress.XtraEditors.ButtonEdit()
+        Me.LabelControl1 = New DevExpress.XtraEditors.LabelControl()
+        Me.BE_Slip_No = New DevExpress.XtraEditors.ButtonEdit()
+        Me.BUT_SAVE_COM = New DevExpress.XtraEditors.SimpleButton()
+        Me.StatusStrip1.SuspendLayout()
+        CType(Me.Zoom1, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.Zoom1.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.GridControl1, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.GridView1, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.Panel1.SuspendLayout()
+        Me.ContextMenuStrip1.SuspendLayout()
+        CType(Me.Pic_Status.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.Cmb_View.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.BE_View_Period.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.GLookUp_BankList.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.GLookUp_BankListView, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.BE_Bank_Acc_No.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.BE_Bank_Branch.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.BE_Slip_No.Properties, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.SuspendLayout()
+        '
+        'StatusStrip1
+        '
+        Me.StatusStrip1.AutoSize = False
+        Me.StatusStrip1.BackgroundImage = CType(resources.GetObject("StatusStrip1.BackgroundImage"), System.Drawing.Image)
+        Me.StatusStrip1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
+        Me.StatusStrip1.Font = New System.Drawing.Font("Tahoma", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.StatusStrip1.GripMargin = New System.Windows.Forms.Padding(0)
+        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.Lbl_ToolMsg})
+        Me.StatusStrip1.Location = New System.Drawing.Point(0, 434)
+        Me.StatusStrip1.Name = "StatusStrip1"
+        Me.StatusStrip1.Size = New System.Drawing.Size(774, 18)
+        Me.StatusStrip1.SizingGrip = False
+        Me.StatusStrip1.TabIndex = 33
+        Me.StatusStrip1.Text = "StatusStrip1"
+        '
+        'Lbl_ToolMsg
+        '
+        Me.Lbl_ToolMsg.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_ToolMsg.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_ToolMsg.ForeColor = System.Drawing.Color.Black
+        Me.Lbl_ToolMsg.Name = "Lbl_ToolMsg"
+        Me.Lbl_ToolMsg.Size = New System.Drawing.Size(759, 13)
+        Me.Lbl_ToolMsg.Spring = True
+        Me.Lbl_ToolMsg.Text = "Ready"
+        Me.Lbl_ToolMsg.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        '
+        'Zoom1
+        '
+        Me.Zoom1.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Zoom1.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.Zoom1.EditValue = 8
+        Me.Zoom1.Location = New System.Drawing.Point(620, 410)
+        Me.Zoom1.Name = "Zoom1"
+        Me.Zoom1.Properties.LargeChange = 2
+        Me.Zoom1.Properties.LookAndFeel.SkinName = "Blue"
+        Me.Zoom1.Properties.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Zoom1.Properties.Maximum = 50
+        Me.Zoom1.Properties.Middle = 5
+        Me.Zoom1.Properties.Minimum = 8
+        Me.Zoom1.Properties.ScrollThumbStyle = DevExpress.XtraEditors.Repository.ScrollThumbStyle.Bar
+        Me.Zoom1.Properties.SmallChange = 2
+        Me.Zoom1.Size = New System.Drawing.Size(150, 19)
+        Me.Zoom1.TabIndex = 51
+        Me.Zoom1.Value = 8
+        '
+        'GridControl1
+        '
+        Me.GridControl1.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
+            Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.GridControl1.EmbeddedNavigator.Appearance.BackColor = System.Drawing.Color.FromArgb(CType(CType(247, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(241, Byte), Integer))
+        Me.GridControl1.EmbeddedNavigator.Appearance.ForeColor = System.Drawing.Color.Red
+        Me.GridControl1.EmbeddedNavigator.Appearance.Options.UseBackColor = True
+        Me.GridControl1.EmbeddedNavigator.Appearance.Options.UseForeColor = True
+        Me.GridControl1.EmbeddedNavigator.Buttons.Append.Tag = "Append"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Append.Visible = False
+        Me.GridControl1.EmbeddedNavigator.Buttons.CancelEdit.Tag = "CancelEdit"
+        Me.GridControl1.EmbeddedNavigator.Buttons.CancelEdit.Visible = False
+        Me.GridControl1.EmbeddedNavigator.Buttons.Edit.Tag = "Edit"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Edit.Visible = False
+        Me.GridControl1.EmbeddedNavigator.Buttons.EndEdit.Tag = "EndEdit"
+        Me.GridControl1.EmbeddedNavigator.Buttons.EndEdit.Visible = False
+        Me.GridControl1.EmbeddedNavigator.Buttons.First.Tag = "First"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Last.Tag = "Last"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Next.Tag = "Next"
+        Me.GridControl1.EmbeddedNavigator.Buttons.NextPage.Tag = "NextPage"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Prev.Tag = "Prev"
+        Me.GridControl1.EmbeddedNavigator.Buttons.PrevPage.Tag = "PrevPage"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Remove.Tag = "Remove"
+        Me.GridControl1.EmbeddedNavigator.Buttons.Remove.Visible = False
+        Me.GridControl1.EmbeddedNavigator.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.GridControl1.EmbeddedNavigator.CustomButtons.AddRange(New DevExpress.XtraEditors.NavigatorCustomButton() {New DevExpress.XtraEditors.NavigatorCustomButton(-1, 6, True, True, "Open Column Chooser", "OPEN_COL"), New DevExpress.XtraEditors.NavigatorCustomButton(-1, 8, True, True, "Show Group Box", "GROUP_BOX"), New DevExpress.XtraEditors.NavigatorCustomButton(-1, 14, True, True, "Show Grouped Column", "GROUPED_COL"), New DevExpress.XtraEditors.NavigatorCustomButton(-1, 18, True, True, "Show Footer Bar", "FOOTER_BAR"), New DevExpress.XtraEditors.NavigatorCustomButton(-1, 7, True, True, "Show Group Footer Bar", "GROUP_FOOTER"), New DevExpress.XtraEditors.NavigatorCustomButton(-1, 9, True, True, "Open Filter Builder", "FILTER")})
+        Me.GridControl1.EmbeddedNavigator.TextStringFormat = "{0} of {1}"
+        Me.GridControl1.Location = New System.Drawing.Point(-1, 99)
+        Me.GridControl1.LookAndFeel.SkinName = "Liquid Sky"
+        Me.GridControl1.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.GridControl1.MainView = Me.GridView1
+        Me.GridControl1.Name = "GridControl1"
+        Me.GridControl1.Size = New System.Drawing.Size(776, 304)
+        Me.GridControl1.TabIndex = 0
+        Me.GridControl1.UseEmbeddedNavigator = True
+        Me.GridControl1.ViewCollection.AddRange(New DevExpress.XtraGrid.Views.Base.BaseView() {Me.GridView1})
+        '
+        'GridView1
+        '
+        Me.GridView1.FocusRectStyle = DevExpress.XtraGrid.Views.Grid.DrawFocusRectStyle.None
+        Me.GridView1.GridControl = Me.GridControl1
+        Me.GridView1.GroupFormat = "{1} "
+        Me.GridView1.Name = "GridView1"
+        Me.GridView1.OptionsBehavior.AllowIncrementalSearch = True
+        Me.GridView1.OptionsBehavior.Editable = False
+        Me.GridView1.OptionsDetail.AutoZoomDetail = True
+        Me.GridView1.OptionsNavigation.EnterMoveNextColumn = True
+        Me.GridView1.OptionsPrint.ExpandAllGroups = False
+        Me.GridView1.OptionsPrint.PrintDetails = True
+        Me.GridView1.OptionsSelection.InvertSelection = True
+        Me.GridView1.OptionsView.ColumnAutoWidth = False
+        Me.GridView1.OptionsView.EnableAppearanceEvenRow = True
+        Me.GridView1.OptionsView.EnableAppearanceOddRow = True
+        Me.GridView1.OptionsView.ShowChildrenInGroupPanel = True
+        Me.GridView1.OptionsView.ShowGroupPanel = False
+        Me.GridView1.ViewCaption = "Group"
+        '
+        'Panel1
+        '
+        Me.Panel1.BackColor = System.Drawing.Color.Tan
+        Me.Panel1.BackgroundImage = CType(resources.GetObject("Panel1.BackgroundImage"), System.Drawing.Image)
+        Me.Panel1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
+        Me.Panel1.Controls.Add(Me.Txt_TitleX)
+        Me.Panel1.Dock = System.Windows.Forms.DockStyle.Top
+        Me.Panel1.Location = New System.Drawing.Point(0, 0)
+        Me.Panel1.Name = "Panel1"
+        Me.Panel1.Size = New System.Drawing.Size(774, 34)
+        Me.Panel1.TabIndex = 43
+        '
+        'Txt_TitleX
+        '
+        Me.Txt_TitleX.Appearance.Font = New System.Drawing.Font("Arial", 17.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Txt_TitleX.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.Txt_TitleX.Location = New System.Drawing.Point(5, 5)
+        Me.Txt_TitleX.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Txt_TitleX.Name = "Txt_TitleX"
+        Me.Txt_TitleX.Size = New System.Drawing.Size(195, 26)
+        Me.Txt_TitleX.TabIndex = 5
+        Me.Txt_TitleX.Text = "Deposit Slip Report"
+        '
+        'ContextMenuStrip1
+        '
+        Me.ContextMenuStrip1.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ContextMenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.T_PrintSlip, Me.T_Print, Me.ToolStripMenuItem1, Me.T_Refresh, Me.ToolStripMenuItem3, Me.T_Close})
+        Me.ContextMenuStrip1.Name = "ContextMenuStrip1"
+        Me.ContextMenuStrip1.Size = New System.Drawing.Size(177, 104)
+        '
+        'T_PrintSlip
+        '
+        Me.T_PrintSlip.Image = Global.ConnectOne.D0010._001.My.Resources.Resources.greenaccept
+        Me.T_PrintSlip.Name = "T_PrintSlip"
+        Me.T_PrintSlip.Size = New System.Drawing.Size(176, 22)
+        Me.T_PrintSlip.Text = "Print Slip"
+        '
+        'T_Print
+        '
+        Me.T_Print.Image = CType(resources.GetObject("T_Print.Image"), System.Drawing.Image)
+        Me.T_Print.Name = "T_Print"
+        Me.T_Print.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.L), System.Windows.Forms.Keys)
+        Me.T_Print.Size = New System.Drawing.Size(176, 22)
+        Me.T_Print.Text = "&List Preview"
+        '
+        'ToolStripMenuItem1
+        '
+        Me.ToolStripMenuItem1.Name = "ToolStripMenuItem1"
+        Me.ToolStripMenuItem1.Size = New System.Drawing.Size(173, 6)
+        '
+        'T_Refresh
+        '
+        Me.T_Refresh.Image = CType(resources.GetObject("T_Refresh.Image"), System.Drawing.Image)
+        Me.T_Refresh.Name = "T_Refresh"
+        Me.T_Refresh.ShortcutKeys = System.Windows.Forms.Keys.F5
+        Me.T_Refresh.Size = New System.Drawing.Size(176, 22)
+        Me.T_Refresh.Text = "&Refresh"
+        '
+        'ToolStripMenuItem3
+        '
+        Me.ToolStripMenuItem3.Name = "ToolStripMenuItem3"
+        Me.ToolStripMenuItem3.Size = New System.Drawing.Size(173, 6)
+        '
+        'T_Close
+        '
+        Me.T_Close.Image = CType(resources.GetObject("T_Close.Image"), System.Drawing.Image)
+        Me.T_Close.Name = "T_Close"
+        Me.T_Close.ShortcutKeys = CType((System.Windows.Forms.Keys.Alt Or System.Windows.Forms.Keys.C), System.Windows.Forms.Keys)
+        Me.T_Close.Size = New System.Drawing.Size(176, 22)
+        Me.T_Close.Text = "&Close"
+        '
+        'Lbl_Separator1
+        '
+        Me.Lbl_Separator1.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Separator1.Appearance.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Separator1.Appearance.Font = New System.Drawing.Font("Arial", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Separator1.Appearance.ForeColor = System.Drawing.Color.Chocolate
+        Me.Lbl_Separator1.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap
+        Me.Lbl_Separator1.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None
+        Me.Lbl_Separator1.LineLocation = DevExpress.XtraEditors.LineLocation.Left
+        Me.Lbl_Separator1.LineOrientation = DevExpress.XtraEditors.LabelLineOrientation.Vertical
+        Me.Lbl_Separator1.LineVisible = True
+        Me.Lbl_Separator1.Location = New System.Drawing.Point(156, 405)
+        Me.Lbl_Separator1.LookAndFeel.SkinName = "Liquid Sky"
+        Me.Lbl_Separator1.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Lbl_Separator1.Name = "Lbl_Separator1"
+        Me.Lbl_Separator1.Size = New System.Drawing.Size(5, 29)
+        Me.Lbl_Separator1.TabIndex = 131
+        '
+        'Lbl_Create
+        '
+        Me.Lbl_Create.Anchor = CType(((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Create.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Create.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Create.ForeColor = System.Drawing.Color.DimGray
+        Me.Lbl_Create.Location = New System.Drawing.Point(158, 405)
+        Me.Lbl_Create.Name = "Lbl_Create"
+        Me.Lbl_Create.Size = New System.Drawing.Size(330, 15)
+        Me.Lbl_Create.TabIndex = 132
+        Me.Lbl_Create.Text = "Created On: 12-12-2010, 04:55:20 PM, By: Connect"
+        '
+        'Lbl_Modify
+        '
+        Me.Lbl_Modify.Anchor = CType(((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Modify.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Modify.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Modify.ForeColor = System.Drawing.Color.DimGray
+        Me.Lbl_Modify.Location = New System.Drawing.Point(158, 420)
+        Me.Lbl_Modify.Name = "Lbl_Modify"
+        Me.Lbl_Modify.Size = New System.Drawing.Size(330, 15)
+        Me.Lbl_Modify.TabIndex = 133
+        Me.Lbl_Modify.Text = "Edited On: 12-12-2010, 04:55:20 PM, By: Connect"
+        '
+        'Lbl_Separator3
+        '
+        Me.Lbl_Separator3.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Separator3.Appearance.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Separator3.Appearance.Font = New System.Drawing.Font("Arial", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Separator3.Appearance.ForeColor = System.Drawing.Color.Chocolate
+        Me.Lbl_Separator3.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap
+        Me.Lbl_Separator3.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None
+        Me.Lbl_Separator3.LineLocation = DevExpress.XtraEditors.LineLocation.Left
+        Me.Lbl_Separator3.LineOrientation = DevExpress.XtraEditors.LabelLineOrientation.Vertical
+        Me.Lbl_Separator3.LineVisible = True
+        Me.Lbl_Separator3.Location = New System.Drawing.Point(615, 405)
+        Me.Lbl_Separator3.LookAndFeel.SkinName = "Liquid Sky"
+        Me.Lbl_Separator3.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Lbl_Separator3.Name = "Lbl_Separator3"
+        Me.Lbl_Separator3.Size = New System.Drawing.Size(5, 29)
+        Me.Lbl_Separator3.TabIndex = 142
+        '
+        'But_Find
+        '
+        Me.But_Find.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.But_Find.Image = CType(resources.GetObject("But_Find.Image"), System.Drawing.Image)
+        Me.But_Find.Location = New System.Drawing.Point(554, 407)
+        Me.But_Find.LookAndFeel.SkinName = "iMaginary"
+        Me.But_Find.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.But_Find.Name = "But_Find"
+        Me.But_Find.Size = New System.Drawing.Size(60, 25)
+        Me.But_Find.TabIndex = 141
+        Me.But_Find.Text = "Find"
+        '
+        'But_Filter
+        '
+        Me.But_Filter.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.But_Filter.Image = CType(resources.GetObject("But_Filter.Image"), System.Drawing.Image)
+        Me.But_Filter.Location = New System.Drawing.Point(493, 407)
+        Me.But_Filter.LookAndFeel.SkinName = "iMaginary"
+        Me.But_Filter.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.But_Filter.Name = "But_Filter"
+        Me.But_Filter.Size = New System.Drawing.Size(60, 25)
+        Me.But_Filter.TabIndex = 140
+        Me.But_Filter.Text = "Filter"
+        '
+        'Lbl_Separator2
+        '
+        Me.Lbl_Separator2.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Separator2.Appearance.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Separator2.Appearance.Font = New System.Drawing.Font("Arial", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Separator2.Appearance.ForeColor = System.Drawing.Color.Chocolate
+        Me.Lbl_Separator2.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap
+        Me.Lbl_Separator2.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None
+        Me.Lbl_Separator2.LineLocation = DevExpress.XtraEditors.LineLocation.Left
+        Me.Lbl_Separator2.LineOrientation = DevExpress.XtraEditors.LabelLineOrientation.Vertical
+        Me.Lbl_Separator2.LineVisible = True
+        Me.Lbl_Separator2.Location = New System.Drawing.Point(489, 405)
+        Me.Lbl_Separator2.LookAndFeel.SkinName = "Liquid Sky"
+        Me.Lbl_Separator2.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Lbl_Separator2.Name = "Lbl_Separator2"
+        Me.Lbl_Separator2.Size = New System.Drawing.Size(5, 29)
+        Me.Lbl_Separator2.TabIndex = 144
+        '
+        'Lbl_Status
+        '
+        Me.Lbl_Status.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.Lbl_Status.Appearance.BackColor = System.Drawing.Color.Transparent
+        Me.Lbl_Status.Appearance.Font = New System.Drawing.Font("Arial", 14.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lbl_Status.Appearance.ForeColor = System.Drawing.Color.Chocolate
+        Me.Lbl_Status.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center
+        Me.Lbl_Status.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None
+        Me.Lbl_Status.Location = New System.Drawing.Point(33, 405)
+        Me.Lbl_Status.LookAndFeel.SkinName = "Liquid Sky"
+        Me.Lbl_Status.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Lbl_Status.Name = "Lbl_Status"
+        Me.Lbl_Status.Size = New System.Drawing.Size(122, 29)
+        ToolTipTitleItem1.Text = "Entry Status"
+        SuperToolTip1.Items.Add(ToolTipTitleItem1)
+        Me.Lbl_Status.SuperTip = SuperToolTip1
+        Me.Lbl_Status.TabIndex = 145
+        Me.Lbl_Status.Text = "Status"
+        '
+        'Pic_Status
+        '
+        Me.Pic_Status.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.Pic_Status.EditValue = Global.ConnectOne.D0010._001.My.Resources.Resources.unlock
+        Me.Pic_Status.Location = New System.Drawing.Point(-1, 404)
+        Me.Pic_Status.Name = "Pic_Status"
+        Me.Pic_Status.Size = New System.Drawing.Size(32, 31)
+        ToolTipTitleItem2.Text = "Entry Status"
+        SuperToolTip2.Items.Add(ToolTipTitleItem2)
+        Me.Pic_Status.SuperTip = SuperToolTip2
+        Me.Pic_Status.TabIndex = 147
+        '
+        'Cmb_View
+        '
+        Me.Cmb_View.EditValue = ""
+        Me.Cmb_View.EnterMoveNextControl = True
+        Me.Cmb_View.Location = New System.Drawing.Point(78, 35)
+        Me.Cmb_View.Name = "Cmb_View"
+        Me.Cmb_View.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Bold)
+        Me.Cmb_View.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.Cmb_View.Properties.Appearance.Options.UseFont = True
+        Me.Cmb_View.Properties.Appearance.Options.UseForeColor = True
+        Me.Cmb_View.Properties.AppearanceDisabled.BackColor = System.Drawing.Color.White
+        Me.Cmb_View.Properties.AppearanceDisabled.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Bold)
+        Me.Cmb_View.Properties.AppearanceDisabled.ForeColor = System.Drawing.Color.Gray
+        Me.Cmb_View.Properties.AppearanceDisabled.Options.UseBackColor = True
+        Me.Cmb_View.Properties.AppearanceDisabled.Options.UseFont = True
+        Me.Cmb_View.Properties.AppearanceDisabled.Options.UseForeColor = True
+        Me.Cmb_View.Properties.AppearanceDropDown.BackColor = System.Drawing.Color.FloralWhite
+        Me.Cmb_View.Properties.AppearanceDropDown.Font = New System.Drawing.Font("Verdana", 9.0!)
+        Me.Cmb_View.Properties.AppearanceDropDown.ForeColor = System.Drawing.Color.Navy
+        Me.Cmb_View.Properties.AppearanceDropDown.Options.UseBackColor = True
+        Me.Cmb_View.Properties.AppearanceDropDown.Options.UseFont = True
+        Me.Cmb_View.Properties.AppearanceDropDown.Options.UseForeColor = True
+        Me.Cmb_View.Properties.AppearanceFocused.BackColor = System.Drawing.Color.LightCyan
+        Me.Cmb_View.Properties.AppearanceFocused.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Bold)
+        Me.Cmb_View.Properties.AppearanceFocused.ForeColor = System.Drawing.Color.Navy
+        Me.Cmb_View.Properties.AppearanceFocused.Options.UseBackColor = True
+        Me.Cmb_View.Properties.AppearanceFocused.Options.UseFont = True
+        Me.Cmb_View.Properties.AppearanceFocused.Options.UseForeColor = True
+        Me.Cmb_View.Properties.AppearanceReadOnly.BackColor = System.Drawing.Color.White
+        Me.Cmb_View.Properties.AppearanceReadOnly.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Bold)
+        Me.Cmb_View.Properties.AppearanceReadOnly.ForeColor = System.Drawing.Color.Gray
+        Me.Cmb_View.Properties.AppearanceReadOnly.Options.UseBackColor = True
+        Me.Cmb_View.Properties.AppearanceReadOnly.Options.UseFont = True
+        Me.Cmb_View.Properties.AppearanceReadOnly.Options.UseForeColor = True
+        ToolTipTitleItem3.Appearance.Image = CType(resources.GetObject("resource.Image"), System.Drawing.Image)
+        ToolTipTitleItem3.Appearance.Options.UseImage = True
+        ToolTipTitleItem3.Image = CType(resources.GetObject("ToolTipTitleItem3.Image"), System.Drawing.Image)
+        ToolTipTitleItem3.Text = "To set specific period..."
+        ToolTipItem1.LeftIndent = 6
+        ToolTipItem1.Text = "        Shortcut Key"
+        ToolTipTitleItem4.LeftIndent = 6
+        ToolTipTitleItem4.Text = "          Ctrl + F2"
+        SuperToolTip3.Items.Add(ToolTipTitleItem3)
+        SuperToolTip3.Items.Add(ToolTipItem1)
+        SuperToolTip3.Items.Add(ToolTipTitleItem4)
+        Me.Cmb_View.Properties.Buttons.AddRange(New DevExpress.XtraEditors.Controls.EditorButton() {New DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo), New DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Glyph, "Change Period", -1, False, True, False, DevExpress.XtraEditors.ImageLocation.MiddleCenter, Nothing, New DevExpress.Utils.KeyShortcut(System.Windows.Forms.Keys.None), SerializableAppearanceObject1, "", Nothing, SuperToolTip3, True)})
+        Me.Cmb_View.Properties.DropDownRows = 21
+        Me.Cmb_View.Properties.ImmediatePopup = True
+        Me.Cmb_View.Properties.LookAndFeel.SkinName = "Liquid Sky"
+        Me.Cmb_View.Properties.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.Cmb_View.Properties.NullValuePrompt = "Select Type..."
+        Me.Cmb_View.Properties.NullValuePromptShowForEmptyValue = True
+        Me.Cmb_View.Properties.PopupFormMinSize = New System.Drawing.Size(300, 0)
+        Me.Cmb_View.Properties.PopupFormSize = New System.Drawing.Size(300, 0)
+        Me.Cmb_View.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor
+        Me.Cmb_View.Size = New System.Drawing.Size(304, 20)
+        Me.Cmb_View.TabIndex = 181
+        '
+        'LabelControl2
+        '
+        Me.LabelControl2.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl2.Location = New System.Drawing.Point(3, 38)
+        Me.LabelControl2.Name = "LabelControl2"
+        Me.LabelControl2.Size = New System.Drawing.Size(69, 14)
+        Me.LabelControl2.TabIndex = 182
+        Me.LabelControl2.Text = "View Type:"
+        '
+        'LabelControl3
+        '
+        Me.LabelControl3.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl3.Location = New System.Drawing.Point(391, 39)
+        Me.LabelControl3.Name = "LabelControl3"
+        Me.LabelControl3.Size = New System.Drawing.Size(45, 14)
+        Me.LabelControl3.TabIndex = 184
+        Me.LabelControl3.Text = "Period:"
+        '
+        'BE_View_Period
+        '
+        Me.BE_View_Period.EditValue = "View Period"
+        Me.BE_View_Period.EnterMoveNextControl = True
+        Me.BE_View_Period.Location = New System.Drawing.Point(466, 36)
+        Me.BE_View_Period.Name = "BE_View_Period"
+        Me.BE_View_Period.Properties.AllowFocused = False
+        Me.BE_View_Period.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Bold)
+        Me.BE_View_Period.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.BE_View_Period.Properties.Appearance.Options.UseFont = True
+        Me.BE_View_Period.Properties.Appearance.Options.UseForeColor = True
+        Me.BE_View_Period.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor
+        Me.BE_View_Period.Size = New System.Drawing.Size(304, 20)
+        Me.BE_View_Period.TabIndex = 183
+        '
+        'LabelControl4
+        '
+        Me.LabelControl4.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl4.Location = New System.Drawing.Point(3, 58)
+        Me.LabelControl4.Name = "LabelControl4"
+        Me.LabelControl4.Size = New System.Drawing.Size(36, 14)
+        Me.LabelControl4.TabIndex = 186
+        Me.LabelControl4.Text = "Bank:"
+        '
+        'GLookUp_BankList
+        '
+        Me.GLookUp_BankList.EnterMoveNextControl = True
+        Me.GLookUp_BankList.Location = New System.Drawing.Point(78, 56)
+        Me.GLookUp_BankList.Name = "GLookUp_BankList"
+        Me.GLookUp_BankList.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.GLookUp_BankList.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.GLookUp_BankList.Properties.Appearance.Options.UseFont = True
+        Me.GLookUp_BankList.Properties.Appearance.Options.UseForeColor = True
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.BackColor = System.Drawing.Color.White
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.ForeColor = System.Drawing.Color.DimGray
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.Options.UseBackColor = True
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.Options.UseFont = True
+        Me.GLookUp_BankList.Properties.AppearanceDisabled.Options.UseForeColor = True
+        Me.GLookUp_BankList.Properties.AppearanceDropDown.BackColor = System.Drawing.Color.FloralWhite
+        Me.GLookUp_BankList.Properties.AppearanceDropDown.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.GLookUp_BankList.Properties.AppearanceDropDown.Options.UseBackColor = True
+        Me.GLookUp_BankList.Properties.AppearanceDropDown.Options.UseFont = True
+        Me.GLookUp_BankList.Properties.AppearanceFocused.BackColor = System.Drawing.Color.LightCyan
+        Me.GLookUp_BankList.Properties.AppearanceFocused.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.GLookUp_BankList.Properties.AppearanceFocused.ForeColor = System.Drawing.Color.Blue
+        Me.GLookUp_BankList.Properties.AppearanceFocused.Options.UseBackColor = True
+        Me.GLookUp_BankList.Properties.AppearanceFocused.Options.UseFont = True
+        Me.GLookUp_BankList.Properties.AppearanceFocused.Options.UseForeColor = True
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.BackColor = System.Drawing.Color.White
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.Font = New System.Drawing.Font("Verdana", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.ForeColor = System.Drawing.Color.DimGray
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.Options.UseBackColor = True
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.Options.UseFont = True
+        Me.GLookUp_BankList.Properties.AppearanceReadOnly.Options.UseForeColor = True
+        ToolTipTitleItem5.Text = "Advanced Filter (On/Off)"
+        ToolTipItem2.LeftIndent = 6
+        ToolTipItem2.Text = "Enabled : Auto Filter Bar" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "Enabled : Column Filter" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "Enabled : Custom Filter Edito" & _
+    "r" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "Enabled : Footer Filter Display"
+        SuperToolTip4.Items.Add(ToolTipTitleItem5)
+        SuperToolTip4.Items.Add(ToolTipItem2)
+        Me.GLookUp_BankList.Properties.Buttons.AddRange(New DevExpress.XtraEditors.Controls.EditorButton() {New DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo), New DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Redo, "Filter : Off", -1, True, True, False, DevExpress.XtraEditors.ImageLocation.MiddleCenter, Nothing, New DevExpress.Utils.KeyShortcut(System.Windows.Forms.Keys.None), SerializableAppearanceObject2, "", "OFF", SuperToolTip4, True)})
+        Me.GLookUp_BankList.Properties.ImmediatePopup = True
+        Me.GLookUp_BankList.Properties.NullText = ""
+        Me.GLookUp_BankList.Properties.NullValuePrompt = "Select Bank Name..."
+        Me.GLookUp_BankList.Properties.NullValuePromptShowForEmptyValue = True
+        Me.GLookUp_BankList.Properties.PopupFilterMode = DevExpress.XtraEditors.PopupFilterMode.Contains
+        Me.GLookUp_BankList.Properties.PopupFormMinSize = New System.Drawing.Size(670, 110)
+        Me.GLookUp_BankList.Properties.PopupFormSize = New System.Drawing.Size(670, 110)
+        Me.GLookUp_BankList.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.Standard
+        Me.GLookUp_BankList.Properties.View = Me.GLookUp_BankListView
+        Me.GLookUp_BankList.Size = New System.Drawing.Size(304, 20)
+        ToolTipTitleItem6.Text = "Information..."
+        ToolTipItem3.LeftIndent = 6
+        ToolTipItem3.Text = "Select Bank Name.."
+        ToolTipTitleItem7.LeftIndent = 6
+        ToolTipTitleItem7.Text = "Use F4 function key to Show List."
+        SuperToolTip5.Items.Add(ToolTipTitleItem6)
+        SuperToolTip5.Items.Add(ToolTipItem3)
+        SuperToolTip5.Items.Add(ToolTipSeparatorItem1)
+        SuperToolTip5.Items.Add(ToolTipTitleItem7)
+        Me.GLookUp_BankList.SuperTip = SuperToolTip5
+        Me.GLookUp_BankList.TabIndex = 185
+        '
+        'GLookUp_BankListView
+        '
+        Me.GLookUp_BankListView.Columns.AddRange(New DevExpress.XtraGrid.Columns.GridColumn() {Me.BANK_NAME, Me.BANK_BRANCH, Me.BANK_ACC_NO, Me.BA_ID})
+        Me.GLookUp_BankListView.FocusRectStyle = DevExpress.XtraGrid.Views.Grid.DrawFocusRectStyle.RowFocus
+        Me.GLookUp_BankListView.Name = "GLookUp_BankListView"
+        Me.GLookUp_BankListView.OptionsBehavior.AllowAddRows = DevExpress.Utils.DefaultBoolean.[False]
+        Me.GLookUp_BankListView.OptionsBehavior.AllowDeleteRows = DevExpress.Utils.DefaultBoolean.[False]
+        Me.GLookUp_BankListView.OptionsBehavior.ReadOnly = True
+        Me.GLookUp_BankListView.OptionsCustomization.AllowFilter = False
+        Me.GLookUp_BankListView.OptionsCustomization.AllowGroup = False
+        Me.GLookUp_BankListView.OptionsCustomization.AllowQuickHideColumns = False
+        Me.GLookUp_BankListView.OptionsLayout.Columns.AddNewColumns = False
+        Me.GLookUp_BankListView.OptionsLayout.Columns.RemoveOldColumns = False
+        Me.GLookUp_BankListView.OptionsMenu.EnableColumnMenu = False
+        Me.GLookUp_BankListView.OptionsMenu.EnableFooterMenu = False
+        Me.GLookUp_BankListView.OptionsMenu.EnableGroupPanelMenu = False
+        Me.GLookUp_BankListView.OptionsMenu.ShowDateTimeGroupIntervalItems = False
+        Me.GLookUp_BankListView.OptionsMenu.ShowGroupSortSummaryItems = False
+        Me.GLookUp_BankListView.OptionsMenu.ShowGroupSummaryEditorItem = True
+        Me.GLookUp_BankListView.OptionsSelection.EnableAppearanceFocusedCell = False
+        Me.GLookUp_BankListView.OptionsSelection.InvertSelection = True
+        Me.GLookUp_BankListView.OptionsView.EnableAppearanceEvenRow = True
+        Me.GLookUp_BankListView.OptionsView.EnableAppearanceOddRow = True
+        Me.GLookUp_BankListView.OptionsView.ShowGroupPanel = False
+        Me.GLookUp_BankListView.OptionsView.ShowIndicator = False
+        '
+        'BANK_NAME
+        '
+        Me.BANK_NAME.Caption = "Name"
+        Me.BANK_NAME.FieldName = "BANK_NAME"
+        Me.BANK_NAME.Name = "BANK_NAME"
+        Me.BANK_NAME.Visible = True
+        Me.BANK_NAME.VisibleIndex = 0
+        Me.BANK_NAME.Width = 180
+        '
+        'BANK_BRANCH
+        '
+        Me.BANK_BRANCH.Caption = "Branch"
+        Me.BANK_BRANCH.FieldName = "BANK_BRANCH"
+        Me.BANK_BRANCH.Name = "BANK_BRANCH"
+        Me.BANK_BRANCH.Visible = True
+        Me.BANK_BRANCH.VisibleIndex = 1
+        Me.BANK_BRANCH.Width = 100
+        '
+        'BANK_ACC_NO
+        '
+        Me.BANK_ACC_NO.Caption = "Account No."
+        Me.BANK_ACC_NO.FieldName = "BANK_ACC_NO"
+        Me.BANK_ACC_NO.Name = "BANK_ACC_NO"
+        Me.BANK_ACC_NO.Visible = True
+        Me.BANK_ACC_NO.VisibleIndex = 2
+        Me.BANK_ACC_NO.Width = 120
+        '
+        'BA_ID
+        '
+        Me.BA_ID.Caption = "BA_ID"
+        Me.BA_ID.FieldName = "BA_ID"
+        Me.BA_ID.Name = "BA_ID"
+        '
+        'LabelControl6
+        '
+        Me.LabelControl6.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl6.Location = New System.Drawing.Point(391, 59)
+        Me.LabelControl6.Name = "LabelControl6"
+        Me.LabelControl6.Size = New System.Drawing.Size(53, 14)
+        Me.LabelControl6.TabIndex = 189
+        Me.LabelControl6.Text = "A/c. No.:"
+        '
+        'BE_Bank_Acc_No
+        '
+        Me.BE_Bank_Acc_No.EditValue = ""
+        Me.BE_Bank_Acc_No.Enabled = False
+        Me.BE_Bank_Acc_No.EnterMoveNextControl = True
+        Me.BE_Bank_Acc_No.Location = New System.Drawing.Point(466, 57)
+        Me.BE_Bank_Acc_No.Name = "BE_Bank_Acc_No"
+        Me.BE_Bank_Acc_No.Properties.AllowFocused = False
+        Me.BE_Bank_Acc_No.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Bank_Acc_No.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.BE_Bank_Acc_No.Properties.Appearance.Options.UseFont = True
+        Me.BE_Bank_Acc_No.Properties.Appearance.Options.UseForeColor = True
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.BackColor = System.Drawing.Color.White
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.ForeColor = System.Drawing.Color.DimGray
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.Options.UseBackColor = True
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.Options.UseFont = True
+        Me.BE_Bank_Acc_No.Properties.AppearanceDisabled.Options.UseForeColor = True
+        Me.BE_Bank_Acc_No.Properties.NullValuePrompt = "Bank Branch Name..."
+        Me.BE_Bank_Acc_No.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor
+        Me.BE_Bank_Acc_No.Size = New System.Drawing.Size(304, 20)
+        Me.BE_Bank_Acc_No.TabIndex = 188
+        '
+        'LabelControl5
+        '
+        Me.LabelControl5.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl5.Location = New System.Drawing.Point(3, 79)
+        Me.LabelControl5.Name = "LabelControl5"
+        Me.LabelControl5.Size = New System.Drawing.Size(48, 14)
+        Me.LabelControl5.TabIndex = 191
+        Me.LabelControl5.Text = "Branch:"
+        '
+        'BE_Bank_Branch
+        '
+        Me.BE_Bank_Branch.EditValue = ""
+        Me.BE_Bank_Branch.Enabled = False
+        Me.BE_Bank_Branch.EnterMoveNextControl = True
+        Me.BE_Bank_Branch.Location = New System.Drawing.Point(78, 77)
+        Me.BE_Bank_Branch.Name = "BE_Bank_Branch"
+        Me.BE_Bank_Branch.Properties.AllowFocused = False
+        Me.BE_Bank_Branch.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Bank_Branch.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.BE_Bank_Branch.Properties.Appearance.Options.UseFont = True
+        Me.BE_Bank_Branch.Properties.Appearance.Options.UseForeColor = True
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.BackColor = System.Drawing.Color.White
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.ForeColor = System.Drawing.Color.DimGray
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.Options.UseBackColor = True
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.Options.UseFont = True
+        Me.BE_Bank_Branch.Properties.AppearanceDisabled.Options.UseForeColor = True
+        Me.BE_Bank_Branch.Properties.NullValuePrompt = "Bank Branch Name..."
+        Me.BE_Bank_Branch.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor
+        Me.BE_Bank_Branch.Size = New System.Drawing.Size(304, 20)
+        Me.BE_Bank_Branch.TabIndex = 190
+        '
+        'LabelControl1
+        '
+        Me.LabelControl1.Appearance.Font = New System.Drawing.Font("Verdana", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.LabelControl1.Location = New System.Drawing.Point(391, 80)
+        Me.LabelControl1.Name = "LabelControl1"
+        Me.LabelControl1.Size = New System.Drawing.Size(52, 14)
+        Me.LabelControl1.TabIndex = 193
+        Me.LabelControl1.Text = "Slip No.:"
+        '
+        'BE_Slip_No
+        '
+        Me.BE_Slip_No.EditValue = ""
+        Me.BE_Slip_No.EnterMoveNextControl = True
+        Me.BE_Slip_No.Location = New System.Drawing.Point(466, 78)
+        Me.BE_Slip_No.Name = "BE_Slip_No"
+        Me.BE_Slip_No.Properties.AllowFocused = False
+        Me.BE_Slip_No.Properties.Appearance.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Slip_No.Properties.Appearance.ForeColor = System.Drawing.Color.Navy
+        Me.BE_Slip_No.Properties.Appearance.Options.UseFont = True
+        Me.BE_Slip_No.Properties.Appearance.Options.UseForeColor = True
+        Me.BE_Slip_No.Properties.AppearanceDisabled.BackColor = System.Drawing.Color.White
+        Me.BE_Slip_No.Properties.AppearanceDisabled.Font = New System.Drawing.Font("Verdana", 8.25!)
+        Me.BE_Slip_No.Properties.AppearanceDisabled.ForeColor = System.Drawing.Color.DimGray
+        Me.BE_Slip_No.Properties.AppearanceDisabled.Options.UseBackColor = True
+        Me.BE_Slip_No.Properties.AppearanceDisabled.Options.UseFont = True
+        Me.BE_Slip_No.Properties.AppearanceDisabled.Options.UseForeColor = True
+        Me.BE_Slip_No.Properties.Mask.EditMask = "d"
+        Me.BE_Slip_No.Properties.Mask.MaskType = DevExpress.XtraEditors.Mask.MaskType.Numeric
+        Me.BE_Slip_No.Properties.NullValuePrompt = "Bank Branch Name..."
+        Me.BE_Slip_No.Size = New System.Drawing.Size(235, 20)
+        Me.BE_Slip_No.TabIndex = 192
+        '
+        'BUT_SAVE_COM
+        '
+        Me.BUT_SAVE_COM.Appearance.Font = New System.Drawing.Font("Tahoma", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.BUT_SAVE_COM.Appearance.Options.UseFont = True
+        Me.BUT_SAVE_COM.Image = CType(resources.GetObject("BUT_SAVE_COM.Image"), System.Drawing.Image)
+        Me.BUT_SAVE_COM.Location = New System.Drawing.Point(701, 77)
+        Me.BUT_SAVE_COM.LookAndFeel.SkinName = "Liquid Sky"
+        Me.BUT_SAVE_COM.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.BUT_SAVE_COM.Name = "BUT_SAVE_COM"
+        Me.BUT_SAVE_COM.Size = New System.Drawing.Size(70, 21)
+        Me.BUT_SAVE_COM.TabIndex = 194
+        Me.BUT_SAVE_COM.Text = "Show"
+        '
+        'Frm_Deposit_Slip_All
+        '
+        Me.Appearance.BackColor = System.Drawing.Color.White
+        Me.Appearance.Options.UseBackColor = True
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.ClientSize = New System.Drawing.Size(774, 452)
+        Me.ContextMenuStrip = Me.ContextMenuStrip1
+        Me.Controls.Add(Me.BUT_SAVE_COM)
+        Me.Controls.Add(Me.LabelControl1)
+        Me.Controls.Add(Me.BE_Slip_No)
+        Me.Controls.Add(Me.LabelControl5)
+        Me.Controls.Add(Me.BE_Bank_Branch)
+        Me.Controls.Add(Me.LabelControl6)
+        Me.Controls.Add(Me.BE_Bank_Acc_No)
+        Me.Controls.Add(Me.LabelControl4)
+        Me.Controls.Add(Me.GLookUp_BankList)
+        Me.Controls.Add(Me.LabelControl3)
+        Me.Controls.Add(Me.BE_View_Period)
+        Me.Controls.Add(Me.Cmb_View)
+        Me.Controls.Add(Me.LabelControl2)
+        Me.Controls.Add(Me.But_Filter)
+        Me.Controls.Add(Me.Lbl_Status)
+        Me.Controls.Add(Me.Lbl_Separator2)
+        Me.Controls.Add(Me.Lbl_Separator3)
+        Me.Controls.Add(Me.But_Find)
+        Me.Controls.Add(Me.Zoom1)
+        Me.Controls.Add(Me.Panel1)
+        Me.Controls.Add(Me.GridControl1)
+        Me.Controls.Add(Me.StatusStrip1)
+        Me.Controls.Add(Me.Lbl_Separator1)
+        Me.Controls.Add(Me.Lbl_Create)
+        Me.Controls.Add(Me.Lbl_Modify)
+        Me.Controls.Add(Me.Pic_Status)
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog
+        Me.LookAndFeel.SkinName = "Liquid Sky"
+        Me.LookAndFeel.UseDefaultLookAndFeel = False
+        Me.MaximizeBox = False
+        Me.Name = "Frm_Deposit_Slip_All"
+        Me.ShowInTaskbar = False
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
+        Me.Text = "Deposit Slip Report"
+        Me.StatusStrip1.ResumeLayout(False)
+        Me.StatusStrip1.PerformLayout()
+        CType(Me.Zoom1.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.Zoom1, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.GridControl1, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.GridView1, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.Panel1.ResumeLayout(False)
+        Me.Panel1.PerformLayout()
+        Me.ContextMenuStrip1.ResumeLayout(False)
+        CType(Me.Pic_Status.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.Cmb_View.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.BE_View_Period.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.GLookUp_BankList.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.GLookUp_BankListView, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.BE_Bank_Acc_No.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.BE_Bank_Branch.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.BE_Slip_No.Properties, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.ResumeLayout(False)
+        Me.PerformLayout()
+
+    End Sub
+    Friend WithEvents StatusStrip1 As System.Windows.Forms.StatusStrip
+    Friend WithEvents Lbl_ToolMsg As System.Windows.Forms.ToolStripStatusLabel
+    Friend WithEvents GridControl1 As DevExpress.XtraGrid.GridControl
+    Friend WithEvents Panel1 As System.Windows.Forms.Panel
+    Friend WithEvents GridView1 As DevExpress.XtraGrid.Views.Grid.GridView
+    Friend WithEvents Zoom1 As DevExpress.XtraEditors.ZoomTrackBarControl
+    Friend WithEvents ContextMenuStrip1 As System.Windows.Forms.ContextMenuStrip
+    Friend WithEvents T_Print As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem1 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents T_Refresh As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem3 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents T_Close As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Lbl_Separator1 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents Lbl_Create As System.Windows.Forms.Label
+    Friend WithEvents Lbl_Modify As System.Windows.Forms.Label
+    Friend WithEvents Lbl_Separator3 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents But_Find As DevExpress.XtraEditors.SimpleButton
+    Friend WithEvents But_Filter As DevExpress.XtraEditors.SimpleButton
+    Friend WithEvents Lbl_Separator2 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents Lbl_Status As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents Pic_Status As DevExpress.XtraEditors.PictureEdit
+    Friend WithEvents T_PrintSlip As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Txt_TitleX As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents Cmb_View As DevExpress.XtraEditors.ComboBoxEdit
+    Friend WithEvents LabelControl2 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents LabelControl3 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents BE_View_Period As DevExpress.XtraEditors.ButtonEdit
+    Friend WithEvents LabelControl4 As DevExpress.XtraEditors.LabelControl
+    Public WithEvents GLookUp_BankList As DevExpress.XtraEditors.GridLookUpEdit
+    Friend WithEvents GLookUp_BankListView As DevExpress.XtraGrid.Views.Grid.GridView
+    Friend WithEvents BANK_NAME As DevExpress.XtraGrid.Columns.GridColumn
+    Friend WithEvents BANK_BRANCH As DevExpress.XtraGrid.Columns.GridColumn
+    Friend WithEvents BANK_ACC_NO As DevExpress.XtraGrid.Columns.GridColumn
+    Friend WithEvents BA_ID As DevExpress.XtraGrid.Columns.GridColumn
+    Friend WithEvents LabelControl6 As DevExpress.XtraEditors.LabelControl
+    Public WithEvents BE_Bank_Acc_No As DevExpress.XtraEditors.ButtonEdit
+    Friend WithEvents LabelControl5 As DevExpress.XtraEditors.LabelControl
+    Friend WithEvents BE_Bank_Branch As DevExpress.XtraEditors.ButtonEdit
+    Friend WithEvents LabelControl1 As DevExpress.XtraEditors.LabelControl
+    Public WithEvents BE_Slip_No As DevExpress.XtraEditors.ButtonEdit
+    Friend WithEvents BUT_SAVE_COM As DevExpress.XtraEditors.SimpleButton
+
+
+End Class

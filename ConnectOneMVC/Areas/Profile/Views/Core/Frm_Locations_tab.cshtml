@@ -1,0 +1,680 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<ConnectOneMVC.Areas.Profile.Models.CoreInfoLocation>
+@{
+    bool Core_AddRight = (bool)ViewData["Core_AddRight"];
+    bool Core_UpdateRight = (bool)ViewData["Core_UpdateRight"];
+    bool Core_ViewRight = (bool)ViewData["Core_ViewRight"];
+    bool Core_DeleteRight = (bool)ViewData["Core_DeleteRight"];
+    bool Core_ExportRight = (bool)ViewData["Core_ExportRight"];
+    bool Profile_CoreSuperuser_auditor_Lock_UnLock = (bool)ViewData["Profile_CoreSuperuser_auditor_Lock_UnLock"];
+}
+
+<div id="content" class="col-md-12" style="padding-bottom:20px">
+    <form>
+        <div id="CoreLocationreloadPartialView" style="margin-top:1px !important;">
+            @Html.Partial("Frm_Core_Info_Location_Grid", Model)
+        </div>
+    </form>
+</div>
+<div class="footer-MainBoxdiv full-width-footer">
+    <div class="list_footer_left_margin col-md-10">
+        <div>
+            @*class="footer_new_left"*@
+            <div>
+                <div class="list_footer_left_margin">
+                    <div class="footer-locktext">
+                        <div id="CoreLocation_Lbl_ActionOn" class="left_footertext_top"></div>
+                        <div id="CoreLocation_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                    </div>
+                    @*<div class="footer-locktext">
+                        <div id="CoreLocationLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                        </div>*@
+                </div>
+                <div class="list_footer_left_margin">
+                    <p id="CoreLocationLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                    <p id="CoreLocationLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="list_footer_right_margin_consistent col-md-1">
+        @*<i id="CoreLocation_LockICON" class="fa fa-lock lock_symbol"></i>*@
+    </div>
+</div>
+
+<div class="col-md-12">
+    @*Add/Edit Popup*@
+
+    @(Html.DevExtreme().Popup().CustomPopup().ID("CoreLocation_report_modal").OnShowing("PopupOnShowing").Title("Location List Preview").FullScreen(false)
+                                                                       .Width(200)
+                                                                       .Height(200)
+                                                                       .Height("auto")
+                                                                       .ShowCloseButton(true)
+                                                                       .ContentTemplate(@<text>
+                                                                        <div id='CoreLocation_report_modal_result'>
+                                                                        </div>
+                                                                    </text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_CoreLocation_Window").Title("CoreLocation").OnShowing("PopupOnShowing")
+                                                       .Width(500)
+                                                       .Height(200)
+                                                       .ContentTemplate(@<text>
+                                                        <div id="CoreLocationresult">
+                                                        </div>
+                                                    </text>))
+
+
+</div>
+
+@*Javascript Events*@
+<script type="text/javascript">
+    var IsCoreLocationSucessPopup = false;
+    var IsCoreLocationViewPopup = false;
+    var Profile_CoreEditright="@Core_UpdateRight"=="True"?true:false;
+    var Profile_CoreNewright="@Core_AddRight"=="True"?true:false;
+    var Profile_CoreDeleteright="@Core_DeleteRight"=="True"?true:false;
+    var Profile_CoreViewright="@Core_ViewRight"=="True"?true:false;
+    var Profile_CoreExportright="@Core_ExportRight"=="True"?true:false;
+    var Profile_CoreSuperuser_auditor_Lock_UnLock = "@Profile_CoreSuperuser_auditor_Lock_UnLock" == "True" ? true : false;
+
+    $(document).ready(function () {
+        IsCoreLocationSucessPopup = false;
+        IsCoreLocationViewPopup = false;
+      //  SetCoreLocationGroupPanelFooterVisible();
+        $("#CoreLocationListGrid").hover(function () {
+            CoreLocationListGrid.Focus()
+        })
+    });
+
+    function CoreLocationAjaxSuccessForm(data) {
+        //if (data.result == false) {
+        //    DevExpress.ui.dialog.alert(data.Message, "Error");
+        //}
+        //else {
+            IsCoreLocationSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+            CoreLocationListGrid.Refresh();
+            IsCoreLocationSucessPopup = false;
+        //}
+    }
+
+    //function OnEndCallback(s, e) {
+    //    AdjustSize();
+    //}
+    function AdjustLocationSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{ CoreLocationListGrid.SetHeight(height);}catch(err){}
+    }
+
+    var CoreLocationID;
+    var CoreLocation_EditDate;
+    var CoreLocation_AddDate;
+    var CoreLocation_AddBy;
+    var CoreLocation_EditBy;
+    var CoreLocation_ActionStatus;
+    var CoreLocation_ActionDate;
+    var CoreLocation_ActionBy;
+    var CoreLocation_YearId;
+    var LB_ID = "";
+    var SP_ID = "";
+    function CoreLocationOnGridFocusedRowChanged(s, e) {
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        CoreLocationListGrid.GetValuesOnCustomCallback({ key: key }, CoreLocationOnGetRowValues);
+    }
+
+    function CoreLocationOnGetRowValues(data) {
+
+        var values = data.split("![");
+        CoreLocationID = values[0];
+        CoreLocation_EditDate = values[1];
+        CoreLocation_AddDate = values[2];
+        CoreLocation_AddBy = values[3];
+        CoreLocation_EditBy = values[4];
+        CoreLocation_ActionStatus = values[5];
+        CoreLocation_ActionDate = values[6];
+        CoreLocation_ActionBy = values[7];
+        CoreLocation_YearId = values[8];
+        CoreLocation_UpdateFooterDetail(CoreLocationID, CoreLocation_ActionStatus, CoreLocation_AddDate, CoreLocation_AddBy,
+            CoreLocation_ActionDate, CoreLocation_ActionBy, CoreLocation_EditDate, CoreLocation_EditBy);
+    }
+
+    function CoreLocation_UpdateFooterDetail(CoreLocationID, CoreLocation_ActionStatus, CoreLocation_AddDate, CoreLocation_AddBy, CoreLocation_Action_Date, CoreLocation_Action_By, CoreLocation_EditDate, CoreLocation_EditBy) {
+
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+
+        Status = CoreLocation_ActionStatus;
+
+        if (Status && Status.toUpperCase() == "LOCKED") {
+            Lbl_Status = "Completed";
+            Lbl_Status_Color = "blue";
+            Pic_Status = "Fa Fa-Lock";
+        }
+        else {
+            Pic_Status = "Fa Fa-UnLock";
+            Lbl_Status = Status;
+            if (Status && Status.toUpperCase() == "COMPLETED")
+                Lbl_Status_Color = "green";
+            else
+                Lbl_Status_Color = "red";
+        }
+
+        if (CoreLocation_AddDate) {
+            Lbl_Create = "Add On: " + CoreLocation_AddDate + ", By: " + CoreLocation_AddBy;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, By: " + CoreLocation_AddBy;
+        }
+        if (CoreLocation_EditDate) {
+            Lbl_Modify = "Edit On: " + CoreLocation_EditDate + ", By: " + CoreLocation_EditBy;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, By: " + CoreLocation_EditBy;
+        }
+        if (CoreLocation_Action_Date) {
+            Lbl_ActionOn = "UnLocked On: " + CoreLocation_Action_Date;
+        }
+        else {
+            Lbl_ActionOn = "UnLocked On: " + "?";
+        }
+
+        Lbl_ActionBy = "UnLocked By: " + CoreLocation_Action_By;
+
+        $('#CoreLocationLbl_Status').text(Lbl_Status);
+        $('#CoreLocationLbl_Create').text(Lbl_Create);
+        $('#CoreLocation_Lbl_ActionOn').text(Lbl_ActionOn);
+        $('#CoreLocation_Lbl_ActionBy').text(Lbl_ActionBy);
+        $('#CoreLocationLbl_Modify').text(Lbl_Modify);
+        if (Lbl_Status_Color != "") {
+            $('#CoreLocationLbl_Status').css('color', Lbl_Status_Color);
+        }
+        if (Pic_Status != "") {
+            $('#CoreLocation_LockICON').css('class', Pic_Status);
+        }
+    }
+
+
+    function CoreLocationOnUnLockClick() {
+        if (!Profile_CoreSuperuser_auditor_Lock_UnLock) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (CoreLocationID == 'undefined' || CoreLocationID == undefined) {DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');  return;}
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreLocation/DataNavigation",
+            data: { ActionMethod: "UNLOCKED", id: CoreLocationID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreLocation_ActionStatus, EditDate: CoreLocation_EditDate },
+            cache: false,
+            success: function (CoreLocation_UNLOCKED_Get_DataNavigation_result) {
+                DevExpress.ui.dialog.alert(CoreLocation_UNLOCKED_Get_DataNavigation_result.Message);
+            }
+        });
+    }
+
+    function CoreLocationOnLockClick() {
+        if (!Profile_CoreSuperuser_auditor_Lock_UnLock) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+        if (CoreLocationID == 'undefined' || CoreLocationID == undefined) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreLocation/DataNavigation",
+            data: { ActionMethod: "LOCKED", id: CoreLocationID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreLocation_ActionStatus, EditDate: CoreLocation_EditDate },
+            cache: false,
+            success: function (CoreLocation_LOCKED_Get_DataNavigation_result) {
+                DevExpress.ui.dialog.alert(CoreLocation_LOCKED_Get_DataNavigation_result.Message);
+            }
+        });
+    }
+
+    function OnCoreLocationNewClick() {
+
+        if(!Profile_CoreNewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreLocationViewPopup = false;
+
+        OpenPopup("popup_frm_CoreLocation_Window", "New ~ CoreLocation", "@Url.Action("frm_CoreLocation_window", "CoreLocation", new { @area = "Profile" })?ActionMethod=New", "auto", 500);
+    }
+
+    function OnCoreLocationEditClick() {
+        if(!Profile_CoreEditright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (CoreLocationID == 'undefined' || CoreLocationID == undefined || CoreLocationID == "") { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreLocation/DataNavigation",
+            data: { ActionMethod: "Edit", id: CoreLocationID, YearID: CoreLocation_YearId, ActionStatus: CoreLocation_ActionStatus, EditDate: CoreLocation_EditDate },
+            cache: false,
+            async: true,
+            success: function (CoreLocation_Edit_ButtonClick_result) {
+                if (CoreLocation_Edit_ButtonClick_result.result == "true" || CoreLocation_Edit_ButtonClick_result.result == true) {
+
+                    OpenPopup("popup_frm_CoreLocation_Window", "Edit ~ CoreLocation",'@Url.Action("frm_CoreLocation_window", "CoreLocation", new { @area = "Profile" })?ActionMethod=Edit&ID=' + CoreLocationID + '&EditedOn=' + encodeURIComponent(CoreLocation_EditDate), "auto", 500);
+                }
+                else if (CoreLocation_Edit_ButtonClick_result.result == "NoEditRights")
+                {
+                    $("#LocationModelEdit").hide();
+                    DevExpress.ui.dialog.alert(CoreLocation_Edit_ButtonClick_result.Message, "Warning");
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(CoreLocation_Edit_ButtonClick_result.Message);
+                    CoreLocationListGrid.Refresh();
+                    HideLoader();
+                }
+            }
+        });
+    }
+
+    function OnCoreLocationViewClick() {
+        if(!Profile_CoreViewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreLocationViewPopup = true;
+        if (CoreLocationID == 'undefined' || CoreLocationID == undefined) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreLocation/DataNavigation",
+            data: { ActionMethod: "View", id: CoreLocationID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreLocation_ActionStatus, EditDate: encodeURIComponent(CoreLocation_EditDate) },
+            cache: false,
+            success: function (CoreLocation_View_ButtonClick_result) {
+                if (CoreLocation_View_ButtonClick_result.result == "true" || CoreLocation_View_ButtonClick_result.result == true) {
+
+                    OpenPopup("popup_frm_CoreLocation_Window", "View ~ CoreLocation", "@Url.Action("frm_CoreLocation_window", "CoreLocation", new { @area = "Profile" })?ActionMethod=" + "View" + "&ID=" + CoreLocationID + "&EditedOn=" + encodeURIComponent(CoreLocation_EditDate), "auto", 500);
+                }
+                else if (CoreLocation_View_ButtonClick_result.result == "NoViewRights") {
+                    DevExpress.ui.dialog.alert(CoreLocation_View_ButtonClick_result.Message, "Warning");
+                }
+                else {
+                    DevExpress.ui.dialog.alert(CoreLocation_View_ButtonClick_result.Message);
+                    CoreLocationListGrid.Refresh();
+                }
+            }
+        });
+    }
+
+    function OnCoreLocationDeleteClick()
+    {
+        ShowLoader();
+        if(!Profile_CoreDeleteright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreLocationViewPopup = false;
+        if (CoreLocationID == 'undefined' || CoreLocationID == undefined || CoreLocationID == "") { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+
+        result.done(function (dialogResult)
+        {
+            if (dialogResult) {
+                $("#popup_frm_CoreLocation_Window_Close").dxPopup("hide");
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Profile/CoreLocation/DataNavigation",
+                    data: { ActionMethod: "Delete", id: CoreLocationID, ActionStatus: CoreLocation_ActionStatus, EditDate: CoreLocation_EditDate, LocationName: "", OtherDetails: "", RAD_PropertyService: "", PropertyDDL: "", ServiceDDL: "" },
+                    cache: false,
+                    success: function (CoreLocation_Delete_ButtonClick_result) {
+                        if (CoreLocation_Delete_ButtonClick_result.result == "true" || CoreLocation_Delete_ButtonClick_result.result == true) {
+                       
+                            OpenPopup("popup_frm_CoreLocation_Window", "Delete ~ CoreLocation", "@Url.Action("frm_CoreLocation_window", "CoreLocation", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + CoreLocationID + "&EditedOn=" + encodeURIComponent(CoreLocation_EditDate), "auto", 500);
+                        }
+                        else if (CoreLocation_Delete_ButtonClick_result.result == "NoDeleteRights") {
+                            $("#LocationModelDelete").hide();
+                            DevExpress.ui.dialog.alert(CoreLocation_Delete_ButtonClick_result.Message, "Warning");
+                            HideLoader();
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(CoreLocation_Delete_ButtonClick_result.Message);
+                            CoreLocationListGrid.Refresh();
+                            HideLoader();
+                        }
+                    }
+                });
+            }
+            else { HideLoader(); }//redmine bug #133008 fixed
+        });
+    }
+
+    function OnCoreLocationListPreviewClick() {
+        if(!Profile_CoreExportright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+            OpenPopup("CoreLocation_report_modal", "Export Option", "@Url.Action("Frm_Location_Export_Options", "Core", new { @area = "Profile" })", "auto", 125);
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+    function CoreLocationContextMenuInit(s, e) { }
+
+    function CoreLocationContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            OnCoreLocationNewClick();
+        }
+        if (e.item.name == 'Close') {
+            CoreProfileClose();
+        }
+        else if (e.item.name == 'Edit') {
+            OnCoreLocationEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnCoreLocationDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnCoreLocationViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnCoreLocationListPreviewClick();
+        }
+        else if (e.item.name == 'Unlock') {
+            CoreLocationOnUnLockClick();
+        }
+        else if (e.item.name == 'Lock') {
+            CoreLocationOnLockClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            CoreLocationListGrid.Refresh();
+        }
+
+    }
+
+    function LookUp_GetPartyList_CoreLocation_ChangeEvent(s, e) {
+        $("#PartyEditDate").val(s.GetSelectedItem().GetColumnText("REC_EDIT_ON"));
+    }
+
+
+    function CoreLocationDelete(ID, actionMethod) {
+        if (ID == undefined || ID == 'undefined') {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: "POST",
+            url: "/Profile/CoreLocation/frm_CoreLocation_window",
+            data: {
+                ActionMethod: actionMethod,
+                Id: ID,
+                TempActionMethod:"_Delete"
+            },
+            success: function (data) {
+                if (data.State == "1") {
+                    HideLoader();
+                    $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+                    DevExpress.ui.dialog.alert(data.Message, 'Alert');
+                    CoreLocationChanged();
+                    CoreLocationListGrid.Refresh();
+                    CoreLocationChanged();
+                    return
+                }
+            },
+            error: function (e) {
+
+            }
+
+        });
+    }
+
+    function CoreLocationChanged() {
+        ShowLoader();
+
+        $.ajax({
+            url: '@Url.Action("Frm_Core_Info_Location_Grid", "Core")',
+            type: "GET",
+            data: { Command: "REFRESH" },
+            success: function (res) {
+                $("#Frm_Core_Info_Location_Grid").html(res);
+            }
+        });
+        HideLoader();
+    }
+
+</script>
+
+<script>
+
+    @*function OpenMatchedCoreLocationPopUp(actionMethod, id, actionStatus, editDate) {
+        var locationName = $("#loc_locname").dxTextBox("instance").option("value");
+        var otherDetails = $("#oth_otherDetails").dxTextBox("instance").option("value");
+        if (locationName == null || locationName=="") {
+            DevExpress.ui.dialog.alert('Location Name is required..!', 'Alert ');
+            return
+            return false;
+        }
+        ShowLoader();
+        try {
+            $.ajax({
+                type: "GET",
+                url: "/Profile/CoreLocation/DataNavigationTLocationMatching",
+                data: { ActionMethod: actionMethod, Id: id, ActionStatus: actionStatus, EditDate: editDate, LocationName: locationName, OtherDetails: otherDetails},
+                success: function (data) {
+                    if (data.LocationMache == "1") {
+                        HideLoader();
+                        DevExpress.ui.dialog.alert(data.Message, 'Alert ');
+                        return;
+                        return false;
+                    }
+                    var ACTM = "";
+                    if (data.LocationMache["actionMethodDTLM"]==1) {
+                        ACTM = "_New";
+                    }
+                    else if (data.LocationMache["actionMethodDTLM"]==2) {
+                        ACTM = "_Edit";
+                    }
+                    else {
+                        ACTM = "";
+                    }
+                    var locationName = data.LocationMache["locationNameDTLM"];
+                    var otherDetails = data.LocationMache["otherDetailsDTLM"];
+                    var servicePlaceId = data.LocationMache["sp_IdDTLM"] == null ? "" : data.LocationMache["sp_IdDTLM"];
+                    var propertId = data.LocationMache["lb_IdDTLM"] == null ? "" : data.LocationMache["lb_IdDTLM"];
+                    var LName_ID = data.LocationMache["IDDTML"];
+                    var lastEditedOn = data.LocationMache["LastEditOnDDTML"] == null ?"":data.LocationMache["LastEditOnDDTML"];
+                    var Edited_RadioPropert = data.LocationMache["RAD_PropertyService"] == null ? "" : data.LocationMache["RAD_PropertyService"];
+                    var ID = data.LocationMache.IDDTML == null ? "" : data.LocationMache.IDDTML
+
+                    $("#popup_frm_CoreMatchedLocation_Window").dxPopup("show");
+                    $("#popup_frm_CoreLocation_Window").dxPopup("instance").option("title", "Matched ~ CoreLocation");
+                    $("#CoreMatchedLocationresult").html('');
+                    var parms = 'ID=' + encodeURIComponent(ID) + '&ActionMethod=' + encodeURIComponent(ACTM) + '&LastEditOn=' + encodeURIComponent(lastEditedOn) + '&LocationName=' + encodeURIComponent(locationName) + '&OtherDetails=' + encodeURIComponent(otherDetails)
+                    $("#CoreMatchedLocationresult").load('@Url.Action("frm_CoreMatchedLocation_window", "CoreLocation", new { @area = "Profile" })?'+parms, function () {
+                        HideLoader();
+                    });
+                },
+                error: function (e) {
+                    alert(e);
+                }
+            });
+        }
+        catch (e) {
+            alert(e);
+        }
+
+    }*@
+    /**             Start
+    Property and Service DropDowns OnChnage functions
+    **/
+
+    //function LookUp_GetProList_ChangeEvent(e) {
+    //    var dropDownBox = $("#Property_ID").dxDropDownBox("instance");
+    //    dropDownBox.close();
+    //    var $dataGrid = $("#From_Profile_Core_Property");
+    //    if ($dataGrid.length) {
+    //        var dataGrid = $dataGrid.dxDataGrid("instance");
+    //        dataGrid.selectRows(e.value, false);
+    //        if (dataGrid.getSelectedRowsData().length > 0) {
+    //            var item = dataGrid.getSelectedRowsData()[0];
+    //            //LB_ID=item["Propert_ID"]
+
+    //        }
+    //    }
+    //}
+    //function LookUp_GetSerList_ChangeEvent(e) {
+    //    var dropDownBox = $("#ServicePlace_ID").dxDropDownBox("instance");
+    //    dropDownBox.close();
+    //    var $dataGrid = $("#Frm_Profile_Core_New_Service_Grid");
+    //    if ($dataGrid.length) {
+    //        var dataGrid = $dataGrid.dxDataGrid("instance");
+    //        dataGrid.selectRows(e.value, false);
+    //        if (dataGrid.getSelectedRowsData().length > 0) {
+    //            var item = dataGrid.getSelectedRowsData()[0];
+    //            //SP_ID = item["SP_ID"]
+
+    //        }
+    //    }
+    //}
+    /**              End
+     Property and Service DropDowns OnChnage functions
+    **/
+
+    /**              Start
+     Property and Service RadioButtons OnChnage function
+    **/
+    //function RAD_PropertyServiceChangeValue(e) {
+    //    if (e.value == "Property_ID" || e.value == "Property") {
+    //        $("#Property_ID").dxDropDownBox("instance").option('disabled', false);
+    //        $("#ServicePlace_ID").dxDropDownBox("instance").option('disabled', true);
+    //    }
+    //    else if (e.value == "ServicePlace_ID" || e.value == "Service Place") {
+    //        $("#ServicePlace_ID").dxDropDownBox("instance").option('disabled', false);
+    //        $("#Property_ID").dxDropDownBox("instance").option('disabled', true);
+    //    }
+
+    //}
+    /**              End
+     Property and Service RadioButtons OnChnage function
+    **/
+
+    //function SaveOrUpdateMatchedCoreLocation(ID, actionMethod, editedDate, actionStatus) {
+    //    var ServiceDDLVal = "";
+    //    var PropertyDDLVal = "";
+    //    var RadiobuttonVal = "";
+    //    var LocationNameVal = $("#loc_locname").dxTextBox("instance").option("value");
+    //    var OtherDetailsVal = $("#oth_otherDetails").dxTextBox("instance").option("value");
+    //    if ($("#RAD_PropertyService").dxRadioGroup("instance").option('value') == "Service Place") {
+    //        if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') == "") {
+    //            DevExpress.ui.dialog.alert('Please select service place..', 'Alert ');
+    //            return;
+    //            return false;
+    //        }
+    //        else {
+    //            if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') != "") {
+    //                if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') != null) {
+    //                    if (typeof ($("#ServicePlace_ID").dxDropDownBox("instance").option('value')) == "string") {
+    //                        ServiceDDLVal = $("#ServicePlace_ID").dxDropDownBox("instance").option('value');
+    //                    }
+    //                    else if (typeof ($("#ServicePlace_ID").dxDropDownBox("instance").option('value')) == "object") {
+    //                        ServiceDDLVal = $("#ServicePlace_ID").dxDropDownBox("instance").option('value')[0];
+    //                    }
+    //                }
+    //                else {
+    //                    DevExpress.ui.dialog.alert('Please select service place name ', 'Alert ');
+    //                    return;
+    //                    return false;
+    //                }
+    //            }
+    //        }
+    //    }
+    //    if ($("#RAD_PropertyService").dxRadioGroup("instance").option('value') == "Property") {
+    //        if ($("#Property_ID").dxDropDownBox("instance").option('value') == "" || $("#Property_ID").dxDropDownBox("instance").option('value') == null || $("#Property_ID").dxDropDownBox("instance").option('value') == undefined) {
+    //            DevExpress.ui.dialog.alert('Please select property name..', 'Alert ');
+    //            return;
+    //            return false;
+    //        }
+    //        else {
+    //            if ($("#Property_ID").dxDropDownBox("instance").option('value') != "") {
+    //                if (typeof ($("#Property_ID").dxDropDownBox("instance").option('value')) == "string") {
+    //                    PropertyDDLVal = $("#Property_ID").dxDropDownBox("instance").option('value');
+    //                }
+    //                else if (typeof ($("#Property_ID").dxDropDownBox("instance").option('value')) == "object") {
+    //                    PropertyDDLVal = $("#Property_ID").dxDropDownBox("instance").option('value')[0];
+    //                }
+    //            }
+    //        }
+    //    }
+    //    RadiobuttonVal = $("#RAD_PropertyService").dxRadioGroup("instance").option('value');
+    //    ShowLoader();
+    //    $.ajax({
+    //        type: "POST",
+    //        url: "/Profile/CoreLocation/frm_CoreLocation_window",
+    //        data: {
+    //            // ActionMethod: actionMethod,//Redmine Bug #133431 fixed
+    //            Id: ID,
+    //            TempActionMethod: actionMethod,
+    //            LastEditedOn: editedDate,
+    //            ActionStatus: actionStatus,
+    //            Property_ID: PropertyDDLVal,
+    //            ServicePlace_ID: ServiceDDLVal,
+    //            RAD_PropertyService: RadiobuttonVal,
+    //            LocationName: LocationNameVal,
+    //            otherDetails: OtherDetailsVal
+
+    //        },
+    //        success: function (data) {
+    //            DevExpress.ui.dialog.alert(data.Message, 'Alert ');
+    //            $("#popup_frm_CoreMatchedLocation_Window").dxPopup("hide");
+    //            $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+    //            CoreLocationListGrid.Refresh();
+    //            CoreLocationChanged();
+    //            HideLoader();
+    //        },
+    //        error: function (e) {
+    //            console.log(e);//Redmine Bug #133431 fixed
+    //            //alert("Got Error. " + e);
+    //        }
+
+    //    });
+    //}
+
+    //function CoreMatchedLocationAjaxSuccessForm(data) {
+    //    HideLoader();
+    //    if (data.result == false) {
+    //        DevExpress.ui.dialog.alert(data.Message, "Error");
+    //    }
+    //    else {
+    //        $("#popup_frm_CoreMatchedLocation_Window").dxPopup("show");
+    //        $("#CoreMatchedLocationresult").html(data);
+    //        console.log(data);
+    //        $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+
+    //    }
+    //}
+</script> @* Functions Moved "to" Frm_CoreLocation_Window from Frm_Location_tab*@
+
+<script>
+
+@*<div>
+        @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_CoreMatchedLocation_Window").Title("CoreMatchedLocation").DragEnabled(true)
+                                               .MaxHeight(400)
+                                               .MaxWidth(800)
+                                               .ShowCloseButton(true)
+                                               .ContentTemplate(@<text>
+                                                <div id="CoreMatchedLocationresult">
+                                                </div>
+                                            </text>))
+
+        
+    </div>*@
+
+</script> @* Div Moved "to" Frm_CoreLocation_Window from Frm_Location_tab*@
+

@@ -1,0 +1,167 @@
+﻿<div class="ReportInputStatements_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+    @{
+
+        string Txt_ReportTitle = ViewBag.Txt_ReportTitle;
+        string StatementPath = ViewBag.StatementPath;
+        string PopupTitle = ViewBag.PopupTitle;
+        bool SingleDateSelection = (bool)ViewBag.SingleDateSelection;
+        bool IsMobile = (bool)ViewBag.IsMobile;
+
+    }
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+    <div id="content" class="col-md-12" style="background:#8bbef7 url(../../Content/image/popup-headerbg.jpg) left top repeat-x">
+        <div class="col-md-12" style="padding-left:0px;">
+            <h3 style="margin-top:4px;margin-bottom:6px; color:#000080"> <img src="~/Icons/Audit Actions6.png" style="float:left; height:25px" align="middle" /> &nbsp;@Txt_ReportTitle</h3>
+        </div>
+    </div>
+    <div id="content" class="container-fluid">
+        <div class="col-sm-12" style="padding-left:0px;padding-right:0px;">
+            <input type="hidden" id="hdfxFr_Date" />
+            <input type="hidden" id="hdfxTo_Date" />
+            @*Buttons*@
+            <div id="div-dateselection" style="vertical-align:bottom;padding:0;word-spacing:0;height:35px">
+                <span style="padding-right:2px;color:#031791">View</span>
+                @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("PeriodSelection").Name("PeriodSelection").DataSource(d => d.Mvc().Controller("PrintableStatements").LoadAction("Fill_Change_Period_Items").Key("C_TITLE_ID"))
+                  .DisplayExpr("C_TITLE_NAME").ValueExpr("C_TITLE_ID").ElementAttr("style", "margin-left:2px;color:#031791") .OnValueChanged("PeriodSelectionChange_Smt") .ReadOnly(SingleDateSelection) .ShowClearButton(false))
+                @(Html.DevExtreme().Button() .ID("btnChangePeriod") .Text("Change Period") .Width(140) .Hint("Change Period") .Disabled(true) .OnClick("ChangePeriodClick_Smt"))
+            </div>
+        </div>
+        <div class="col-sm-12" style="padding:5px 0px 5px 0px">
+            <span id="BE_View_Period" style="font-size:12px;color:#031791"> </span>
+        </div>
+    </div>
+    <div style="display:block">
+        @(Html.DevExtreme().Button() .ID("btnCancel") .Text("Cancel") .Hint("Cancel") .Icon("fa fa-times-circle fa-w-16 btn-icons crossgrey") .ElementAttr("style", "float:right;margin-left:5px;margin-right:10px;margin-top:8px") .OnClick(@<text> function () { $("#StatementPeriodPopup").dxPopup("hide"); } </text>) )
+        @(Html.DevExtreme().Button() .ID("btnOK") .Text("OK") .Hint("OK") .ElementAttr("style", "float:right;margin-top:8px") .Icon("fa fa-check-circle fa-w-16 btn-icons checkgreen") .OnClick(@<text> function () { OnOkClick(); } </text>) )
+
+    </div>
+
+
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+
+
+    function OnOkClick()
+    {
+
+        var _fromDate = $("#hdfxFr_Date").val();
+        var _toDate = $("#hdfxTo_Date").val();
+
+        if ("@StatementPath" == "PotamelReport") {
+            $('#StatementPeriodPopup').dxPopup('hide');
+
+           // $(".TabPanalMenu-tabs .active span").click();
+            OpenTabControl("Frm_Potamel_Info", "Potamel", "@Url.Action("Frm_Potamel_Info", "Potamel", new { area= "Reports" })?_FrDate=" + encodeURIComponent(_fromDate) + "&_ToDate=" + encodeURIComponent(_toDate) );
+        }
+        else {
+            var URL = "/Statements/PrintableStatements/" + "@StatementPath";
+
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: URL,
+                data:
+                {
+                    _FrDate: _fromDate,
+                    _ToDate: _toDate
+                },
+                cache: false,
+                success: function (data) {
+                    HideLoader();
+                    if (data.result == false) {
+                        DevExpress.ui.dialog.alert(data.message, data.title);
+                    }
+                    else {
+                        OpenPopup("OpenStatementPopup", "@PopupTitle", null, "auto", "100%", true, data);
+                        $('#StatementPeriodPopup').dxPopup('hide');
+                    }
+                }
+            });
+        }
+
+    }
+    </script>
+    <script>
+    $(document).ready(function ()
+    {
+        $("#PeriodSelection").dxSelectBox("instance").option("value", "Financial Year");
+        if ("@SingleDateSelection" == "True")
+        {
+            $("#PeriodSelection").dxSelectBox("instance").option("value", "Specific Period");
+        }//Redmine Bug #133037 fixed
+    });
+    </script>
+    <script>
+    function PeriodSelectionChange_Smt(e) {
+        e.component.close();
+        if (e.value == null || e.value.length == 0) {
+            return;
+        }
+        $("#btnChangePeriod").dxButton("instance").option("disabled", true);
+        if (e.value == "Specific Period") {
+            $("#btnChangePeriod").dxButton("instance").option("disabled", false);
+            ChangePeriodClick_Smt();
+        }
+        else
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Statements/PrintableStatements/GetSelectPeriod",
+                data:
+                {
+                    DateSelected: e.value
+                },
+                cache: false,
+                success: function (result)
+                {
+                    HideLoader();
+                    $("#BE_View_Period").text(result.returnPeriod);
+                    $("#hdfxFr_Date").val(result.FromDate);
+                    $("#hdfxTo_Date").val(result.ToDate);
+                }
+            });
+        }
+    }
+    function ChangePeriodClick_Smt()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: " /Statements/PrintableStatements/frm_Voucher_Specific_Period",
+            cache: false,
+            success: function (data)
+            {
+                ShowLoader();
+                OpenPopup("Popup_speceficPeriod", "Select Date", false, "auto", "45%", true, data);
+                HideLoader();
+            }
+        });
+    }
+    function Frm_Change_Period_Success_Smt(data)
+    {
+        HideLoader();
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, 'Error!!');
+        }
+        else
+        {
+            $("#BE_View_Period").text(data.returnPeriod);
+            $("#hdfxFr_Date").val(data.FromDate);
+            $("#hdfxTo_Date").val(data.ToDate);
+            $("#Popup_speceficPeriod").dxPopup("hide");
+            if ("@SingleDateSelection" == "True")
+            {
+                OnOkClick();
+            }
+        }
+    }
+    </script>
+</div>

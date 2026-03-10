@@ -1,0 +1,222 @@
+﻿<div class="SelectAttachment_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+    var Referece_ID=  ViewBag.Referece_ID;
+    var Referece_Screen=ViewBag.Referece_Screen;
+    var GridName = ViewBag.GridName;
+    var NestedGridName = ViewBag.NestedGridName;
+   
+}
+    <style>
+        #SelectAttachmentListGrid {
+            max-width:100%
+        }
+    </style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div class="report_header_div_main">
+    <div id="LinkAttachment_content" class="col-md-12 report_header_div_main">
+        <div class="col-md-6 padd report_header_div">
+            <label class="report_header_label">Link Existing Attachment</label>
+        </div>
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button().ID("LinkAttachment_View").Text("View").Icon("doc").OnClick(@<text> function () { LinkAttachmentViewClick(); } </text>).Visible(false) )
+        </div>
+    </div>
+</div>@*Header*@
+<div class="row">
+    <div class="col-md-12 padd15">
+        <div id="LinkAttachmentPartialView" class="parent_table">
+            <form>
+                @Html.Partial("Frm_Select_Attachment_Grid", Model)
+            </form>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">    
+        <div class="styleActionBtn">
+            @(Html.DevExtreme().Button().ID("BUT_SAVE_LinkAttachment").CustomSaveButton().Text("OK").UseSubmitBehavior(false).OnClick("LinkAttachment_SaveClick"))
+            @(Html.DevExtreme().Button().ID("BUT_CANCEL_LinkAttachment").CustomCloseButton().Text("Cancel").OnClick(@<text> function () {    $("#LinkAttachmentPopup").dxPopup("hide"); } </text>) )
+        </div>         
+    </div>
+</div><!--[Buttons]-->
+<script>
+    var LinkAttachment_ID = null;
+    var LinkAttachmentFileName;
+    $(document).ready(function () { });
+    function OnSelectAttachmentGridInit(s, e)
+    {
+        LinkAttachmentAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            LinkAttachmentAdjustSize();
+        });
+    }
+    function OnSelectAttachmentListGrid_BeginCallback(s, e)
+    {
+
+    }
+    function OnSelectAttachmentListGrid_EndCallback(s, e)
+    {
+        s.Focus();
+    }
+    function OnSelectAttachmentListGrid_SelectionChanged(s, e)
+    {
+        if (s.GetSelectedRowCount() == 0)
+        {
+            AllAttachmentIDsToLink = null;
+        }
+    }
+    function LinkAttachmentAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 84) / 100;
+        try { SelectAttachmentListGrid.SetHeight(height); } catch (err) { }
+    }
+    function OnSelectAttachmentGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() > -1)
+        {
+            s.GetRowValues(s.GetFocusedRowIndex(),'ID;File_Name', OnLinkAttachment_GetGridRowValues);
+        }
+        else { LinkAttachment_ID = null;}
+    }
+    function OnLinkAttachment_GetGridRowValues(values)
+    {
+        LinkAttachment_ID = values[0];
+        LinkAttachmentFileName = values[1];
+        SelectAttachmentListGrid.Focus();
+    }
+    var AllAttachmentIDsToLink = null;
+    function LinkAttachment_SaveClick(e)
+    {
+        if (SelectAttachmentListGrid.GetSelectedRowCount() == 0)
+        {
+            AllAttachmentIDsToLink = LinkAttachment_ID;
+            ajaxcallToSave_LinkAttachment(AllAttachmentIDsToLink);
+        }
+        else
+        {
+            SelectAttachmentListGrid.GetSelectedFieldValues("ID",LinkattachmentSelectedValueCallback);
+        }
+
+    }
+    function LinkattachmentSelectedValueCallback(value)
+    {
+        if (value != null && value.length > 0)
+        {
+            AllAttachmentIDsToLink = value.join("|");
+        }
+        else
+        {
+            AllAttachmentIDsToLink = null;
+        }
+        ajaxcallToSave_LinkAttachment();
+    }
+    function ajaxcallToSave_LinkAttachment()
+    {
+        if (AllAttachmentIDsToLink == null)
+        {
+            DevExpress.ui.dialog.alert("Select An Attachment", "Error");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/LinkAttachment",
+            data:
+            {
+                Attachment_ID: AllAttachmentIDsToLink,
+                Referece_Screen: "@Referece_Screen",
+                Referece_ID: "@Referece_ID"
+
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Attachment Linking");
+                }
+                if (data.result == true)
+                {
+                    AutoHideAlertDialog(data.message, "Attachment Linking").done(function (dialogResult)
+                    {
+                        if ("@GridName" == "CashBookListGrid")
+                        {
+                            var GridInstance = $('#' + "@GridName").data("dxDataGrid")
+                            if (GridInstance !== void 0)
+                            {
+                                Grid_Display_CB(null,true)
+                            }
+                            else
+                            {
+                                Grid_Display(null, true);
+                            }
+                            CloseRightPane();
+                        }
+                        else
+                        {
+                            if ("@NestedGridName".length > 0)
+                            {
+                                var GridInstance = $("div[id='" + "@NestedGridName" + "']").data("dxDataGrid")
+                                if (GridInstance !== void 0)
+                                {
+                                    GridInstance.clearSelection();
+                                }
+                                else
+                                {
+                                    ASPxClientControl.GetControlCollection().GetByName("@NestedGridName").SetFocusedRowIndex(-1);
+                                }
+                            }
+                            if("@GridName".length > 0)
+                            {
+                                var GridInstance = $("div[id='" + "@GridName" + "']").data("dxDataGrid")
+                                if (GridInstance !== void 0) {
+                                    GridInstance.refresh().done(function (data) { ActionAfterDataGridRefresh(data, GridInstance) });
+                                }
+                                else
+                                {
+                                    ASPxClientControl.GetControlCollection().GetByName("@GridName").Refresh();
+                                }
+                            }
+                        }
+                        HidePopup("LinkAttachmentPopup");
+                    })
+                }
+            }
+        });
+    }
+    function LinkAttachmentViewClick()
+    {
+        if (LinkAttachment_ID = null) {
+            DevExpress.ui.dialog.alert("Select An Attachment", "Error");
+            return;
+        }
+        ViewDocument(LinkAttachment_ID, LinkAttachmentFileName,null,null, document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+    }
+    $("#SelectAttachmentListGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 13: // enter key
+                LinkAttachment_SaveClick();
+                break;
+
+        }
+    });
+    $(function ()
+    {
+        $("#LinkAttachmentPopup").dxPopup({
+            onHiding: function (e) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Help/Attachment/sessionClear_LinkAttachment",
+                    cache: false
+                });
+            }
+        });
+    });
+</script>
+    </div>

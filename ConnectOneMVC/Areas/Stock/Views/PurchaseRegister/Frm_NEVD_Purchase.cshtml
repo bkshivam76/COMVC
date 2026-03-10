@@ -1,0 +1,670 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@using Common_Lib;
+@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Purchase
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "View" || Model.ActionMethod.ToString().Trim() == "Delete") ? true : false;
+    bool tabvisible = (Model.ActionMethod == "New") ? true : false;
+    bool tabdisabled = (Model.ActionMethod == "New" || Model.ActionMethod == "Edit") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+
+<style>
+    .wdfull {
+        width: 100%;
+    }
+
+    td {
+        width: auto;
+    }
+
+    .width1200px {
+        width: 1200px;
+    }
+
+    .nav-tabs > li > a.active, .nav-tabs > li > a.active:hover, .nav-tabs > li > a.active:focus {
+        color: #555;
+        cursor: default;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-bottom-color: transparent;
+    }
+
+    .width100p {
+        width: 100%;
+    }
+
+    .margR6 {
+        margin-right: 6px !important;
+    }
+
+    #Id_Approve > div,
+    #Id_Reject > div,
+    #Id_markcomp > div,
+    #Id_Changes > div {
+      padding: 4px 8px 3px 8px !important;
+    }
+</style>
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+<div id="Frm_PurchaseRegister_Window_Content" class="edit_form">
+    @using (Ajax.BeginForm("Frm_NEVD_Purchase", "PurchaseRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_PurchaseRegister_Window_Content",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "PurchaseRegisterAjaxSuccessForm"
+                       },
+                       new
+                       {
+                           id = "povalidationForm",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.PO_StatusButtonClick)
+        @Html.HiddenFor(x => x.PO_ID)
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+
+            <!-- <div class="full-width-header-bg2">
+                 <div class="row">
+
+                     <div class="col-sm-8 pll">
+                         <h3 class="popuphead"><i class="far fa-edit"></i> Purchase Order</h3>
+                     </div>
+                     <div class="col-sm-4 prm">
+                         <h5 class="mand-txt-align">
+                             <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                         </h5>
+                     </div>
+                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                 </div>
+             </div> [Header]-->
+    <div class="row">
+            <div class="form-field">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                            @*<label class="control-label" for="iten">Supplier</label>*@
+                            @Html.LabelFor(model => model.PO_SupplierID, htmlAttributes: new { @class = "control-label" })
+
+                        </div>
+                        <div class="col-sm-4 col-md-4 col-lg-4 prm">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("PO_SupplierID").Name("PO_SupplierID").Placeholder("Select Suppliers here")
+                                                                                                                                                                     .DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("Lookup_PO_Supplier").Key("ID"))
+                                                                                                                                                                     .ValueExpr("ID")
+                                                                                                                                                                     .DisplayExpr("Supplier")                                                                                                                                                                   
+                                                                                                                                                                     .OnValueChanged("On_PO_SupplierList_Changed")                                                                                                                                                                   
+                                                                                                                                                                     .OnInitialized("On_SupplierList_Init")
+                                                                                                                                                                     .Disabled(IsVisible)
+                                                                                                                                                                     .ReadOnly(IsVisible)
+                                                                                                                                                                     .ContentTemplate(@<text>
+                                                                                                                                                                        @Html.Partial("Lookup_PO_Supplier")
+                                                                                                                                                                    </text>))
+
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 col-md-3 col-lg-3 pll">
+                            @*<a href="javascript:void(0);" id="Purchase_Price_History" onclick="OpenDynamicPopup('Search ~ Price History', '/Account/PurchaseOrder/Frm_Price_History?ActionMethod=_New', 446, 900)" class="link-txt">*@
+                            @*<span class="dx-button-text">View Price History</span>*@
+                            @(Html.DevExtreme().Button().Text("View Price History").Disabled(IsVisible).OnClick(@<text>function() { PO_ViewHistory(); }</text>))
+                            @*</a>*@
+                        </div>
+
+
+
+                    </div>
+                </div>
+            </div>
+    </div>
+            <div class="row">
+
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @Html.LabelFor(model => model.PO_Number, htmlAttributes: new { @class = "control-label" })
+                                    @*<label class="control-label" for="user">PO Number:</label>*@
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm pll3">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" Placeholder="Internal ID">*@
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_Number").Name("PO_Number").Placeholder("").Value(Model.PO_Number).Disabled(IsVisible).ReadOnly(true))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[PO_Number]-->
+
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label" for="user">PO Status:</label>*@
+                                    @Html.LabelFor(model => model.PO_Status, htmlAttributes: new { @class = "control-label" })
+
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                 
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_Status").Name("PO_Status").Placeholder("").Value(Model.PO_Status).Disabled(IsVisible).ReadOnly(true))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[PO_Status]-->
+            </div><!--[row2]-->
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label text-red" for="iten">PO Created Date:</label>*@
+                                    @Html.LabelFor(model => model.PO_Date, htmlAttributes: new { @class = "control-label text-red" })
+
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<select name="" class="dx-texteditor-input appear">
+                                        <option value="0"></option>
+                                    </select>*@
+                                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("PO_Date").Name("PO_Date").Placeholder("Date").Value(Model.PO_Date)
+                                                                                                                           .OnValueChanged("POToDatevaluechange").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(IsVisible).Disabled(IsVisible))
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid ">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label" for="user">Amount Pending</label>*@
+                                    @Html.LabelFor(model => model.PO_PendingAmount, htmlAttributes: new { @class = "control-label" })
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" Placeholder="">*@
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_PendingAmount").Name("PO_PendingAmount").Value(Convert.ToString(Model.PO_PendingAmount)).Placeholder("").Disabled(IsVisible).ReadOnly(true))
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Amount Pending]-->
+            </div><!--[row3]-->
+            <div class="row">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                        @*<label class="control-label" for="user">Total Amount</label>*@
+                                        @Html.LabelFor(model => model.PO_TotalAmount, htmlAttributes: new { @class = "control-label" })
+
+                                    </div>
+                                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                                        <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                            <div class="dx-texteditor-container">
+                                                @*<input class="dx-texteditor-input" type="text" Placeholder="">*@
+
+                                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_TotalAmount").Name("PO_TotalAmount").Value(Convert.ToString(Model.PO_TotalAmount)).Placeholder(" ").Disabled(IsVisible).ReadOnly(true))
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[TotalAmount]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-field">
+                            <div class="container-fluid ">
+                                <div class="row">
+                                    <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                        @*<label class="control-label" for="user">Amount Paid</label>*@
+                                        @Html.LabelFor(model => model.PO_PaidAmount, htmlAttributes: new { @class = "control-label" })
+                                    </div>
+                                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                        <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                            <div class="dx-texteditor-container">
+                                                @*<input class="dx-texteditor-input" type="text" Placeholder="">*@
+
+                                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_PaidAmount").Name("PO_PaidAmount").Value(Convert.ToString(Model.PO_PaidAmount)).Placeholder("").Disabled(IsVisible).ReadOnly(true))
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[Paid Amount]-->
+            </div><!--[row4]-->
+
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label" for="user">Purchased By</label>*@
+                                    @Html.LabelFor(model => model.PO_PurchasedBy, htmlAttributes: new { @class = "control-label" })
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" Placeholder="Auto-Filled from Requisition Request">*@
+                                            @*@(Html.DevExtreme().SelectBox().ID("PO_PurchasedBy").Name("PO_PurchasedBy").Value(Model.PO_PurchasedBy).SearchEnabled(true).Placeholder("Select Category").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }))*@
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_PurchasedBy").Name("PO_PurchasedBy").Value(Model.PO_PurchasedBy).Placeholder("").Disabled(IsVisible).ReadOnly(true))
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Purchase By]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label" for="user">Delivery Status</label>*@
+                                    @Html.LabelFor(model => model.PO_DeliveryStatus, htmlAttributes: new { @class = "control-label" })
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" Placeholder="Pending/Partial/Complete">*@
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_DeliveryStatus").Name("PO_DeliveryStatus").Placeholder("").Value(Model.PO_DeliveryStatus).Disabled(IsVisible).ReadOnly(true))
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[DeliveryStatus]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4 pll">
+                                    @*<label class="control-label" for="user">Delivery Status</label>*@
+                                    <label class="control-label" for="user" id="lblspecialdiscount">Special Discount</label>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                        <div class="dx-texteditor-container">
+                                            @*<input class="dx-texteditor-input" type="text" Placeholder="Pending/Partial/Complete">*@
+                                            @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("PO_SpecialDiscount").Name("PO_SpecialDiscount").Value(Convert.ToDouble(Model.PO_SpecialDiscount)).Format("#0.00").ShowSpinButtons(false).Placeholder("SpecialDiscount").ReadOnly(IsVisible).Disabled(IsVisible))
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[DeliveryStatus]-->
+
+            </div><!--[row5]-->
+
+
+
+
+            <div class="row">
+
+                <div class="form-field">
+                    <div class="col-md-12">
+                        @(Html.DevExtreme().TabPanel().ID("Purchasetabpanel").ShowNavButtons(true).ScrollingEnabled(true).SwipeEnabled(false).Items(items =>
+                                            {
+                                                items.Add().Title("Documents").Template(@<text> @DocumentView() </text>);
+                                                items.Add().Title("Items Ordered").Template(@<text> @ItemOrderedView() </text>);
+                                                items.Add().Title("Goods Received").Template(@<text> @GoodsReceivedView() </text>);
+                                                items.Add().Title("Goods Returned").Template(@<text> @GoodsReturnedView() </text>);
+                                                items.Add().Title("Linked UO").Template(@<text> @LinkedUOView() </text>);
+                                                items.Add().Title("Linked RR").Template(@<text> @LinkedRRView() </text>);
+                                                items.Add().Title("Payment").Template(@<text> @PaymentView() </text>);
+                                                items.Add().Title("Existing Remarks").Disabled(tabvisible).Template(@<text> @RemarksView() </text>);
+                                            // items.Add().Title("Documents").Template(@<text> @DocumentView() </text>);
+
+                                        }).DeferRendering(false))
+
+                        @helper DocumentView()
+                        {
+
+                            @Html.Partial("Documents", Model);
+                        }
+                        @helper ItemOrderedView()
+                        {
+
+                            @Html.Partial("PO_ItemOrdered", Model);
+                        }
+
+                        @helper GoodsReceivedView()
+                        {
+
+                            @Html.Partial("PO_GoodsReceived", Model);
+                        }
+                        @helper GoodsReturnedView()
+                        {
+
+                            @Html.Partial("PO_GoodsReturned", Model);
+                        }
+                        @helper LinkedUOView()
+                        {
+
+                            @Html.Partial("PO_LinkedUserOrder", Model);
+                        }
+                        @helper LinkedRRView()
+                        {
+
+                            @Html.Partial("PO_LinkedRR", Model);
+                        }
+                        @helper PaymentView()
+                        {
+
+                            @Html.Partial("PO_Payment", Model);
+                        }
+                        @helper RemarksView()
+                        {
+                            @Html.Partial("PO_Remarks", Model);
+                        }
+                        </div>
+                    </div>
+                </div><!--Tabs-->
+
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+
+                        <div class="row ">
+                            <div class="col-sm-2 col-md-3 col-lg-3 pll">
+                                <label class="control-label" for="iten">Your Remark:</label>
+
+                            </div>
+
+                            <div class="col-sm-10 prm">
+                                
+                                 
+                                        @*<input class="dx-texteditor-input" type="text" Placeholder="Enter Remarks">*@
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("PO_Remarks").Name("PO_Remarks").Placeholder("Type Remarks").ReadOnly(IsVisible).Value(Model.PO_Remarks).Disabled(IsVisible))
+                            
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--Remarks-->
+
+
+            <div class="row">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 btn-align styleActionBtn">
+                            @if (Model.ActionMethod == "View")
+                            {
+                                    @(Html.DevExtreme().Button().CustomCloseButton().ID("POViewCancel").TabIndex(7).Text("Close").OnClick(@<text> function () { close_PONEVD(); } </text>))
+                            }
+                            @if (Model.ActionMethod == "Delete")
+                            {
+                                    @(Html.DevExtreme().Button().CustomSaveButton().ID("PO_Delete").Text("Delete").UseSubmitBehavior(false).OnClick(@<text> function(){ Delete_PO(); } </text>))
+                                    @(Html.DevExtreme().Button().CustomCloseButton().ID("POdel_Close").Text("Cancel").OnClick(@<text> function(){ close_PONEVD(); } </text>))
+                            }
+                            @if (Model.ActionMethod == "Edit")
+                            {
+                                    @(Html.DevExtreme().Button().ID("Id_Approve").Text("Approve").OnClick("po_approve"))
+                                    @(Html.DevExtreme().Button().ID("Id_Reject").Text("Reject").OnClick("po_reject_NEVD"))
+                                    @(Html.DevExtreme().Button().ID("Id_markcomp").Text("Mark As Completed").OnClick("po_markcomp"))
+                                    @(Html.DevExtreme().Button().ID("Id_Changes").Text("Re-Requisition").OnClick("re_requsition"))
+                                    @(Html.DevExtreme().Button().CustomSaveButton().ID("POID_Save").Text("Save").UseSubmitBehavior(true))
+                                    @(Html.DevExtreme().Button().CustomCloseButton().ID("PO_Close").Text("Cancel").OnClick(@<text> function(){ close_PONEVD(); } </text>))
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div><!--Buttons-->
+        }
+    }
+</div>
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("Purchaseinnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").ContentTemplate(@<text> <div id="result_Purchaseinnergrid">  </div> </text>))
+<script>
+    var supplierid;
+    var posupplierid;
+    $(document).ready(function ()
+    {    
+        var form = "povalidationForm";
+        sessionclearpath = "/Stock/PurchaseRegister/Sessionclear";
+        ShowLoader();
+        AssignIDtoLabel(form, "Purchase");
+
+        setTimeout(function ()
+        {
+            Set_Form_View_Delete_Mode(null, form, "@Model.ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.ActionMethod");
+            HideLoader();
+        }, Timeout500);
+    });
+    //function On_PO_SupplierList_Changed(e) {
+
+    //    var drop_Down = $("#PO_SupplierID").dxDropDownBox("instance");
+    //    if (drop_Down != undefined && drop_Down != "undefined") {
+    //        drop_Down.close();
+    //    }
+    //    var $dataGrid = $("#GetPOSupplierNameDG");
+    //    if ($dataGrid.length) {
+    //        var dataGrid = $dataGrid.dxDataGrid("instance");
+    //        dataGrid.selectRows(drop_Down.option("value"), false);
+    //        if (dataGrid.getSelectedRowsData().length > 0) {
+    //            var item = dataGrid.getSelectedRowsData()[0];
+               
+
+    //        }
+    //    }
+    //}
+
+    // }
+
+    
+    function On_SupplierList_Init(e) {
+            $("#PO_SupplierID").dxDropDownBox("instance").option("value", @Model.PO_SupplierID);   
+       // posupplierid = $("#PO_SupplierID").dxDropDownBox("instance").option("value");
+
+        e.component.option("dataSource").store.load().done(function (d) {
+            if (d.length > 0) {
+                var $dataGrid = $("#GetPOSupplierNameDG");
+                if ($dataGrid.length) {
+                    var dataGrid = $dataGrid.dxDataGrid("instance");
+                    dataGrid.selectRows($("#PO_SupplierID").dxDropDownBox("instance").option("value"), false);
+                }
+            }
+        });
+
+    }
+
+    function On_PO_SupplierList_Changed(e)
+    {
+        var drop_Down = $("#PO_SupplierID").dxDropDownBox("instance");
+        if (drop_Down != undefined && drop_Down != "undefined")
+        {
+            drop_Down.close();
+        }
+        var $dataGrid = $("#GetPOSupplierNameDG");
+        if ($dataGrid.length)
+        {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(drop_Down.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0)
+            {
+                var item = dataGrid.getSelectedRowsData()[0];
+                supplierid = item.ID;
+            }
+        }
+        posupplierid = e.value;
+    }
+    function POToDatevaluechange(e)
+    {
+        podate = $("#PO_Date").dxDateBox("instance").option("value");
+                    return;
+    }
+            
+    function close_PONEVD() {
+        dontaskpopupcloseconfirmation = false;
+       // sessionclearpath = "/Stock/PurchaseRegister/Sessionclear";
+        $("#Dynamic_Content_popup").dxPopup("hide");
+    }
+    function PO_ViewHistory() {
+        if (supplierid == null || supplierid == 0 || supplierid == "undefined") {
+            DevExpress.ui.dialog.alert("Please Select Supplier", "Error");
+            return;
+        }
+        ShowLoader();
+        OpenPopup("popup_frm_price_history", "Search ~ Price History", "@Url.Action("Frm_PO_Price_History", "PurchaseRegister", new { @area = "Stock" })?SupplierID=" + encodeURIComponent(supplierid), "auto", 900, false, null);
+     
+       }
+    
+
+    function Delete_PO() {
+        var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Delete ~ PO");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                $("#povalidationForm").submit();
+            }
+        });
+    }
+</script>
+
+<script>
+
+
+    function po_reject_NEVD(e) {
+        debugger
+        var statusflowcheck = PO_StatusFlowCheck("Reject");
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+
+
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Reject", "Update~PO");
+        result.done(function (dialogResult) {
+            var form = $("#povalidationForm");
+            if (dialogResult) {
+                var result = e.validationGroup.validate();
+                if (result.isValid) {
+                    //var remarks = DevExpress.ui.dialog.confirm("Do You Want To Enter Remarks For Rejecting The Purchase Order..?", "Update~PO")
+                    //remarks.done(function (dialogResult) {
+                    //    if (!dialogResult) {
+                    $("#PO_StatusButtonClick").val("Reject");
+
+                    form.submit();
+                }
+            }
+        });
+    }
+                                        //else {
+                                        //    $("#PO_Remarks").dxTextBox("instance").focus();
+                                        //}
+                                
+        
+    
+    function po_approve(e)
+    {
+        var statusflowcheck = PO_StatusFlowCheck("Approve");
+        if (statusflowcheck[1] == false)
+        {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Approve", "Update~PO");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                var result = e.validationGroup.validate();
+                if (result.isValid) {
+                    $("#PO_StatusButtonClick").val("Approve");
+                    var form = $("#povalidationForm");
+                    form.submit();
+                }
+
+            }
+        });
+    }      
+
+    function po_markcomp(e) {
+        var statusflowcheck = PO_StatusFlowCheck("Complete");
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Mark PO as Completed", "Update~PO");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                var result = e.validationGroup.validate();
+                if (result.isValid) {
+                    $("#PO_StatusButtonClick").val("Complete");
+                    var form = $("#povalidationForm");
+                    form.submit();
+                }
+
+            }
+        });
+    }
+
+    function re_requsition(e) {
+    
+            DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+        
+        //var statusflowcheck = PO_StatusFlowCheck("Re_Requisition");
+        //if (statusflowcheck[1] == false) {
+        //    DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+        //    return;
+        //}
+        //var result = DevExpress.ui.dialog.confirm("Sure You Want To Assign For Re-Requisition", "Update~PO");
+        //result.done(function (dialogResult) {
+        //    if (dialogResult) {
+        //        var result = e.validationGroup.validate();
+        //        if (result.isValid) {
+        //            $("#PO_StatusButtonClick").val("Re_Requisition");
+        //            var form = $("#povalidationForm");
+        //            form.submit();
+        //        }
+        //    }
+
+        //});
+
+    }//0000157 bug fixed
+</script>

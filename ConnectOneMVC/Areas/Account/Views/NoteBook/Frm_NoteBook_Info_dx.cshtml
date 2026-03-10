@@ -1,0 +1,747 @@
+﻿<div class="NoteBook_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Account.Models.NoteBook_Info
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        bool Open_From_CB = (bool)ViewBag.Open_From_CB;
+        bool Accnt_Notebook_ExportRight = (bool)ViewData["Accnt_Notebook_ExportRight"];
+        bool Lock_unlockRight = (bool)ViewData["Lock_unlockRight"];
+        string GridToRefresh = (string)ViewBag.GridToRefresh;
+        string ActionMethod = (string)ViewBag.Tag;
+        bool Set_Disable = (bool)ViewBag.Set_Disable;
+        bool self_posted = (bool)ViewBag.self_posted;
+        DateTime OpenYearSdt = ViewBag.OpenYearSdt;
+        DateTime OpenYearEdt = ViewBag.OpenYearEdt;
+        DateTime? xEntryDate = (DateTime?)ViewBag.xEntryDate;
+    }
+    <style>
+        #NoteBookListGrid .dx-column-indicators {
+            display: none;
+        }
+
+        #NoteBookListGrid .dx-header-row > td:hover .dx-column-indicators {
+            display: inline-block;
+        }
+
+        #NoteBookListGrid .dx-datagrid-rowsview .dx-selection.dx-row {
+            background-color: #89CFF0 !important;
+        }
+
+        #NoteBookListGrid td.dx-editor-cell.dx-focused .dx-numberbox .dx-texteditor-input {
+            background: LightCyan;
+            color: navy;
+        }
+    </style>
+    <div id="NoteBook_ParentDiv">
+        <div class="report_header_div_main" id="Notebook_content">
+            <div style="display:inline-block">
+                <input type="hidden" id="NB_Fr_Date" value="" />
+                <input type="hidden" id="NB_To_Date" value="" />
+                @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Cmb_View_NB").Name("Cmb_View_NB").DataSource(d => d.Mvc().Controller("NoteBook").LoadAction("Period_data_dx").Key("Index").LoadMode(DataSourceLoadMode.Raw))
+                                  .Value(ViewBag.PeriodSelectedIndex).ValueExpr("Index").DisplayExpr("Period").OnValueChanged("Cmb_View_SelectedIndexChanged_NB").ShowClearButton(false).Width(125).SearchEnabled(false))
+            </div>
+            <div style="display:inline-block;padding-top:10px">
+                @(Html.DevExtreme().TextBox().ID("BE_View_Period_NB").Name("BE_View_Period_NB").Value(Model.Periodtext).ReadOnly(true).FocusStateEnabled(false).Width(200))
+            </div>
+            <div class="report_button_div">
+                @{
+                    if (self_posted == false)
+                    {
+                        <span id="BE_Cash_Bank_NB" style="color:#D2691E;font-weight:bold;vertical-align:sub"></span>
+                    }
+                }
+                @(Html.DevExtreme().Button().ID("BUT_Summary_NB").Text("Summary").Hint("Summary").OnClick("BE_Cash_Bank_ButtonClick_NB").Visible(!self_posted).Disabled(self_posted))
+                @(Html.DevExtreme().Button().ID("BUT_LOCKED_ALL_NB").Text("Lock All").Icon("fa fa-lock").Visible(Lock_unlockRight && false))
+                @(Html.DevExtreme().Button().ID("BUT_UNLOCKED_NB").Text("Unlock").Icon("fa fa-unlock").Visible(Lock_unlockRight && false))
+                @(Html.DevExtreme().Button().ID("BUT_LOCKED").Text("Lock").Icon("fa fa-lock").Visible(Lock_unlockRight && false))
+                @(Html.DevExtreme().Button().ID("BUT_PRINT_NB").Text("List Preview").Icon("print").OnClick("OnNoteBookListPreviewClick"))
+                @(Html.DevExtreme().Button().ID("BUT_SAVE_NB").Text("Save").Icon("fas fa-check-circle btn-icons checkgreen icon-rgt-space5").OnClick("Saving_Notebook") )
+                @(Html.DevExtreme().Button().ID("BUT_CLOSE_NB").Text("Close").Icon("close").OnClick("NB_CloseClick"))
+            </div>
+        </div>
+        <div id="NBreloadPartialView" class="parent_table">
+
+            @Html.Partial("Frm_NoteBook_Info_Grid_dx")
+
+        </div>
+        @* Grid *@
+        <div class="col-sm-12">
+            <div style="display:inline-block;padding-top:6px">
+                @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0})...", Model.ActionMethod == "_View" ? "View ~ Note-Book Entry" : "Note-Book Entry(Cash Book)"))
+            </div>
+            <div style="display: inline-block; padding-top: 6px;padding-left:10px">
+                <label id="lbl_EntryDatemonth_NB">Entry Date / Month </label>
+            </div>
+            <div style="display: inline-block; padding-top: 6px; padding-left: 10px ">
+                <label id="lbl_SelectedItem_NB">Item </label>
+            </div>
+        </div>@* Footer *@
+    </div>
+
+    @*Summary popup*@
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_Frm_View_Summary_NB").ShowCloseButton(true).OnShowing("PopupOnShowing").OnHiding("NB_Summary_close").Title("Summary").ContentTemplate( @<text> <div id='popup_frm_Frm_View_Summary_NB_result'>  </div> </text>) )
+    <script>
+        var NoteBookListGrid;
+        var NoteBookInitialData;
+        var TotalDays_NB = 0;
+        var Band2Caption_NB = null;
+        var Close_Btn_Click_NB = false;
+        var NB_PeriodChange = false;
+        var NB_Export_Click = false;
+        var FocusedCell_RowVisibleIndex_NB;
+        var FocusedCell_ColumnVisibleIndex_NB;
+        $(document).ready(function ()
+        {
+            ShowLoader_Ready();
+            if ("@Accnt_Notebook_ExportRight" == "False")
+            {
+                $("#BUT_PRINT_NB").hide();
+            }
+            if ("@ActionMethod" == "_View")
+            {
+                $("#Set_Disable").val(true)
+            }
+            else
+            {
+                $("#Set_Disable").val(false)
+            }
+            if ("@ActionMethod" == "_Edit" || "@ActionMethod" == "_View")
+            {
+                $("#Cmb_View_NB").dxSelectBox("instance").option("readOnly", true);
+                if ("@ActionMethod" == "_View")
+                {
+                    $("#BUT_SAVE_NB").dxButton("instance").option("disabled", true);
+                }
+            }
+            NB_ChangePeriod();
+            HideLoader_Ready()
+        });
+        function Cmb_View_SelectedIndexChanged_NB(e)
+        {
+            if (e)
+            {
+                if (e.value == null)
+                {
+                    $("#Cmb_View_NB").dxSelectBox("option", "value", e.previousValue);
+                    return;
+                }
+            }
+            NB_PeriodChange = true;
+            if (Data_Change_NB() == "True")
+            {
+                var confirm = DevExpress.ui.dialog.confirm('Do you want to Save Notebook Entry...?', "Confirm");
+                confirm.done(function (dialogResult)
+                {
+                    if (dialogResult)
+                    {
+                        Saving_Notebook();
+                    }
+                    else
+                    {
+                        NB_ChangePeriod();
+                    }
+                });
+            }
+            else
+            {
+                NB_ChangePeriod();
+            }
+        }
+        async function NB_ChangePeriod()
+        {
+            var PeriodSelectedIndex,xFr_Date, xTo_Date, MonthText, DataSource, _xDate;
+            DataSource = $("#Cmb_View_NB").dxSelectBox("getDataSource");
+            var isLoaded = DataSource.isLoaded();
+            if (isLoaded == false)
+            {
+                await DataSource.load();
+            }
+            PeriodSelectedIndex = $("#Cmb_View_NB").dxSelectBox("option", "value");
+            MonthText = $("#Cmb_View_NB").dxSelectBox("option", "text");
+            if (PeriodSelectedIndex >= 0 && PeriodSelectedIndex <= 11)
+            {
+                var Sel_Mon = (MonthText.substr(0, 3)).toUpperCase();
+                var SEL_MM;
+                switch (Sel_Mon) {
+                    case "JAN": SEL_MM = 1; break;
+                    case "FEB": SEL_MM = 2; break;
+                    case "MAR": SEL_MM = 3; break;
+                    case "APR": SEL_MM = 4; break;
+                    case "MAY": SEL_MM = 5; break;
+                    case "JUN": SEL_MM = 6; break;
+                    case "JUL": SEL_MM = 7; break;
+                    case "AUG": SEL_MM = 8; break;
+                    case "SEP": SEL_MM = 9; break;
+                    case "OCT": SEL_MM = 10; break;
+                    case "NOV": SEL_MM = 11; break;
+                    case "DEC": SEL_MM = 12; break;
+                    default: SEL_MM = 4; break;
+                }
+                xFr_Date = moment(new Date(MonthText.substr(4, 4), (SEL_MM - 1), 1)) //js date starts from 0
+                _xDate = xFr_Date.clone() //moment fns are mutable
+                xTo_Date = _xDate.add(1, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 12)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 13)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 6, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 14)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 15)
+            {
+                xFr_Date = moment(new Date("@OpenYearEdt.Year", 0, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(3, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 16)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 17)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 9, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(6, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 18)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = _xDate.add(9, 'M').subtract(1, 'd');
+            }
+            else if (PeriodSelectedIndex == 19)
+            {
+                xFr_Date = moment(new Date("@OpenYearSdt.Year", 3, 1))
+                _xDate = xFr_Date.clone()
+                xTo_Date = moment(new Date("@OpenYearEdt.Year",2, 31))
+            }
+            $("#NB_Fr_Date").val(xFr_Date.format("DD-MM-YYYY"));
+            $("#NB_To_Date").val(xTo_Date.format("DD-MM-YYYY"));
+            TotalDays_NB = _xDate.endOf('month').date();
+            Band2Caption_NB = xFr_Date.format("MMMM") + ',' + xFr_Date.format("YYYY");
+            var Periodtext = "Fr.: " + xFr_Date.format("DD-MMM, YYYY") + "  to  " + xTo_Date.format("DD-MMM, YYYY");
+            $("#BE_View_Period_NB").dxTextBox("instance").option("value", Periodtext);
+            NoteBookListGrid_Refresh();
+            NB_PeriodChange = false;
+        }
+        function NoteBookListGrid_Refresh()
+        {
+            NoteBookListGrid.cancelEditData();
+            $.ajax({
+                type: 'GET',
+                url: "/Account/NoteBook/GetNotebookData_dx",
+                data:
+                {
+                    xFr_Date: $('#NB_Fr_Date').val(),
+                },
+                cache: false,
+                success: function (_data)
+                {
+                    $("#NoteBookListGrid").dxDataGrid("option", "dataSource", new DevExpress.data.ArrayStore({
+                        key: "REC_ID",
+                        data: _data
+                    }))
+                    NoteBookInitialData = structuredClone(_data)//JSON.parse(JSON.stringify(_data))
+                    NoteBookListGrid_DataLoaded()                   
+                }
+            });
+            //$("#NoteBookListGrid").dxDataGrid("option", "dataSource", new DevExpress.data.CustomStore({
+            //    key: "REC_ID",
+            //    loadMode:"raw",
+            //    load: function (loadOptions)
+            //    {
+            //        const deferred = $.Deferred();
+            //        $.ajax({
+            //            type: 'GET',
+            //            url: "/Account/NoteBook/GetNotebookData_dx",
+            //            data:
+            //            {
+            //                xFr_Date: $('#NB_Fr_Date').val(),
+            //            },
+            //            cache: false,
+            //            success: function (_data)
+            //            {  
+            //                NoteBookInitialData = structuredClone(_data)//JSON.parse(JSON.stringify(_data))
+            //                NoteBookListGrid_DataLoaded()
+            //                deferred.resolve(_data);
+            //            }
+            //        });
+            //        return deferred.promise();
+            //    }
+            //    })
+            //)     
+        }
+        function NoteBookListGrid_DataLoaded()
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/NoteBook/Get_Cash_Bank_Balance_dx",
+                data:
+                {
+                    xFr_Date: $("#NB_Fr_Date").val(),
+                    xTo_Date: $("#NB_To_Date").val()
+                },
+                cache: false,
+                success: function (data)
+                {
+                    $("#BE_Cash_Bank_NB").text("Cash: " + DxGrid_FormatNumber(data.Close_Cash_Bal) + "  Bank: " + DxGrid_FormatNumber(data.Close_Bank_Bal));
+                }
+            });
+            NoteBookListGrid.columnOption('BandCaption', 'caption', Band2Caption_NB);
+            if (TotalDays_NB == 28) {
+                NoteBookListGrid.columnOption('AMT_DT_29', 'visible', false);
+                NoteBookListGrid.columnOption('AMT_DT_30', 'visible', false);
+                NoteBookListGrid.columnOption('AMT_DT_31', 'visible', false);
+            }
+            else if (TotalDays_NB == 29) {
+                NoteBookListGrid.columnOption('AMT_DT_30', 'visible', false);
+                NoteBookListGrid.columnOption('AMT_DT_31', 'visible', false);
+            }
+            else if (TotalDays_NB == 30) {
+                NoteBookListGrid.columnOption('AMT_DT_31', 'visible', false);
+            }
+            else
+            {
+                NoteBookListGrid.columnOption('AMT_DT_29', 'visible', true);
+                NoteBookListGrid.columnOption('AMT_DT_30', 'visible', true);
+                NoteBookListGrid.columnOption('AMT_DT_31', 'visible', true);
+            }
+            if ("@Set_Disable" == "True")
+            {
+                NoteBookListGrid.option("editing.allowUpdating",false)
+            }
+        }
+        function BE_Cash_Bank_ButtonClick_NB() {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Account/NoteBook/Frm_View_Summary_dx",
+                data:
+                {
+                    xFr_Date: $("#NB_Fr_Date").val(),
+                    xTo_Date: $("#NB_To_Date").val()
+                },
+                cache: false,
+                success: function (result) {
+                    OpenPopup("popup_frm_Frm_View_Summary_NB", "Summary...", null, "auto", 900, true, result);
+                }
+            });
+        }
+        function NB_Summary_close(e) {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/NoteBook/Frm_View_SummaryGrid_Close",
+                cache: false
+            });
+            ClearAllReferences("NoteBookSummary_ClearReferences");
+            e.component.content()[0].innerHTML = "";
+        }
+        function Data_Change_NB()
+        {
+            var changes = NoteBookListGrid.hasEditData();
+            if (changes == true)
+            {
+                return "True";
+            }
+            else
+            {
+                var result = "False";
+                var CurrentData = GetDataSourceItems("NoteBookListGrid", "dxDataGrid");
+                for (var i = 0; i < NoteBookInitialData.length; i++)
+                {
+                    var ObjKeys = Object.keys(NoteBookInitialData[i])
+                    for (var j = 0; j < ObjKeys.length; j++)
+                    {
+                        var key = ObjKeys[j]
+                        var InitialData = NoteBookInitialData[i][key]
+                        var ChangedData = CurrentData[i][key]
+                        if (key.startsWith("AMT_DT_") || key == "AMT_TOTAL")
+                        {
+                            InitialData = InitialData == null ? 0 : InitialData;
+                            ChangedData = ChangedData == null ? 0 : ChangedData;
+                        }
+                        if (InitialData != ChangedData)
+                        {
+                            result = "True";
+                            break;
+                        }
+                    }
+                    if (result == "True") { break;}
+                }
+                return result;
+                //return
+                //(
+                //    CurrentData.length === NoteBookInitialData.length &&
+                //    CurrentData.every(
+                //        (element_1) =>
+                //            NoteBookInitialData.some
+                //                (
+                //                    (element_2) =>
+                //                        Object.keys(element_1).every
+                //                            (
+                //                                (key) => element_1[key] === element_2[key]
+                //                            )
+                //                )
+                //    )
+                //)
+            }
+        }
+        function ShowEntryDateMonth_NB(columnFieldName, columnName) {
+            var cmb_view_text = ($("#Cmb_View_NB").dxSelectBox("instance").option("text")).toProperCase();
+            if (columnFieldName.startsWith("AMT_DT_")) {
+                $("#lbl_EntryDatemonth_NB").html("<font color=blue> Entry Date: </font>" + "<font color=red>" + GetDayNumberWithSuffix(columnName) + " " + cmb_view_text.replace("-", ",") + "</font>");
+            }
+            else {
+                $("#lbl_EntryDatemonth_NB").html("<font color=blue> Entry Month: </font>" + "<font color=red>" + cmb_view_text + "</font>");
+            }
+        }
+        function ShowSelectedItem_NB(itemName, Total) {
+            $("#lbl_SelectedItem_NB").html("<font color=blue>" + itemName + "</font>" + "<font color=red> Total Amt: " + Total + "</font>");
+        }
+        function Saving_Notebook()
+        {
+            $.ajax({
+                type: 'Post',
+                url: "/Account/NoteBook/Saveclick_dx",
+                data:
+                {
+                    CurrentData: JSON.stringify(GetDataSourceItems("NoteBookListGrid", "dxDataGrid")),
+                    xFr_Date: $("#NB_Fr_Date").val()
+                },
+                success: function (data) {
+                    HideLoader();
+                    var alert = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alert.done(function (dialogResult) {
+                        if (dialogResult) {
+                            if (data.jsonParam.result == true && NB_PeriodChange == true)// change if called from change period selection changed
+                            {
+                                NB_ChangePeriod();
+                            }
+                            else if (data.jsonParam.result == true && Close_Btn_Click_NB == true) //close if called from close button click
+                            {
+                                close_NB();
+                            }
+                            else if (data.jsonParam.result == true && NB_Export_Click == true) //export if called from export btn click
+                            {
+                                NB_Export_Click = false;
+                                Export_NoteBook();
+                            }
+                            else if (data.jsonParam.result == true && Close_Btn_Click_NB == false)
+                            {
+                                NoteBookListGrid.clearSelection();
+                                NoteBookListGrid_Refresh()
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        function NB_CloseClick(e)
+        {
+            ShowLoader();
+            Close_Btn_Click_NB = true;
+            if (Data_Change_NB() == "True")
+            {
+                HideLoader();
+                var confirm = DevExpress.ui.dialog.confirm('Do you want to Save Notebook Entry...?', "Confirm");
+                confirm.done(function (dialogResult)
+                {
+                    if (dialogResult)
+                    {
+                        Saving_Notebook();
+                    }
+                    else
+                    {
+                        close_NB();
+                    }
+                });
+            }
+            else
+            {
+                HideLoader();
+                close_NB();
+            }
+        }
+        function close_NB()
+        {
+            ShowLoader();
+            if ("@Open_From_CB" == "False" && $(".TabPanalMenu-tabs .active").attr("id") == "contact_Frm_NoteBook_Info")
+            {
+                btnCloseActiveTab();
+            }
+            else
+            {
+                if (typeof CashBookListGrid !== void 0 && "@xEntryDate".length > 0)
+                {
+                    AfterVoucherClose_CB(moment("@xEntryDate", "DD/MM/YYYY"), "@ActionMethod");
+                }
+                if ("@ViewBag.GridToRefresh" != "CashBookListGrid")
+                {
+                    RefreshGridView("@ViewBag.GridToRefresh");
+                }
+                $("#Notebook_Popup_ID").dxPopup("hide");
+            }
+            $.ajax({
+                type: 'Get',
+                url: "/Account/NoteBook/SessionClear",
+            });
+            ClearAllReferences_NoteBook();
+            HideLoader();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function ()
+        {
+            if (Close_Btn_Click_NB == false)
+            {
+                NB_CloseClick();
+            }
+        });
+        $(function ()
+        {
+            $("#Notebook_Popup_ID").dxPopup({
+                onHiding: function (e)
+                {
+                    e.cancel = !Close_Btn_Click_NB;
+                    if (Close_Btn_Click_NB == false)
+                    {
+                        NB_CloseClick();
+                    }
+                }
+            });
+        })//popup hide
+        function OnNoteBookListPreviewClick(e)
+        {
+              if ("@Accnt_Notebook_ExportRight" == "False")
+              {
+                  DevExpress.ui.dialog.alert("Not Allowed!!", "NO Rights");
+                  return;
+              }
+              Export_NoteBook()
+        }
+        function Export_NoteBook()
+        {
+            $.ajax({
+                type: 'Post',
+                url: "/Account/NoteBook/Export_dx",
+                data:
+                {
+                    CurrentData: JSON.stringify(GetDataSourceItems("NoteBookListGrid", "dxDataGrid")),
+                    TotalDay: TotalDays_NB,
+                    Band_Caption:Band2Caption_NB,
+                    PeriodText: $("#BE_View_Period_NB").dxTextBox("instance").option("value")
+                },
+                success: function (data)
+                {
+                    OpenPopup("report_modal_NB", "Export Option", null, "auto", "100%", true, data);
+                }
+            });
+        }
+        function ClearAllReferences_NoteBook()
+        {
+            FocusedCell_ColumnVisibleIndex_NB = null;
+            FocusedCell_RowVisibleIndex_NB = null;
+            Close_Btn_Click_NB = null;
+            NB_PeriodChange = null;
+            TotalDays_NB = null;
+            Band2Caption_NB = null;
+            NB_Export_Click = null;
+            NoteBookListGrid = null;
+            NoteBookInitialData = null;
+            ClearAllReferences("NoteBook_ClearReferences");
+        }
+    </script>
+    <script>
+        function NoteBookListGrid_OnInitialized(e)
+        {
+            var popupID = "";
+            if ($("#Notebook_Popup_ID").dxPopup("instance") != void 0) {
+                popupID = "Notebook_Popup_ID";
+            }
+            DxGrid_AdjustSize(e.component, $("#NoteBook_ParentDiv .report_button_div"), popupID)
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#NoteBook_ParentDiv .report_button_div"), popupID, evt)
+            });
+            NoteBookListGrid = e.component;
+        }
+        function NoteBookListGrid_OnContentReady(e)
+        {
+            DxGrid_OnContentReady(e, 1);
+            DxGrid_RowSelectionTobeCheckedAfterAnyAction(e)
+        }
+        function NoteBookListGrid_OnToolbarPreparing(e) {
+            var toolbarItems = e.toolbarOptions.items;
+            var saveButton = toolbarItems.find(x => x.name === "saveButton");
+            if (saveButton) {
+                saveButton.visible = false;
+            }
+            var revertButton = toolbarItems.find(x => x.name === "revertButton");
+            if (revertButton) {
+                revertButton.visible = false;
+            }
+            e.toolbarOptions.visible = false;
+            var SearchPanel = toolbarItems.find(x => x.name === "searchPanel");
+            if (SearchPanel) {
+                e.toolbarOptions.visible = true;
+            }
+        }
+        function NoteBookListGrid_OnContextMenuPreparing(e) {
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+                e.items = e.items.filter(x => x.text != "Group Panel" && x.text != "Group Footer" && x.text != "Hide Column" && x.text != "Column Chooser" && x.text != "Footer")
+            }
+            else if (e.target == "footer") {
+                // DxGrid_FooterContextMenu(e, CBGrid_ViewMode == "Compact");
+            }
+        }
+        function NoteBookListGrid_OnFocusedCellChanging(e)
+        {
+            FocusedCell_RowVisibleIndex_NB = e.newRowIndex;
+            FocusedCell_ColumnVisibleIndex_NB = e.newColumnIndex;
+            var ITEM_NAME_NB = e.component.cellValue(FocusedCell_RowVisibleIndex_NB, "ITEM_NAME")
+            ShowEntryDateMonth_NB(e.columns[FocusedCell_ColumnVisibleIndex_NB].dataField, e.columns[FocusedCell_ColumnVisibleIndex_NB].caption);
+            var TotalorgValue = e.component.cellValue(FocusedCell_RowVisibleIndex_NB, "AMT_TOTAL");
+            ShowSelectedItem_NB(ITEM_NAME_NB, TotalorgValue);
+        }
+        function NoteBookListGrid_OnFocusedCellChanged(e)
+        {
+            if (e.column.dataField.startsWith("AMT_DT_") && "@Set_Disable" != "True")
+            {
+                setTimeout(function ()
+                {
+                    e.component.editCell(e.rowIndex, e.columnIndex)
+                })
+            }
+        }
+        function NoteBookListGrid_OnEditorPreparing(e)
+        {
+            if (e.parentType === "dataRow" && e.dataField.startsWith("AMT_DT_"))
+            {
+                const defaultValueChangeHandler = e.editorOptions.onValueChanged;
+                e.editorOptions.step = 0;
+                e.editorOptions.onKeyDown = (x) => { NoteBookListGridEditor_OnKeyDown(x) };
+                e.editorOptions.onValueChanged = (args) =>
+                {
+                    var ValueLimit = 10000;
+                    if (parseInt(open_FY) > 2425) {
+                        ValueLimit = 1000;
+                    }
+                    if (args.value > ValueLimit || args.value < 0)
+                    {
+                        var Alert = DevExpress.ui.dialog.alert("Amount Cannot Be Negative And Greater Than " + ValueLimit + " ...!", "Note-Book Entry");
+                        Alert.done(function ()
+                        {
+                        });
+                    }
+                    else
+                    {
+                        defaultValueChangeHandler(args)
+                        //e.setValue(args.value);
+                        let totalAmt = e.component.cellValue(e.row.rowIndex, "AMT_TOTAL")
+                        totalAmt = totalAmt == null ? 0 : totalAmt
+                        totalAmt = totalAmt + (args.value == null ? 0 : args.value) - (args.previousValue == null ? 0 : args.previousValue)
+                        //e.component.cellValue(e.row.rowIndex, "AMT_TOTAL", totalAmt)
+
+                        var DS = e.component.getDataSource()
+                        var store = DS.store();
+                        store.update(e.row.key, { [e.dataField]: args.value, "AMT_TOTAL": totalAmt }).done(() =>
+                        {
+
+                        })
+                    }
+                };
+            }
+        }
+        function NoteBookListGrid_FilterExp(filterValue, selectedFilterOperation, target) {
+            if (target == "search" && filterValue) {
+                return [this.dataField, 'contains', filterValue]
+            }
+            // Invoke the default implementation for other filter operations
+            if (!this.defaultCalculateFilterExpression) {
+                return [this.dataField, 'contains', filterValue];
+            }
+            return this.defaultCalculateFilterExpression.apply(this, arguments);
+        }
+        function NoteBookListGridEditor_OnKeyDown(e)
+        {
+            if (e.event.originalEvent.repeat == false && FocusedCell_ColumnVisibleIndex_NB>1)
+            {
+                if (e.event.originalEvent.keyCode == 39)//right arrow
+                {
+                    var CaretPosition = GetCaretPosition(e.event.originalEvent.currentTarget, e.event.originalEvent.keyCode)
+                    var cellElement = NoteBookListGrid.getCellElement(FocusedCell_RowVisibleIndex_NB, FocusedCell_ColumnVisibleIndex_NB + 1)
+                    if (cellElement && CaretPosition ==-1)
+                    {
+                        setTimeout(function () {
+                            NoteBookListGrid.focus(cellElement)
+                        })
+                    }
+                }
+                else if (e.event.originalEvent.keyCode == 37) //left arrow
+                {
+                    var CaretPosition = GetCaretPosition(e.event.originalEvent.currentTarget, e.event.originalEvent.keyCode)
+                    var cellElement = NoteBookListGrid.getCellElement(FocusedCell_RowVisibleIndex_NB, FocusedCell_ColumnVisibleIndex_NB - 1)
+                    if (cellElement && CaretPosition==-1)
+                    {
+                        setTimeout(function ()
+                        {
+                            NoteBookListGrid.focus(cellElement)
+                        })
+                    }
+                }
+                else if (e.event.originalEvent.keyCode == 38) //up arrow
+                {
+                    if (FocusedCell_RowVisibleIndex_NB != 0)
+                    {
+                        var cellElement = NoteBookListGrid.getCellElement(FocusedCell_RowVisibleIndex_NB - 1, FocusedCell_ColumnVisibleIndex_NB)
+                        if (cellElement)
+                        {
+                            NoteBookListGrid.focus(cellElement)
+                        }
+                    }
+                }
+                else if (e.event.originalEvent.keyCode == 40) //down arrow
+                {
+                    var cellElement = NoteBookListGrid.getCellElement(FocusedCell_RowVisibleIndex_NB+1, FocusedCell_ColumnVisibleIndex_NB)
+                    if (cellElement)
+                    {
+                        NoteBookListGrid.focus(cellElement)
+                    }
+                }
+            }
+        }
+        function GetCaretPosition(iptEle, keyCode)
+        {
+            var val = iptEle.value;
+            if (val == null || val.length == 0)
+            {
+                return -1;
+            }
+            if (keyCode == 37)
+            {
+                if (iptEle.selectionStart == 0) { return -1; }
+                return iptEle.selectionStart;
+            }
+            else if (keyCode == 39) //right arrow
+            {
+                if (iptEle.selectionStart == val.length) { return -1; }
+                return iptEle.selectionStart;
+            }
+
+        }
+    </script>
+</div>

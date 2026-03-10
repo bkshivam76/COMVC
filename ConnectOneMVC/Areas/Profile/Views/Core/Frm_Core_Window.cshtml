@@ -1,0 +1,257 @@
+﻿<div class="CoreWindow_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.CoreProfile
+<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+@{
+    ViewBag.Test = Model.ActionMethod;
+    var PopupID = ViewBag.PopupID;
+    var CalingScreen = ViewBag.CalingScreen;
+
+}
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+}
+<script>
+</script>
+<style>
+    .control-label {
+        text-align: left !important;
+    }
+</style>
+
+<div id="Frm_Core_Window_Content">
+    @using (Ajax.BeginForm("frm_Core_window", "Profile",
+               new AjaxOptions
+               {
+                   HttpMethod = "POST",
+                   UpdateTargetId = "Frm_Core_Window_Content",
+                   InsertionMode = InsertionMode.InsertAfter,
+                   OnBegin = "AjaxBeginFormPost",
+                   OnSuccess = "CoreAjaxSuccessForm"
+               },
+               new
+               {
+                   id = "CorevalidationForm",
+                   @class = "edit_form"
+               }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.EditDate)
+        @Html.HiddenFor(x => x.ID)
+        @*@Html.HiddenFor(x=>x.CenterStartDate)*@
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+                <div class="full-width-header-bg">
+                    <div class="row">
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i>Core General Information </h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                    </div>
+                </div><!--[row]-->
+                @*<div class="row" id="Core_startDate_Div">
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-3 pll">
+                                        @Html.LabelFor(m => m.CenterStartDate, htmlAttributes: new { @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-9 prm">
+                                        @(Html.DevExtreme().DateBoxFor(m => m.CenterStartDate))
+                                        @Html.ValidationMessageFor(model => model.CenterStartDate, "", new { @class = "text-red" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>*@
+                <div class="row">
+                    <div class="col-sm-7">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-5 pll">
+                                        @Html.LabelFor(m => m.typeField, htmlAttributes: new { @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-7 prm">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("typeField").Name("typeField").DisplayExpr("Name").ValueExpr("ID").DeferRendering(false)
+                                            .OnValueChanged("Core_Info_partyDropdown_ValueChange").DataSource(d => d.Mvc().Controller("Core").LoadAction("LookUp_GetResponsePersonsList").Key("ID")
+                                            .LoadParams(new { DDRefresh = new JS("function (){ return Party_DD_Coreprofile_Refresh;}") }))
+                                            .ContentTemplate(@<text> @Html.Partial("Frm_Core_Window_Party_Partial") </text>)
+                                        )
+                                        @Html.ValidationMessageFor(model => model.typeField, "", new { @class = "text-red" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-5">
+                        <div class="form-field">
+                            <div class="container-fluid ">
+                                <div class="row">
+                                  
+                                        @*@(Html.DevExtreme().Button().ID("coreManagePerson").Text("Manage").OnClick("coreManPerson_Click"))*@
+                              
+                                        @(Html.DevExtreme().Button().ID("coreAddPerson").Text("Add").OnClick("coreAddPerson_Click"))
+                                   
+                                        @*@(Html.DevExtreme().Button().ID("coreEditPerson").Text("Edit").OnClick("coreEditPerson_Click"))*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>              
+            <div class="row prm">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="col-sm-8"></div>
+                    <div class="col-sm-4">
+                            <div class="action-btn-sec-wrap">
+                                @(Html.DevExtreme().Button().ID("GeneralInformationEdit").Text("Save").FocusStateEnabled(true).OnClick("coreEditPerson_Click"))
+
+                                @*@(Html.DevExtreme().Button().ID("GeneralInformationCancel").Text("Cancel")
+                                        .OnClick(@<text>
+                                            function () {
+                                            $("#popup_frm_Core_Window").dxPopup("hide");
+                                            }
+                                        </text>))*@
+                            </div>
+                    </div>
+                    <div class="clear"></div>
+                </div>
+            </div>
+        }
+    }
+    @(Html.DevExtreme().Popup().CustomPopup().ID("id_PopUp_For_New").Title("Connect One").OnShowing("PopupOnShowing").DragEnabled(true).MaxHeight(300).MaxWidth(650)
+                               .ShowCloseButton(true)
+                               .ContentTemplate(@<text>
+                                <div id="id_CoreNew"></div></text>))
+</div>
+
+<script>
+    var Party_DDGrid_Coreprofile;
+    var Party_DD_Coreprofile_Refresh = false;
+    function Core_Info_partyDropdown_ValueChange(e)
+    {
+        e.component.close();
+        if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+        {
+            Party_DDGrid_Coreprofile.clearSelection();
+            return;
+        }
+    }
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        if ("@PopupID" == "Dynamic_Content_popup")
+        {
+            sessionclearpath = "/Profile/Core/SessionClear_Window";
+        }
+        Party_DDGrid_Coreprofile = $("#Core_Info_Party_Grid").dxDataGrid("instance");
+        if ("@Model.typeField".length > 0)
+        {
+           await Party_DDGrid_Coreprofile.selectRows("@Model.typeField", false);
+        }
+        HideLoader_Ready();
+    });
+    function CoreAjaxSuccessForm(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            IsSucessPopup = true;
+            if ("@CalingScreen" != "RegisterForAudit") {
+                OpenTabControl('Core_Info', 'Core Information', '/Profile/Core/Frm_Core_Info')
+                var coreSubmitSuccess = DevExpress.ui.dialog.alert(data.Message, "Success");
+            }
+            if ("@CalingScreen" == "RegisterForAudit")
+            {
+                IsRegisteredForAudit = 1;
+            }
+            HidePopup("@PopupID");
+            //ReloadGeneralInfo();
+
+        }
+    }
+</script>
+<script>
+    var CallingScreen = "CoreProfile_" + "@CalingScreen";   
+    async function RefreshPerson_Core(AB_ID)
+    {
+        ShowLoader();
+        Party_DD_Coreprofile_Refresh = true;
+        await Party_DDGrid_Coreprofile.refresh();
+        Party_DD_Coreprofile_Refresh = false;
+        if (AB_ID != null)
+        {
+            await Party_DDGrid_Coreprofile.selectRows(AB_ID, false);
+        }      
+        $("#CorevalidationForm").submit();
+        HideLoader();                
+    }
+    function coreManPerson_Click(e)
+    {
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection")
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'Get',
+                url: "/Facility/AddressBook/Frm_Address_Info_dx",
+                data: { PopUpId: "Core_Add_Party", PartyRefreshFunction: "RefreshPerson_Core"},
+                cache: false,
+                success: function (resultsuccess)
+                {
+                    OpenPopup("Core_Add_Party", "Address Book(Manage Party)", null, "auto", 1000, true, resultsuccess);
+                }
+            });
+        }
+    }
+    function coreAddPerson_Click() {
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection") {
+            ShowLoader();
+            $.ajax({
+                type: 'Get',
+                url: "/Facility/AddressBook/Frm_Address_Info_Window_Small",
+                data: { ActionMethod: "New", PopUpId: "Core_Add_Party", DropDownFunctionName: "RefreshPerson_Core", CallingScreen: CallingScreen },
+                cache: false,
+                success: function (resultsuccess) {
+                    OpenPopup("Core_Add_Party", "New ~ Address Book(Party Detail)", null, "auto", 1000, true, resultsuccess);
+                }
+            });
+        }
+    }
+    function coreEditPerson_Click()
+    {
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection")
+        {
+            if ($("#typeField").dxDropDownBox("instance").option("value") != null) {
+
+                ShowLoader();
+                $.ajax({
+                    type: 'Get',
+                    url: "/Facility/AddressBook/Frm_Address_Info_Window_Small",
+                    data: { ActionMethod: "Edit", PopUpId: "Core_Add_Party", DropDownFunctionName: "RefreshPerson_Core", ID: $("#typeField").dxDropDownBox("instance").option("value")[0], CallingScreen: CallingScreen },
+                    cache: false,
+                    success: async function (resultsuccess)
+                    {
+                        await OpenPopup("Core_Add_Party", "Edit ~ Address Book(Party Detail)", null, "auto", 1000, true, resultsuccess);
+
+                    }
+                });
+            }
+            else {
+                var alert = DevExpress.ui.dialog.alert("Select Responsible Person", "Information...");
+            }
+        }
+    }
+</script>
+    </div>

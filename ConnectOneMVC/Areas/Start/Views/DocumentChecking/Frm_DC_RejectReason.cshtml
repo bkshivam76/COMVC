@@ -1,0 +1,105 @@
+﻿<div class="DocumentChecking_RejectReason_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+    }
+    <style>
+
+        .dx-list-item-content {
+            white-space: normal;
+        }
+    </style>
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+    <div id="Frm_DC_Reason_Popup">
+        <form>
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 md-12 pll">
+                            <label class="control-label text-red" for="user">Choose Reason For Rejecting The Document:</label>
+                        </div>
+                        <div class="col-sm-12 md-12 pll ">
+                            @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_RejectReason").Name("DC_RejectReason").Items(new[] {"OTHER", "Document Not Clear, Not Properly Scanned", "Document Completely Not visible/scanned", "Document Mismatch(Not As Per Document Name)", "Document Not Of The Institute","Bhandari- Two sign required", "Donor Sign is Missing", "Document Not Uploaded Properly","Wrong Document Uploaded" }).ShowClearButton(false).OnValueChanged("DC_RejectReason_ValueChange"))
+                        </div>
+                        <div class="col-sm-12 md-12 pll " id="Reason_DC_Div">
+                            <label class="control-label text-red" for="user">Enter Reason:</label>
+                            @(Html.DevExtreme().TextArea().ID("Reason_DC").Name("Reason_DC").Height(150).Placeholder("Enter Reason").OnValueChanged("DC_ResonTextAREA_ValueChange").MaxLength(4000) )
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("DC_Reason_Ok").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("ReasonSaveClick"))
+                            @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("DC_Reason_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { CloseRejectReason();} </Text>))
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+        </form>
+    </div><!--[Form Div]-->
+    <script>
+        function CloseRejectReason() {
+            HidePopup('DC_Reason_popup');
+            DC_FAB.ExpandActionGroupItems();
+        }
+        function ReasonSaveClick(e) {
+            if (Reason_DC == null || Reason_DC.trim().length < 1) {
+                DevExpress.ui.dialog.alert("Please Choose Or Enter Reason", 'Error');
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Start/DocumentChecking/RejectDocument",
+                cache: false,
+                data: { AttachID: DC_AtachmentID, Reason: Reason_DC },
+                success: function (data) {
+                    HideLoader();
+
+                    if (data.result) {
+                        DevExpress.ui.notify({ message: data.message, width: 300, shading: true, position: 'center' }, "error", 1500);
+                        RefreshAfterTakingAction = true;
+                        DC_FocusedRowIndexBeforeRefresh = DocumentCheckingListGrid.GetFocusedRowIndex();
+                        RefreshDocumentCheckGrid();
+                    }
+                    else {
+                        var alert = DevExpress.ui.dialog.alert(data.message, 'Information!');
+                    }
+                    if (data.result) {
+                        HidePopup('DC_Reason_popup');
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
+        var Reason_DC = "";
+        $(document).ready(function () {
+            $("#Reason_DC_Div").hide();
+        });
+        function DC_RejectReason_ValueChange(e) {
+            if (e.value == "OTHER") {
+                Reason_DC = "";
+                $("#Reason_DC_Div").show();
+            }
+            else {
+                $("#Reason_DC").dxTextArea("instance").reset();
+                $("#Reason_DC_Div").hide();
+                Reason_DC = e.value;
+            }
+        }
+        function DC_ResonTextAREA_ValueChange(e) {
+            Reason_DC = e.value;
+        }
+    </script>
+</div>

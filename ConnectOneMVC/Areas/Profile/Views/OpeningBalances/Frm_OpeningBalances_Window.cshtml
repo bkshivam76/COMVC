@@ -1,0 +1,311 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.OpeningBalances
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+}
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="OBWindow">
+    @using (Ajax.BeginForm("Frm_OpeningBalances_Window", "OpeningBalances",
+                                                             new AjaxOptions
+                                                             {
+                                                                 HttpMethod = "POST",
+                                                                 UpdateTargetId = "OBWindow",
+                                                                 InsertionMode = InsertionMode.InsertAfter,
+                                                                 OnBegin = "AjaxBeginFormPost",
+                                                                 OnSuccess = "OBAjaxSuccessForm"
+                                                             },
+                                                                  new
+                                                                  {
+                                                                      id = "validationForm",
+                                                                      @class = "edit_form"
+                                                                  }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.OldItemName)
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3 style="text-align: left;margin: 0;">
+                        Opening Balances
+                    </h3>
+                </div>
+                <div class="col-sm-6">
+                    <h5 style="text-align: right;color: red;margin: 5px 0 0 0;"> Red Fields are mandatory</h5>
+                </div>
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            </div>
+            
+            <div class="row">
+                <div class="col-md-2 pll">
+                    @Html.LabelFor(model => model.ItemName, htmlAttributes: new { @class = "control-label text-red" })
+                </div>
+                <div class="col-md-10 prm">
+                    @(Html.DevExtreme().DropDownBox()
+                                    .ID("ItemName")
+                                    .Name("ItemName")
+                                    .HoverStateEnabled(true)
+                                    .Value(Model.ItemName)
+                                    .ValueExpr("ID")
+                                    .DisplayExpr("Name")
+                                    .DataSource(d => d.Mvc().Controller("OpeningBalances").LoadAction("LookUp_GetOpeningBalancesList").Key("ID"))
+                                    .Placeholder("Select ItemName...")
+                                    .ShowClearButton(true)
+                                    .ReadOnly(false)
+                                    .OnValueChanged("LookUp_OBDetails_Gen_OB_ChangeEvent")
+                                    .ContentTemplate(@<text>
+                                        @Html.Partial("LookUp_GetOpeningBalancesList")
+                                    </text>)
+                    )
+                    @Html.ValidationMessageFor(model => model.ItemName, "", new { @class = "text-danger" })
+
+                </div>
+            </div>
+           
+            <div class="row">
+                <div class="col-md-2 pll">
+                    @Html.LabelFor(model => model.Head, htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4 prm">
+                    @(Html.DevExtreme().TextBox()
+                            .ID("Head")
+                            .Name("Head")
+                            //.Placeholder("PAN NO.")
+                            .Value(Model.Head)
+                            .ShowClearButton(true)
+                            .ReadOnly(true)
+                            .ValidationError(true)
+                            .MaxLength(100)
+                    )
+
+                    @Html.ValidationMessageFor(model => model.Head, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2">
+                    @Html.LabelFor(model => model.HeadType, htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4 prm">
+                    @(Html.DevExtreme().TextBox()
+                            .ID("HeadType")
+                            .Name("HeadType")
+                            //.Placeholder("IFSC Code.")
+                            .Value(Model.HeadType)
+                            .ShowClearButton(true)
+                            .ReadOnly(true)
+                            .MaxLength(100)
+                    )
+
+                    @Html.ValidationMessageFor(model => model.HeadType, "", new { @class = "text-red" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-9">
+                    <div class="form-field">
+                        <div class="container-fluid pll prm">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    @Html.LabelFor(model => model.Amount, htmlAttributes: new { @class = "control-label text-red" })
+                                </div>
+                                <div class="col-sm-9">
+                                    @(Html.DevExtreme().TextBox()
+                            .ID("Amount")
+                            .Name("Amount")
+                            .ElementAttr(new Dictionary<string, object>() { { "class", "two-decimals" } })
+                            .Value(Model.Amount)                         
+                            .Placeholder("Amount...")
+                            .ShowClearButton(true)
+                            .ReadOnly(false)
+                            .MaxLength(12)
+                                    )
+
+                                    @Html.ValidationMessageFor(model => model.Amount, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 prm">
+                    @(Html.DevExtreme().RadioGroup()
+                        .ID("Type")
+                        .Name("Type")
+                        .DisplayExpr("text")
+                        .Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal)
+                        .ValueExpr("value")
+                        .Value(Model.Type)
+                        .DataSource(new object[] {
+                                    new { text = "Debit", value = "Debit" },
+                                    new { text = "Credit", value = "Credit"  },
+                        })
+                        .ReadOnly(false)
+                    )
+
+                    @Html.ValidationMessageFor(model => model.Type, "", new { @class = "text-red" })
+                </div>
+            </div>
+                <div class="row">
+                    <div class="col-md-2 pll">
+                        @Html.LabelFor(model => model.other_DetField, htmlAttributes: new { @class = "control-label" })
+                    </div>
+                    <div class="col-md-10 prm">
+                        @(Html.DevExtreme().TextBox()
+                                .ID("other_DetField")
+                                .Name("other_DetField")
+                                .Value(Model.other_DetField)
+                                .Placeholder("Type any other details/ Remarks..")
+                                .ShowClearButton(true)
+                                .ReadOnly(false)
+                                .MaxLength(250)
+                        )
+
+                        @Html.ValidationMessageFor(model => model.other_DetField, "", new { @class = "text-red" })
+                    </div>
+                </div>
+            
+
+            <div class="row prm" style="padding: 10px 0;">
+                <div class="col-sm-8"></div>
+                <div class="col-sm-4">
+                    @if (Model.ActionMethod.ToString().Trim() == "_View")
+                    {
+                        @(Html.DevExtreme().Button()
+                                    .ID("OBCancel")
+                                    .Icon(Url.Content("~/Icons/Close button2.png"))
+                                    .Text("Close")
+                                    .OnClick(@<text>
+                                        function () {
+                                        $("#popup_frm_OpeningBalances_Window").dxPopup("hide");
+                                        }
+                                    </text>)
+                        )
+                    }
+                    @if (Model.ActionMethod.ToString().Trim() == "_Edit")
+                    {
+                        @(Html.DevExtreme().Button()
+                                .ID("OBEdit")
+                                .Icon(Url.Content("~/Icons/Edit button3.png"))
+                                .Icon("fa fa-check")
+                                .Text("Save")
+                                .FocusStateEnabled(true)
+
+                                .UseSubmitBehavior(true)
+                        )
+
+                        @(Html.DevExtreme().Button()
+                                .ID("OBCancel")
+                                .Icon(Url.Content("~/Icons/Close button2.png"))
+                                .Icon("fa fa-times")
+                                .Text("Cancel")
+                                .OnClick(@<text>
+                                    function () {
+                                    $("#popup_frm_OpeningBalances_Window").dxPopup("hide");
+                                    }
+                                </text>)
+                        )
+                    }
+
+                    @if (Model.ActionMethod.ToString().Trim() == "_Delete")
+                    {
+                        @(Html.DevExtreme().Button()
+                                .ID("OBDelete")
+                                 .Icon(Url.Content("~/Icons/Delete button1.png"))
+                                .Text("Delete")
+                                .FocusStateEnabled(true)
+
+                                .UseSubmitBehavior(true)
+                        )
+
+                        @(Html.DevExtreme().Button()
+                                .ID("OBCancel")
+                                 .Icon(Url.Content("~/Icons/Close button2.png"))
+                                .Text("Cancel")
+                                .FocusStateEnabled(true)
+                                .OnClick(@<text>
+                                    function () {
+                                    $("#popup_frm_OpeningBalances_Window").dxPopup("hide");
+                                    }
+                                </text>)
+                        )
+                    }
+
+                    @if (Model.ActionMethod.ToString().Trim() == "_New")
+                    { 
+
+                        @(Html.DevExtreme().Button()
+                                .ID("OBEdit")
+                                .Icon("fa fa-check")
+                                .Text("Save")
+                                .FocusStateEnabled(true)
+
+                                .UseSubmitBehavior(true)
+                        )
+
+                        @(Html.DevExtreme().Button()
+                                .ID("OBCancel")
+                                .Icon("fa fa-times")
+                                .Text("Cancel")
+                                .FocusStateEnabled(true)
+                                .OnClick(@<text>
+                                    function () {
+                                    $("#popup_frm_OpeningBalances_Window").dxPopup("hide");
+                                    }
+                                </text>)
+                        )
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<script>
+    $(document).ready(function () {
+        //$(".two-decimals").on("keypress", function (evt) {
+        //    debugger;
+        //    var $txtBox = $(this);
+        //    var charCode = (evt.which) ? evt.which : evt.keyCode
+        //    if (charCode > 31 && (charCode < 48 || charCode > 57) && charCode != 46)
+        //        return false;
+        //    else {
+        //        var len = $txtBox.val().length;
+        //        var index = $txtBox.val().indexOf('.');
+        //        if (index > 0 && charCode == 46) {
+        //            return false;
+        //        }
+        //        if (index > 0) {
+        //            var charAfterdot = (len + 1) - index;
+        //            if (charAfterdot > 3) {
+        //                return false;
+        //            }
+        //        }
+        //    }
+        //    return $txtBox; //for chaining
+        //});
+        $("#Amount").keypress(function (e) {
+            e = e || window.event;
+            key = e.keyCode || e.which;
+            var value = e.target.value;
+            debugger;
+            //For Firefox
+            if (key == 8 || key == 127 || key == 9)
+                return true
+            var txt = String.fromCharCode(key);
+            var reg = /[0-9.]/;
+            if (value.indexOf('.') > -1) {
+                var splitdot = value.split('.');
+                if (splitdot[1].length >= 2)
+                    e.preventDefault();
+            }
+            if (reg.test(txt))
+                return true;
+           
+            e.preventDefault();
+            return false;
+
+        });
+    });
+ </script>

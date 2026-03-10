@@ -1,0 +1,297 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model List<ConnectOneMVC.Areas.Profile.Models.CoreInfoInstitute>
+@{
+    bool Core_AddRight = (bool)ViewData["Core_AddRight"];
+    bool Core_UpdateRight = (bool)ViewData["Core_UpdateRight"];
+    bool Core_ViewRight = (bool)ViewData["Core_ViewRight"];
+    bool Core_DeleteRight = (bool)ViewData["Core_DeleteRight"];
+    bool Core_ExportRight = (bool)ViewData["Core_ExportRight"];    
+    bool Profile_CoreSuperuser_auditor_Lock_UnLock = (bool)ViewData["Profile_CoreSuperuser_auditor_Lock_UnLock"];
+}
+<div id="content" class="col-md-12" style="margin-top: 1px !important;padding-bottom:20px">
+    <form>
+        <div id="CoreInstitutereloadPartialView">
+            @Html.Partial("Frm_Core_Info_InstituteAccount_Grid", Model)
+        </div>
+    </form>
+</div>
+
+<div class="col-md-12">
+    @*Add/Edit Popup*@
+    @(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("CoreInstitute_report_modal")
+                        .OnShowing("PopupOnShowing")
+                        .Title("Institute List Preview")
+                        .FullScreen(false)
+                        .MaxWidth(125)
+                        .Height("auto")
+                        .ShowCloseButton(true)
+                        .ContentTemplate(@<text>
+                            <div id='CoreInstitute_report_modal_result'>
+                            </div>
+                        </text>)
+    )
+
+    @(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("popup_frm_CoreInstitute_Window")
+                        .OnShowing("PopupOnShowing")
+                        .Title("CoreInstitute")
+                        .ContentTemplate(@<text>
+                            <div id="CoreInstituteresult">
+                            </div>
+                        </text>)
+                                .OnHiding(@<text>
+                                    function () {
+                                    if(IsSucessPopup == false && IsViewPopup == false)
+                                    {
+                                    var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+                                    result.done(function (dialogResult) {
+                                    if(dialogResult){
+                                    $("#popup_frm_CoreInstitute_Window").dxPopup("hide");
+                                    }else
+                                    {
+                                    $("#popup_frm_CoreInstitute_Window").dxPopup("show");
+                                    }
+                                    });
+                                    }
+                                    }
+                                </text>)
+    )
+</div>
+
+@*Javascript Events*@
+<script type="text/javascript">
+    var IsCoreInstituteSucessPopup = false;
+    var IsCoreInstituteViewPopup = false;
+    var Profile_CoreEditright="@Core_UpdateRight"=="True"?true:false;
+    var Profile_CoreNewright="@Core_AddRight"=="True"?true:false;
+    var Profile_CoreDeleteright="@Core_DeleteRight"=="True"?true:false;
+    var Profile_CoreViewright="@Core_ViewRight"=="True"?true:false;
+    var Profile_CoreExportright="@Core_ExportRight"=="True"?true:false;
+    var Profile_CoreSuperuser_auditor_Lock_UnLock = "@Profile_CoreSuperuser_auditor_Lock_UnLock" == "True" ? true : false;
+
+    $(document).ready(function () {
+        IsCoreInstituteSucessPopup = false;
+        IsCoreInstituteViewPopup = false;
+       //SetCoreInstituteGroupPanelFooterVisible();
+        $("#CoreInstituteListGrid").hover(function () {
+            CoreInstituteListGrid.Focus();
+        })
+    });
+    //function OnEndCallback(s, e) {
+    //    AdjustInsttSize();
+    //}
+    function AdjustInsttSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{ CoreInstituteListGrid.SetHeight(height);}catch(err){}
+    }
+
+    function CoreInstituteAjaxSuccessForm(data) {
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            IsCoreInstituteSucessPopup = true;
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#popup_frm_CoreInstitute_Window").dxPopup("hide");
+            CoreInstituteListGrid.Refresh();
+            IsCoreInstituteSucessPopup = false;
+        }
+    }
+
+    function CoreInstituteOnUnLockClick() {
+        if(!Profile_CoreSuperuser_auditor_Lock_UnLock) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (CoreInstituteID == 'undefined' || CoreInstituteID == undefined) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreInstitute/DataNavigation",
+            data: { ActionMethod: "UNLOCKED", id: CoreInstituteID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreInstitute_ActionStatus, EditDate: CoreInstitute_EditDate },
+            cache: false,
+            success: function (CoreInstitute_UNLOCKED_Get_DataNavigation_result) {
+                DevExpress.ui.dialog.alert(CoreInstitute_UNLOCKED_Get_DataNavigation_result.Message);
+            }
+        });
+    }
+
+    function CoreInstituteOnLockClick() {
+        if(!Profile_CoreSuperuser_auditor_Lock_UnLock) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (CoreInstituteID == 'undefined' || CoreInstituteID == undefined) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreInstitute/DataNavigation",
+            data: { ActionMethod: "LOCKED", id: CoreInstituteID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreInstitute_ActionStatus, EditDate: CoreInstitute_EditDate },
+            cache: false,
+            success: function (CoreInstitute_LOCKED_Get_DataNavigation_result) {
+                DevExpress.ui.dialog.alert(CoreInstitute_LOCKED_Get_DataNavigation_result.Message);
+            }
+        });
+    }
+
+    function OnCoreInstituteNewClick() {
+        if (!Profile_CoreNewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreInstituteViewPopup = false;
+        $("#popup_frm_CoreInstitute_Window").dxPopup("show");
+        $("#popup_frm_CoreInstitute_Window").dxPopup("instance").option("title", "New ~ CoreInstitute");
+        $("#CoreInstituteresult").html('');
+        ShowLoader();
+        $("#CoreInstituteresult").load("@Url.Action("frm_CoreInstitute_window", "CoreInstitute", new { @area = "Profile" })?ActionMethod=New", function () {
+            HideLoader();
+            $("#ItemID").dxSelectBox('instance').focus();
+        });
+    }
+
+    function OnCoreInstituteEditClick() {
+        if (!Profile_CoreEditright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        if (CoreInstituteID == 'undefined' || CoreInstituteID == undefined) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreInstitute/DataNavigation",
+            data: { ActionMethod: "Edit", id: CoreInstituteID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreInstitute_ActionStatus, EditDate: CoreInstitute_EditDate },
+            cache: false,
+            async: true,
+            success: function (CoreInstitute_Edit_ButtonClick_result) {
+                if (CoreInstitute_Edit_ButtonClick_result.result == "true" || CoreInstitute_Edit_ButtonClick_result.result == true) {
+                    $("#popup_frm_CoreInstitute_Window").dxPopup("show");
+                    $("#popup_frm_CoreInstitute_Window").dxPopup("instance").option("title", "Edit ~ CoreInstitute");
+                    $("#CoreInstituteresult").html('');
+                    ShowLoader();
+                    $("#CoreInstituteresult").load('@Url.Action("frm_CoreInstitute_window", "CoreInstitute", new { @area = "Profile" })?ActionMethod=Edit&ID=' + CoreInstituteID + '&EditedOn=' + encodeURIComponent(CoreInstitute_EditDate), function () {
+                        HideLoader();
+                        $("#ItemID").dxSelectBox('instance').focus();
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(CoreInstitute_Edit_ButtonClick_result.Message);
+                    CoreInstituteListGrid.Refresh();
+                }
+            }
+        });
+    }
+
+    function OnCoreInstituteViewClick() {
+        if (!Profile_CoreViewright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreInstituteViewPopup = true;
+        if (CoreInstituteID == 'undefined' || CoreInstituteID == undefined) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+        $.ajax({
+            type: 'GET',
+            url: "/Profile/CoreInstitute/DataNavigation",
+            data: { ActionMethod: "View", id: CoreInstituteID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreInstitute_ActionStatus, EditDate: encodeURIComponent(CoreInstitute_EditDate) },
+            cache: false,
+            success: function (CoreInstitute_View_ButtonClick_result) {
+                if (CoreInstitute_View_ButtonClick_result.result == "true" || CoreInstitute_View_ButtonClick_result.result == true) {
+                    $("#popup_frm_CoreInstitute_Window").dxPopup("show");
+                    $("#popup_frm_CoreInstitute_Window").dxPopup("instance").option("title", "View ~ CoreInstitute");
+                    $("#CoreInstituteresult").html('');
+                    ShowLoader();
+                    $("#CoreInstituteresult").load("@Url.Action("frm_CoreInstitute_window", "CoreInstitute", new { @area = "Profile" })?ActionMethod=" + "View" + "&ID=" + CoreInstituteID + "&EditedOn=" + encodeURIComponent(CoreInstitute_EditDate), function () {
+                        HideLoader();
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(CoreInstitute_View_ButtonClick_result.Message);
+                    CoreInstituteListGrid.Refresh();
+                }
+            }
+        });
+    }
+
+    function OnCoreInstituteDeleteClick() {
+        if (!Profile_CoreDeleteright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        IsCoreInstituteViewPopup = false;
+        if (CoreInstituteID == 'undefined' || CoreInstituteID == undefined) { DevExpress.ui.dialog.alert('Please Select one row', 'Alert '); return; }
+
+        var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Confirm changes");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                $("#popup_frm_CoreInstitute_Window_Close").dxPopup("hide");
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Profile/CoreInstitute/DataNavigation",
+                    data: { ActionMethod: "Delete", id: CoreInstituteID, TR_ID: TR_ID, YearID: YearId, AI_PARTY_ID: AI_PARTY_ID, ActionStatus: CoreInstitute_ActionStatus, EditDate: CoreInstitute_EditDate },
+                    cache: false,
+                    success: function (CoreInstitute_Delete_ButtonClick_result) {
+                        if (CoreInstitute_Delete_ButtonClick_result.result == "true" || CoreInstitute_Delete_ButtonClick_result.result == true) {
+                            $("#popup_frm_CoreInstitute_Window").dxPopup("show");
+                            $(".dx-item-content.dx-toolbar-item-content:first").find("div").html('Delete ~ CoreInstitute');
+                            ShowLoader();
+                            $("#CoreInstituteresult").load("@Url.Action("frm_CoreInstitute_window", "CoreInstitute", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + CoreInstituteID + "&EditedOn=" + encodeURIComponent(CoreInstitute_EditDate), function () {
+                                HideLoader();
+                                $("#CoreInstituteDelete").dxButton('instance').focus();
+                            });
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(CoreInstitute_Delete_ButtonClick_result.Message);
+                            CoreInstituteListGrid.Refresh();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function OnCoreInstituteListPreviewClick() {
+        if (!Profile_CoreExportright) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+      
+        OpenPopup("CoreInstitute_report_modal", "Export Option", "@Url.Action("Frm_Institute_Export_Options", "Core", new { @area = "Profile" })", "auto", 125);
+    }
+
+    function GetSelectedFieldValuesCallback(values) {
+        SelectedRows.BeginUpdate();
+        try {
+            SelectedRows.ClearItems();
+            for (var i = 0; i < values.length; i++) {
+                SelectedRows.AddItem(values[i]);
+            }
+        } finally {
+            SelectedRows.EndUpdate();
+        }
+        $("#count").html(gvRowSelection.GetSelectedRowCount());
+
+    }
+
+    function CoreInsttContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            OnCoreInstituteNewClick();
+        }
+        if (e.item.name == 'Close') {
+            CoreProfileClose();
+        }
+        else if (e.item.name == 'Edit') {
+            OnCoreInstituteEditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnCoreInstituteDeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnCoreInstituteViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnCoreInstituteListPreviewClick();
+        }
+        else if (e.item.name == 'Unlock') {
+            CoreInstituteOnUnLockClick();
+        }
+        else if (e.item.name == 'Lock') {
+            CoreInstituteOnLockClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            CoreInstituteListGrid.Refresh();
+        }
+
+    }
+
+    function LookUp_GetPartyList_CoreInstitute_ChangeEvent(s, e) {
+        $("#PartyEditDate").val(s.GetSelectedItem().GetColumnText("REC_EDIT_ON"));
+    }
+</script>

@@ -1,0 +1,1228 @@
+﻿@using System.Text.RegularExpressions;
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    var Layout = ViewData["Layout"];
+    bool Service_Report_AddRight = (bool)ViewData["Service_Report_AddRight"];
+    bool Service_Report_UpdateRight = (bool)ViewData["Service_Report_UpdateRight"];
+    bool Service_Report_DeleteRight = (bool)ViewData["Service_Report_DeleteRight"];
+    bool Service_Report_ExportRight = (bool)ViewData["Service_Report_ExportRight"];
+    bool Service_Report_ListRight = (bool)ViewData["Service_Report_ListRight"];
+    bool Service_Report_ListingRight = (bool)ViewData["Service_Report_ListRight"];
+    bool Help_Attachments_ListRight = (bool)ViewData["Help_Attachments_ListRight"];
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    string ViewMode = ViewBag.ViewMode == null ? "Default" : (string)ViewBag.ViewMode;
+    List<string> ColumnTobeHidden = new List<string>();
+    List<string> ColumnTobeShown = new List<string>();
+    string ColumnToBeShowIndex = ViewBag.ColumnToBeShownIndex == null ? "" : (string)ViewBag.ColumnToBeShownIndex;
+    string ColumnToBeHideIndex = ViewBag.ColumnToBeHidddenIndex == null ? "" : (string)ViewBag.ColumnToBeHidddenIndex;
+    if (ColumnToBeHideIndex.Length > 0)
+    {
+        ColumnTobeHidden = ColumnToBeHideIndex.Split(',').ToList();
+    }
+    if (ColumnToBeShowIndex.Length > 0)
+    {
+        ColumnTobeShown = ColumnToBeShowIndex.Split(',').ToList();
+    }
+}
+
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "ServiceReportListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "ServiceReport",
+            Action = "Frm_Service_Report_Info_Grid",
+            SessionGUID = SessionGUID
+        };
+
+        settings.Theme = "Aqua";
+        settings.Styles.FocusedRow.BackColor = System.Drawing.Color.FromArgb(0, 114, 198);
+        settings.Styles.FocusedRow.ForeColor = System.Drawing.Color.White;
+        settings.Styles.AlternatingRow.BackColor = System.Drawing.Color.Linen;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Visible;
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.Settings.UseFixedTableLayout = true;
+
+        //Filter in Headings of the table.
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        // show filter control at the bottom
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.Settings.ShowPreview = true;
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            if (VouchingMode == true)
+            {
+                Html.RenderAction("AuditButtons", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            }
+        });
+        settings.HtmlDataCellPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            string colIdx = e.DataColumn.Index.ToString();
+            string rowIdx = e.VisibleIndex.ToString();
+            string keyvalue = Convert.ToString(e.KeyValue);
+
+            if (VouchingMode == true)
+            {
+                if (e.DataColumn.FieldName.Length > 0)
+                {
+                    e.Cell.Attributes.Add("ondblclick", "OnGridCellClick(event,this,'" + colIdx + "', '" + rowIdx + "','" + settings.Name + "','" + keyvalue + "','" + e.DataColumn.FieldName + "');");
+                }
+                if (e.DataColumn.Name == "iIcon")
+                {
+                    e.Cell.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                    e.Cell.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                }
+            }//redmine bug 133467 fix
+            e.Cell.CssClass += " col_" + e.DataColumn.FieldName + " row_" + keyvalue;
+            e.Cell.ID = "Cell_" + keyvalue + "|" + e.DataColumn.FieldName;
+
+        };
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            string keyvalue = Convert.ToString(e.KeyValue); //!= null ? Regex.Replace((string)e.KeyValue, "[^0-9A-Za-z]+", "_") : "Null"
+            if (e.RowType == GridViewRowType.Data)
+            {
+                // e.Row.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                // e.Row.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                e.Row.CssClass += " " + settings.Name + "_DataRow_" + keyvalue;
+            }
+            else if (e.RowType == GridViewRowType.Preview)
+            {
+                e.Row.BackColor = System.Drawing.Color.White;
+                if (VouchingMode == true)
+                {
+                    e.Row.Attributes.Add("onmouseover", "OnGridPrevRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                    e.Row.Attributes.Add("onmouseout", "OnGridPrevRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + keyvalue + "')");
+                }
+                e.Row.CssClass += " " + settings.Name + "_PreviewRow" + " " + settings.Name + "_PreviewRow_" + keyvalue;
+                //e.Row.ID = "PreviewRow_" + e.KeyValue;
+            }
+        };
+        settings.SettingsDetail.ShowDetailRow = true;
+        if (VouchingMode == false)
+        {
+            settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+            settings.SettingsDetail.ExportMode = GridViewDetailExportMode.None;
+            settings.SetDetailRowTemplateContent(c =>
+            {
+                Html.RenderAction("Frm_Service_Report_Info_DetailGrid", new { RecID = DataBinder.Eval(c.DataItem, "ID"), MID = "", VouchingMode = VouchingMode, command = "REFRESH" });
+            });
+            settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+            {
+                string RecID = (string)DataBinder.Eval(e.DataItem, "ID");
+                GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Facility.Controllers.ServiceReportController.NestedGridExportSettings(RecID));
+                grid.Bind(ConnectOneMVC.Areas.Facility.Controllers.ServiceReportController.NestedGridExportData(RecID));
+                e.DetailGridViews.Add(grid);
+            };
+        }
+        else
+        {
+            settings.DetailRowGetButtonVisibility = (s, e) =>
+            {
+                e.ButtonState = GridViewDetailRowButtonState.Hidden;
+            };
+        }
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        //var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+        }
+
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.Settings.ShowGroupPanel = false;
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.Settings.ShowGroupedColumns = false;
+        settings.Settings.ShowGroupButtons = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSelectByRowClick = false;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.AllowEllipsisInText = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+
+            var lastVisibleColumn = grid.VisibleColumns.LastOrDefault();
+            e.Properties["cpClientLayout"] = grid.SaveClientLayout();
+            string ColumnToBeShownIndex = "";
+            string ColumnToBeHidddenIndex = "";
+            if (ColumnTobeHidden.Count > 0)
+            {
+                ColumnToBeHidddenIndex = String.Join(",", ColumnTobeHidden.ToArray());
+            }
+            if (ColumnTobeShown.Count > 0)
+            {
+                ColumnToBeShownIndex = String.Join(",", ColumnTobeShown.ToArray());
+            }
+            e.Properties["cpColumnToBeShownIndex"] = ColumnToBeShownIndex;
+            e.Properties["cpColumnToBeHidddenIndex"] = ColumnToBeHidddenIndex;
+            int startIndex = (grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? 0 : grid.PageIndex) * grid.SettingsPager.PageSize;
+            int endIndex = grid.PageIndex == -1 || grid.SettingsPager.Mode == GridViewPagerMode.ShowAllRecords ? grid.VisibleRowCount : Math.Min(grid.VisibleRowCount, startIndex + grid.SettingsPager.PageSize);
+            object[] Rowdata = new object[endIndex - startIndex];
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                Rowdata[i - startIndex] = grid.GetRowValues(i, new string[] { "ID", "SR_PROG_NAME", "Add_By", "Add_Date", "Edit_By", "Edit_Date", "Action_Status", "Action_By", "Action_Date", "FORM_INST_ID", "SR_From_Date", "SR_To_Date" });
+            }
+            e.Properties["cpPagedata"] = Rowdata;
+        };
+
+        settings.Init = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (ViewMode == "Compact")
+            {
+                grid.DataColumns["ServiceReport_Compact_Column"].Visible = true;
+                grid.DataColumns["MISC_NAME"].Visible = false;
+                grid.DataColumns["SR_PROG_NAME"].Visible = false;
+                grid.DataColumns["SR_PROG_VENUE"].Visible = false;
+                grid.DataColumns["SR_From_Date"].Visible = false;
+                grid.DataColumns["SR_To_Date"].Visible = false;
+                grid.DataColumns["SR_DATE"].Visible = false;
+                grid.DataColumns["SR_PERIOD"].Visible = false;
+                grid.DataColumns["SR_TIME"].Visible = false;
+                grid.DataColumns["SR_TIME_PER"].Visible = false;
+                grid.DataColumns["SR_BRIEF"].Visible = false;
+                grid.DataColumns["SR_SPEAKER"].Visible = false;
+                grid.DataColumns["SR_SPL"].Visible = false;
+                grid.DataColumns["SR_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_FOLLOW"].Visible = false;
+                grid.DataColumns["SR_FEEDBACK"].Visible = false;
+                grid.DataColumns["SR_OrganizedFor"].Visible = false;
+                grid.DataColumns["SR_PRogCoordinator1"].Visible = false;
+                grid.DataColumns["SR_PRogCoordinator2"].Visible = false;
+                grid.DataColumns["SR_ParticipantCategory"].Visible = false;
+                grid.DataColumns["SR_ParticipantSubCategory"].Visible = false;
+                grid.DataColumns["SR_ProgramType"].Visible = false;
+                grid.DataColumns["SR_LocationType"].Visible = false;
+                //grid.DataColumns["Project_ID"].Visible = false;
+                grid.DataColumns["SR_SENIOR_CITIZEN_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_WOMEN_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_FEMALE_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_MALE_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_YOUTH_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_CHILD_BENEFIT"].Visible = false;
+                grid.DataColumns["VenueTypes"].Visible = false;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Action_Status"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+
+
+
+
+                //settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            }
+            else
+            {
+                grid.DataColumns["ServiceReport_Compact_Column"].Visible = false;
+                grid.DataColumns["MISC_NAME"].Visible = true;
+                grid.DataColumns["SR_PROG_NAME"].Visible = true;
+                grid.DataColumns["SR_PROG_VENUE"].Visible = false;
+                grid.DataColumns["SR_From_Date"].Visible = true;
+                grid.DataColumns["SR_To_Date"].Visible = true;
+                grid.DataColumns["SR_DATE"].Visible = false;
+                grid.DataColumns["SR_PERIOD"].Visible = true;
+                grid.DataColumns["SR_TIME"].Visible = true;
+                grid.DataColumns["SR_TIME_PER"].Visible = true;
+                grid.DataColumns["SR_BRIEF"].Visible = true;
+                grid.DataColumns["SR_SPEAKER"].Visible = true;
+                grid.DataColumns["SR_SPL"].Visible = true;
+                grid.DataColumns["SR_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_FOLLOW"].Visible = true;
+                grid.DataColumns["SR_FEEDBACK"].Visible = true;
+                grid.DataColumns["SR_OrganizedFor"].Visible = true;
+                grid.DataColumns["SR_PRogCoordinator1"].Visible = true;
+                grid.DataColumns["SR_PRogCoordinator2"].Visible = true;
+                grid.DataColumns["SR_ParticipantCategory"].Visible = true;
+                grid.DataColumns["SR_ParticipantSubCategory"].Visible = true;
+                grid.DataColumns["SR_ProgramType"].Visible = true;
+                grid.DataColumns["SR_LocationType"].Visible = true;
+                //grid.DataColumns["Project_ID"].Visible = true;
+                grid.DataColumns["SR_SENIOR_CITIZEN_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_WOMEN_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_FEMALE_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_MALE_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_YOUTH_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_CHILD_BENEFIT"].Visible = true;
+                grid.DataColumns["VenueTypes"].Visible = true;
+
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Action_Status"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+
+            }
+
+        };
+
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView grid = s as MVCxGridView;
+            if (ViewData["RowKeyToFocus"] != null && ViewData["RowKeyToFocus"].ToString().Length > 0)
+            {
+                grid.FocusedRowIndex = grid.FindVisibleIndexByKeyValue(ViewData["RowKeyToFocus"]);
+                grid.MakeRowVisible(ViewData["RowKeyToFocus"]);
+                grid.ScrollToVisibleIndexOnClient = grid.FocusedRowIndex;
+            }
+            if (ViewMode == "Compact")
+            {
+                grid.DataColumns["ServiceReport_Compact_Column"].Visible = true;
+                grid.DataColumns["MISC_NAME"].Visible = false;
+                grid.DataColumns["SR_PROG_NAME"].Visible = false;
+                grid.DataColumns["SR_PROG_VENUE"].Visible = false;
+                grid.DataColumns["SR_From_Date"].Visible = false;
+                grid.DataColumns["SR_To_Date"].Visible = false;
+                grid.DataColumns["SR_DATE"].Visible = false;
+                grid.DataColumns["SR_PERIOD"].Visible = false;
+                grid.DataColumns["SR_TIME"].Visible = false;
+                grid.DataColumns["SR_TIME_PER"].Visible = false;
+                grid.DataColumns["SR_BRIEF"].Visible = false;
+                grid.DataColumns["SR_SPEAKER"].Visible = false;
+                grid.DataColumns["SR_SPL"].Visible = false;
+                grid.DataColumns["SR_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_FOLLOW"].Visible = false;
+                grid.DataColumns["SR_FEEDBACK"].Visible = false;
+                grid.DataColumns["SR_OrganizedFor"].Visible = false;
+                grid.DataColumns["SR_PRogCoordinator1"].Visible = false;
+                grid.DataColumns["SR_PRogCoordinator2"].Visible = false;
+                grid.DataColumns["SR_ParticipantCategory"].Visible = false;
+                grid.DataColumns["SR_ParticipantSubCategory"].Visible = false;
+                grid.DataColumns["SR_ProgramType"].Visible = false;
+                grid.DataColumns["SR_LocationType"].Visible = false;
+                //grid.DataColumns["Project_ID"].Visible = false;
+                grid.DataColumns["SR_SENIOR_CITIZEN_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_WOMEN_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_FEMALE_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_MALE_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_YOUTH_BENEFIT"].Visible = false;
+                grid.DataColumns["SR_CHILD_BENEFIT"].Visible = false;
+                grid.DataColumns["VenueTypes"].Visible = false;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Action_Status"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+
+                //settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            }
+            else
+            {
+                grid.DataColumns["ServiceReport_Compact_Column"].Visible = false;
+                grid.DataColumns["MISC_NAME"].Visible = true;
+                grid.DataColumns["SR_PROG_NAME"].Visible = true;
+                grid.DataColumns["SR_PROG_VENUE"].Visible = false;
+                grid.DataColumns["SR_From_Date"].Visible = true;
+                grid.DataColumns["SR_To_Date"].Visible = true;
+                grid.DataColumns["SR_DATE"].Visible = false;
+                grid.DataColumns["SR_PERIOD"].Visible = true;
+                grid.DataColumns["SR_TIME"].Visible = true;
+                grid.DataColumns["SR_TIME_PER"].Visible = true;
+                grid.DataColumns["SR_BRIEF"].Visible = true;
+                grid.DataColumns["SR_SPEAKER"].Visible = true;
+                grid.DataColumns["SR_SPL"].Visible = true;
+                grid.DataColumns["SR_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_FOLLOW"].Visible = true;
+                grid.DataColumns["SR_FEEDBACK"].Visible = true;
+                //grid.DataColumns["Project_ID"].Visible = true;
+                grid.DataColumns["SR_OrganizedFor"].Visible = true;
+                grid.DataColumns["SR_PRogCoordinator1"].Visible = true;
+                grid.DataColumns["SR_PRogCoordinator2"].Visible = true;
+                grid.DataColumns["SR_ParticipantCategory"].Visible = true;
+                grid.DataColumns["SR_ParticipantSubCategory"].Visible = true;
+                grid.DataColumns["SR_ProgramType"].Visible = true;
+                grid.DataColumns["SR_LocationType"].Visible = true;
+                grid.DataColumns["SR_SENIOR_CITIZEN_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_WOMEN_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_FEMALE_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_MALE_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_YOUTH_BENEFIT"].Visible = true;
+                grid.DataColumns["SR_CHILD_BENEFIT"].Visible = true;
+                grid.DataColumns["VenueTypes"].Visible = true;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Action_Status"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+            }
+            foreach (GridViewDataColumn column in grid.DataColumns)
+            {
+                if (ViewMode != "Compact")
+                {
+                    if (ColumnTobeHidden.Contains(column.Index.ToString()))
+                    {
+                        column.Visible = false;
+                    }
+                    if (ColumnTobeShown.Contains(column.Index.ToString()))
+                    {
+                        column.Visible = true;
+                    }
+                }
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            if (gridView != null)
+            {
+                if (ViewData["Layout"] != null)
+                {
+                    gridView.LoadClientLayout(ViewData["Layout"].ToString());
+                }
+            }
+        };
+        settings.AfterPerformCallback = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            if (e.CallbackName == "COLUMNMOVE")
+            {
+                if (e.Args[1] == "-1")
+                {
+                    if (ColumnTobeShown.Count > 0)
+                    {
+                        if (ColumnTobeShown.Contains(e.Args[0]))
+                        {
+                            ColumnTobeShown.Remove(e.Args[0]);
+                        }
+                    }
+                    ColumnTobeHidden.Add(e.Args[0]);
+                }
+                if (Convert.ToInt32(e.Args[1]) > -1)
+                {
+                    if (ColumnTobeHidden.Count > 0)
+                    {
+                        if (ColumnTobeHidden.Contains(e.Args[0]))
+                        {
+                            ColumnTobeHidden.Remove(e.Args[0]);
+                        }
+                    }
+                    ColumnTobeShown.Add(e.Args[0]);
+                }
+            }
+        };
+
+        // Filter and serach
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.Settings.ShowFilterRow = false;
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.SettingsSearchPanel.Visible = false;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        //settings.SettingsContextMenu.RowMenuItemVisibility.Refresh = false;
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var Additem = e.CreateItem("New", "New");
+                Additem.Image.IconID = "actions_new_16x16gray";
+                if (Service_Report_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+                var Edititem = e.CreateItem("Edit", "Edit");
+                Edititem.Image.IconID = "actions_edit_16x16devav";
+                if (Service_Report_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+                var Deleteitem = e.CreateItem("Delete", "Delete");
+                Deleteitem.Image.IconID = "actions_delete_16x16devav";
+                if (Service_Report_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                var Attachment = e.CreateItem("Attachments", "Attachments");
+                Attachment.Image.IconID = "actions_newdoc_16x16devav";
+                //  if(Help_Attachments_AddRight) Attachment.Items.Add("Add Attachment", "Add_Attachment").Image.IconID = "actions_new_16x16gray";
+
+                if (Help_Attachments_ListRight) Attachment.Items.Add("Manage Attachments", "Manage_Attachments").Image.Url = "../../../../Icons/Manage_16x16.png";
+
+                // Attachment.Items.Add("Link Attachment", "Link_Attachment").Image.Url = "../../../../Icons/Link_16x16.png";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Attachment);
+                var PrintViewitem = e.CreateItem("List Preview", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_export_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if (Service_Report_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var Importitem = e.CreateItem("Import", "Import");
+                Importitem.Image.IconID = IconID.SchedulingImportSvg16x16;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Importitem);
+                var Exportitem = e.CreateItem("Export", "Export");
+                Exportitem.Image.IconID = IconID.OutlookinspiredIconExportSvg16x16;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Exportitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert((e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh) + 1), CloseItem);
+            }
+        };
+
+        settings.SettingsPager.Visible = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.AllButton.Visible = true;
+        settings.KeyFieldName = "ID";
+
+        //Export Settings
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "Godly Service Report";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 4;
+        settings.SettingsExport.RightMargin = 2;
+        settings.SettingsExport.BottomMargin = 10;
+        settings.SettingsExport.Landscape = true;
+
+        settings.SettingsExport.BeforeExport = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            gridView.Columns["iIcon"].Visible = false;
+            gridView.Columns["ServiceReport_Compact_Column"].Visible = false;
+        };
+
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "iIcon";
+            column.Name = "iIcon";
+            column.Caption = "";
+            column.MinWidth = 30;
+            column.MaxWidth = 30;
+            column.Width = 30;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.HeaderStyle.CssClass = "hide-header_iIcon";
+            column.SetDataItemTemplateContent(c =>
+            {
+                Int32? iREQ_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REQ_ATTACH_COUNT");
+                Int32? iCOMPLETE_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "COMPLETE_ATTACH_COUNT");
+                Int32? iRESPONDED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "RESPONDED_COUNT");
+                Int32? iREJECTED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REJECTED_COUNT");
+                Int32? iOTHER_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "OTHER_ATTACH_CNT");
+                Int32? iALL_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "ALL_ATTACH_CNT");
+                string iIcon = c.Grid.GetRowValues(c.VisibleIndex, "iIcon") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "iIcon").ToString();
+                string TempID = c.Grid.GetRowValues(c.VisibleIndex, "ID") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "ID").ToString();
+                //TempID = TempID; //Regex.Replace(TempID, "[^0-9A-Za-z-]+", "_");
+                Html.RenderAction("AttachmentIcons", "AuditButton", new { Area = "", ReqAttachCount = iREQ_ATTACH_COUNT, CompleteAttachCount = iCOMPLETE_ATTACH_COUNT, RespondedCount = iRESPONDED_COUNT, RejectedCount = iREJECTED_COUNT, OtherCount = iOTHER_ATTACH_CNT, AllCount = iALL_ATTACH_CNT, SessionGUID = SessionGUID });
+                ViewContext.Writer.Write("<div class='Icon_" + c.Grid.UniqueID + TempID + "'>");
+                Html.RenderAction("VouchingAuditIcons", "AuditButton", new { Area = "", iIcon = iIcon, SessionGUID = SessionGUID });
+                ViewContext.Writer.Write("</div>");
+                Html.RenderAction("AuditIconAfterClick", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+                column.AdaptivePriority = 0;
+            });
+        });
+
+        settings.Columns.Add(column =>
+        {
+            column.Name = "ServiceReport_Compact_Column";
+            column.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.SetDataItemTemplateContent(c =>
+            {
+                var KeyValue = Convert.ToString(c.KeyValue); //!= null ? Regex.Replace((string)c.KeyValue, "[^0-9A-Za-z]+", "_") : "Null"
+                ViewContext.Writer.Write(
+                    "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Project Name:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|MISC_NAME' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "MISC_NAME") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Prog Name:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_PROG_NAME' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_PROG_NAME") + "</div></div></div></div></div></div>");
+
+
+                ViewContext.Writer.Write(
+                      "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Date:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_DATE' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_DATE") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Period:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_PERIOD' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_PERIOD") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                       "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Timing:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_TIME' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_TIME") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Timing(Per Day):</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_TIME_PER' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_TIME_PER") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                      "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Brief:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_BRIEF' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_BRIEF") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Speaker:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_SPEAKER' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_SPEAKER") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                      "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Moments:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_SPL' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_SPL") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Beneficiaries:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_BENEFIT' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_BENEFIT") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='row'>" +
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Follow Up:</label></div>" +
+                    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_FOLLOW' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_FOLLOW") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Feedback:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_FEEDBACK' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_FEEDBACK") + "</div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+              "<div class='row'>" +
+          "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+          "<div class='form-field'>" +
+          "<div class='container-fluid'>" +
+          "<div class='row'>" +
+          "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+          "<label class='control-label'>Organized For:</label></div>" +
+          "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_OrganizedFor' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+          DataBinder.Eval(c.DataItem, "SR_OrganizedFor") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Location Type:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_LocationType' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_LocationType") + "</div></div></div></div></div></div>");
+
+
+                ViewContext.Writer.Write(
+    "<div class='row'>" +
+    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+    "<div class='form-field'>" +
+    "<div class='container-fluid'>" +
+    "<div class='row'>" +
+    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+    "<label class='control-label'>Coordinator 1:</label></div>" +
+    "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_PRogCoordinator1' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+    DataBinder.Eval(c.DataItem, "SR_PRogCoordinator1") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Coordinator 2:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_PRogCoordinator2' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_PRogCoordinator2") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+"<div class='row'>" +
+"<div class='col-sm-12 col-md-6 col-lg-6'>" +
+"<div class='form-field'>" +
+"<div class='container-fluid'>" +
+"<div class='row'>" +
+"<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+"<label class='control-label'>Participant Category:</label></div>" +
+"<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_ParticipantCategory' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+DataBinder.Eval(c.DataItem, "SR_ParticipantCategory") + "</div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+
+                    "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                    "<div class='form-field'>" +
+                    "<div class='container-fluid'>" +
+                    "<div class='row'>" +
+                    "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                    "<label class='control-label'>Participant Sub Category:</label></div>" +
+                    "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_ParticipantSubCategory' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                    DataBinder.Eval(c.DataItem, "SR_ParticipantSubCategory") + "</div></div></div></div></div></div>");
+                ViewContext.Writer.Write(
+"<div class='row'>" +
+"<div class='col-sm-12 col-md-6 col-lg-6'>" +
+"<div class='form-field'>" +
+"<div class='container-fluid'>" +
+"<div class='row'>" +
+"<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+"<label class='control-label'>Additional Program Type:</label></div>" +
+"<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + KeyValue + "|SR_ProgramType' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+DataBinder.Eval(c.DataItem, "SR_ProgramType") + "</div></div></div></div></div>");
+            });
+        });
+
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+        }
+
+
+
+        settings.PreRender = (sender, e) => //Layout reload which already saved.
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            if (gridView != null)
+            {
+                if (Layout != null)
+                {
+                    gridView.LoadClientLayout(Layout.ToString());
+                }
+            }
+        };
+        settings.KeyFieldName = "ID";
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "ReportLink";
+            column.Caption = "Report Link";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 80;
+            column.PropertiesEdit.EncodeHtml = false;
+            //column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "MISC_NAME";
+            column.Caption = "Project Name";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 80;
+            //column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_PROG_NAME";
+            column.Caption = "Programme Name";
+            column.Visible = true;
+            column.MinWidth = 400;
+            column.ExportWidth = 100;
+            //column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_PROG_VENUE";
+            column.Caption = "Prog. Venue";
+            column.Visible = false;
+            column.MinWidth = 130;
+            column.ExportWidth = 120;
+            //column.SortAscending();
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_From_Date";
+            column.Caption = "From Date";
+            column.Visible = true;
+            column.MinWidth = 90;
+            column.ExportWidth = 80;
+            column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_To_Date";
+            column.Caption = "To Date";
+            column.Visible = true;
+            column.MinWidth = 90;
+            column.ExportWidth = 80;
+            column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_DATE";
+            column.Caption = "Date";
+            column.Visible = false;
+            column.MinWidth = 180;
+            column.ExportWidth = 80;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_PERIOD";
+            column.Caption = "Period (days)";
+            column.Visible = true;
+            column.MinWidth = 130;
+            column.PropertiesEdit.DisplayFormatString = "#0";
+            column.ExportWidth = 50;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_TIME";
+            column.Caption = "Timing";
+            column.Visible = true;
+            column.MinWidth = 140;
+            column.ExportWidth = 70;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_TIME_PER";
+            column.Caption = "Timing (Per Day)";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 70;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_BRIEF";
+            column.Caption = "Programme Brief";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 120;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_SPEAKER";
+            column.Caption = "Voice Of Speaker";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 70;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_SPL";
+            column.Caption = "Special Moments";
+            column.Visible = true;
+            column.MinWidth = 150;
+            column.ExportWidth = 120;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_BENEFIT";
+            column.Caption = "Beneficiaries";
+            column.Visible = true;
+            column.MinWidth = 100;
+            column.PropertiesEdit.DisplayFormatString = "#0";
+            column.ExportWidth = 75;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_FOLLOW";
+            column.Caption = "Follow Up";
+            column.Visible = true;
+            column.MinWidth = 100;
+            column.ExportWidth = 100;
+        });
+
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_OrganizedFor";
+            column.Caption = "Organized For";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_PRogCoordinator1";
+            column.Caption = "Coordinator 1";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_PRogCoordinator2";
+            column.Caption = "Coordinator 2";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_ParticipantCategory";
+            column.Caption = "Participant Category";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_ParticipantSubCategory";
+            column.Caption = "Participant Sub Category";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_ProgramType";
+            column.Caption = "Addl Program Type";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_LocationType";
+            column.Caption = "Location Type";
+            column.Visible = true;
+            column.MinWidth = 120;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_FEEDBACK";
+            column.Caption = "Programme Feedback";
+            column.Visible = false;
+            column.MinWidth = 150;
+            column.ExportWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Add_By";
+            column.Caption = "Add By";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Add_Date";
+            column.Caption = "Add Date";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Edit_By";
+            column.Caption = "Edit By";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Edit_Date";
+            column.Caption = "Edit Date";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Action_Status";
+            column.Caption = "Action Status";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Action_By";
+            column.Caption = "Action By";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "Action_Date";
+            column.Caption = "Action Date";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "ID";
+            column.Caption = "ID";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_NewsLink";
+            column.Caption = "News Link";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_Prog_Category";
+            column.Caption = "Type";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "SR_VVIP_Testimonial";
+            column.Caption = "VVIP Testimonial";
+            column.Visible = false;
+            column.MinWidth = 100;
+        });
+
+
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REJECTED_COUNT",
+            Caption = "iREJECTED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "RESPONDED_COUNT",
+            Caption = "iRESPONDED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "COMPLETE_ATTACH_COUNT",
+            Caption = "iCOMPLETE_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REQ_ATTACH_COUNT",
+            Caption = "iREQ_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "OTHER_ATTACH_CNT",
+            Caption = "OTHER_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ALL_ATTACH_CNT",
+            Caption = "ALL_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "VenueTypes",
+            Caption = "Venue Types",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_CHILD_BENEFIT",
+            Caption = "Children Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_YOUTH_BENEFIT",
+            Caption = "Youth Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_MALE_BENEFIT",
+            Caption = "Male Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_FEMALE_BENEFIT",
+            Caption = "Female Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_WOMEN_BENEFIT",
+            Caption = "Women Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "SR_SENIOR_CITIZEN_BENEFIT",
+            Caption = "Sr Citizen Beneficiaries",
+            Visible = true,
+            MinWidth = 125
+        });
+
+        settings.ClientSideEvents.Init = "ServiceReportOnInit";
+        settings.ClientSideEvents.BeginCallback = "ServiceReportListGrid_BeginCallback";
+        settings.ClientSideEvents.EndCallback = "OnGridServiceReportListGrid_EndCallback";
+        settings.ClientSideEvents.ContextMenuItemClick = "ServiceReportContextMenuFunction";
+        settings.ClientSideEvents.FocusedRowChanged = "OnServiceReportGridFocusedRowChanged";
+        settings.ClientSideEvents.DetailRowCollapsing = "ServiceReportGrid_DetailRowCollapsing";
+        settings.ClientSideEvents.DetailRowExpanding = "ServiceReportGrid_DetailRowExpanding";
+        if (VouchingMode == false) { settings.ClientSideEvents.RowDblClick = "ServiceReportdblclickEdit"; }
+
+        settings.SettingsPopup.CustomizationWindow.VerticalAlign = PopupVerticalAlign.WindowCenter;
+        settings.SettingsPopup.CustomizationWindow.HorizontalAlign = PopupHorizontalAlign.WindowCenter;
+        MyExtensions.GridViewHelper.Custom_HeaderFilterFillItems_All(settings);
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

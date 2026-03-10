@@ -1,0 +1,163 @@
+﻿<div class="VoucherWIPRefType_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+
+@model ConnectOneMVC.Areas.Account.Models.Frm_Reference_Type_Model
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    bool From_DNK = (bool)ViewBag.FromDNK;
+}
+
+
+<div id="WIPReferenceType_ParentDiv">
+    <div class="full-width-header-bg2">
+        <div class="row">
+            <div class="col-sm-8 pll">
+                <h3 class="popuphead pll10"><i class="far fa-edit"></i>Select Type</h3>
+            </div>
+        </div>
+    </div><!--[Header]-->
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-field">
+                <div class="container-fluid">
+                    @(Html.DevExtreme().RadioGroup() .ID("ReferenceRadioGroup") .DisplayExpr("text") .ValueExpr("value") .OnValueChanged("WIPradioGroup_valueChange") .DataSource(new object[] { new { text = "1. Add Value to a Existing WIP Reference", value = "Existing Reference" }, new { text = "2. Create a New WIP Reference", value = "New Reference" } }) )
+                </div>
+            </div>
+        </div>
+    </div><!--[Radio Group]-->
+    <div>
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="styleActionBtn">
+                    @(Html.DevExtreme().Button().CustomSaveButton().ID("ReferenceTypeSubmit").Text("Ok").OnClick(@<text> function () { OnReferenceTypeOkClick() } </text>) )
+                    @(Html.DevExtreme().Button().CustomCloseButton().ID("ReferenceTypeCancel").Text("Cancel").OnClick("WIPRefTypeClose") )
+                </div>
+            </div>
+        </div><!--[Buttons]-->
+    </div>
+    </div>
+
+
+
+@*@(Html.DevExtreme().Popup().CustomPopup().ID("Frm_References_Popup").OnShowing("PopupOnShowing").CloseOnOutsideClick(false).ShowTitle(true).Title("New ...").ContentTemplate(@<text> <div id="result_Frm_References_Popup"> </div> </text>) )*@
+<script>
+    var RefType_WIP;
+    function WIPRefTypeClose(e)
+    {
+        if ("@From_DNK" == "True") {
+            $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+        }
+        else
+        {
+            $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+        }
+    }
+    $(document).ready(function ()
+    {
+        ShowLoader();
+        if ("@Model.RefType" == "NEW")
+        {
+            $("#ReferenceRadioGroup").dxRadioGroup("instance").option("value", "New Reference");
+        }
+        else
+        {
+            $("#ReferenceRadioGroup").dxRadioGroup("instance").option("value", "Existing Reference");
+        }
+        HideLoader();
+    });
+    function WIPradioGroup_valueChange(e)
+    {
+        RefType_WIP = e.value;
+    }
+ </script>
+<script>
+
+    function OnReferenceTypeOkClick()
+    {
+        if (RefType_WIP == "Existing Reference")
+        {
+            ExistingReference_WIP();
+        }
+        else
+        {
+            NewReference_WIP();
+        }
+    }
+
+    function ExistingReference_WIP()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Account/ProfilePaymentVoucher/Frm_Existing_References",
+            cache: false,
+            data:
+            {
+                Led_ID: "@From_DNK" == "True" ? $("#iLed_ID_DNK_Itm").val() : $("#iLed_ID").val(),
+                Txn_M_ID: "@From_DNK" == "True" ? $("#iTxnM_ID_DNK_Itm").val() : $("#iTxnM_ID").val(),
+                Ref_Rec_ID: "@From_DNK" == "True" ? $("#Ref_RecID_DNK_Itm").val() : $("#Ref_RecID").val(),
+                FromDNK: "@From_DNK" == "True" ? true : false
+            },
+            success: function (data)
+            {
+                HideLoader();
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Alert');
+                    if ("@From_DNK" == "True")
+                    {
+                        $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+                    }
+                    else
+                    {
+                        $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                    }
+                }
+                else
+                {
+                    OpenPopup("Frm_References_Popup", "Select Reference...", null, "auto", 700, true, data);
+                }
+            }
+        });
+    }
+
+    function NewReference_WIP()
+    {
+        ShowLoader();
+        $.ajax({
+            type: 'Get',
+            url: "/Account/ProfilePaymentVoucher/Frm_WIP_Window",
+            data:
+            {
+                LedID: "@From_DNK" == "True" ? $("#iLed_ID_DNK_Itm").val() : $("#iLed_ID").val(),
+                Amount: "@From_DNK" == "True" ? $("#Txt_Amount_DNK_Itm").dxNumberBox("instance").option("value") : $("#Txt_Amt").dxNumberBox("instance").option("value"),
+                Tag: "@From_DNK" == "True" ? $("#ActionMethod_DNK_Itm").val() : $("#TempActionMethod").val(),
+                Reference: "@From_DNK" == "True" ? $("#iReference_DNK_Itm").val() : $("#iReference").val(),
+                xID: "@From_DNK" == "True" ? $("#iTxnM_ID_DNK_Itm").val() : $("#iTxnM_ID").val(),
+                iTxnM_ID: "@From_DNK" == "True" ? $("#iTxnM_ID_DNK_Itm").val() : $("#iTxnM_ID").val(),
+
+                iRefType: "@From_DNK" == "True" ? $("#iRefType_DNK_Itm").val() : $("#iRefType").val(),
+                iSpecific_ItemID: "@From_DNK" == "True" ? $("#iSpecific_ItemID_DNK_Itm").val() : $("#iSpecific_ItemID").val(),
+                RefRecID: "@From_DNK" == "True" ? $("#Ref_RecID_DNK_Itm").val() : $("#Ref_RecID").val(),
+                FromDNK: "@From_DNK" == "True" ? true : false,
+            },
+            cache: false,
+            success:
+                function (data)
+                {
+                    HideLoader();
+                    OpenPopup("Frm_References_Popup", "Reference...", null, "auto", 650, true, data);
+                    if ("@From_DNK" == "True")
+                    {
+                        $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+                    }
+                    else
+                    {
+                        $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                    }
+                }
+        });
+    }
+</script>
+    </div>

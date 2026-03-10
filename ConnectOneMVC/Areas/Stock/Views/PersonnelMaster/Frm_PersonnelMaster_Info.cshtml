@@ -1,0 +1,685 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+}
+
+@{
+    bool Personnel_ListRights = (bool)ViewData["Personnel_ListRight"];
+    bool Personnel_Add_Rights = (bool)ViewData["Personnel_AddRight"];
+    bool Personnel_Update_Rights = (bool)ViewData["Personnel_UpdateRight"];
+    bool Personnel_View_Rights = (bool)ViewData["Personnel_ViewRight"];
+    bool Personnel_Delete_Rights = (bool)ViewData["Personnel_DeleteRight"];
+    bool Personnel_Export_Rights = (bool)ViewData["Personnel_ExportRight"];
+    bool Personnel_Report_Rights = (bool)ViewData["Personnel_ReportRight"];  
+    bool Personnel_AddDeptRights = (bool)ViewData["Personnel_AddDeptRight"];
+}
+<style>
+    #PersonnelMaster_Choose_New {
+        padding: 20px 50px;
+    }
+
+        #PersonnelMaster_Choose_New .dx-item-content {
+            margin: 8px 0;
+        }
+
+    /*.dx-toolbar-label {
+        max-width: none !important;
+    }*/
+
+</style>
+
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Personnel Master</label>
+    </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("Personnel_MasterNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<Text> function () { PersonnelMaster_NEW(); } </Text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text> function () { PersonnelMaster_NEVD("Edit"); } </text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { PersonnelMaster_NEVD("Delete"); } </text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () { PersonnelMaster_NEVD("View"); } </text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterListPreview").Text("List Export").Icon("save")/*.Width(105)*/.OnClick(@<text> function () { Personnel_MasterListPreviewClick(); } </text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterToggleScrollBar").Text("Full Data")/*.Width(90)*/.Icon("toolbox").OnClick(@<text> function () { Personnel_MasterchangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("btnpersonnnelExpandAll").Text("Expand All").Icon("preferences").OnClick(@<text> function () { PersonnelMasterExpandAll(); } </text>))
+        @(Html.DevExtreme().Button().ID("Personnel_MasterCLOSE").Text("Close").Icon("clear").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+    </div><!--[Buttons]-->
+</div><!--[Header]-->
+<div class="col-md-12 no-padding">
+    <form>
+        <div id="Personnel_MasterreloadPartialView" class="parent_table">
+            @Html.Partial("Frm_PersonnelMaster_Info_Grid",Model)
+        </div>
+    </form>
+</div><!--[Grid]-->
+<div class="footer-MainBoxdiv full-width-footer">
+    @*<div class="list_footer_left_margin col-md-9">
+            <div>
+                <div>
+                    <div style="float:left;margin-top:5px">
+                        @(Html.DevExtreme().Button().ID("btnpersonnnelExpandAll").ElementAttr("style", "padding-right:0px;margin-right:5px;").Icon("preferences").Hint("Expand/Collapse All").OnClick(@<text> function () { PersonnelMasterExpandAll(); } </text>))
+                    </div>
+                </div>
+            </div>
+        </div>*@
+    <!--[Expand Nested Grid Button]-->
+    <div class="list_footer_left_margin col-md-10">
+        <div class="list_footer_left_margin">
+            <p id="Personnel_Master_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="Personnel_Master_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div>
+</div><!--[Grid Footer]-->
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("Personnel_Choose_New").Title("Select").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="PersonnelMaster_Choose_New"> </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("Personnel_Master_report_modal").Title("Personnel_Master Preview").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id='Personnel_Master_modal_result' class="export_popup"> </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("Personnel_Button_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true))
+<script type="text/javascript">
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PersonnelMaster/SessionClear",
+            cache: false
+        });
+        DeleteCookie("PerMasterCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PersonnelMaster/InfoSessionclear",
+            cache: false
+        });
+    });
+function PersonnelMaster_NEVD(actionmethod)
+{
+    if (actionmethod == "Edit")
+    {
+        if (Personnelgrid == "personnel")
+        {
+            NEVD_PersonnelMaster("Edit");
+        }
+        else
+        {
+            NEVD_PersonnelCharges("Edit");
+        }
+    }
+    if (actionmethod == "View") {
+        if (Personnelgrid == "personnel") {
+            NEVD_PersonnelMaster("View");
+        }
+        else {
+            NEVD_PersonnelCharges("View");
+        }
+    }
+    if (actionmethod == "Delete") {
+        if (Personnelgrid == "personnel") {
+            NEVD_PersonnelMaster("Delete");
+        }
+        else {
+            NEVD_PersonnelCharges("Delete");
+        }
+    }
+}
+    function NEVD_PersonnelMaster(actionMethod)
+    {
+        if (actionMethod == "Edit" && "@Personnel_Update_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "Delete" && "@Personnel_Delete_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "View" && "@Personnel_View_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "New" && "@Personnel_Add_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "Edit" || actionMethod == "Delete" || actionMethod == "View")
+        {
+            if (PersonnelID == 'undefined' || PersonnelID == undefined || PersonnelID == "" || PersonnelID == 0)
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+        }
+        else
+        {
+            PersonnelID = 0;
+        }
+        ShowLoader();
+        if (actionMethod == "Delete" || actionMethod == "Edit")
+        {
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Stock/PersonnelMaster/Get_StockPersonnel_Usage_Count",
+                data:
+                {
+                    id: PersonnelID,
+                },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == true)
+                    {
+                        Personnelusagecountcheck = true;
+                    }    
+                    else
+                    {
+                        Personnelusagecountcheck = false;
+                    }
+                }
+            });
+        }
+        var _ButtonID = actionMethod == "New" ? "Personnel_MasterNew" : actionMethod == "Edit" ? "Personnel_MasterEdit" : actionMethod == "View" ? "Personnel_MasterView" : "Personnel_MasterDelete";
+    if (actionMethod != "Delete" || (actionMethod == "Delete" && Personnelusagecountcheck == true))
+    {
+        ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/PersonnelMaster/Frm_PersonnelMaster_Window",
+                    data:
+                    {
+                        ActionMethod: actionMethod,
+                        ID: PersonnelID,
+                        ButtonID:_ButtonID
+                    },
+                    cache: false,
+
+                    success: function (data)
+                    {
+                        ShowLoader();
+                        OpenDynamicPopup(actionMethod + " ~ Personnel Master", null, "auto", 1150, true, data);    //Mantis bug 0001111 resolved
+                        HideLoader();
+                    }
+                });
+    }
+    else
+    {
+        DevExpress.ui.dialog.alert('Personnel Referred In Job/UO/RR/PO/TO/Production/Dept Master/User Master/Attendance Register Cannot Be Deleted..!!', 'Information');
+        HideLoader();//Mantis bug 0001049 fixed
+    }
+}
+function NEVD_PersonnelCharges(actionMethod)
+{
+        if (actionMethod == "Edit" && "@Personnel_Update_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "Delete" && "@Personnel_Delete_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "View" && "@Personnel_View_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "New" && "@Personnel_Add_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+    if (actionMethod == "New") {
+        if (!PersonnelID) {
+            DevExpress.ui.dialog.alert('Please Select One Personnel Name', 'Alert ');
+            return;
+        }
+        else {
+            PersonnelRatesID = 0;
+        }
+        if (Personnelleavingdate) {
+            DevExpress.ui.dialog.alert("Charges Cannot Be Added For " + personnelname + ". Personnel Left On " + Personnelleavingdate.toString().substring(0, 10) + "...!", 'Information');
+            return;
+        }
+    }
+ 
+        if (actionMethod == "Edit" || actionMethod == "Delete" || actionMethod == "View") {
+            if (!PersonnelRatesID) {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+    }
+    var _ButtonID = actionMethod == "New" ? "Personnel_MasterNew" : actionMethod == "Edit" ? "Personnel_MasterEdit" : actionMethod == "View" ? "Personnel_MasterView" : "Personnel_MasterDelete";
+            ShowLoader();
+
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/PersonnelMaster/Frm_PersonnelRates_Window",
+                async: false,
+                data: {
+                    ActionMethod: actionMethod,
+                    personnelid: PersonnelID,
+                    ChargesID: PersonnelRatesID,
+                    name: personnelname,
+                    ButtonID:_ButtonID
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenDynamicPopup(actionMethod + " ~ Personnel Charges", null, "auto", 1150, true, data);   //Mantis bug 0001038 resolved
+
+                }
+
+            });
+            HideLoader();
+        }
+function Personnel_MasterAjaxSuccessForm(data) {
+HideLoader();
+dontaskpopupcloseconfirmation = true;
+if (data.result == false) {
+    DevExpress.ui.dialog.alert(data.Message, "Error");
+}
+else {
+    DevExpress.ui.dialog.alert(data.Message, "Success");
+    $("#Dynamic_Content_popup").dxPopup("hide");
+    Personnel_MasterListGrid.SetFocusedRowIndex(-1);
+    Personnel_MasterListGrid.Refresh();
+}
+}
+function PersonnelMasterChargeAjaxSuccessForm(data) {
+HideLoader();
+dontaskpopupcloseconfirmation = true;
+    if (data.result == false) {
+        DevExpress.ui.dialog.alert(data.Message, "Error");
+    }
+    else {
+        DevExpress.ui.dialog.alert(data.Message, "Success");
+   
+        var disid = "PersonnelCharges" + PersonnelID;
+        Personnel_MasterListGrid.SetFocusedRowIndex(-1);
+        Personnel_MasterListGrid.Refresh();
+        if ((ASPxClientControl.GetControlCollection().GetByName(disid))) {
+            (ASPxClientControl.GetControlCollection().GetByName(disid)).SetFocusedRowIndex(-1);
+        }
+        $("#Dynamic_Content_popup").dxPopup("hide");
+    }
+    }
+function PersonnelMasterLeftAjaxSuccessForm(data) {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.Message, "Success");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            Personnel_MasterListGrid.SetFocusedRowIndex(-1);
+            Personnel_MasterListGrid.Refresh();
+        }
+    }
+function PersonnelMaster_NEW()
+{
+    if ("@Personnel_Add_Rights" == "True")
+    {
+        $("#Personnel_Choose_New").dxPopup("show");
+        $("#Personnel_Choose_New").dxPopup("instance").option("title", "Select");
+        $("#Personnel_Choose_New").html('');
+        ShowLoader();
+        $("#PersonnelMaster_Choose_New").load("@Url.Action("Frm_Choose_New", "PersonnelMaster", new { @area = "stock" })", function () {
+            HideLoader();
+        });
+    }
+    else
+    {
+        DevExpress.ui.dialog.alert("Not Allowed!!", "NO Rights");
+    }
+}// Choose New
+    function Personnel_MasterListPreviewClick()
+    {
+        if ("@Personnel_Export_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        ShowLoader();
+        OpenPopup("Personnel_Master_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "PersonnelMaster", new { @area = "stock" })", "auto", "20%", false, null);
+    }// List Preview
+function Personnel_reopen()
+{
+    if ("@Personnel_Update_Rights" == "True")
+    {
+        if (PersonnelID == 'undefined' || PersonnelID == undefined || PersonnelID == "" || PersonnelID == 0)
+        {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+            return;
+        }
+        if (Personnelleavingdate)
+        {
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Stock/PersonnelMaster/Frm_Personnel_Reopen",
+                data:
+                {
+                    personnelid: PersonnelID,
+                    name: personnelname
+                },
+                cache: false,
+                success: function (data)
+                {
+                    DevExpress.ui.dialog.alert(data.Message, "Information");
+                }
+            });
+            Personnel_MasterListGrid.SetFocusedRowIndex(-1);
+            Personnel_MasterListGrid.Refresh();
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert(personnelname + " Is Already Open", "Information");
+        }
+    }
+    else
+    {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "NO Rights");
+    }
+}
+function Personnel_personnelleft()
+{
+if ("@Personnel_Update_Rights" == "True")
+{
+    if (PersonnelID == 'undefined' || PersonnelID == undefined || PersonnelID == "" || PersonnelID == 0)
+    {
+        DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+        return;
+    }
+    if (!Personnelleavingdate)
+    {
+        ShowLoader();
+
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PersonnelMaster/Frm_PersonnelMasterLeft_Window",
+            async: false,
+            data: {
+                personnelid: PersonnelID,
+                name: personnelname,
+                joiningdate: personneljoiningdate
+            },
+            cache: false,
+            success: function (data) {
+                OpenDynamicPopup("Personnel Master", null, "auto", "45%", true, data);
+
+            }
+        });
+        HideLoader();
+    }
+    else {
+        DevExpress.ui.dialog.alert(personnelname + " Already Left On " + Personnelleavingdate.toString().substring(0,10), "Information");
+    }
+
+        }                        else {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "NO Rights");
+            }
+        }
+function Personnel_postattendance() {
+DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+}
+function Personnel_showjobwiseworking() {
+DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+}
+function Personnel_MasterContextMenuFunction(s, e) {
+        //if (PersonnelID == 'undefined' || PersonnelID == undefined || PersonnelID == "" || PersonnelID == 0) {
+        //    DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+        //    return;
+        //}
+if (e.item.name == 'New') {
+    PersonnelMaster_NEW();
+}
+if (e.item.name == 'Close') {
+    btnCloseActiveTab();
+}
+else if (e.item.name == 'Edit') {
+    PersonnelMaster_NEVD("Edit");
+}
+else if (e.item.name == 'Delete') {
+    PersonnelMaster_NEVD("Delete");
+}
+else if (e.item.name == 'View') {
+    PersonnelMaster_NEVD("View");
+}
+else if (e.item.name == 'ListPreview') {
+    Personnel_MasterListPreviewClick();
+}
+else if (e.item.name == 'Refresh') {
+    Personnel_MasterListGrid.Refresh();
+}
+else if (e.item.name == 'PersonnelLeft') {
+    Personnel_personnelleft();
+}
+else if (e.item.name == 'Reopen') {
+    Personnel_reopen();
+}
+else if (e.item.name == 'ShowJobWiseWorking') {
+    Personnel_showjobwiseworking();
+}
+else if (e.item.name == 'PostAttendance') {
+    Personnel_postattendance();
+}
+}
+</script>
+<script type="text/javascript">
+    var PersonnelIsAllDetailExpanded = false;
+    var Personnel_Master_ShowHorizontalBar = 0;
+
+    var Personnelindex;
+    var PersonnelADD_ON;
+    var PersonnelADD_BY;
+    var PersonnelEDIT_ON;
+    var PersonnelEDIT_BY;
+    var PersonnelID;
+    var PersonnelRatesID;
+    var personnelname;
+    var personnelleavingdate;
+    var personneljoiningdate;
+    var Personnelgrid;
+    var Personnelfootercheck;
+    var Personnelusagecountcheck;
+    var isPersonnelMasterGridRefresh = false;
+
+    $(document).ready(function ()
+    {
+        $("#Personnel_MasterListGrid").hover(function ()
+        {
+            $("#Personnel_MasterListGrid").focus();
+        })
+
+    if ("@Personnel_Add_Rights"=="False") { $("#Personnel_MasterNew").hide(); }
+
+    if ("@Personnel_Update_Rights"=="False") { $("#Personnel_MasterEdit").hide(); }
+
+    if ("@Personnel_View_Rights"=="False") { $("#Personnel_MasterView").hide(); }
+
+    if ("@Personnel_Delete_Rights"=="False") { $("#Personnel_MasterDelete").hide(); }
+
+    if ("@Personnel_Export_Rights"=="False") { $("#Personnel_MasterListPreview").hide();}    
+});
+function Personnelnestedgridinit(s, e) {
+s.SetFocusedRowIndex(-1);
+}
+function Personnel_MasterOnInit(s, e) {
+    Personnel_MasterAdjustSize();
+    ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+        Personnel_MasterAdjustSize();
+
+    });
+    s.SetFocusedRowIndex(-1);
+}
+function PersonnelMasterExpandAll() {
+    if (!PersonnelIsAllDetailExpanded)
+    {
+        Personnel_MasterListGrid.ExpandAllDetailRows();
+        PersonnelIsAllDetailExpanded = true;
+        $("#btnpersonnnelExpandAll").find("span").text("Collapse All");
+    }
+    else
+    {
+        Personnel_MasterListGrid.CollapseAllDetailRows();
+        PersonnelIsAllDetailExpanded = false;
+        $("#btnpersonnnelExpandAll").find("span").text("Expand All");
+    }
+}
+function Personnel_MasterGrid_EndCallback(s, e) {
+    Personnel_MasterAdjustSize();
+    SendCustomArgs_FilterControl(s, e);
+}
+function Personnel_MasterGrid_BeginCallBack(s, e) {
+    e.customArgs["command"] = e.command;
+    if (e.command == "REFRESH") {
+        isPersonnelMasterGridRefresh = true;
+    }
+
+    e.customArgs["ShowHorizontalBar"] = Personnel_Master_ShowHorizontalBar;//Mantis bug 0001037 fixed
+}
+function Personnel_MasterAdjustSize()
+    {
+    var height = (document.documentElement.clientHeight * 90) / 100;
+    Personnel_MasterListGrid.SetHeight(height);
+}
+function Personnel_MasterShown() {
+setTimeout(function () {
+$('#Other_Details input').keydown(function (e) {
+//BracketKeyPressEvent(e);
+if (e.key == "[") {
+e.preventDefault();
+$(this).val($(this).val() + "(");
+}
+if (e.key == "]") {
+e.preventDefault();
+$(this).val($(this).val() + ")");
+}
+if (e.key == "'") {
+e.preventDefault();
+$(this).val($(this).val() + "`");
+}
+});
+//$("#Name").dxTextBox('instance').focus();
+}, Timeout500);
+}
+function Personnel_MasterchangeMode()
+    {
+    ShowLoader();
+    if (Personnel_Master_ShowHorizontalBar == 0) {
+        Personnel_Master_ShowHorizontalBar = 1;
+        $("#Personnel_MasterToggleScrollBar").find("span").text("Default Data");
+       // $("#Personnel_MasterToggleScrollBar").width(110);
+    }
+    else {
+        Personnel_Master_ShowHorizontalBar = 0;
+        $("#Personnel_MasterToggleScrollBar").find("span").text("Full Data");
+        // $("#Personnel_MasterToggleScrollBar").width(90);
+    }
+    $.ajax({
+        url: '@Url.Action("Frm_PersonnelMaster_Info_Grid", "PersonnelMaster")',
+        type: "GET",
+        data: { ShowHorizontalBar: Personnel_Master_ShowHorizontalBar },
+        success: function (res) {
+            $("#Personnel_MasterreloadPartialView").html(res);
+        }
+    });
+    HideLoader();
+}// Full Data button click
+function OnPersonnel_MasterGridFocusedRowChanged(s, e) {
+    if (s.GetFocusedRowIndex() == -1)
+    {
+        PersonnelID = 0;
+}
+else {
+    Personnelfootercheck = 1;
+    Personnelgrid = "personnel";
+    PersonnelID = s.GetRowKey(s.GetFocusedRowIndex());
+    s.GetValuesOnCustomCallback({ key: PersonnelID }, Personnel_MasterOnGetRowValues);
+       s.CollapseAllDetailRows();
+}
+}
+function Personnel_MasterOnGetRowValues(Data)
+    {
+var values = Data.split("![");
+PersonnelADD_ON = values[0];
+PersonnelADD_BY = values[1];
+PersonnelEDIT_ON = values[2];
+PersonnelEDIT_BY = values[3];
+personnelname = values[4];
+Personnelleavingdate = values[5];
+personneljoiningdate = values[6];
+if (Personnelfootercheck == 1) {
+Personnel_MasterUpdateFooterDetail(PersonnelADD_ON, PersonnelADD_BY, PersonnelEDIT_ON, PersonnelEDIT_BY);
+}
+}
+function Personnel_MasterUpdateFooterDetail(REC_ADD_ON, REC_ADD_BY, REC_EDIT_ON, REC_EDIT_BY) {
+var Lbl_Create = "";
+var Lbl_Modify = "";
+var Add_Date = "";
+var Add_By = "";
+var Edit_Date = "";
+var Edit_By = "";
+Add_Date = REC_ADD_ON;
+Add_By = REC_ADD_BY;
+if (Add_Date) {
+Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+}
+else {
+Lbl_Create = "Add On: " + "?, By: " + Add_By;
+}
+Edit_Date = REC_EDIT_ON;
+Edit_By = REC_EDIT_BY;
+if (Edit_Date) {
+Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+}
+else {
+Lbl_Modify = "Edit On: " + "?, By: " + Edit_By;
+}
+$('#Personnel_Master_Create').text(Lbl_Create);
+$('#Personnel_Master_Modify').text(Lbl_Modify);
+}
+function OnPersonnel_NestedGridFocusedRowChanged(s, e) {
+    if (s.GetFocusedRowIndex() == -1) {
+        PersonnelRatesID=0
+}
+else {
+Personnelfootercheck = 0;
+Personnel_MasterListGrid.SetFocusedRowIndex(-1);
+Personnelgrid = "charges";
+PersonnelRatesID = s.GetRowKey(s.GetFocusedRowIndex());
+s.GetValuesOnCustomCallback({ key: PersonnelRatesID }, Personnel_ChargesOnGetRowValues);
+
+
+}
+}
+function Personnel_ChargesOnGetRowValues(Data) {
+
+var values = Data.split("![");
+PersonnelADD_ON = values[0];
+PersonnelADD_BY = values[1];
+PersonnelEDIT_ON = values[2];
+PersonnelEDIT_BY = values[3];
+PersonnelID = values[4];
+Personnel_MasterUpdateFooterDetail(PersonnelADD_ON, PersonnelADD_BY, PersonnelEDIT_ON, PersonnelEDIT_BY);
+Personnel_MasterListGrid.GetValuesOnCustomCallback({ key: PersonnelID }, Personnel_MasterOnGetRowValues);
+}
+function CollapsePersonnelRow(s, e) {
+s.SetFocusedRowIndex(Personnelindex);
+}
+function ExpandPersonnelRow(s, e) {
+Personnelindex = e.visibleIndex;
+s.SetFocusedRowIndex(-1);
+}
+function Personnel_MasterdblclickEdit(s, e) {
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        Personnel_MasterListGrid.GetValuesOnCustomCallback({ key: key }, Personnel_MasterOnGetRowValues);
+        if (REC_ID != null || REC_ID == 'undefined' || REC_ID == undefined)
+            NEVD_PersonnelMaster("Edit");
+    }
+
+</script>
+
+
+

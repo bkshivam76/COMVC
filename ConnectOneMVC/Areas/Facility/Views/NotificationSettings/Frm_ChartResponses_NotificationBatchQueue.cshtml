@@ -1,0 +1,225 @@
+﻿<div class="ChartNotificationResponsesFacility_ClearReferences table_blue">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string SessionGUID = Request.QueryString["SessionGUID"];
+        int ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        int ChartInstanceId = int.Parse(ViewBag.Chart_Instance_Id != null ? ViewBag.Chart_Instance_Id.ToString() : "0");
+    }
+    <div id="ChartNotificationResponses">
+        <div id="ChartNotificationResponses_content" class="clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">Notification Batches</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Button().ID("ChartResponseNotification_Delete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_ChartResponseNotification("DELETE"); } </text>))
+                @(Html.DevExtreme().Button().ID("ChartResponseNotificationListPreview").Text("List Preview").Icon("save").OnClick("OnChartResponseNotificationListPreviewClick") )
+                @(Html.DevExtreme().Button().ID("ChartResponseNotificationCLOSE").Text("Close").Icon("clear").OnClick("closeChartResponseNotification") )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="ChartNotificationResponses_gridDiv">
+            <form>
+                <div id="ChartNotificationResponsesGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_ChartResponses_NotificationBatchQueue_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ChartNotificationResponses_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="ChartNotificationResponses_Create" class="right_footertext_top"></p>
+                            <p id="ChartNotificationResponses_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var ChartResponsesNotificationBatchQueue_ID = null;
+        var ChartResponsesNotificationBatchQueue_Add_By = null;
+        var ChartResponsesNotificationBatchQueue_Add_Date = null;
+        var ChartResponsesNotificationBatchQueue_Edit_By = null;
+        var ChartResponsesNotificationBatchQueue_Edit_Date = null;
+        
+        var ChartResponsesNotificationBatchQueue_ColumnToBeShownIndex = null;
+        var ChartResponsesNotificationBatchQueue_ColumnToBeHidddenIndex = null;
+        var ChartResponsesNotificationBatchQueue_GridLayout = null;
+        var ChartResponsesNotificationBatchQueue_FocusedRowIndexBeforeRefresh = null;
+        function insertText(e) {
+            var editor = $("#Content_Whatsapp_Notify_ChartResponses").dxHtmlEditor("instance");
+            var caret = editor.getSelection();
+            editor.insertText(caret.index, e.itemData.value);
+        }
+        function DataNavigation_ChartResponseNotification(Action) {                        
+            var selectedRowkey = ChartResponsesNotificationBatchQueueGrid.GetItemKey(ChartResponsesNotificationBatchQueueGrid.GetFocusedRowIndex());
+            if (selectedRowkey == null) {
+                DevExpress.ui.dialog.alert("Please select one row to delete.", "Alert");
+                return;
+            }
+            if (Action == "DELETE") {
+                if (ChartResponsesNotificationBatchQueue_ID == "" || ChartResponsesNotificationBatchQueue_ID == null || ChartResponsesNotificationBatchQueue_ID == 'undefined') {
+                    DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                    return;
+                }
+                result = DevExpress.ui.dialog.confirm('Are You Sure You Want To Delete This Batach...?', "Confirm");
+                result.done(function (dialogResult) {
+                    dontaskpopupcloseconfirmation = dialogResult;
+                    if (dialogResult) {
+                        ShowLoader();
+                        $.ajax({
+                            type: 'POST',
+                            url: "/Facility/NotificationSettings/Delete_ChartResponses_NotificaionBatchQueue",
+                            cache: false,
+                            data:
+                            {
+                                RecId: ChartResponsesNotificationBatchQueue_ID,
+                                Notification_Type: "Whatsapp"
+                            },
+                            success: function (data) {
+                                debugger;
+                                ShowLoader();
+                                if (data.jsonParam.result) {
+                                    //ChartResponsesNotificationBatchQueue_ID = null;
+                                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);                                    
+                                    ChartResponsesNotificationBatchQueueGrid.Refresh();                                    
+                                }
+                                else {
+                                    //ChartResponsesNotificationBatchQueue_ID = null;
+                                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                                }
+
+                                HideLoader();
+                            }
+                        });
+                    }
+                    else {
+
+                    }
+                });
+                
+
+            }
+        }
+        function ChartResponsesNotificationBatchQueueListGrid_BeginCallback(s, e) {
+            ChartResponsesNotificationBatchQueue_FocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["Chart_Instance_Id"] = @ChartInstanceId;
+            //e.customArgs["ShowHorizontalBar"] = ChartResponsesNotificationBatchQueue_ShowHorizontalBar;
+            e.customArgs["ColumnToBeShownIndex"] = ChartResponsesNotificationBatchQueue_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = ChartResponsesNotificationBatchQueue_ColumnToBeHidddenIndex;
+            e.customArgs["RowKeyToFocus"] = ChartResponsesNotificationBatchQueue_ID;
+        }
+        function ChartResponsesNotificationBatchQueueListGrid_EndCallback(s, e) {
+            ChartResponsesNotificationBatchQueue_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            ChartResponsesNotificationBatchQueue_ColumnToBeHidddenIndex = s.cpColumnToBeHiddenIndex;
+            ChartResponsesNotificationBatchQueue_GridLayout = s.cpClientLayout;
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+                if (ChartResponsesNotificationBatchQueue_FocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(ChartResponsesNotificationBatchQueue_FocusedRowIndexBeforeRefresh);
+                }
+            }
+        }
+        function ChartResponsesNotificationBatchQueueContextMenuFunction(s, e) {
+            if (e.item.name == 'Delete') {
+                DataNavigation_ChartResponseNotification("DELETE");
+            }
+            else if (e.item.name == 'Close') {
+                closeChartResponseNotification();
+            }
+        }
+        function ChartResponsesNotificationBatchQueueFocusedRowChanged(s, e) {
+            debugger;
+            var focusIndex = s.GetFocusedRowIndex();
+            if (focusIndex > -1) {
+                ChartResponsesNotificationBatchQueue_ID = s.GetRowKey(focusIndex);
+                Get_ChartResponsesNotificationBatchQueue_Row_Data(focusIndex);
+            }
+            else {
+                ChartResponsesNotificationBatchQueue_ID = null;
+            }
+            ChartResponsesNotificationBatchQueue_UpdateFooterDetail(ChartResponsesNotificationBatchQueue_ID, ChartResponsesNotificationBatchQueue_Add_Date, ChartResponsesNotificationBatchQueue_Add_By, ChartResponsesNotificationBatchQueue_Edit_Date, ChartResponsesNotificationBatchQueue_Edit_By);
+        }
+        function Get_ChartResponsesNotificationBatchQueue_Row_Data(RowIndex = null) {
+            var focusedrow = RowIndex == null ? ChartResponsesNotificationBatchQueueGrid.GetFocusedRowIndex() : RowIndex;
+            var topindex = ChartResponsesNotificationBatchQueueGrid.GetTopVisibleIndex();
+            var Index = focusedrow - topindex;
+            ChartResponsesNotificationBatchQueue_PageData = ChartResponsesNotificationBatchQueueGrid.cpPagedata;
+            if (ChartResponsesNotificationBatchQueue_PageData != null && ChartResponsesNotificationBatchQueue_PageData.length > 0 && Index < ChartResponsesNotificationBatchQueue_PageData.length) {
+                ChartResponsesNotificationBatchQueue_ID = ChartResponsesNotificationBatchQueue_PageData[Index][0];
+                ChartResponsesNotificationBatchQueue_Add_By = ChartResponsesNotificationBatchQueue_PageData[Index][1];
+                ChartResponsesNotificationBatchQueue_Add_Date = ChartResponsesNotificationBatchQueue_PageData[Index][2];
+                ChartResponsesNotificationBatchQueue_Edit_By = ChartResponsesNotificationBatchQueue_PageData[Index][3];
+                ChartResponsesNotificationBatchQueue_Edit_Date = ChartResponsesNotificationBatchQueue_PageData[Index][4];
+            }
+        }
+        function ChartResponsesNotificationBatchQueueOnInit(s, e) {
+            ChartResponsesNotificationBatchQueueAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ChartResponsesNotificationBatchQueueAdjustSize();
+            });
+        }
+        function OnChartResponseNotificationListPreviewClick() {
+            ShowLoader();
+            OpenPopup("ChartResponsesNotificationBatchQueueExport_modal", "Export Option", "@Url.Action("Frm_ChartResponseNotificationExport_Options", "NotificationSettings", new { @area = "Facility" })", "auto", 130);
+        }
+        function ChartResponsesNotificationBatchQueue_UpdateFooterDetail(ChartResponsesNotificationBatchQueue_ID, ChartResponsesNotificationBatchQueue_Add_Date, ChartResponsesNotificationBatchQueue_Add_By, ChartResponsesNotificationBatchQueue_Edit_Date, ChartResponsesNotificationBatchQueue_Edit_By) {
+            let Lbl_Create = "";
+            let Lbl_Modify = "";
+            if (ChartResponsesNotificationBatchQueue_ID != null) {
+                ChartResponsesNotificationBatchQueue_Add_Date = (moment(ChartResponsesNotificationBatchQueue_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                ChartResponsesNotificationBatchQueue_Edit_Date = (moment(ChartResponsesNotificationBatchQueue_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                if (ChartResponsesNotificationBatchQueue_Add_Date) {
+                    Lbl_Create = "Add On: " + ChartResponsesNotificationBatchQueue_Add_Date + ", By: " + ChartResponsesNotificationBatchQueue_Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+
+                if (ChartResponsesNotificationBatchQueue_Edit_Date) {
+                    Lbl_Modify = "Edit On: " + ChartResponsesNotificationBatchQueue_Edit_Date + ", By: " + ChartResponsesNotificationBatchQueue_Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#ChartNotificationResponses_Create').text(Lbl_Create);
+            $('#ChartNotificationResponses_Modify').text(Lbl_Modify);
+        }
+        function closeChartResponseNotification() {
+            //ChartResponsesWhatsappQueueNotificationInfoGrid.Refresh()
+            //ChartResponsesEmailQueueNotificationInfoGrid.Refresh()
+            $("#ChartResponsesNotificationBatchQueue_modal").dxPopup("hide");
+        }
+        
+        function ChartResponsesNotificationBatchQueueAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try {
+                ChartResponsesNotificationBatchQueueGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ChartResponsesNotificationBatchQueue_ClearAllReferences() {
+            ChartResponsesNotificationBatchQueue_ID = null;
+            ChartResponsesNotificationBatchQueue_Add_By = null;
+            ChartResponsesNotificationBatchQueue_Add_Date = null;
+            ChartResponsesNotificationBatchQueue_Edit_By = null;
+            ChartResponsesNotificationBatchQueue_Edit_Date = null;
+            //ChartResponsesNotificationBatchQueue_ShowHorizontalBar = null;
+            ChartResponsesNotificationBatchQueue_ColumnToBeShownIndex = null;
+            ChartResponsesNotificationBatchQueue_ColumnToBeHidddenIndex = null;
+            ChartResponsesNotificationBatchQueue_GridLayout = null;
+            ChartResponsesNotificationBatchQueue_FocusedRowIndexBeforeRefresh = null;
+        }
+    </script>
+</div>

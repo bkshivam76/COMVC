@@ -1,0 +1,952 @@
+﻿<div class="ServiceReportFacility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        string UserType = (string)ViewBag.UserType;
+        bool Service_Report_AddRight = (bool)ViewData["Service_Report_AddRight"];
+        bool Service_Report_UpdateRight = (bool)ViewData["Service_Report_UpdateRight"];
+        bool Service_Report_DeleteRight = (bool)ViewData["Service_Report_DeleteRight"];
+        bool Service_Report_ReportRight = (bool)ViewData["Service_Report_ReportRight"];
+        bool Service_Report_ListRight = (bool)ViewData["Service_Report_ListRight"];
+        bool Service_Report_ExportRight = (bool)ViewData["Service_Report_ExportRight"];
+        bool Help_Attachment_AddRight = ViewData["Help_Attachment_AddRight"] == null ? false : (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = ViewData["Help_Attachment_EditRight"] == null ? false : (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = ViewData["Help_Attachment_ViewRight"] == null ? false : (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = ViewData["Help_Attachment_DeleteRight"] == null ? false : (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool ServiceReport_Auto_Vouching_Mode = ViewData["ServiceReport_Auto_Vouching_Mode"] == null ? false : (bool)ViewData["ServiceReport_Auto_Vouching_Mode"];
+    }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <div id="ServiceReport_ParentDiv">
+        <div id="ServiceReport_content" class="report_header_div_main">
+            <div>
+                <div class="report_header_div">
+                    <label class="report_header_label">Godly Service Report</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="report_button_div">
+                        @(Html.DevExtreme().Switch().ID("ServiceReportVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").Width(100).OnValueChanged("ServiceReport_VouchingSwitch_ValueChange").Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR") )
+                        @(Html.DevExtreme().Switch().ID("ServiceReportViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").Width(70).OnValueChanged("ServiceReport_ViewSwitch_ValueChange").Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR") )
+                        @(Html.DevExtreme().Button().ID("GSRServiceReport_QuizResult").Text("Quiz Result").OnClick("onclick_getQuizResult"))
+                        @(Html.DevExtreme().Button().ID("GSRServiceReport_Download").Text("Generate Service Report").OnClick("onclick_generateServiceReport"))
+                        @(Html.DevExtreme().Button().ID("GSRCreateForm").Text("Create Form").Icon("add").OnClick(@<text> function () { DataNavigation_GSR("CREATEFORM"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSRBulkAllotment").Text("Bulk Allotment").OnClick(@<text> function () { DataNavigation_GSR("BULK_ALLOTMENT"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSRNew").Text("New") .Icon("add").OnClick(@<text> function () { DataNavigation_GSR("NEW"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSREdit").Text("Edit").Icon("edit").OnClick(@<text> function () { DataNavigation_GSR("EDIT"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSRDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_GSR("DELETE"); } </text>))
+                        @(Html.DevExtreme().Button().ID("Service_ReportToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick("ServiceReportchangeMode") )
+                        @(Html.DevExtreme().Button().ID("ServiceReportModelListPreview").Text("List Preview").Icon("save").OnClick("OnServiceReportListPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceReportModelCLOSE").Text("Close").Icon("clear").OnClick("closeServiceReport") )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="ServiceReport_gridDiv">
+            <form>
+                <div id="ServiceReportGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Service_Report_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ServiceReport_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="BankLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="SR_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="SR_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SR_Create" class="right_footertext_top"></p>
+                            <p id="SR_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("AttachmentFAB", "ServiceReport_FAB,ServiceReport_gridDiv,Type2,ServiceReportFacility," + UserType) @*fab buttons*@
+
+    <script>
+        var ServiceReport_PageData = null;
+            var SR_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+            var ServiceReport_ID=null;
+            var ServiceReport_Name=null;
+            var ServiceReport_FromDate=null;
+            var ServiceReport_ToDate=null;
+            var ServiceReport_Edit_Date;
+            var ServiceReport_Add_Date;
+            var ServiceReport_Add_By;
+            var ServiceReport_Edit_By;
+            var ServiceReport_Action_Status;
+            var ServiceReport_Action_By;
+            var ServiceReport_Action_Date;
+        var ServiceReport_FORM_INST_ID;
+
+            var ServiceReport_IsVouchingMode = false;
+            var ServiceReport_SetVouchingModeOn = "@ServiceReport_Auto_Vouching_Mode" == "True" ? true : false;
+            var ServiceReport_ViewMode = "Default";
+            var SR_Select_xid = "";
+            var SRFocusedRowIndexBeforeRefresh;
+            var SR_ColumnToBeShownIndex = "";
+            var SR_ColumnToBeHidddenIndex = "";
+            var ServiceReportGridLayout = null;
+            var ServiceReportInfo_IsDetailRowExpanded = false;
+            var ServiceReportInfo_NestedRecord_FocusedRowIndex = -1;
+            var ServiceReportInfo_NestedGrid_AccessID;
+            var ServiceReportInfo_AtachmentID;
+            var ServiceReportInfo_FileName;
+            var ServiceReportInfo_ParamMandatory;
+            var ServiceReportInfo_FromDateLabel;
+            var ServiceReportInfo_ToDateLabel;
+            var ServiceReportInfo_DescriptionLabel;
+            var ServiceReportInfo_Doc_ID;
+            var ServiceReportInfo_Doc_Category;
+            var ServiceReportInfo_MasterRowRecID;
+            var ServiceReportInfo_MasterRowMID;
+            var ServiceReportInfo_NestedRowMapID;
+            var ServiceReportInfo_reason;
+            var ServiceReportInfo_Attachment_RecStatus;
+            var ServiceReportInfo_Nested_Doc_Status;
+            var ServiceReportInfo_NestedRowReasonID;
+            var ServiceReportInfo_NestedRowKeyValue;
+        var ServiceReport_MoreEntry = false;
+    </script>    @*Global Variables*@
+    <script>
+        $(document).ready(function ()
+        {
+            if ("@Service_Report_AddRight"=="False")
+            {
+                $("#GSRNew").hide();
+            }
+            if ("@Service_Report_UpdateRight"=="False")
+            {
+                $("#GSREdit").hide();
+            }
+            if ("@Service_Report_DeleteRight"=="False")
+            {
+                $("#GSRDelete").hide();
+            }
+            if ("@Service_Report_ExportRight"=="False")
+            {
+                $("#ServiceReportModelListPreview").hide();
+            }
+            $(".ServiceReportListGrid_PreviewRow").hide();
+            GetSessionStorage("ServiceReportListGrid");
+            if (ServiceReport_SetVouchingModeOn == true)
+            {
+                $("#ServiceReportViewModeSwitch").dxSwitch("instance").option("value", true);
+            }
+        });
+        function DataNavigation_GSR(Action)
+        {
+            if (Action == "NEW") {
+                if ("@Service_Report_AddRight" == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                }
+                ShowLoader();
+                OpenDynamicPopup("New ~ Godly Service Report", "@Url.Action("Frm_Service_Report_Window", "ServiceReport", new { @area = "Facility" })?ActionMethod=_New", "100%", 1265, false, null);
+                HideLoader();
+            }
+            else if (Action == "EDIT" || Action == "DELETE") {
+                if (!"@Service_Report_UpdateRight" || !"@Service_Report_DeleteRight") {
+                    DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                }
+                if (ServiceReport_ID == "" || ServiceReport_ID == null || ServiceReport_ID == 'undefined') {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Facility/ServiceReport/Frm_Service_Report_Window",
+                    cache: false,
+                    data:
+                    {
+                        ActionMethod: Action == "EDIT" ? "_Edit" : "_Delete",
+                        xID: ServiceReport_ID,
+                        Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(ServiceReport_Edit_Date)
+                    },
+                    success: function (data) {
+                        ShowLoader();
+                        OpenPopup("Dynamic_Content_popup", Action == "EDIT" ? "Edit ~ Godly Service Report" : "Delete ~ Godly Service Report", null, "100%", 1265, true, data);
+                        HideLoader();
+                    }
+                });
+            }
+            else if (Action == "CREATEFORM") {
+                if (ServiceReport_ID == "" || ServiceReport_ID == null || ServiceReport_ID == 'undefined') {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                CreateNewForm("_New", ServiceReport_ID)
+            }
+            else if (Action == "BULK_ALLOTMENT")
+            {
+                if (ServiceReport_ID == "" || ServiceReport_ID == null || ServiceReport_ID == 'undefined') {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                if (ServiceReport_FORM_INST_ID == null || ServiceReport_FORM_INST_ID == 0)
+                {
+                    DevExpress.ui.dialog.alert("Selected Service Report Does Not Have Any Registration Form Created", "Alert");
+                    return;
+                }
+                ShowLoader();
+                BulkAllotment_Accommodation(ServiceReport_FORM_INST_ID, 0, ServiceReport_ID);
+            }
+        }
+        function AfterWindowClose_GSR(ActionMethod = "", xID = "")
+        {
+            if (ActionMethod == "_Delete" || ActionMethod == "Delete")
+            {
+                RefreshGridView("ServiceReportListGrid");
+                return;
+            }
+            if (ActionMethod.includes("New"))
+            {
+                ServiceReport_MoreEntry = true;
+            }
+            SR_Select_xid = xID;
+            RefreshGridView("ServiceReportListGrid");
+        }
+        function OnServiceReportListPreviewClick()
+        {
+            if (!"@Service_Report_ExportRight")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }
+            ShowLoader();
+            OpenPopup("Service_Report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "ServiceReport", new { @area = "Facility" })", "auto",130);
+        }
+        function closeServiceReport()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/ServiceReport/SessionClear",
+                cache: false
+            });
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+            ClearAllReferences_ServiceReport();
+        });
+
+        function ClearAllReferences_ServiceReport()
+        {
+            IsServiceReportSucessPopup = null;
+            IsServiceReportViewPopup = null;
+            IsServiceReportNewPopup = null;
+            SR_ShowHorizontalBar = null;
+            ServiceReport_ID = null;
+            tP_NOField = null;
+            telMiscIdField = null;
+            categoryField = null;
+            Service_Report_typeField = null;
+            ServiceReport_Edit_Date = null;
+            ServiceReport_Add_Date = null;
+            ServiceReport_Add_By = null;
+            ServiceReport_Edit_By = null;
+            ServiceReport_Action_Status = null;
+            ServiceReport_Action_By = null;
+            ServiceReport_Action_Date = null;
+            ServiceReport_AddRight = null;
+            ServiceReport_EditRight = null;
+            ServiceReport_DeleteRight = null;
+            ServiceReport_ExportRight = null;
+            ServiceReport_ListRight = null;
+            UserType_ServiceReportPrf = null;
+            _actionName = null;
+            _IsContextMenu = null;
+            ServiceReport_IsVouchingMode = null;
+            ServiceReport_SetVouchingModeOn = null;
+            ServiceReport_ViewMode = null;
+            SR_ColumnToBeShownIndex = null;
+            SR_ColumnToBeHidddenIndex  = null;
+            ServiceReportGridLayout = null;
+            ServiceReportInfo_IsDetailRowExpanded = null;
+            ServiceReportInfo_NestedRecord_FocusedRowIndex = null;
+            ServiceReportInfo_NestedGrid_AccessID = null;
+            ServiceReportInfo_AtachmentID = null;
+            ServiceReportInfo_FileName = null;
+            ServiceReportInfo_ParamMandatory = null;
+            ServiceReportInfo_FromDateLabel = null;
+            ServiceReportInfo_ToDateLabel = null;
+            ServiceReportInfo_DescriptionLabel = null;
+            ServiceReportInfo_Doc_ID = null;
+            ServiceReportInfo_Doc_Category = null;
+            ServiceReportInfo_MasterRowRecID = null;
+            ServiceReportInfo_MasterRowMID = null;
+            ServiceReportInfo_NestedRowMapID = null;
+            ServiceReportInfo_reason = null;
+            ServiceReportInfo_Attachment_RecStatus = null;
+            ServiceReportInfo_Nested_Doc_Status = null;
+            ServiceReportInfo_NestedRowReasonID = null;
+            ServiceReportInfo_NestedRowKeyValue = null;
+            SR_Select_xid = null;
+            SRFocusedRowIndexBeforeRefresh = null;
+
+            ClearAllReferences("ServiceReportFacility_ClearReferences")
+        }
+
+    </script>
+    <script>
+        function ServiceReport_VouchingSwitch_ValueChange(e) {
+            ShowLoader();
+            ServiceReport_IsVouchingMode = e.value;
+            //ServiceReportListGrid.SetFocusedRowIndex(-1);
+            if (ServiceReport_SetVouchingModeOn == true) {
+                ServiceReport_SetVouchingModeOn = false;
+            }
+            else {
+                ServiceReport_FAB.SetVisible(false);
+            }
+            if (ServiceReport_IsVouchingMode == true) {
+                OpenRightPane();
+                ClearLeftPane();
+                OpenLeftPane();
+            }
+            else {
+                //ServiceReport_FAB.SetActionContext("AddAttachmentContext", false);
+                CloseRightPane();
+                ClearLeftPane();
+                CloseLeftPane();
+            }
+            ServiceReportListGrid_CollapseAllDetailRows();
+        }
+        function ServiceReportListGrid_CollapseAllDetailRows() {
+            ShowLoader();
+            if (typeof window !== 'undefined') {
+                if (typeof window.ServiceReportListGrid !== 'undefined') {
+                    if (typeof window.ServiceReportListGrid.CollapseAllDetailRows !== 'undefined') {
+                        if (typeof ServiceReportListGrid.CollapseAllDetailRows == 'function') {
+                            HideLoader();
+                            ServiceReportListGrid.SetFocusedRowIndex(-1);
+                            ServiceReportListGrid.CollapseAllDetailRows();
+                        }
+                        else {
+                            alert("CollapseAllDetailRows is not a function");
+                        }
+                    }
+                    else {
+                        setTimeout(function () {
+                            ServiceReportListGrid_CollapseAllDetailRows();
+                        }, Timeout100);
+                    }
+                }
+                else {
+                    alert('grid undefined')
+                }
+            }
+            else {
+                alert('window undefined')
+            }
+        }
+        function ServiceReport_ViewSwitch_ValueChange(e) {
+            ShowLoader();
+            ServiceReport_ViewMode = e.value == false ? "Default" : "Compact";
+            if (ServiceReport_SetVouchingModeOn == true) {
+                $("#ServiceReportVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            }
+            else {
+                //ServiceReportListGrid_CollapseAllDetailRows();
+                if (ServiceReport_IsVouchingMode == false) {
+                    ServiceReport_FAB.SetVisible(false);
+                }
+                ServiceReportListGrid.CollapseAllDetailRows();
+            }
+            HideLoader();
+        }
+
+    </script>
+
+
+    <script>
+        function ServiceReportOnInit(s, e) {
+            ServiceReportAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ServiceReportAdjustSize();
+            });
+        }
+        function ServiceReportAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try {
+                ServiceReportListGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ServiceReportListGrid_BeginCallback(s, e) {
+            SRFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["VouchingMode"] = ServiceReport_IsVouchingMode;
+            e.customArgs["ShowHorizontalBar"] = SR_ShowHorizontalBar;
+            e.customArgs["ViewMode"] = ServiceReport_ViewMode;
+            e.customArgs["ColumnToBeShownIndex"] = SR_ColumnToBeShownIndex;
+            e.customArgs["ColumnToBeHidddenIndex"] = SR_ColumnToBeHidddenIndex;
+            e.customArgs["RowKeyToFocus"] = SR_Select_xid;
+        }
+        function OnGridServiceReportListGrid_EndCallback(s, e) {
+            SR_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            SR_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+            ServiceReportGridLayout = s.cpClientLayout;
+            $(".ServiceReportListGrid_PreviewRow").hide();
+            GetSessionStorage("ServiceReportListGrid");
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+                if (SRFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(SRFocusedRowIndexBeforeRefresh);
+                }
+                SR_Select_xid = "";
+                if (ServiceReport_MoreEntry == true) {
+                    ServiceReport_MoreEntry = false;
+                    var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "Godly Service Report");
+                    confirm.done(function (dialogResult) {
+                        if (dialogResult) {
+                            DataNavigation_GSR("NEW");
+                        }
+                    });
+                }
+            }
+        }
+        function ServiceReportchangeMode() {
+            ShowLoader();
+            if (SR_ShowHorizontalBar == 0) {
+                SR_ShowHorizontalBar = 1;
+                $("#Service_ReportToggleScrollBar").find("span").text("Default Data");
+                $("#Service_ReportToggleScrollBar").width(110);
+            }
+            else {
+                SR_ShowHorizontalBar = 0;
+                $("#Service_ReportToggleScrollBar").find("span").text("Full Data");
+                $("#Service_ReportToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: "/Facility/ServiceReport/Frm_Service_Report_Info_Grid",
+                type: "POST",
+                data: { ShowHorizontalBar: SR_ShowHorizontalBar, VouchingMode: ServiceReport_IsVouchingMode, ViewMode: ServiceReport_ViewMode, Layout: ServiceReportGridLayout, ColumnToBeHidddenIndex: SR_ColumnToBeHidddenIndex, ColumnToBeShownIndex: SR_ColumnToBeShownIndex },
+                success: function (res) {
+                    $("#ServiceReportGridPartialView").html(res);
+                    ASPxClientControl.AdjustControls(document.getElementById("ServiceReportGridPartialView"));
+                    $(".ServiceReportListGrid_PreviewRow").hide();
+                    GetSessionStorage("ServiceReportListGrid");
+                    HideLoader();
+                }
+            });
+        }
+        function ServiceReportdblclickEdit(s, e) {
+            if (ServiceReport_IsVouchingMode == false) {
+                DataNavigation_GSR("EDIT");
+            }
+        }
+        function OnServiceReportGridFocusedRowChanged(s, e) {
+            var focusIndex = s.GetFocusedRowIndex();
+            if (focusIndex > -1) {
+                if (ServiceReport_IsVouchingMode) {
+                    ServiceReport_FAB.SetVisible(true);
+                    ServiceReport_FAB.SetActionContext("VouchingActionContext", true);
+                }
+                ServiceReport_ID = s.GetRowKey(focusIndex);
+                Get_ServiceReport_Row_Data(focusIndex);
+                if (ServiceReport_IsVouchingMode == true) {
+                    OpenLeftPane();
+                    LoadDocumentAndAdditionalInfoInLeftPane("Facility", "ServiceReport", "LeftPaneContent", ServiceReport_ID, ServiceReport_IsVouchingMode, "");
+                }
+            }
+            else {
+                ServiceReport_ID = null;
+            }
+            ServiceReport_UpdateFooterDetail(ServiceReport_ID, ServiceReport_Action_Status, ServiceReport_Add_Date, ServiceReport_Add_By,
+                ServiceReport_Action_Date, ServiceReport_Action_By, ServiceReport_Edit_Date, ServiceReport_Edit_By);
+        }
+        function Get_ServiceReport_Row_Data(RowIndex = null) {
+            var focusedrow = RowIndex == null ? ServiceReportListGrid.GetFocusedRowIndex() : RowIndex;
+            var topindex = ServiceReportListGrid.GetTopVisibleIndex();
+            var Index = focusedrow - topindex;
+            ServiceReport_PageData = ServiceReportListGrid.cpPagedata;
+            if (ServiceReport_PageData != null && ServiceReport_PageData.length > 0 && Index < ServiceReport_PageData.length) {
+                ServiceReport_ID = ServiceReport_PageData[Index][0];
+                ServiceReport_Name = ServiceReport_PageData[Index][1];
+                ServiceReport_Add_By = ServiceReport_PageData[Index][2];
+                ServiceReport_Add_Date = ServiceReport_PageData[Index][3];
+                ServiceReport_Edit_By = ServiceReport_PageData[Index][4];
+                ServiceReport_Edit_Date = ServiceReport_PageData[Index][5];
+                ServiceReport_Action_Status = ServiceReport_PageData[Index][6];
+                ServiceReport_Action_By = ServiceReport_PageData[Index][7];
+                ServiceReport_Action_Date = ServiceReport_PageData[Index][8];
+                ServiceReport_FORM_INST_ID = ServiceReport_PageData[Index][9];
+                ServiceReport_FromDate = ServiceReport_PageData[Index][10];
+                ServiceReport_ToDate = ServiceReport_PageData[Index][11];
+            }
+        }
+        function ServiceReport_UpdateFooterDetail(ServiceReport_ID, ServiceReport_Action_Status, ServiceReport_Add_Date, ServiceReport_Add_By, ServiceReport_Action_Date, ServiceReport_Action_By, ServiceReport_Edit_Date, ServiceReport_Edit_By) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (ServiceReport_ID != null) {
+                ServiceReport_Add_Date = (moment(ServiceReport_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                ServiceReport_Edit_Date = (moment(ServiceReport_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                ServiceReport_Action_Date = (moment(ServiceReport_Action_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                Status = ServiceReport_Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+                if (ServiceReport_Action_Date) {
+                    Lbl_ActionOn = StatusStr + " On: " + ServiceReport_Action_Date;
+                    Lbl_ActionBy = StatusStr + " By: " + ServiceReport_Action_By;
+                }
+
+                else {
+                    Lbl_ActionOn = "";
+                    Lbl_ActionBy = "";
+                }
+                if (ServiceReport_Add_Date) {
+                    Lbl_Create = "Add On: " + ServiceReport_Add_Date + ", By: " + ServiceReport_Add_By;
+                }
+                else {
+                    Lbl_Create = "";
+                }
+
+                if (ServiceReport_Edit_Date) {
+                    Lbl_Modify = "Edit On: " + ServiceReport_Edit_Date + ", By: " + ServiceReport_Edit_By;
+                }
+                else {
+                    Lbl_Modify = "";
+                }
+            }
+            $('#SR_Status').text(Lbl_Status);
+            $('#SR_Lbl_ActionOn').text(Lbl_ActionOn)
+            $('#SR_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#SR_Create').text(Lbl_Create);
+            $('#SR_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#SR_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ServiceReport_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ServiceReport_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ServiceReport_LockICON').removeClass("fa");
+                $('#ServiceReport_LockICON').removeClass("fa-lock");
+                $('#ServiceReport_LockICON').removeClass("fa-unlock");
+            }
+        }
+        function ServiceReportContextMenuFunction(s, e) {
+            if (e.item.name == 'New') {
+                DataNavigation_GSR("NEW");
+            }
+            else if (e.item.name == 'Edit') {
+                DataNavigation_GSR("EDIT");
+            }
+            else if (e.item.name == 'Delete') {
+                DataNavigation_GSR("DELETE");
+            }
+            //else if (e.item.name == 'Attachments')
+            //{
+            //    OnService_ReportMergeClick();
+            //}
+            else if (e.item.name == 'Manage_Attachments') {
+                ManageAttachment(ServiceReport_ID, "Godly Service Report");
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnServiceReportListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeServiceReport();
+            }
+            else if (e.item.name == 'Import') {
+                DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+            }
+            else if (e.item.name == 'Export') {
+                DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+            }
+            else if (e.item.name == 'Refresh') {
+                ServiceReportListGrid.Refresh();
+            }
+        }
+    </script>
+    @* Grid Functions *@
+
+<script>
+        /*Attachment and Nested Grid code*/
+        function On_ServiceReportFacility_FABActionItemClick(s, e)
+        {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            if (e.actionName === "add_attach")
+            {
+                if ("@Help_Attachment_AddRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceReportInfo_ParamMandatory == 1)
+                {
+                    AddAttachment(ServiceReportInfo_MasterRowRecID, "Facility_ServiceReport", ServiceReportInfo_Doc_ID, ServiceReportInfo_Doc_Category, ServiceReportInfo_ParamMandatory, ServiceReportInfo_FromDateLabel, ServiceReportInfo_ToDateLabel, ServiceReportInfo_DescriptionLabel, "ServiceReportFacilityAttachment", null, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+                }
+                else
+                {
+                    Attachment_DirectBrowse(ServiceReportInfo_MasterRowRecID, "Facility_ServiceReport", ServiceReportInfo_Doc_ID, "ServiceReportFacilityAttachment", "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "edit_attach")
+            {
+                if ("@Help_Attachment_EditRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceReportInfo_Nested_Doc_Status == "NO" || ServiceReportInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                if (ServiceReportInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+                {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(ServiceReportInfo_MasterRowRecID, "Facility_ServiceReport", ServiceReportInfo_AtachmentID, ServiceReportInfo_ParamMandatory, ServiceReportInfo_FromDateLabel, ServiceReportInfo_ToDateLabel, ServiceReportInfo_DescriptionLabel, "ServiceReportFacilityAttachment", null, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach")
+            {
+                if ("@Help_Attachment_DeleteRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceReportInfo_Nested_Doc_Status == "NO" || ServiceReportInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                DeleteAttachment(ServiceReportInfo_MasterRowRecID, "Facility_ServiceReport", ServiceReportInfo_AtachmentID, ServiceReportInfo_ParamMandatory, ServiceReportInfo_FromDateLabel, ServiceReportInfo_ToDateLabel, ServiceReportInfo_DescriptionLabel, null, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID, ServiceReportInfo_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach")
+            {
+                if ("@Help_Attachment_ViewRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceReportInfo_Nested_Doc_Status == "NO" || ServiceReportInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+
+                ViewDocument(ServiceReportInfo_AtachmentID, ServiceReportInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach")
+            {
+                LinkAttachment(ServiceReportInfo_MasterRowRecID, "Facility_ServiceReport", "Service Report", "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason")
+            {
+                if (ServiceReportInfo_Doc_Category.toLowerCase() == "others")
+                {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else
+                {
+                    AttachmentAddReason(ServiceReportInfo_MasterRowRecID, ServiceReportInfo_NestedRowMapID, "Facility_ServiceReport", "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "Edit_Reason")
+            {
+                AttachmentEditReason(ServiceReportInfo_MasterRowRecID, ServiceReportInfo_NestedRowMapID, "Facility_ServiceReport", "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID, ServiceReportInfo_reason);
+            }
+            else if (e.actionName === "Delete_Reason")
+            {
+                AttachmentDeleteReason(ServiceReportInfo_MasterRowRecID, ServiceReportInfo_NestedRowMapID, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Rotate")
+            {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut")
+            {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn")
+            {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit")
+            {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back")
+            {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "AuditAction")
+            {
+                ServiceReport_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit")
+            {
+                if (ServiceReportInfo_Nested_Doc_Status == "")
+                {
+                    ServiceReport_FAB.SetActionContext("actionItemContext", true);
+                }
+                if (ServiceReportInfo_Nested_Doc_Status == "NO")
+                {
+                    ServiceReport_FAB.SetActionContext("EditItemContext", true);
+                }
+                if (ServiceReportInfo_Nested_Doc_Status == "YES")
+                {
+                    ServiceReport_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName == "Accept")
+            {
+                ServiceReportInfo_AcceptwithoutRemarks();
+            }
+            else if (e.actionName == "Reject")
+            {
+                ServiceReportInfo_AcceptRejectVoucher("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks")
+            {
+                ServiceReportInfo_AcceptRejectVoucher("Accept");
+            }
+            else if (e.actionName == "AcceptDoc")
+            {
+                OnServiceReportInfo_AcceptDoc();
+            }
+            else if (e.actionName == "RejectDoc")
+            {
+                OnServiceReportInfo_RejectDoc();
+            }
+        }
+        function OnServiceReportInfo_RejectDoc()
+        {
+            if (ServiceReportInfo_AtachmentID == null || ServiceReportInfo_AtachmentID.length == 0)
+            {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+            }
+            RejectAttachment(ServiceReportInfo_AtachmentID, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+        }
+        function OnServiceReportInfo_AcceptDoc()
+        {
+            if (ServiceReportInfo_AtachmentID == null || ServiceReportInfo_AtachmentID.length == 0)
+            {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(ServiceReportInfo_AtachmentID, "ServiceReportListGrid", ServiceReportInfo_NestedGrid_AccessID);
+    }
+    function ServiceReportInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (ServiceReportInfo_IsDetailRowExpanded == true || ServiceReport_IsVouchingMode == true)
+        {
+            if (ServiceReportInfo_MasterRowRecID == null || ServiceReportInfo_MasterRowRecID == "")
+            {
+                Recid = ServiceReport_ID;
+            }
+            else
+            {
+                Recid = ServiceReportInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ServiceReport_ID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Facility_ServiceReport", "ServiceReportListGrid", ServiceReportInfo_AtachmentID, ServiceReportInfo_NestedRowReasonID, ServiceReportInfo_NestedRowKeyValue);
+    }
+    function ServiceReportInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (ServiceReportInfo_IsDetailRowExpanded == true || ServiceReport_IsVouchingMode == true)
+        {
+            if (ServiceReportInfo_MasterRowRecID == null || ServiceReportInfo_MasterRowRecID == "")
+            {
+                Recid = ServiceReport_ID;
+            }
+            else
+            {
+                Recid = ServiceReportInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ServiceReport_ID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Facility_ServiceReport", "ServiceReportListGrid", ServiceReportInfo_AtachmentID, ServiceReportInfo_NestedRowReasonID, ServiceReportInfo_NestedRowKeyValue);
+    }
+    function OnServiceReportListGridNestedFocusedRowChange(s, e)
+    {
+        if (ServiceReportInfo_IsDetailRowExpanded == true || ServiceReport_IsVouchingMode == true)
+        {
+            ServiceReportInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (ServiceReportInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                ServiceReport_FAB.SetVisible(true);
+                ServiceReportInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnServiceReportInfo_GetGridRowValues);
+            }
+            else
+            {
+                ServiceReport_FAB.SetVisible(false);
+            }
+        }
+    }
+    function OnServiceReportInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            ServiceReportInfo_Nested_Doc_Status = values[0];
+            ServiceReport_FAB.SetVisible(true);
+            if (ServiceReport_IsVouchingMode == true)
+            {
+                ServiceReport_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (ServiceReportInfo_Nested_Doc_Status == "")
+                {
+                    ServiceReport_FAB.SetActionContext("actionItemContext", true);
+                }
+                else if (ServiceReportInfo_Nested_Doc_Status == "NO")
+                {
+                    ServiceReport_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (ServiceReportInfo_Nested_Doc_Status == "YES")
+                {
+                    ServiceReport_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+           // ServiceReport_FAB.SetActionContext("actionItemContext", true);
+            ServiceReportInfo_ParamMandatory = values[1];
+            ServiceReportInfo_FromDateLabel = values[2];
+            ServiceReportInfo_ToDateLabel = values[3];
+            ServiceReportInfo_DescriptionLabel = values[4];
+            ServiceReportInfo_Doc_Category = values[5];
+            ServiceReportInfo_Doc_ID = values[6];
+            ServiceReportInfo_AtachmentID = values[7];
+            IndexAttachmentID = ServiceReportInfo_AtachmentID;
+            ServiceReportInfo_MasterRowRecID = values[8];
+            ServiceReportInfo_MasterRowMID = values[9];
+            ServiceReportInfo_NestedRowMapID = values[10];
+            ServiceReportInfo_reason = values[11];
+            ServiceReportInfo_FileName = values[12];
+            ServiceReportInfo_Attachment_RecStatus = values[13];
+            ServiceReportInfo_NestedRowKeyValue = values[14];
+
+                if (ServiceReport_IsVouchingMode == true)
+                {
+                    if (ServiceReportInfo_FileName != null && ServiceReportInfo_FileName.length > 0)
+                    {
+                        ViewDocument(ServiceReportInfo_AtachmentID, ServiceReportInfo_FileName, "ServiceReport_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else
+                    {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            ServiceReportInfo_NestedRowReasonID = values[15];
+            IndexAttachmentReasonID = ServiceReportInfo_NestedRowReasonID;
+        }
+        function ServiceReportGrid_Nested_BeginCallBack(s, e)
+        {
+            e.customArgs["ShowHorizontalBar"] = SR_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = ServiceReport_IsVouchingMode;
+            e.customArgs["command"] = e.command;
+        }
+        function ServiceReportGrid_DetailRowExpanding(s, e)
+        {
+            ServiceReportInfo_IsDetailRowExpanded = true;
+            s.SetFocusedRowIndex(e.visibleIndex);
+            var pane = Mainspliter.GetPaneByName('RightPane');
+            if (ServiceReport_IsVouchingMode == true)
+            {
+                pane.Expand();
+            }
+            else
+            {
+                pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        function ServiceReportGrid_DetailRowCollapsing(s, e)
+        {
+            ServiceReportInfo_IsDetailRowExpanded = false;
+            s.SetFocusedRowIndex(e.visibleIndex);
+            if (ServiceReport_IsVouchingMode == true)
+            {
+                if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+                {
+                    CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+                }
+            }
+            else
+            {
+                ServiceReport_FAB.SetVisible(false);
+            }
+        }
+
+
+        function onclick_generateServiceReport() {
+            ShowLoader();
+            OpenPopup("Service_Report_download_modal", "Generate and Download Service Report", "@Url.Action("Frm_ServiceReport_Generator", "ServiceReport", new { @area = "Facility" })", "auto",1250);
+        }
+    function onclick_getQuizResult() {
+        debugger;
+        var focusIndex = ServiceReportListGrid.GetFocusedRowIndex();
+        if (focusIndex < 0) {
+            DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+            return;
+        }
+        summary_type_ChartInfo = "Quiz Result";
+        Get_ServiceReport_Row_Data(focusIndex);
+        ShowLoader();
+        showQuizResult_ChartReports(ServiceReport_ID, null, summary_type_ChartInfo, null, ServiceReport_Name, (JS_Json_Date_To_ddMMyyyy((ServiceReport_FromDate ?? ""), "DD/MM/YYYY") ?? ""), (JS_Json_Date_To_ddMMyyyy((ServiceReport_ToDate ?? ""), "DD/MM/YYYY") ?? ""));
+        HideLoader();
+    }
+</script>
+    @*attachment and nested grid*@
+</div>

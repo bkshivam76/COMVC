@@ -1,0 +1,639 @@
+﻿<div class="DocumentChecking_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        Layout = null;
+        bool Doc_Delete_Right = (bool)ViewData["Help_Attachment_DeleteRight"];
+        bool Doc_Edit_Right = (bool)ViewData["Help_Attachment_UpdateRight"];
+    }
+    <style>
+        .dx-list-item-content {
+            white-space: normal;
+        }
+    </style>
+
+    <div id="DocumentChecking_ParentDiv">
+        <div class="full-width-header-bg2">
+            <div class="row">
+                <div class="col-sm-6">
+                    <label class="report_header_label">Document Checking</label>
+                </div>
+                <div class="col-sm-6  styleActionBtn">
+                    @(Html.DevExtreme().Button().ID("DocumentCheckingSelectFilter").Text("Filters").OnClick(@<text>function () {OnFilterDocument(); } </text>).Icon("fas fa-filter checkgreen "))
+                    @(Html.DevExtreme().Button().ID("DocumentCheckingApplyFilter").Text("Show").OnClick("DocumentChecking_ApplyFilter").Icon("fas fa-check-circle btn-icons checkgreen"))
+                    @(Html.DevExtreme().Button().ID("DocumentCheckingToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {DocumentCheckingChangeMode(); } </text>))
+                    @(Html.DevExtreme().Button().ID("DocumentCheckingCLOSE").Text("Close").Icon("close").OnClick(@<text> function (){CloseDocumentChecking();} </text>) )
+                </div>
+            </div>
+        </div><!--[Header]-->
+
+        <div id="DC_Grid_DIV" class="parent_table">
+            <form id="DocumentCheckingGridPartialView">
+                @Html.Partial("DocumentChecking_Grid", Model)
+            </form>
+        </div>  @* Grid *@
+    </div>
+
+    @(Html.DevExtreme().Popup().ID("DC_Filters_popup").OnShowing("PopupOnShowing").Title("Select Options").Height("auto").MaxHeight(350).Width("auto").MaxWidth(300).Shading(false).ContentTemplate( @<text> <div id='popup_dc_filter_result'>
+    <div class="row">
+        <div class="form-field">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Document Category:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_DocumentCategory").Name("DC_DocumentCategory").DataSource(d => d.Mvc().Controller("DocumentChecking").LoadAction("LookUp_GetDocument_Category").Key("ID")).DisplayExpr("Category").ValueExpr("ID").OnValueChanged("DC_Category_ValueChange"))
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Document Name:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_DocumentName").Name("DC_DocumentName").DataSource(d => d.Mvc().Controller("DocumentChecking").LoadAction("LookUp_GetDocument_Name").Key("ID").LoadParams(new { CategoryName = new JS("function (){ return DC_Doc_Category;}") })).DisplayExpr("Name").ValueExpr("ID").ReadOnly(true).OnValueChanged("DC_Name_ValueChange"))
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Status:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_Status").Name("DC_Status").Items(new[] { "ACCEPTED", "REJECTED", "PENDING", "ALL" }).Value("PENDING").OnValueChanged("DC_Status_ValueChange").ShowClearButton(false))
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Audit Status:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_AuditStatus").Name("DC_AuditStatus").Items(new[] { "Audited", "Unaudited", "All" }).Value("Unaudited").OnValueChanged("DC_AuditStatus_ValueChange").ShowClearButton(false))
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Checked By:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_CheckedBy").Name("DC_CheckedBy").DataSource(d => d.Mvc().Controller("DocumentChecking").LoadAction("LookUp_GetCheckedBy").Key("REC_ID")).DisplayExpr("USER_ID").ValueExpr("USER_ID").OnValueChanged("DC_CheckedBy_ValueChange").ShowClearButton(true))
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <label>Data Scope:</label>
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("DC_DataScope").Name("DC_DataScope").Items(new[] { "All", "Exclusive" }).Value("Exclusive").OnValueChanged("DC_DataScope_ValueChange").ShowClearButton(false))
+                    </div>
+                    <div class="col-sm-12 col-md-12 col-lg-12 styleActionBtn">
+                        @(Html.DevExtreme().Button().ID("DocumentCheckingApplyFilter2").Text("Show").OnClick("DocumentChecking_ApplyFilter"))
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!--[Filters]-->
+</div> </text>) )
+
+    @Html.DevExpress().FloatingActionButton(
+       settings =>
+       {
+           settings.Name = "DC_FAB";
+           settings.ContainerElementID = "DC_Grid_DIV";
+           settings.InitialActionContext = "TakeActionContext";
+           settings.HorizontalPosition = FloatingActionButtonHorizontalPosition.Right;
+           settings.VerticalPosition = FloatingActionButtonVerticalPosition.Bottom;
+
+
+           settings.Items.Add(new FABAction("TakeActionContext", "InitialClick", "Take Action ?", "~/Content/FloatingActionButton/Images/judge.png"));
+
+           FABActionGroup actionItemGroup = new FABActionGroup() { ContextName = "actionItemContext" };
+           actionItemGroup.Items.Add(new FABActionItem("Edit", "~/Content/FloatingActionButton/Images/Edit.png", "Edit"));
+           //actionItemGroup.Items.Add(new FABActionItem("Delete", "~/Content/FloatingActionButton/Images/Delete.png", "Delete"));
+           actionItemGroup.Items.Add(new FABActionItem("Prev", "~/Content/FloatingActionButton/Images/Prev.png", "Prev"));
+           actionItemGroup.Items.Add(new FABActionItem("Skip", "~/Content/FloatingActionButton/Images/Next.png", "Skip"));
+           actionItemGroup.Items.Add(new FABActionItem("Undecided", "~/Content/FloatingActionButton/Images/Undecidednew.png", "Undecided"));
+           actionItemGroup.Items.Add(new FABActionItem("Reject", "~/Content/FloatingActionButton/Images/rejectrednew.png", "Reject"));
+           actionItemGroup.Items.Add(new FABActionItem("Accept", "~/Content/FloatingActionButton/Images/accept_new.png", "Accept"));
+           settings.Items.Add(actionItemGroup);
+
+           FABActionGroup ImageItemGroup = new FABActionGroup() { ContextName = "ImageToolBarContext" };
+           ImageItemGroup.Items.Add(new FABActionItem("ZoomIn", "~/Content/FloatingActionButton/Images/zoomin.png", "Zoom In"));
+           ImageItemGroup.Items.Add(new FABActionItem("ZoomOut", "~/Content/FloatingActionButton/Images/zoomout.png", "Zoom Out"));
+           ImageItemGroup.Items.Add(new FABActionItem("Rotate", "~/Content/FloatingActionButton/Images/rotateclock.png", "Rotate"));
+           ImageItemGroup.Items.Add(new FABActionItem("Fit", "~/Content/FloatingActionButton/Images/fittoscreen.png", "Fit"));
+           ImageItemGroup.Items.Add(new FABActionItem("Back", "~/Content/FloatingActionButton/Images/back.png", "Back"));
+           settings.Items.Add(ImageItemGroup);
+           settings.Init = (s, e) => { ASPxFloatingActionButton fab = (ASPxFloatingActionButton)s; fab.TextVisibilityMode = FloatingActionButtonTextVisibilityMode.Hidden; };
+           settings.ClientSideEvents.ActionItemClick = "OnActionItemClick_DC";
+           settings.ControlStyle.CssClass = "DevexpressComponents";
+
+       }).GetHtml()
+
+
+    @(Html.DevExtreme().Popup().CustomPopup().ID("DC_Reason_popup").OnShowing("PopupOnShowing").Title("Reason").Height("auto").MaxHeight(350).Width(330).Shading(false).ContentTemplate( @<text> <div id='popup_dc_reason_result'>  </div> </text>) )
+    <script>
+        var DC_Doc_Category = null;
+        var DC_Doc_Name = null;
+        var DC_Doc_Status = "PENDING";
+        var DC_Doc_AuditStatus = "Unaudited";
+        var DC_Doc_DataScope = "Exclusive";
+        var DC_CheckedBy = null;
+        var DC_ShowHorizontalBar = 0;
+        var DC_AtachmentID;
+        var DC_FileName;
+        var DC_AttachmentActionStatus;
+        var DC_FocusedRowIndex;
+        var DC_NextRowToBeFocused;
+        var DC_FocusedRowIndexBeforeRefresh;
+        var DC_GridPageSize;
+        var DC_ImageRotateAngle = 0;
+        var DC_ParamMandatory;
+        var DC_FromDateLabel;
+        var DC_ToDateLabel;
+        var DC_DescriptionLabel;
+        var DC_Document_Checking_Status;//Redmine Bug #133050 fixed
+        var Rightpane = Mainspliter.GetPaneByName('RightPane');
+        var Middlepane = Mainspliter.GetPaneByName('MiddlePane');
+        var RefreshAfterTakingAction = false;
+
+
+        $(document).ready(function () {
+            $('.dx-fab-text').hide();
+            $('.dx-fab-action').hover(function () { $(this).find('.dx-fab-text').show(); }, function () { $(this).find('.dx-fab-text').hide(); });
+            dragElement(document.getElementById("DC_FAB"));
+            // $("#DC_Status").dxSelectBox("instance").option("value", "PENDING");  -temp removed
+        });
+        function OnFilterDocument() {
+            ShowLoader();
+            $("#DC_Filters_popup").dxPopup("instance").resetOption("position");
+            $("#DC_Filters_popup").dxPopup("instance").resetOption("height");
+            $("#DC_Filters_popup").dxPopup("instance").resetOption("maxHeight");
+            //$("#DC_Filters_popup").dxPopup("instance").option("title", "Reason")
+            //$("#DC_Filters_popup").dxPopup("instance").option("height", "auto")
+            //$("#DC_Filters_popup").dxPopup("instance").option("width", 330)
+            $("#DC_Filters_popup").dxPopup("instance").option("position.my", "top");
+            $("#DC_Filters_popup").dxPopup("instance").option("position.at", "center");
+            $("#DC_Filters_popup").dxPopup("instance").option("position.of", "DocumentChecking_ParentDiv");
+            $("#DC_Filters_popup").dxPopup("instance").option("fullScreen", false);
+            HideLoader();
+            $("#DC_Filters_popup").dxPopup("show");
+        }
+        function CloseDocumentChecking() {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            Rightpane.Collapse(Middlepane);
+            $.ajax({
+                type: 'GET',
+                url: "/Start/DocumentChecking/SessionClear",
+                cache: false
+            });
+            ClearAllReferences_DocumentChecking();
+        });
+        function ClearAllReferences_DocumentChecking() {
+            DC_Doc_Category = null;
+            DC_Doc_Name = null;
+            DC_Doc_Status = null;
+            DC_Doc_AuditStatus = null;
+            DC_Doc_DataScope = null;
+            DC_CheckedBy = null;
+            DC_ShowHorizontalBar = null;
+            DC_AtachmentID = null;
+            DC_FileName = null;
+            DC_AttachmentActionStatus = null;
+            DC_FocusedRowIndex = null;
+            DC_NextRowToBeFocused = null;
+            DC_FocusedRowIndexBeforeRefresh = null;
+            DC_GridPageSize = null;
+            DC_ImageRotateAngle = null;
+            DC_ParamMandatory = null;
+            DC_FromDateLabel = null;
+            DC_ToDateLabel = null;
+            DC_DescriptionLabel = null;
+            DC_Document_Checking_Status = null;
+            Rightpane = null;
+            Middlepane = null;
+            RefreshAfterTakingAction = null;
+            DocumentCheckingLayout = null;
+            ClearAllReferences("DocumentChecking_ClearReferences");
+        }
+    </script>
+    @*variable and ready*@
+    <script>
+
+    function DocumentCheckingOnInit(s, e)
+    {
+        DocumentChecking_grid_AdjustSize(s, e);
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            DocumentChecking_grid_AdjustSize(s, e);
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+    function DocumentChecking_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        e.customArgs["Category"] = DC_Doc_Category;
+        e.customArgs["Name"] = DC_Doc_Name;
+        e.customArgs["Status"] = DC_Doc_Status;
+        e.customArgs["AuditStatus"] = DC_Doc_AuditStatus;
+        e.customArgs["DataScope"] = DC_Doc_DataScope;
+        e.customArgs["CheckedBy"] = DC_CheckedBy;
+        e.customArgs["ShowHorizontalBar"] = DC_ShowHorizontalBar;
+    }
+    var DocumentCheckingLayout = null;
+    function DocumentChecking_EndCallBack(s, e)
+    {
+        DocumentCheckingLayout = s.cpClientLayout;
+        DocumentChecking_grid_AdjustSize(s, e);
+        DC_GridPageSize = s.cpPageSize;
+        if (e.command == "GOTOPAGE")
+        {
+            DocumentCheckingListGrid.SetFocusedRowIndex(DC_NextRowToBeFocused);
+        }
+        else if (e.command == "REFRESH")
+        {
+            if (RefreshAfterTakingAction == true)
+            {
+                RefreshAfterTakingAction = false;
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(DC_FocusedRowIndexBeforeRefresh);
+            }
+        }
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function DocumentCheckingFocusedRowChanged(s, e)
+    {
+        DC_FocusedRowIndex = s.GetFocusedRowIndex();
+        if (s.GetFocusedRowIndex() >= 0)
+        {
+            s.GetRowValues(s.GetFocusedRowIndex(), 'Document_Attachment_ID;Document_File_Name;Document_Params_Mandatory;Document_LABEL_FROM_DATE;Document_LABEL_TO_DATE;Document_LABEL_DESCRIPTION;Attachment_Action_Status;Document_Checking_Status', OnGetGridRowValues);//Redmine Bug #133050 fixed
+        }
+        else
+        {
+            DC_FAB.SetActionContext("TakeActionContext", false);
+            DC_AtachmentID = null;
+            DC_FileName = null;
+            Rightpane.Collapse(Middlepane);
+        }
+    }
+    function OnGetGridRowValues(values)
+    {
+        if (values[0]!=null)
+        {
+            DC_AtachmentID = values[0];
+            DC_FileName = values[1];
+            DC_ParamMandatory = values[2];
+            DC_FromDateLabel = values[3];
+            DC_ToDateLabel = values[4];
+            DC_DescriptionLabel = values[5];
+            DC_AttachmentActionStatus = values[6];
+            DC_Document_Checking_Status = values[7];//Redmine Bug #133050 fixed
+            DC_FAB.SetActionContext("actionItemContext", true);
+            DC_FAB.ExpandActionGroupItems();
+            ViewDocument(DC_AtachmentID, DC_FileName, "DC_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else
+        {
+            DC_FAB.SetActionContext("TakeActionContext", false);
+            DC_AtachmentID = null;
+            DC_FileName = null;
+            Rightpane.Collapse(Middlepane);
+        }
+    }
+    function DocumentChecking_grid_AdjustSize(s, e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        s.SetHeight(height);
+    }
+    function RefreshDocumentCheckGrid() {
+        DocumentCheckingListGrid.Refresh();
+    }
+    function FindPageindex()
+    {
+        var calculatePageNumber = (DC_NextRowToBeFocused + 1) / DC_GridPageSize;
+        var pageIndex = (Math.ceil(calculatePageNumber)) - 1;
+        return pageIndex;
+    }
+    function DocumentCheckingChangeMode()
+    {
+        DC_FocusedRowIndexBeforeRefresh = DocumentCheckingListGrid.GetFocusedRowIndex();
+        ShowLoader();
+        if (DC_ShowHorizontalBar == 0)
+        {
+            DC_ShowHorizontalBar = 1;
+            $("#DocumentCheckingToggleScrollBar").find("span").text("Default Data");
+        }
+        else
+        {
+            DC_ShowHorizontalBar = 0;
+            $("#DocumentCheckingToggleScrollBar").find("span").text("Full Data");
+        }
+        $.ajax({
+            url: '@Url.Action("DocumentChecking_Grid", "DocumentChecking")',
+            type: "GET",
+
+            data: {
+                ShowHorizontalBar: DC_ShowHorizontalBar,
+                Layout: DocumentCheckingLayout
+            },
+            success: function (res)
+            {
+                $("#DocumentCheckingGridPartialView").html(res);
+                DocumentCheckingListGrid.SetFocusedRowIndex(DC_FocusedRowIndexBeforeRefresh);
+            }
+        });
+        HideLoader();
+        }//full data button click
+    </script>
+    @*Grid Functions*@
+    <script>
+        function DC_Category_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_Doc_Category = e.value;
+            $("#DC_DocumentName").dxSelectBox("instance").reset();
+            $("#DC_DocumentName").dxSelectBox("instance").getDataSource().reload();
+            if (e.value == null) {
+                $("#DC_DocumentName").dxSelectBox("instance").option("readOnly", true);
+            }
+            else {
+                $("#DC_DocumentName").dxSelectBox("instance").option("readOnly", false);
+            }
+        }
+        function DC_Name_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_Doc_Name = e.value;
+        }
+        function DC_Status_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_Doc_Status = e.value;
+        }
+        function DC_AuditStatus_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_Doc_AuditStatus = e.value;
+        }
+        function DC_DataScope_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_Doc_DataScope = e.value;
+        }
+        function DC_CheckedBy_ValueChange(e) {
+            e.component.close();
+            e.component.blur();
+            DC_CheckedBy = e.value;
+        }
+        function DocumentChecking_ApplyFilter(e) {
+            RefreshAfterTakingAction = false;//Redmine Bug #133046 fixed
+            DocumentCheckingListGrid.SetFocusedRowIndex(-1);//Redmine Bug #133046 fixed
+            RefreshDocumentCheckGrid();
+            HidePopup('DC_Filters_popup');
+        }
+    </script>
+    @*Filter*@
+    <script>
+        function OnActionItemClick_DC(s, e) {
+            var img = document.getElementById('RightPane_Img');
+            DC_FAB.ExpandActionGroupItems();
+            if (e.actionName == "InitialClick") {
+                if (DC_FocusedRowIndex > -1) {
+                    s.SetActionContext("actionItemContext", true);
+                }
+                else {
+                    if (DocumentCheckingListGrid.GetVisibleRowsOnPage() > 0) {
+                        DocumentCheckingListGrid.SetFocusedRowIndex(0);
+                    }
+                }
+            }
+            else if (e.actionName == "Skip") {
+                DC_NextRowToBeFocused = DC_FocusedRowIndex + 1;
+                var NextPageIndex = FindPageindex();
+                if (NextPageIndex != DocumentCheckingListGrid.GetPageIndex()) {
+                    DocumentCheckingListGrid.GotoPage(NextPageIndex);
+                }
+                else {
+                    DocumentCheckingListGrid.SetFocusedRowIndex(DC_NextRowToBeFocused);
+                }
+            }
+            else if (e.actionName == "Prev") {
+                DC_NextRowToBeFocused = DC_FocusedRowIndex - 1;
+                var NextPageIndex = FindPageindex();
+                if (NextPageIndex != DocumentCheckingListGrid.GetPageIndex()) {
+                    DocumentCheckingListGrid.GotoPage(NextPageIndex);
+                }
+                else {
+                    DocumentCheckingListGrid.SetFocusedRowIndex(DC_NextRowToBeFocused);
+                }
+            }
+            else if (e.actionName == "Accept") {
+                OnAcceptDocument();
+            }
+            else if (e.actionName == "Undecided") {
+                OnUncheckDocument();
+            }
+            else if (e.actionName == "Reject") {
+                OnRejectDocument();
+            }
+            else if (e.actionName == "Edit") {
+                DC_EditDocument();
+            }
+            else if (e.actionName == "Delete") {
+                DC_DeleteDocument();
+            }
+            else if (e.actionName == "Rotate") {
+                ImageRotate(img);
+            }
+            else if (e.actionName == "ZoomOut") {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName == "ZoomIn") {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit") {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back") {
+                ImageBack("DC_FAB", "actionItemContext");
+            }
+        }
+
+    </script>
+    @*FAB*@
+    <script>
+        function OnAcceptDocument() {
+            if (DC_Document_Checking_Status == "ACCEPTED") {
+                DevExpress.ui.notify({ message: "Document Already Accepted", width: 300, shading: true, position: 'center' }, "info", 1500);
+
+                return;
+            }//Redmine Bug #133050 fixed
+
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Start/DocumentChecking/AcceptDocument",
+                cache: false,
+                data: { AttachID: DC_AtachmentID },
+                success: function (data) {
+                    HideLoader();
+
+
+                    if (data.result) {
+                        DevExpress.ui.notify({ message: data.message, width: 300, shading: true, position: 'center' }, "success", 1500);
+                        RefreshAfterTakingAction = true;
+                        DC_FocusedRowIndexBeforeRefresh = DocumentCheckingListGrid.GetFocusedRowIndex();
+                        RefreshDocumentCheckGrid();
+                    }
+                    else { var alert = DevExpress.ui.dialog.alert(data.message, 'Information!'); }
+                }
+            });
+        }
+        function OnUncheckDocument() {
+            if (DC_Document_Checking_Status == "PENDING") {
+                DevExpress.ui.notify({ message: "Document Already Unchecked", width: 300, shading: true, position: 'center' }, "info", 1500);
+
+                return;
+            }//Redmine Bug #133050 fixed
+
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Start/DocumentChecking/UncheckDocument",
+                cache: false,
+                data: { AttachID: DC_AtachmentID },
+                success: function (data) {
+                    HideLoader();
+
+                    if (data.result) {
+                        DevExpress.ui.notify({ message: data.message, width: 300, shading: true, position: 'center' }, "success", 1500);
+                        RefreshAfterTakingAction = true;
+                        DC_FocusedRowIndexBeforeRefresh = DocumentCheckingListGrid.GetFocusedRowIndex();
+                        RefreshDocumentCheckGrid();
+                    }
+                    else {
+                        var alert = DevExpress.ui.dialog.alert(data.message, 'Information!');
+                    }
+
+                }
+            });
+        }
+        function OnRejectDocument() {
+            if (DC_Document_Checking_Status == "REJECTED") {
+                DevExpress.ui.notify({ message: "Document Already Rejected", width: 300, shading: true, position: 'center' }, "info", 1500);
+
+                return;
+            }//Redmine Bug #133050 fixed
+
+            ShowLoader();
+            //$("#DC_Reason_popup").dxPopup("instance").resetOption("position");
+            //$("#DC_Reason_popup").dxPopup("instance").resetOption("height");
+            //$("#DC_Reason_popup").dxPopup("instance").resetOption("maxHeight");
+            //$("#DC_Reason_popup").dxPopup("instance").option("title", "Reason")
+            //$("#DC_Reason_popup").dxPopup("instance").option("height", "auto")
+            //$("#DC_Reason_popup").dxPopup("instance").option("width", 330)
+            //$("#DC_Reason_popup").dxPopup("instance").option("position.my", "top");
+            //$("#DC_Reason_popup").dxPopup("instance").option("position.at", "center");
+            //$("#DC_Reason_popup").dxPopup("instance").option("position.of", "DocumentChecking_ParentDiv");
+            //$("#DC_Reason_popup").dxPopup("instance").option("fullScreen", false);
+            //$("#popup_dc_reason_result").html(null);
+            $.ajax({
+                type: 'GET',
+                url: "/Start/DocumentChecking/Frm_DC_RejectReason",
+                cache: false,
+                success: function (data) {
+                    HideLoader();
+                    //$("#DC_Reason_popup").dxPopup("show");
+                    //$("#popup_dc_reason_result").html(data);
+                    OpenPopup("DC_Reason_popup", "Reason", null, "auto", 330, true, data);
+                    $("#DC_Reason_popup").dxPopup("instance").option("position.my", "top");
+                    $("#DC_Reason_popup").dxPopup("instance").option("position.at", "center");
+                    $("#DC_Reason_popup").dxPopup("instance").option("position.of", "DocumentChecking_ParentDiv");
+                }
+            });
+        }
+    </script>
+    @*Action*@
+    <script>
+        function DC_EditDocument() {
+            if (DC_AttachmentActionStatus.toUpperCase() == "LOCKED") {
+                DevExpress.ui.dialog.alert("Locked Entry Cannot Be Edited..", "Error");
+                return;
+            }
+            $("#ID_Frm_Help_Document_Attach").remove();
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Help/Attachment/Frm_Attachment_Window",
+                cache: false,
+                data: {
+                    AM: "Edit",
+                    PostSucessFunctionName: "DC_Attachment_PostSuccess",
+                    ID: DC_AtachmentID,
+                    ParamMandatory: DC_ParamMandatory,
+                    FromDate_Label: DC_FromDateLabel,
+                    ToDate_Label: DC_ToDateLabel,
+                    Description_Label: DC_DescriptionLabel
+                },
+                success: function (data) {
+                    ShowLoader();
+                    OpenPopup("Dynamic_Content_popup", "Edit ~ Attachment", null, "auto", 900, true, data);
+                }
+            });
+
+        }
+        function DC_DeleteDocument() {
+            if (DC_AttachmentActionStatus.toUpperCase() == "LOCKED") {
+                DevExpress.ui.dialog.alert("Locked Entry Cannot Be Deleted..", "Error");
+                return;
+            }
+            var deleteResultDocument = DevExpress.ui.dialog.confirm("Sure You Want To Delete?<br>This Will Unlink The Document From All Linked Screens  ", "Confirm changes");
+            deleteResultDocument.done(function (dialogResult) {
+                if (dialogResult) {
+                    $("#ID_Frm_Help_Document_Attach").remove();
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Help/Attachment/Frm_Attachment_Window",
+                        data:
+                        {
+                            AM: "Delete",
+                            PostSucessFunctionName: "DC_Attachment_PostSuccess",
+                            ID: DC_AtachmentID,
+                            ParamMandatory: DC_ParamMandatory,
+                            FromDate_Label: DC_FromDateLabel,
+                            ToDate_Label: DC_ToDateLabel,
+                            Description_Label: DC_DescriptionLabel
+                        },
+                        cache: false,
+                        success: function (data) {
+                            OpenDynamicPopup("Delete Attachment", null, "auto", 900, true, data);
+                        }
+                    });
+                }
+            })
+        }
+        function DC_Attachment_PostSuccess(data) {
+            ShowLoader();
+            if (data.result == false) {
+                HideLoader();
+                DevExpress.ui.dialog.alert(data.Message, "Error");
+            }
+            else {
+                dontaskpopupcloseconfirmation = true;
+                sessionclearpath = "/Help/Attachment/Sessionclear";
+                HideLoader();
+
+                var result = DevExpress.ui.dialog.alert(data.Message, "Success");
+                result.done(function (dialogResult) {
+                    if (dialogResult) {
+                        RefreshAfterTakingAction = true;
+                        DC_FocusedRowIndexBeforeRefresh = DocumentCheckingListGrid.GetFocusedRowIndex();
+                        RefreshDocumentCheckGrid();
+                    }
+                    if (Rightpane.IsCollapsed() == false) {
+                        CollapsePane(Rightpane, Mainspliter.GetPaneByName('MiddlePane'));
+                    }
+                });
+                HidePopup("Dynamic_Content_popup");
+            }
+        }
+    </script>
+    @* Edit/Delete Attachment *@
+</div>

@@ -1,0 +1,1046 @@
+﻿<div class="Attachment_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    var CalledFromOtherScreen = ViewBag.Attachment_popupId;
+    var filter=ViewBag.filter;
+    bool HelpSuperuser_Auditor = (bool)ViewData["HelpSuperuser_Auditor"];
+    bool Help_Attachments_AddRight = (bool)ViewData["Help_Attachments_AddRight"];
+    bool Help_Attachments_DeleteRight = (bool)ViewData["Help_Attachments_DeleteRight"];
+    bool Help_Attachments_ViewRight = (bool)ViewData["Help_Attachments_ViewRight"];
+    bool Help_Attachments_UpdateRight = (bool)ViewData["Help_Attachments_UpdateRight"];
+    bool Help_Attachments_ExportRight = (bool)ViewData["Help_Attachments_ExportRight"];
+
+}
+<style>
+    .wrapText {
+        word-break: break-all;
+    }  
+    </style>
+<div id="HelpAttachment_ParentDiv">
+    <div class="report_header_div_main">
+<div id="contentHelpAttachment" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Attachments</label>
+    </div>
+
+    @*<div style="margin-top: 10px;padding-right:0px;float:right;">*@
+    <div class="report_button_div">
+        @if (HelpSuperuser_Auditor)
+        {
+            @* @(Html.DevExtreme().Switch().ID("AttachmentVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Attachment_VouchingSwitch_ValueChange").Width(100))*@
+            @(Html.DevExtreme().Button().ID("Help_BUT_Lock").Text("Lock").OnClick(@<text>function (){OnAttachmentLockClick();}</text>))
+            @(Html.DevExtreme().Button().ID("Help_BUT_UnLock").Text("UnLock").OnClick(@<text>function (){OnAttachmentUnLockClick();}</text>))
+            @(Html.DevExtreme().Button().ID("Help_BUT_Accept").Text("Accept").Icon("check").Visible(true).OnClick(@<text>function (){OnAttachmentAcceptClick();}</text>))
+            @(Html.DevExtreme().Button().ID("Help_BUT_Reject").Text("Reject").Icon("warning").Visible(true).OnClick(@<text>function (){OnAttachmentRejectClick();}</text>))
+        }
+        @(Html.DevExtreme().Button().ID("Help_BUT_Show").Text("Show").OnClick(@<text>function (){ AttachmentListGrid.Refresh();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_NEW").Text("New").Icon("add").OnClick(@<text>function (){OnAttachmentNewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_EDIT").Text("Edit").Icon("edit").OnClick(@<text>function (){OnAttachmentEditClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_Link").Text("Link").Icon("unpin").OnClick(@<text>function(){OnAttachmentLinkClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_Unlink").Text("Unlink").Icon("undo").OnClick(@<text>function(){OnAttachmentUnlinkClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_Delete").Text("Delete").Icon("trash").OnClick(@<text>function(){OnAttachmentDeleteClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_DeleteByDescription").Text("Delete By Description").Icon("trash").OnClick(@<text>function(){OnAttachmentDeleteClick_Description();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_View").Text("View").Icon("doc").OnClick(@<text>function(){OnAttachmentViewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_PRINT").Text("Export").Icon("save").OnClick(@<text>function(){OnAttachmentListPreviewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_Fulldata").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick(@<text>function(){Help_AttachmentchangeMode();}</text>))
+        @(Html.DevExtreme().Button().ID("Help_BUT_CLOSE").Text("Close").Icon("clear").OnClick(@<text>function (){btnCloseClick();}</text>))
+        <br>
+        @*</div>*@
+    </div><!--[Buttons]-->
+</div><!--[Header]-->        
+    </div>
+<div class="parent_table" id="HelpAttachmentGrid_Div">
+    <form id="AttachmentreloadPartialView">      
+            @Html.Partial("Frm_Attachment_Info_Grid", Model)
+      
+    </form>
+</div><!--[Grid]-->
+<div class="footer-MainBoxdiv full-width-footer">
+    <div class="list_footer_left_margin col-md-10">
+        <div class="list_footer_left_margin">
+            <p id="AttachmentLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="AttachmentLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div>
+</div><!--[Grid Footer]-->
+@Html.Partial("AttachmentFAB", "HelpAttach_FAB,HelpAttachmentGrid_Div,Type3,HelpAttachment")
+
+@(Html.DevExtreme().Popup().CustomPopup()
+                  .ID("Attachment_report_modal").Title("Attachment List Preview").FullScreen(true)
+                  .ShowCloseButton(true).ContentTemplate(@<Text>id='Attachment_report_modal_result'></Text>))
+
+    </div>
+<script>
+    function OnAttachmentDeleteClick_Description() {
+        $.ajax({
+            type: 'GET',
+            cache: false,
+            url: "/Help/Attachment/Frm_Attachment_DeleteByDescription",
+            data:
+            {
+            },
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, "Information");
+                }
+                else
+                {
+                    OpenPopup("DeleteByDescriptionPopup", "Delete by Description", null, "auto", "30%", true, data);
+                }
+            }
+        });
+    }
+    </script>
+<script>
+    function On_HelpAttachment_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName == "InitialViewDocumentClick")
+        {
+            if (helpViewright == false)
+            {
+                DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+                return;
+            }
+            //if (AttachmentListGrid.GetFocusedRowIndex() < 0)
+            //{
+            //    DevExpress.ui.dialog.alert("Please Select A Row..!!", "Inform..");
+            //    return;
+            //}
+            if (Help_Rec_ID == null || Help_Rec_ID.length == 0) {
+                DevExpress.ui.dialog.alert("No Document Selected To View..", "Information..");
+                return;
+            }
+              var FAB_ID = "@CalledFromOtherScreen" == "UniversalDocumentPopup" ?"UniversalDoc_FAB" : "HelpAttach_FAB";
+            if ("@CalledFromOtherScreen".length > 0)
+            {
+
+                if ("@CalledFromOtherScreen" == "UniversalDocumentPopup")
+                {
+                    ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('BottomRightPane_Iframe'), document.getElementById('BottomRightPane_Img'), document.getElementById('BottomRightPane_div_Iframe'), document.getElementById('BottomRightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                       var popupid = "#" + "@CalledFromOtherScreen";
+                    $(popupid).dxPopup("hide");
+                }
+                else
+                {
+                    ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+            }
+            else
+            {
+                ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+        }
+        else if (e.actionName === "Rotate") {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut") {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn") {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit") {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "ViewAttachmentContext");
+        }
+    }
+</script>@* FAB *@
+<script type="text/javascript">
+    var HelpAttachment_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var helpnewright;
+    var helpeditright;
+    var helpDeleteright;
+    var helpViewright;
+    var helpExportright;
+    var helpSuperuser_auditor = false;
+    var Help_Rec_ID;
+    var Help_Ref_ID;
+    var Help_FileName;
+    var Help_Checked;
+    var Help_AddBy;
+    var Help_AddOn;
+    var Help_EditBy;
+    var Help_Editon;
+    var Help_Attach_ActionStatus;
+    var Help_CheckingStatus;
+    var AttachmentGrid_layout = null;
+    var AttachmentFocusRowIndexBeforeRefresh;
+    var Attachment_IsVouchingMode=false
+    function Attachment_VouchingSwitch_ValueChange(e)
+    {
+        Attachment_IsVouchingMode = e.value;
+
+        AttachmentListGrid.PerformCallback();
+
+    }
+    $(document).ready(function ()
+    {
+        HideUnreleasedFunctionality('Frm_Attachment_Info');
+        if ("@Help_Attachments_AddRight" == "False")
+        {
+            helpnewright = false;
+            $("#Help_BUT_NEW").hide();
+        }
+        else
+        {
+            helpnewright = true;
+        }
+        if ("@Help_Attachments_UpdateRight" == "False")
+        {
+            helpeditright = false;
+            $("#Help_BUT_EDIT").hide();
+        }
+        else
+        {
+            helpeditright = true;
+        }
+        if ("@Help_Attachments_DeleteRight" == "False")
+        {
+            helpDeleteright = false;
+            $("#Help_BUT_Delete").hide();
+            $("#Help_BUT_Unlink").hide();
+        }
+        else
+        {
+            helpDeleteright = true;
+        }
+        if ("@Help_Attachments_ViewRight" == "False")
+        {
+            helpViewright = false;
+            HelpAttach_FAB.SetVisible(false);
+        }
+        else
+        {
+            helpViewright = true;
+        }
+        if ("@Help_Attachments_ExportRight" == "False")
+        {
+            helpExportright = false;
+            $("#Help_BUT_PRINT").hide();
+        }
+        else
+        {
+            helpExportright = true;
+        }
+        if ("@HelpSuperuser_Auditor" == "False")
+        {
+            helpSuperuser_auditor = false;
+        }
+        else
+        {
+            helpSuperuser_auditor = true;
+        }
+        if (Attachment_IsVouchingMode == true) {
+            $(".AttachmentListGrid_PreviewRow").hide();
+        }
+      //  GetSessionStorage("AttachmentListGrid");
+        DevExpress.ui.notify({ message: "Click The Show Button To View The Data", width: "auto", shading: true, position: 'center' }, "info", 1500);
+    });
+    function OnGridAttachmentListGrid_BeginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = HelpAttachment_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Attachment_IsVouchingMode;
+        e.customArgs["RefRecID"] = "@ViewBag.RefRecID";
+    }
+    function OnGridAttachmentListGrid_EndCallback(s, e)
+    {
+
+        Help_AttachmentAdjustSize();
+        AttachmentGrid_layout = s.cpClientLayout;
+        if (Attachment_IsVouchingMode == true)
+        {
+            $(".AttachmentListGrid_PreviewRow").hide();
+        }
+     //   GetSessionStorage("AttachmentListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH")
+        {
+            AttachmentFocusRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            s.SetFocusedRowIndex(-1);
+            s.SetFocusedRowIndex(AttachmentFocusRowIndexBeforeRefresh);
+        }
+        //if (e.command != "REFRESH")
+        //{
+        //    s.SetFocusedRowIndex(-1);
+        //}
+    }
+    function OnAttachmentGridInit(s, e) {
+        Help_AttachmentAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Help_AttachmentAdjustSize();
+        });
+        if ("@filter".length > 0)
+        {
+            AttachmentListGrid.SetFocusedRowIndex(-1);
+            AttachmentListGrid.AutoFilterByColumn("Attachment", "@filter");
+        }
+
+
+    }
+    function Help_AttachmentAdjustSize() {
+        if ("@CalledFromOtherScreen".length > 0) {
+            var height = (document.documentElement.clientHeight * 75) / 100;
+        }
+        else {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+        }
+        try { AttachmentListGrid.SetHeight(height); } catch (err) { }
+    }
+    function OnAttachmentGridFocusedRowChanged(s, e) {
+
+        if (s.GetFocusedRowIndex() <0)
+        {
+            Help_Rec_ID = "";
+            Help_FileName = "";
+        }
+        else
+        {
+            ShowLoader();
+            var index = s.GetFocusedRowIndex();
+            var key = s.GetRowKey(index);
+            //$("#AttachmentListGrid_DXDataRow" + index).css("background-color", "#0072C6");
+            s.GetValuesOnCustomCallback({ key: key }, HelpAttachment_OnGetRowValues);
+        }
+    }
+    function HelpAttachment_OnGetRowValues(Data)
+    {
+        if (Data != null)
+        {
+            var values = Data.split("![");
+            Help_AddBy = values[1];
+            Help_AddOn = values[0];
+            Help_EditBy = values[2];
+            Help_Editon = values[3];
+            Help_Ref_ID = values[4];
+            Help_Checked = values[5];
+            Help_FileName = values[6];
+            Help_Attach_ActionStatus = values[7];
+            Help_CheckingStatus = values[8];
+            Help_Rec_ID = values[9];
+            Attachment_UpdateFooterDetail(Help_AddOn, Help_AddBy, Help_Editon, Help_EditBy)
+            HelpAttach_FAB.SetActionContext("ViewAttachmentContext", true);        
+        }
+        HideLoader();
+    }
+    function Attachment_UpdateFooterDetail(Attachment_Add_Date, Attachment_Add_By, Attachment_Edit_Date, Attachment_Edit_By) {
+
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Add_Date = "";
+        var Add_By = "";
+        var Edit_Date = "";
+        var Edit_By = "";
+        Edit_Date = Attachment_Edit_Date;
+        Edit_By = Attachment_Edit_By;
+        Add_Date = Attachment_Add_Date;
+        Add_By = Attachment_Add_By;
+
+
+        if (Add_Date) {
+            Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, By: " + Add_By;
+        }
+
+        if (Edit_Date) {
+            Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, By: " + Edit_By;
+        }
+
+        $('#AttachmentLbl_Create').text(Lbl_Create);
+        $('#AttachmentLbl_Modify').text(Lbl_Modify);
+
+    }
+    function Help_AttachmentchangeMode()
+    {
+        ShowLoader();
+        if (HelpAttachment_ShowHorizontalBar == 0) {
+            HelpAttachment_ShowHorizontalBar = 1;
+            $("#Help_BUT_Fulldata").find("span").text("Default Data");
+            $("#Help_BUT_Fulldata").width(110);
+        }
+        else {
+            HelpAttachment_ShowHorizontalBar = 0;
+            $("#Help_BUT_Fulldata").find("span").text("Full Data");
+            $("#Help_BUT_Fulldata").width(90);
+        }
+                        $.ajax({
+                            url: '@Url.Action("Frm_Attachment_Info_Grid", "Attachment")',
+                            type: "GET",
+                            data:
+                            {
+                                ShowHorizontalBar: HelpAttachment_ShowHorizontalBar,
+                                Layout: AttachmentGrid_layout,
+                                VouchingMode: Attachment_IsVouchingMode
+
+                            },
+                            success: function (res)
+                            {
+                                HideLoader();
+                                ShowLoader();
+                                $("#AttachmentreloadPartialView").html(res);
+                                HideLoader();
+                                if (Attachment_IsVouchingMode == true) {
+                                    $(".AttachmentListGrid_PreviewRow").hide();
+                                }
+                              //  GetSessionStorage("AttachmentListGrid");
+                            }
+                        });
+
+    }// Full Data Button Click
+</script>@* ready and grid functions *@
+<script>
+    function OnAttachmentNewClick(_DocumentCategory="", _DocumentName="",_DocumentDescription="")
+    {
+        if (helpnewright == true)
+        {
+            $("#ID_Frm_Help_Document_Attach").remove();
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                cache: false,
+                url: "/Help/Attachment/Frm_Attachment_Window",
+                data: {
+                    AM: "New",
+                    DocumentName: _DocumentName,
+                    DocumentCategory: _DocumentCategory,
+                    DocumentDescription: _DocumentDescription,
+                    CallFromHelpAttachment: true
+                },
+                success: function (data)
+                {
+                    OpenDynamicPopup("New Attachment", null, "auto", 900, true, data);
+                }
+            });
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }//New Button Click //Mantis 0000213 bug fixed
+    function OnAttachmentRowDblClick(s, e)
+    {
+        if (Attachment_IsVouchingMode == false)
+        {
+            ShowLoader();
+            OnAttachmentEditClick();
+        }
+    }
+    function OnAttachmentEditClick()
+    {
+        if (helpeditright == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("select A row", 'Inform'); return;
+            }
+            if (Help_Attach_ActionStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Entry Cannot be Edited", "Edit ~ Attachment"); return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/DataNavigation",
+                data: {
+                    AM: "Edit",
+                    ID: Help_Rec_ID,
+                    editon: Help_Editon
+                },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.Message, "Error");
+                    }
+                    else if (data.result == "NoEditRights")
+                    {
+                        $("#Help_BUT_EDIT").hide();
+                        DevExpress.ui.dialog.alert(data.Message, "Warning");
+                    }
+                    else
+                    {
+                        $("#ID_Frm_Help_Document_Attach").remove();
+                        ShowLoader();
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Help/Attachment/Frm_Attachment_Window",
+                            data:
+                            {
+                                AM: "Edit",
+                                ID: Help_Rec_ID
+                            },
+                            cache: false,
+                            success: function (result)
+                            {
+                                OpenDynamicPopup("Edit Attachment",null, "auto", 900, true, result);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }//Mantis 0000213 bug fixed
+    function OnAttachmentViewClick()
+    {
+        if (helpViewright == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("select A row", 'Inform');
+                return;
+            }
+            if (Help_FileName == undefined || Help_FileName == "undefined" || Help_FileName == null || Help_FileName == "")
+            {
+                DevExpress.ui.dialog.alert("No Document To View", 'Inform');
+                return;
+            }
+            ShowLoader();
+
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/CheckViewRight",
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        $("#Help_BUT_VIEW").dxButton("hide");
+                        DevExpress.ui.dialog.alert("Not Allowed!!", 'No Rights');
+                    }
+                    else
+                    {
+                        if (Help_Rec_ID == null || Help_Rec_ID.length == 0)
+                        {
+                            DevExpress.ui.dialog.alert("No Document Selected To View..", "Information..");
+                            return;
+                        }
+                      var FAB_ID = "@CalledFromOtherScreen" == "UniversalDocumentPopup" ?"UniversalDoc_FAB" : "HelpAttach_FAB";
+                        if ("@CalledFromOtherScreen".length > 0)
+                        {
+                            if ("@CalledFromOtherScreen" == "UniversalDocumentPopup")
+                            {
+
+                                ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('BottomRightPane_Iframe'), document.getElementById('BottomRightPane_Img'), document.getElementById('BottomRightPane_div_Iframe'), document.getElementById('BottomRightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                                  var popupid = "#" + "@CalledFromOtherScreen";
+                                $(popupid).dxPopup("hide");
+                            }
+                            else
+                            {
+                                ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                            }
+                        }
+                        else
+                        {
+                            ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                        }
+                    }
+                }
+            });
+            HideLoader();
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }
+    function OnAttachmentDeleteClick()
+    {
+        if (helpDeleteright == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("select A row", 'Inform'); return;
+            }
+            if (Help_Attach_ActionStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Entry Cannot be Deleted", "Delete ~ Attachment"); return;
+            }
+            var result = DevExpress.ui.dialog.confirm("Sure you want to delete?", "Delete ~ Attachment");
+            result.done(function (dialogResult) {
+                if (dialogResult) {
+                    $("#ID_Frm_Help_Document_Attach").remove();
+                    ShowLoader();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Help/Attachment/Frm_Attachment_Window",
+                        data: {
+                            AM: "Delete",
+                            ID: Help_Rec_ID
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            OpenDynamicPopup("Delete Attachment",null, "auto", 900, true, data);
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }//Mantis 0000213 bug fixed
+    }
+    var CashbookPeriod_Attachment = null;
+    var CashBookFromDate_Attachment = null;
+    var CashBookToDate_Attachment = null;
+    function OnAttachmentLinkClick()
+    {
+        if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+        {
+            DevExpress.ui.dialog.alert("Select A row", 'Inform'); return;
+        }
+        if ($("#Cashbook_ParentDiv").length > 0)
+        {
+            DevExpress.ui.dialog.alert("Cashbook Is Already Open<br>Kindly Close Cashbook To Link The Attachment", 'Inform'); return;
+        }
+        ShowLoader();
+        var _url = "";
+        //if ($("div[id = 'CashBookListGrid']").data("dxDataGrid") !== void 0)
+        //{
+        //    _url = "/Account/Voucher/Frm_Voucher_Info_CB";
+        //}
+        //else
+        //{
+            _url = "/Account/Voucher/Frm_Voucher_Info_CB";
+        //}
+        $.ajax({
+            type: 'GET',
+            url: _url,
+            data: {
+                PopupID: "LinkAttachmentToCashbook",
+                AttachmentID: Help_Rec_ID,
+                Period: CashbookPeriod_Attachment,
+                FromDate: CashBookFromDate_Attachment,
+                ToDate:CashBookToDate_Attachment
+            },
+            cache: false,
+            success: function (data)
+            {
+                OpenPopup("LinkAttachmentToCashbook","Link Attachment", null, "auto", "90%", true, data);
+            }
+        });
+    }
+    function OnAttachmentUnlinkClick() {
+        if (helpDeleteright == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("Select A row", 'Inform'); return;
+            }
+            if (Help_Ref_ID == undefined || Help_Ref_ID == "undefined" || Help_Ref_ID == null || Help_Ref_ID == "")
+            {
+                DevExpress.ui.dialog.alert("Attachment Already Unlinked..!", 'Inform'); return;
+            }
+            var result = DevExpress.ui.dialog.confirm("Sure you want to Unlink?", "Unlink ~ Attachment");
+            result.done(function (dialogResult)
+            {
+                if (dialogResult) {
+                    ShowLoader();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Help/Attachment/Frm_Attachment_Unlink",
+                        data: {
+                            ID: Help_Rec_ID,
+                            RefId: Help_Ref_ID
+                        },
+                        cache: false,
+                        success: function (data)
+                        {
+                            if (data.result == false)
+                            {
+                                DevExpress.ui.dialog.alert(data.Message, "Error");
+                            }
+                            else if (data.result == "NoDeleteRights")
+                            {
+                                $("#Help_BUT_Unlink").hide();
+                                DevExpress.ui.dialog.alert(data.Message, "Warning");
+                                AttachmentListGrid.Refresh();
+                                HideLoader();
+                            }
+                            else
+                            {
+                                DevExpress.ui.dialog.alert(data.Message, "Success");
+                                AttachmentListGrid.Refresh();
+                            }
+                        }
+                    });
+                    HideLoader();
+                }
+            });
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }
+    function OnAttachmentAcceptClick()
+    {
+        if (helpSuperuser_auditor == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("Select A row", 'Inform'); return;
+            }
+            if (Help_CheckingStatus == "ACCEPTED")
+            {
+                DevExpress.ui.dialog.alert("Attachment Already Accepted..!", 'Inform'); return;
+            }
+            ShowLoader();
+
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/Frm_Attachment_Check",
+                data: {
+                    ID: Help_Rec_ID,
+                },
+                cache: false,
+                success: function (data) {
+                    if (data.result == false) {
+                        DevExpress.ui.dialog.alert(data.Message, "Error");
+                    }
+                    else if (data.result == "NoSuperuser_Auditor_Check_UncheckRights")
+                    {
+                        $("#Help_BUT_Accept").hide();
+                        DevExpress.ui.dialog.alert(data.Message, "Warning");
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.Message, "Success");
+                        AttachmentListGrid.Refresh();
+                    }
+                }
+            });
+            HideLoader();
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }
+    function OnAttachmentRejectClick()
+    {
+        if (helpSuperuser_auditor == true)
+        {
+            if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+            {
+                DevExpress.ui.dialog.alert("Select A row", 'Inform'); return;
+            }
+            if (Help_CheckingStatus == "REJECTED")
+            {
+                DevExpress.ui.dialog.alert("Attachment Already Rejected..!", 'Inform'); return;
+            }
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/Frm_Attachment_RejectReason",
+                cache: false,
+                data: { ID: Help_Rec_ID,},
+                success: function (data)
+                {
+                    HideLoader();
+                    OpenPopup("Attachment_Reason_popup", "Reason", null, "auto", 330, true, data);
+                }
+            });
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }
+    function OnAttachmentUnLockClick()
+    {
+        if (helpSuperuser_auditor == false)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+            return;
+        }
+        if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "")
+        {
+            DevExpress.ui.dialog.alert("Select A row", 'Inform');
+            return;
+        }
+        if (Help_Attach_ActionStatus.toUpperCase() == "UNLOCKED")
+        {
+            DevExpress.ui.dialog.alert("Document Already Unlocked..", 'Inform');
+            return;
+        }
+
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Attachment/Frm_Attachment_UnLock",
+                data:
+                {
+                    ID: Help_Rec_ID,
+                },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.Message, "Error");
+                    }
+                    else
+                    {
+                        DevExpress.ui.dialog.alert(data.Message, "Success");
+                        AttachmentListGrid.Refresh();
+                    }
+                }
+            });
+            HideLoader();
+        }
+    function OnAttachmentLockClick()
+    {
+        if (helpSuperuser_auditor == false) {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+            return;
+        }
+        if (Help_Rec_ID == undefined || Help_Rec_ID == "undefined" || Help_Rec_ID == null || Help_Rec_ID == "") {
+            DevExpress.ui.dialog.alert("Select A row", 'Inform');
+            return;
+        }
+        if (Help_Attach_ActionStatus.toUpperCase() == "LOCKED") {
+            DevExpress.ui.dialog.alert("Document Already Locked..", 'Inform');
+            return;
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Lock",
+            data:
+            {
+                ID: Help_Rec_ID,
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.Message, "Error");
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.Message, "Success");
+                    AttachmentListGrid.Refresh();
+                }
+            }
+        });
+        HideLoader();
+    }
+    function ContextMenuFunction(s, e) {
+
+        if (Help_Rec_ID == "" || Help_Rec_ID == undefined || Help_Rec_ID == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        else {
+            if (e.item.name == 'New') {
+                OnAttachmentNewClick();
+            }
+            if (e.item.name == 'Close') {
+                btnCloseActiveTab();
+            }
+            else if (e.item.name == 'Edit') {
+                OnAttachmentEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                OnAttachmentDeleteClick();
+            }
+            else if (e.item.name == 'Unlink') {
+                OnAttachmentUnlinkClick();
+            }
+            else if (e.item.name == 'MarkAccept') {
+                OnAttachmentAcceptClick();
+            }
+            else if (e.item.name == 'MarkReject') {
+                OnAttachmentRejectClick();
+            }
+            else if (e.item.name == 'View')
+            {
+                if (Help_Rec_ID == null || Help_Rec_ID.length == 0) {
+                    DevExpress.ui.dialog.alert("No Document Selected To View..", "Information..");
+                    return;
+                }
+                var FAB_ID = "@CalledFromOtherScreen" == "UniversalDocumentPopup" ?"UniversalDoc_FAB" : "HelpAttach_FAB";
+                if ("@CalledFromOtherScreen".length > 0)
+                {
+                    if ("@CalledFromOtherScreen" == "UniversalDocumentPopup") {
+
+                        ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('BottomRightPane_Iframe'), document.getElementById('BottomRightPane_Img'), document.getElementById('BottomRightPane_div_Iframe'), document.getElementById('BottomRightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                                  var popupid = "#" + "@CalledFromOtherScreen";
+                        $(popupid).dxPopup("hide");
+                    }
+                    else
+                    {
+                        ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                }
+                else
+                {
+                    ViewDocument(Help_Rec_ID, Help_FileName, FAB_ID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    //OnAttachmentViewClick();
+                }
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnAttachmentListPreviewClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                AttachmentListGrid.Refresh();
+            }
+            else if (e.item.name == 'Lock')
+            {
+                OnAttachmentLockClick();
+            }
+            else if (e.item.name == 'unLock')
+            {
+                OnAttachmentUnLockClick();
+            }
+        }
+    }
+    function ContextMenuInit(s, e)
+    {
+        if (e.objectType == "row")
+        {
+            var menuNewItemSelected = e.menu.GetItemByName("New");
+            menuNewItemSelected.SetVisible(helpnewright);
+            var menuEditItemSelected = e.menu.GetItemByName("Edit");
+            menuEditItemSelected.SetVisible(helpeditright);
+            var menuDeleteItemSelected = e.menu.GetItemByName("Delete");
+            menuDeleteItemSelected.SetVisible(helpDeleteright);
+            var menuViewItemSelected = e.menu.GetItemByName("View");
+            menuViewItemSelected.SetVisible(helpViewright);
+            var menuExportItemSelected = e.menu.GetItemByName("ListPreview");
+            menuExportItemSelected.SetVisible(helpExportright);
+            var menuAddJobItemSelected = e.menu.GetItemByName("Unlink");
+            menuAddJobItemSelected.SetVisible(helpDeleteright);
+
+            e.menu.GetItemByName("MarkAccept").SetVisible(helpSuperuser_auditor);
+            e.menu.GetItemByName("MarkReject").SetVisible(helpSuperuser_auditor);
+            //e.menu.GetItemByName("MarkAccept").SetVisible(helpSuperuser_auditor);
+            //e.menu.GetItemByName("MarkReject").SetVisible(helpSuperuser_auditor);
+            e.menu.GetItemByName("Lock").SetVisible(helpSuperuser_auditor);
+            e.menu.GetItemByName("unLock").SetVisible(helpSuperuser_auditor);
+
+        }
+    }
+
+    function OnAttachmentListPreviewClick()
+    {
+        if (helpExportright == true)
+        {
+            OpenPopup("Attachment_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Attachment", new { @area = "Help" })", "auto", 125);
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Not Allowed !!", "No Rights");
+        }
+    }//List Preview Button Click
+
+
+    function btnCloseClick() {
+        if ("@CalledFromOtherScreen".length > 0)
+        {
+            var popupid = "#" + "@CalledFromOtherScreen";
+            $(popupid).dxPopup("hide");
+
+            var pane = Mainspliter.GetPaneByName('RightPane');
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+        else
+        {
+            btnCloseActiveTab();
+        }
+    }
+            $(".TabPanalMenu-tabs .active span").on("click", function ()
+            {
+                $.ajax({
+                    url: "/Help/Attachment/SessionClearInfo",
+                    type: "GET"
+                });
+                var pane = Mainspliter.GetPaneByName('RightPane');
+                pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                ClearAllReferences_Attachment();
+            });
+    $(function ()
+    {
+        if ("@CalledFromOtherScreen".length > 0)
+        {
+            if ("@CalledFromOtherScreen" != "Dynamic_Content_popup") {
+                $("#" + "@CalledFromOtherScreen").dxPopup({
+                    onHiding: function (e) {
+                        $.ajax({
+                            url: "/Help/Attachment/SessionClearInfo",
+                            type: "GET"
+                        });
+                        //$("#HelpAttachment_ParentDiv").remove();
+                    }
+                });
+            }
+            else
+            {
+                sessionclearpath = "/Help/Attachment/SessionClearInfo";
+            }
+        }
+    });
+    function ClearAllReferences_Attachment()
+    {
+        CashbookPeriod_Attachment = null;
+        CashBookFromDate_Attachment = null;
+        CashBookToDate_Attachment = null;
+        HelpAttachment_ShowHorizontalBar = null;
+        helpnewright = null;
+        helpeditright = null;
+        helpDeleteright = null;
+        helpViewright = null;
+        helpExportright = null;
+        helpSuperuser_auditor = null;
+        Help_Rec_ID = null;
+        Help_Ref_ID = null;
+        Help_FileName = null;
+        Help_Checked = null;
+        Help_AddBy = null;
+        Help_AddOn = null;
+        Help_EditBy = null;
+        Help_Editon = null;
+        Help_Attach_ActionStatus = null;
+        Help_CheckingStatus = null;
+        AttachmentGrid_layout = null;
+        AttachmentFocusRowIndexBeforeRefresh = null;
+        Attachment_IsVouchingMod = null;
+        ClearAllReferences("Attachment_ClearReferences");
+    }
+    @*$(function ()
+    {
+        if ("@CalledFromOtherScreen".length > 0) {
+            $("#" + "@CalledFromOtherScreen").dxPopup({
+                onHiding: function (e) {
+                    $("#HelpAttachment_ParentDiv").remove();
+                }
+            });
+        }
+    });*@
+</script>@* actions *@
+    </div>
+

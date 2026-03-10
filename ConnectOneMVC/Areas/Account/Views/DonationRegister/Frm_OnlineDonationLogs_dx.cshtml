@@ -1,0 +1,102 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@{
+
+    int ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    var gatewayBanksList = ViewBag.gatewayBanksCount;
+    string UserType = (string)ViewBag.UserType;
+    bool DonationReg_ExportRight = (bool)ViewData["DonationReg_ExportRight"];
+    bool DonationReg_Auto_Vouching_Mode = (bool)ViewData["DonationReg_Auto_Vouching_Mode"];
+}
+<style>
+    #DonationLogs_ParentDiv_dx h3 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 20vh;
+        margin: 0;
+        font-size: 18px;
+        text-align: center;
+    }
+</style>
+
+<div id="DonationLogs_ParentDiv_dx">
+    <div id="content" class="report_header_div_main">
+        @*Buttons*@
+        <div class="report_button_div">
+
+            @(Html.DevExtreme().Button().ID("DonLogsToggleScrollBar_dx").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                .Icon("toolbox").OnClick("DonLogschangeMode_dx").Visible(gatewayBanksList>0?true:false)
+            )
+            @(Html.DevExtreme().Button().ID("DonLogsModelListPreview")
+                .Text("Export").Icon("save").Width(85)
+                .OnClick("OnDonLogsListPreviewClick").Visible(gatewayBanksList > 0 ? true : false)
+            )
+            @(Html.DevExtreme().Button().ID("DonLogsModelCLOSE")
+                .Text("Close").Icon("clear").OnClick("closeDonationRegister")
+            )
+        </div>
+    </div>
+
+        @if (gatewayBanksList > 0)
+        {
+
+            @(Html.DevExtreme().DataGrid().CustomDataGridListing(ShowHorizontalBar).ID("DonRegister_Gateway_Logs_dx").OnRowPrepared("DonLogs_onRowPrepared")
+                .DataSource(d => d.Mvc().Controller("DonationRegister").LoadAction("Donation_Payment_Gateway_Logs_Grid_Load").LoadMode(DataSourceLoadMode.Raw).Key("REC_ID"))
+                .Columns(columns =>
+                {
+                    columns.Add().DataField("SummaryColumn").Name("SummaryColumn").Caption("SummaryColumn").Visible(false).ShowInColumnChooser(false);
+                    columns.Add().DataField("DonationDate").Caption("Date").MinWidth(90).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy").SortOrder(SortOrder.Desc);
+                    columns.Add().DataField("DONATION_AMOUNT").Caption("Amount").MinWidth(65).DataType(GridColumnDataType.Number).Format("#0.00;");
+                    columns.Add().DataField("DONOR_NAME").Caption("Donor Name").Width(175);
+                    columns.Add().DataField("DONOR_MOBILE").Caption("Mobile No.").MinWidth(85);
+
+                    columns.Add().DataField("DONOR_PAN").Caption("PAN").MinWidth(100);
+                    columns.Add().DataField("REFERENCE_ID").Caption("Txn Ref No").MinWidth(65).Visible(true).DataType(GridColumnDataType.String);
+                    columns.Add().DataField("PAYMENT_MODE").Caption("Mode").MinWidth(40).Visible(true);
+                    columns.Add().DataField("PAYMENT_TYPE").Caption("Type").MinWidth(40).Visible(true);
+
+                    columns.Add().DataField("DONOR_ADDRESS").Caption("Address").Width(350);
+                    columns.Add().DataField("CO_NAME").Caption("Country").MinWidth(85);
+                    columns.Add().DataField("ST_NAME").Caption("State").MinWidth(100);
+                    columns.Add().DataField("DI_NAME").Caption("District").MinWidth(100);
+                    columns.Add().DataField("CI_NAME").Caption("City").MinWidth(100);
+                    columns.Add().DataField("DONOR_EMAIL").Caption("Email ID").MinWidth(65);
+                    columns.Add().DataField("DONOR_PINCODE").Caption("Pincode").MinWidth(65);
+                    columns.Add().DataField("CEN_ACC_NO").Caption("A/c No.").MinWidth(100).GroupIndex(0).GroupCellTemplate(new JS("DonLogs_dx_GroupCell_Template"));
+                    columns.Add().DataField("BI_BANK_NAME").Caption("Bank Name").MinWidth(65).Visible(false);
+                    columns.Add().DataField("DONOR_AADHAR").Caption("Aadhar No.").MinWidth(65);
+                    columns.Add().DataField("DONOR_REMARKS").Caption("Donor Remarks").Width(200);
+                    columns.Add().DataField("RESULT").Caption("Result").MinWidth(65).GroupIndex(1);
+                    columns.Add().DataField("CEN_SID").Caption("CEN_SID").MinWidth(65).Visible(false);
+                    columns.Add().DataField("TRACK_ID").Caption("TRACK_ID").MinWidth(65).Visible(false);
+                    columns.Add().DataField("PAYMENT_ID").Caption("PAYMENT_ID").MinWidth(65).Visible(false);
+                    columns.Add().DataField("DONATION_DATE").Caption("Date").MinWidth(90).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy")/*.SortOrder(SortOrder.Desc)*/.Visible(false).ShowInColumnChooser(false);
+                     columns.Add().DataField("TRANSACTION_ID").Caption("TRANSACTION_ID").MinWidth(65).Visible(false);
+                }).OnInitialized("DonLogsListGrid_dx_OnInitialized").NoDataText("No Data to Display")
+                    .OnContextMenuPreparing("DonLogsListGrid_dx_OnContextMenuPreparing")
+           
+                 .Summary(s =>
+
+                 {
+                     s.TotalItems(item => item.Add().Name("DONATION_AMOUNT_DONATION_AMOUNT_sum").SummaryType(SummaryType.Sum)
+                     .Column("DONATION_AMOUNT").ValueFormat(new JS("function(value){return DxGrid_FormatNumber(value)}")));
+
+                     s.GroupItems(item => item.Add().Name("DONATION_AMOUNT_DONATION_AMOUNT_sum").SummaryType(SummaryType.Sum).Column("DONATION_AMOUNT")
+                     .ShowInGroupFooter(true).ValueFormat(new JS("function(value){return DxGrid_FormatNumber(value)}")));
+
+
+                     //s.RecalculateWhileEditing(true);
+                 })
+                 .OnContentReady("DonLogsListGrid_dx_OnContentReady")                
+            )
+        }
+        else
+        {
+            <h3>Only Bank of Baroda account holders can avail the facility of receiving donations through online donation gateway. <br />Seems you have not availed this facility yet. <br /><br />For any enquiries, please contact BK Pankaj Bhai, Shantivan at 9898647991</h3>
+        }
+
+
+</div>

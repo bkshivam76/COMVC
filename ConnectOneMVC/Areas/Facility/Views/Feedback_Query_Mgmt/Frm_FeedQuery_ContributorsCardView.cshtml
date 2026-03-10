@@ -1,0 +1,131 @@
+﻿
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    var firstuserid = ViewBag.firstuserid;
+    var rwcnt = ViewBag.rowcount_contr;
+}
+@Html.DevExpress().CardView(
+settings =>
+{
+    settings.Name = "Frm_FeedQuery_ContributorsSection";
+    settings.CallbackRouteValues = new
+    {
+        Controller = "Feedback_Query_Mgmt",
+        Action = "Frm_FeedQuery_ContributorsCardView",
+        Area = "Facility",
+        //gridname = gridname,
+        SessionGUID = SessionGUID
+    };
+    //settings.SettingsSearchPanel.Visible = true;
+    settings.SettingsPager.EnableAdaptivity = true;
+    settings.KeyFieldName = "FQI_REC_ID";
+    //settings.Theme = "MaterialCompact";
+    //settings.CardLayoutProperties.ColumnCount = 3;
+    if(Model != null)
+    {
+        if (((System.Data.DataRowCollection)Model.Rows).Count > 0)
+        {
+            settings.CustomJSProperties = (s, e) =>
+            {
+                MVCxCardView cardView = (MVCxCardView)s;
+                cardView.JSProperties["cpfirstuserid"] = Model.Rows[0]["USERID"];
+                cardView.JSProperties["cpfeed_qry_recid"] = Model.Rows[0]["FQI_REC_ID"];
+                cardView.JSProperties["cpusername"] = Model.Rows[0]["USERNAME"];
+                cardView.JSProperties["cpisanonymous"] = Model.Rows[0]["IS_ANONYMOUS"];
+                cardView.JSProperties["cpreferenceName"] = Model.Rows[0]["FQI_REFERENCE"];
+                cardView.JSProperties["cpreferenceRecid"] = Model.Rows[0]["FQI_REFERENCE_REC_ID"].ToString();
+            };
+        }
+    }
+
+    string card_view_img_url = "";
+    //settings.Columns.Add(column =>
+    //{
+    //    column.FieldName = "USERNAME";
+    //    column.Visible = true;        
+    //});
+    settings.Columns.Add(column =>
+    {
+        column.Name = "EventDetails_Compact_Column";
+        column.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        column.ExportCellStyle.Wrap = DefaultBoolean.True;
+        column.SetDataItemTemplateContent(c =>
+        {
+            var feedcount = DataBinder.Eval(c.DataItem, "FEED_COUNT").ToString();
+            var Querycount = DataBinder.Eval(c.DataItem, "QUERY_COUNT").ToString();
+            var Unreadcount = DataBinder.Eval(c.DataItem, "UNREADCOUNT").ToString();
+            if (Unreadcount == Convert.ToString(0))
+            {
+                Unreadcount = Convert.ToString("");
+            }
+            var UserName = DataBinder.Eval(c.DataItem, "USERNAME").ToString();
+            var feed_qry_info_recid = DataBinder.Eval(c.DataItem, "FQI_REC_ID").ToString();
+            var eventrecid = DataBinder.Eval(c.DataItem, "EventRECID").ToString();
+            var userid = DataBinder.Eval(c.DataItem, "USERID").ToString();
+            var userabid = DataBinder.Eval(c.DataItem, "FQI_AB_ID") == null ? "" : DataBinder.Eval(c.DataItem, "FQI_AB_ID").ToString();
+            var username = DataBinder.Eval(c.DataItem, "USERNAME").ToString();
+            username = username.Replace(" ", "_");
+            //username = username.Replace(".", "-");
+            card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+            var isanonymous = (int)DataBinder.Eval(c.DataItem, "IS_ANONYMOUS");
+            //card_view_img_url = DataBinder.Eval(c.DataItem, "User_Image").ToString();
+            var isanonymousbool = true;
+            if (isanonymous == 1)
+            {
+                isanonymousbool = true;
+                card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/soul.png";
+            }
+            else
+            {
+                isanonymousbool = false;
+                card_view_img_url = DataBinder.Eval(c.DataItem, "USER_IMAGE").ToString();
+                if(card_view_img_url == "")
+                {
+                    card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/no_image.jpg";
+                }
+            }
+            var referenceName = DataBinder.Eval(c.DataItem, "FQI_REFERENCE").ToString();
+            var referenceRecid = DataBinder.Eval(c.DataItem, "FQI_REFERENCE_REC_ID").ToString();
+
+
+            ViewContext.Writer.Write(
+                "<div class='user-details'>" + //Active class will be included on selection
+                    "<a class='clearfix' onclick = getdetailrecords('" + eventrecid + "','"+ userid +"','"+ feed_qry_info_recid + "','" + username + "','" +
+                                isanonymousbool + "','" + userabid + "','" + referenceName + "','" + referenceRecid + "')>" +
+                        "<div class='col-xs-3 p-r-5 p-l-0'>" +
+                            "<img src=" + card_view_img_url + " class='user-img img-circle' alt='users-img'> " +
+                        "</div>" +
+                        "<div class='col-xs-9 p-l-5 p-r-0 p-l-0'>" +
+                            "<p>"+ UserName +"</p>" +
+                            "<b><span>" + feedcount + "</span> Feedback | <span>" + Querycount + "</span> Query <span class='badge badge-danger'>"+ Unreadcount +"</span></b>" +
+                        "</div>" +
+                    "</a>" +
+                "</div>	");
+        });
+    });
+
+    //Dynamically set total columns depending on the total rows
+    settings.SettingsPager.SettingsTableLayout.ColumnCount = 1;
+    settings.SettingsPager.Summary.Visible = true;
+    settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+    //settings.SettingsPager.EndlessPagingMode = CardViewEndlessPagingMode.OnScroll;
+    //settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.Styles.BreakpointsCard.Height = 320;
+
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.CardsPerRow = 3;
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.XLarge, 5);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Large, 4);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Medium, 2);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Small, 1);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(450, 1);
+
+    settings.ClientSideEvents.BeginCallback = "FeedQueryContrSec_BeginCallback";
+    settings.ClientSideEvents.EndCallback = "FeedQueryContrSec_EndCallback";
+    settings.ClientSideEvents.Init = "FeedQueryContrSec_Init";
+}).Bind(Model).GetHtml()
+
+
+
+

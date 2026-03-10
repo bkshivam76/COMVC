@@ -1,0 +1,124 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.PropertyWindowProfile
+@{ var isvisible = Model != null && (Model.TempActionMethod.ToString().Trim() == "_View" || Model.TempActionMethod.ToString().Trim() == "_Delete") ? true : false;}
+<style>
+    .extprop_buttons > div {
+        height: 49px;
+    }
+</style>
+<div class="row">
+    <div class="col-md-11">
+        @Html.Action("SetGridData", "Property", new { ActionMethodName = Model.TempActionMethod, ID = Model.xID })
+    </div>
+    <div class="col-md-1 extprop_buttons">
+        @(Html.DevExtreme().Button() .ID("BUT_NEW_LBW").Text("New").Icon("add").Width("100%").Disabled(isvisible).OnClick(@<text> function () { OnFrm_Property_Window_Ext_PopUp_NewClick_LBW() } </text>))
+        @(Html.DevExtreme().Button() .ID("BUT_EDIT_LBW").Text("Edit").Icon("edit").Width("100%").Disabled(isvisible).OnClick(@<text> function () { OnFrm_Property_Window_Ext_PopUp_EditClick_LBW() } </text>) )
+        @(Html.DevExtreme().Button() .ID("BUT_DELETE_LBW").Text("Delete").Icon("trash").Width("100%").Disabled(isvisible).OnClick(@<text> function () { OnExtendedPropertyGridDeleteClick_LBW() } </text>) )
+    </div>
+</div>
+<script>
+    var ExtendedProperty_LBW_Sr;
+    function OnExtendedPropertyGrid_LBW_FocusedRowChanged(s, e)
+    {
+        ExtendedProperty_LBW_Sr = s.GetRowKey(s.GetFocusedRowIndex());
+    }
+    function OnFrm_Property_Window_Ext_LBW_EditClick(s, e)
+    {
+        OnFrm_Property_Window_Ext_PopUp_EditClick_LBW();
+    }
+    function OnFrm_Property_Window_Ext_LBW_ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New') {
+            OnFrm_Property_Window_Ext_PopUp_NewClick_LBW();
+        }
+        if (e.item.name == 'Close') {
+            closeProfile_Property();
+        }
+        else if (e.item.name == 'Edit') {
+            OnFrm_Property_Window_Ext_PopUp_EditClick_LBW();
+        }
+        else if (e.item.name == 'Delete') {
+            OnExtendedPropertyGridDeleteClick_LBW();
+        }
+    }
+    function OnExtendedPropertyGridDeleteClick_LBW(e)
+    {
+        if ("@isvisible" == "False")
+        {
+            if (ExtendedProperty_LBW_Sr == 'undefined' || ExtendedProperty_LBW_Sr == undefined || ExtendedProperty_LBW_Sr == null)
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+                return;
+            }
+            var deleteResultExtendedProperty = DevExpress.ui.dialog.confirm('Sure you want to Delete this Entry...?', "Confirm changes");
+            deleteResultExtendedProperty.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Profile/Property/Frm_Property_Window_Delete_Grid_Record",
+                        data: { ActionMethod: "Delete", SrID: ExtendedProperty_LBW_Sr },
+                        cache: false,
+                        success: function (result)
+                        {
+                            Property_ExtendedPropertyGrid_LBW.SetFocusedRowIndex(-1);
+                            Property_ExtendedPropertyGrid_LBW.Refresh();
+                        }
+                    });
+                }
+            });
+        }
+    }
+    function OnFrm_Property_Window_Ext_PopUp_NewClick_LBW()
+    {      
+        if ("@isvisible" == "False")
+        {
+            ShowLoader();
+            OpenPopup("Frm_Property_Window_Property_Ext_popup", "New ~ Extended Property", "@Url.Action("Frm_Property_Window_Ext", "Property", new { @area = "Profile" })?ActionMethod=_New", "auto", 785, false, null);
+        }
+    }
+    function OnFrm_Property_Window_Ext_PopUp_EditClick_LBW()
+    {
+        if ("@isvisible" == "False")
+        {
+            if (ExtendedProperty_LBW_Sr != null && ExtendedProperty_LBW_Sr != undefined && ExtendedProperty_LBW_Sr != "undefined")
+            {
+                ShowLoader();
+                OpenPopup("Frm_Property_Window_Property_Ext_popup", "Edit ~ Extended Property", "@Url.Action("Frm_Property_Window_Ext", "Property", new { @area = "Profile" })?ActionMethod=_Edit&SrID=" + ExtendedProperty_LBW_Sr, "auto",785, false, null);
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Please Select one row', 'Alert');
+            }
+        }
+    }
+    function Frm_Property_Window_Ext_LBW_OnSuccess(data)
+    {
+        HideLoader();
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+        }
+        else if (data.jsonParam.result == true)
+        {
+            $("#Frm_Property_Window_Property_Ext_popup").dxPopup("hide");
+            Property_ExtendedPropertyGrid_LBW.SetFocusedRowIndex(-1);
+            Property_ExtendedPropertyGrid_LBW.Refresh();
+        }
+    }
+</script>

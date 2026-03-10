@@ -1,0 +1,620 @@
+﻿<div class="Recommendation_SummaryFacility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @*@model IEnumerable<dynamic>*@
+    @model System.Data.DataTable
+    @{
+        string chartInstanceID = (string)ViewBag.chartInstanceID;
+        //bool chartApprovalRequired = (bool)ViewBag.isApprovalRequired;
+        string summary_type = (string)ViewBag.summary_type;
+    }
+    <style>
+        #refreshInterval_AccomSummary {
+            max-width: 40px;
+            display: inline-block
+        }
+
+            #refreshInterval_AccomSummary + b {
+                display: inline-block
+            }
+
+        .show_Btn {
+            padding: 16px 0 0 0;
+            margin-right: 20px;
+            max-width: 80px;
+        }
+
+            .show_Btn .form-field {
+                border-right: 1px solid #ddd
+            }
+
+        @@media (max-width:768px) {
+            .show_Btn {
+                padding: 0 13px
+            }
+
+                .show_Btn .form-field {
+                    border-right: none;
+                }
+
+            #recommendationSummary_Filters_Div > div {
+                margin-bottom: 5px;
+            }
+
+                #recommendationSummary_Filters_Div > div.set_Interval {
+                    padding: 2px 17px
+                }
+        }
+    </style>
+    <div class="report_header_div_main">
+        <div class="clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">@ViewBag.summary_type</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Button().ID("Recommendation_SummaryInfoModelListPreview").Text("List Preview").Icon("save").OnClick("OnRecommendation_SummaryInfoListPreviewClick"))
+                @(Html.DevExtreme().Button().ID("Recommendation_SummaryInfoModelCLOSE").Text("Close").Icon("clear").OnClick("closeRecommendation_SummaryInfo") )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="RecommendationSummary_gridDiv">
+            <form>
+                <div id="recommendationSummary_Filters_hdr" class="filhdr" onclick="recommendationSummary_FilterToggle()">
+                    <span>Click to Hide Filters</span>
+                    <i class="bx bx-up-arrow-alt"></i>
+                </div>
+
+                <script>
+                    function recommendationSummary_FilterToggle() {
+                        var div = document.getElementById("recommendationSummary_Filters_Div");
+                        if (div.style.display !== "none") {
+                            div.style.display = "none";
+                            $("#recommendationSummary_Filters_hdr").find('span').text("Click to Show Filters");
+                            $("#recommendationSummary_Filters_hdr").find('i').removeClass('bx-up-arrow-alt').addClass('bx-down-arrow-alt');
+                        }
+                        else {
+                            div.style.display = "block";
+                            $("#recommendationSummary_Filters_hdr").find('span').text("Click to Hide Filters")
+                            $("#recommendationSummary_Filters_hdr").find('i').removeClass('bx-down-arrow-alt').addClass('bx-up-arrow-alt');
+                        }
+
+                    }
+                    function Accom_Register_filterBy_ValueChange(e) {
+                        filterBy_AcommRgstr = e.value;
+                    }
+                </script>
+
+                <div class="row" style="padding:10px;display:none" id="recommendationSummary_Filters_Div">
+
+                    <div class="col-sm-2">
+                        <div class="form-field">
+                            <label class="control-label text-red" for="user">From Date:</label>
+                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("fromdate_AccSummr").Name("fromdate_AccSummr").ShowClearButton(true).Value(ViewBag.fromdate)
+                                .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))//.OnValueChanged("fromdate_Valuechanged_Accom")
+                            )
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-field">
+                            <label class="control-label text-red" for="user">To Date:</label>
+                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_AccSummr").Name("todate_AccSummr").ShowClearButton(true).Value(ViewBag.todate)
+                                    .Type(DateBoxType.Date).Placeholder("To Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31))//.OnValueChanged("todate_Valuechanged_Accom")
+                                )
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Service Report/Event</label>
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Event_AccSummr").ID("Event_AccSummr").Placeholder("Choose..").DisplayExpr("Name").ValueExpr("ID")
+                                   .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_EventsList").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                            .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Event_AccSummr_datagrid")
+                                    .Columns(columns =>
+                                    {
+                                        columns.Add().DataField("Name").Caption("Name");
+                                        columns.Add().DataField("ID").Visible(false);
+                                        columns.Add().DataField("ProjID").Visible(false);
+                                        columns.Add().DataField("Type");
+                                        columns.Add().DataField("FromDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("ToDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                        columns.Add().DataField("Venue");
+                                    })
+                                    .Selection(s => s.Mode(SelectionMode.Single))
+                                    .FilterRow(s=>s.Visible(false))
+                                    .OnSelectionChanged("function(selectedItems)" +
+                                    "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                            </text>).OnValueChanged("Event_AccSummr_ValueChange").Value(ViewBag.eventid)
+                        )
+                    </div>
+                    <script>
+                        //function event_Onselection_AccSummr(selectedItems)
+                        //{
+                        //    debugger;
+                        //    var keys = selectedItems.selectedRowKeys; var DDvalue = component.option('value'); if (keys != DDvalue) { component.option('value', keys[0]); } component.close();
+                        //}
+                        async function Event_AccSummr_ValueChange(e, FirstCall = false) {
+                            var value;
+                            var DG = $("#Event_AccSummr_datagrid").dxDataGrid("instance");
+                            if (e) {
+                                value = e.value;
+                                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                    DG.clearSelection();
+                                    ////$("#ProjectID_createForm").dxSelectBox("option", "readOnly", false);
+                                    //$("#Event_ID").val(null);
+                                    //$("#SR_ID").val(null);
+                                    //await $("#PreReq_createForm_datagrid").dxDataGrid("instance").refresh();
+                                    return;
+                                }
+                            }
+                            else {
+                                value = $("#Event_AccSummr").dxDropDownBox("option", "value");
+                            }
+                            await DG.selectRows(value);
+                            if (DG.getSelectedRowsData().length > 0) {
+                                var item = DG.getSelectedRowsData()[0];
+                                ////  $("#ProjectID_createForm").dxSelectBox("option", "readOnly", true);
+                                //$("#ProjectID_createForm").dxSelectBox("option", "value", item.ProjID);
+                                //if (item.Type == "Service Report") {
+                                //    $("#SR_ID").val(item.ID);
+                                //}
+                                //else {
+                                //    $("#Event_ID").val(item.ID);
+                                //}
+                                //if (FirstCall == false) {
+                                //    await $("#PreReq_createForm_datagrid").dxDataGrid("instance").refresh();
+                                //}
+                            }
+                        }
+                    </script>
+                    <div class="col-sm-1 show_Btn">
+                        <div class="form-field">
+                            <label class="control-label text-white" for="user"></label>
+                            @(Html.DevExtreme().Button().ID("btnShowSummary_AccSumr").Text("Show").Hint("Change Period").OnClick("ShowAccomSummary"))
+                        </div>
+                    </div>
+                    <script>
+                        function ShowAccomSummary() {
+                            var fromDate = $("#fromdate_AccSummr").dxDateBox("instance").option("value");
+                            var toDate = $("#todate_AccSummr").dxDateBox("instance").option("value");
+                            if (fromDate == null || fromDate == "" || fromDate == undefined) {
+                                DevExpress.ui.notify({ message: 'From Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            if (toDate == null || toDate == "" || toDate == undefined) {
+                                DevExpress.ui.notify({ message: 'To Date is mandatory', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            if (fromDate > toDate) {
+                                DevExpress.ui.notify({ message: 'From Date should not be greater than To Date', width: 300, shading: true, position: 'center' }, "error", 2000);
+                                return;
+                            }
+                            var eventid = $("#Event_AccSummr").dxDropDownBox("option", "value");
+                            fromDate = JS_Json_Date_To_ddMMyyyy(fromDate);
+                            toDate = JS_Json_Date_To_ddMMyyyy(toDate);
+                            var summary_type_recommendationSummry = "RECOMMENDATION SUMMARY"
+                            ChartResponse_SummaryInfoGrid.PerformCallback({ "fromdate": fromDate, "todate": toDate, "EventID": eventid, "summary_type": summary_type_recommendationSummry, "command": "REFRESH" });
+                        }
+                    </script>
+                    <div class="pull-left set_Interval">
+                        <div class="form-field">
+                            <label class="control-label text-white" for="user">Set Interval</label><br />
+                            @(Html.DevExtreme().NumberBox().ID("refreshInterval_AccomSummary").Value(5).Format("#0"))
+                            <b>Seconds</b>
+                        </div>
+                    </div>
+                    <div class="col-sm-2" style="margin-top:4px">
+                        <div class="form-field">
+                            <label class="control-label text-white" for="user"></label><br />
+                            @(Html.DevExtreme().Button().ID("StartAutoRefresh_AccomSummary").Text("Start Auto Refresh").Hint("Change Period").OnClick("StartAutoRefresh_AccomSummary"))
+                            @(Html.DevExtreme().Button().ID("StopAutoRefresh_AccomSummary").Text("Stop").Hint("Change Period").OnClick("StopAutoRefresh_AccomSummary"))
+                        </div>
+                    </div>
+                    <div class="col-sm-1">
+                        <div class="form-field">
+                            <label class="control-label text-white" for="user"></label><br />
+
+                        </div>
+                    </div>
+
+                    <script>
+                        var timer_AccomSummary;
+                        function StartAutoRefresh_AccomSummary(fn, timeout, interval) {
+                            timer_AccomSummary = setInterval(function () {
+                                if ($("#contact_Frm_RecommendationSummary_Info").hasClass('active')) {
+                                    ShowAccomSummary()
+                                } else {
+                                    StopAutoRefresh_AccomSummary()
+                                }
+                            }, parseInt($("#refreshInterval_AccomSummary").dxNumberBox("instance").option("value")) * 1000)
+                        }
+                        function StopAutoRefresh_AccomSummary() {
+                            clearInterval(timer_AccomSummary)
+                        }
+                    </script>
+                </div>
+                <div class="parent_table">
+                    @Html.Partial("Frm_RecommendationSummary_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        @*<div style="display:none">
+                @{string FormResponsePath = ServicePath + "EditForm";}
+                <form id="CallServicesFormResponse" method="post" target="" action="@FormResponsePath">
+                    @Html.Hidden("ChartInstanceId")
+                    @Html.Hidden("ActionMethod")
+                    @Html.Hidden("User_AB_ID")
+                    @Html.Hidden("UserID")
+                    @Html.Hidden("ResponseID")
+                </form>
+            </div>*@
+    </div>
+    <script>
+
+        var Chart_Response_ID = "";
+        var Chart_Response_Status = "";
+        var Chart_Response_Remarks = "";
+        var Chart_Instance_ID = "@chartInstanceID";
+        @*var ServicePath = "@ServicePath";
+        var Chart_Approval_Required = "@chartApprovalRequired" == "False" ? false: true;*@
+        var UserID = "";
+        var UserABID = "xxx";
+        function OnRecommendation_SummaryInfoListPreviewClick()
+        {
+            ShowLoader();
+            OpenPopup("Recommendation_SummaryInfo_modal", "Export Option", "@Url.Action("Frm_Export_Options_Summary", "Chart", new { @area = "Facility" })", "auto",130);
+        }
+        function closeRecommendation_SummaryInfo()
+        {
+            $("#Dynamic_Content_popup").dxPopup("hide")
+            //$(".TabPanalMenu-tabs .active span").click();
+        }
+        function ChartResponse_SummaryInfoOnInit(s, e) {
+            s.ExpandAll();
+            Recommendation_SummaryInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                Recommendation_SummaryInfoAdjustSize();
+            });
+        }
+        function Recommendation_SummaryInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 80) / 100;
+            //var PopupHeight = $("#Dynamic_Content_popup").dxPopup("instance").option("height");
+            //var PopupMaxHeight = parseInt(getComputedStyle($($("#Dynamic_Content_popup").dxPopup("instance").content().parent())[0]).height, 10)
+            try {
+                //ChartResponse_AccomnDetailsInfoGrid.SetHeight((PopupMaxHeight * 80)/100);
+                ChartResponse_SummaryInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+
+        function OnChartResponse_SummaryInfoGridFocusedRowChanged(s, e) {
+
+        }
+
+        function ChartResponse_SummaryInfo_GetRowData(RowIndex = null) {
+
+            var focusedrow = RowIndex == null ? ChartResponse_SummaryInfoGrid.GetFocusedRowIndex() : RowIndex;
+            var topindex = ChartResponse_SummaryInfoGrid.GetTopVisibleIndex();
+            var Index = focusedrow - topindex;
+            var ChartResponse_SummaryInfoPageData = ChartResponse_SummaryInfoGrid.cpPagedata;
+            if (ChartResponse_SummaryInfoPageData != null && ChartResponse_SummaryInfoPageData.length > 0 && Index < ChartResponse_SummaryInfoPageData.length) {
+                Chart_Response_ID = ChartResponse_SummaryInfoPageData[Index][0];
+                Chart_Response_Status = ChartResponse_SummaryInfoPageData[Index][1];
+                Chart_Response_Remarks = ChartResponse_SummaryInfoPageData[Index][2];
+                UserID = ChartResponse_SummaryInfoPageData[Index][3];
+                UserABID = ChartResponse_SummaryInfoPageData[Index][4];
+            }
+            else {
+                Chart_Response_ID = null;
+                Chart_Response_Status = "";
+                Chart_Response_Remarks = "";
+            }
+        }
+
+        function Recommendation_Summary_ChangeStatus(Action) {
+
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            if (focusIndex < 0) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+
+            Recommendation_SummaryInfo_GetRowData(focusIndex);
+            //Chart_Response_Status == "Rejected" || REJECTED IS NOW ALLOWED TO BE ACCEPTED
+            if (Chart_Response_Status == "Approved") {
+                var alertMessage = "The selected record is <b>already in " + Chart_Response_Status + " </b>status. You <b>cannot " + Action + "  </b>it."
+                DevExpress.ui.dialog.alert(alertMessage, "!! Alert !!");
+                return;
+            }
+
+            var confirmationMessage = "";
+
+            if (Action == "APPROVE") { confirmationMessage = "Are you sure, to mark this form as <b>Approved</b> !! <br> <br> Note: The Applicant will be informed via SMS & Email." }
+            if (Action == "REJECT") { confirmationMessage = "Are you sure, to mark this form as <b>Rejected</b> !! <br> <br> Note: The Applicant will be informed via SMS & Email." }
+            if (Action == "DRAFT") { confirmationMessage = "Are you sure, to mark this form as <b>Draft</b> !!" }
+
+            var confirmClick = DevExpress.ui.dialog.confirm(confirmationMessage, "!! Confirm !!");
+            confirmClick.done(function(confirmresult){
+                if (confirmresult) {
+
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        async: false,
+                        url: "/Facility/Chart/ChangeChartResponse_SummaryStatus",
+                        cache: false,
+                        data:
+                        {
+                            status: Action,
+                            chartResponseID: Chart_Response_ID,
+                            chartInstanceID: Chart_Instance_ID
+
+                        },
+                        success: function (data) {
+                            HideLoader();
+
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+
+                                    ChartResponse_SummaryInfoGrid.Refresh();
+                                }
+                            })
+
+                        }
+                    });
+                }
+                else {
+                    // No Action
+                }
+            })
+        }
+        function Recommendation_Summary_DeleteResponse() {
+
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            if (focusIndex < 0) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+
+            Recommendation_SummaryInfo_GetRowData(focusIndex);
+
+            var deleteConfirmation_1 = DevExpress.ui.dialog.confirm("<div> !!Are You Sure !!  <br> <br> You Want To  <br> <br> <h6 style='color:red'> <b>DELETE THIS RESPONSE ?</b></h6> </div>", "!! Confirm !!");
+            deleteConfirmation_1.done(function (confirmResult_1) {
+                if (confirmResult_1) {
+                    var deleteConfirmation_2 = DevExpress.ui.dialog.confirm("<div style='text-align: center;'> This response will be deleted but the user profile will be retained. <br> <br> You want to proceed?</div>", "Information");
+                    deleteConfirmation_2.done(function (confirmResult_2) {
+                        if (confirmResult_2) {
+                            ShowLoader();
+                            $.ajax({
+                                type: 'GET',
+                                async: false,
+                                url: "/Facility/Chart/deleteChartResponse",
+                                cache: false,
+                                data:
+                                {
+                                    ChartResponseID: Chart_Response_ID
+                                },
+                                success: function (data) {
+                                    HideLoader();
+
+                                    var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+
+                                    alertClick.done(function (alertResult) {
+                                        if (alertResult) {
+
+                                            ChartResponse_SummaryInfoGrid.Refresh();
+                                        }
+                                    })
+
+
+                                }
+                            });
+                        }
+                    })
+                }
+            })
+
+        }
+        function Recommendation_Summary_AddRemarks() {
+
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            if (focusIndex < 0) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+
+            Recommendation_SummaryInfo_GetRowData(focusIndex);
+
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Facility/Chart/Frm_ChartResponse_AddRemarks",
+                cache: false,
+                data:
+                {
+                    ChartResponseID: Chart_Response_ID,
+                    ChartResponseRemarks: Chart_Response_Remarks
+                },
+                success: function (data) {
+                    HideLoader();
+
+                    OpenPopup("Response_Remark_popup", "Add Remarks", null, "auto", 330, true, data);
+
+                }
+            });
+
+
+        }
+
+        function ChartResponse_SummaryInfoGrid_BeginCallback(s, e) {
+            var summary_type_recommendationSummry = "RECOMMENDATION SUMMARY"
+            e.customArgs["command"] = e.command;
+            e.customArgs["Chart_Instance_ID"] = Chart_Instance_ID;
+            e.customArgs["summary_type"] = summary_type_recommendationSummry;
+        }
+        function Recommendation_Summary_AddResponse() {
+            //
+            GetConfirmbox('Post by Self', 'Share With Others').show().done(function (confirmboxResult) {
+                OpenResponseForm = confirmboxResult;
+                ShowLoader();
+                var GuideSessionID = "";
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Facility/Chart/AddGuideSessionID",
+                    cache: false,
+                    data:
+                    {
+
+                    },
+                    success: function (data) {
+                        // alert(ServicePath);
+                        HideLoader();
+                        GuideSessionID = data.GuideSessionID;
+                        var URL = ServicePath + "form/" + chartInstanceID + "/?GuideSessionID=" + GuideSessionID;
+                        //window.open(URL, "_blank");
+                        if (OpenResponseForm) { window.open(URL, "_blank"); }
+                        else { navigator.clipboard.writeText(URL); DevExpress.ui.notify({ message: 'Link has been Copied ! You can paste it as Required...', width: 500, shading: true, position: 'center' }, "success", 1000); }
+                        HideLoader();
+                    }
+                });
+            });
+        }
+        var OpenLnikedResponseForm =false;
+        function GetConfirmbox(YesMsg, NoMsg) {
+            var _confirmbox = DevExpress.ui.dialog.custom({
+                title: "Post Form Response...",
+                messageHtml: "Do you want to Post Form Repsonse by Self or Share Posting Link with Others ?",
+                buttons: [
+                    {
+                        text: YesMsg,
+                        elementAttr:
+                        {
+                            id: "CustomConfirmDialog_YesButton"
+                        },
+                        onClick: function () {
+                            return true
+                        }
+                    },
+                    {
+                        text: NoMsg,
+                        elementAttr:
+                        {
+                            id: "CustomConfirmDialog_NoButton"
+                        },
+                        onClick: function () {
+                            return false
+                        }
+                    }
+                ],
+                popupOptions:
+                {
+                    elementAttr:
+                    {
+                        id: "CustomConfirmDialog_Popup"
+                    },
+                    onShown: function (e) {
+                        $(".dx-dialog-button:first").focus();
+                    },
+                    onHidden: function (e) {
+                        e.component.dispose();
+                        $("#CustomConfirmDialog_Popup").remove();
+                    }
+                }
+            });
+            return _confirmbox;
+        }
+        function Recommendation_Summary_AddLinkedFormResponse() {
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            var OpenLnikedResponseForm = true;
+            var LinkedchartInstanceID = 23; //get from from data
+            if (focusIndex < 0) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+            //check for pre-required form presence here
+            GetConfirmbox('Post by Self', 'Share With Others').show().done(function (confirmboxResult) {
+                OpenLnikedResponseForm = confirmboxResult;
+                Recommendation_SummaryInfo_GetRowData(focusIndex);
+                ShowLoader();
+                var GuideSessionID = "";
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Facility/Chart/AddGuideSessionID",
+                    cache: false,
+                    data:
+                    {
+
+                    },
+                    success: function (data) {
+                        // alert(ServicePath);
+                        HideLoader();
+                        GuideSessionID = data.GuideSessionID;
+                        var URL = ServicePath + "ViewChartUser/" + LinkedchartInstanceID + "/" + UserID + "/" + UserABID + "/?GuideSessionID=" + GuideSessionID;
+                        if (OpenLnikedResponseForm) { window.open(URL, "_blank"); }
+                        else { navigator.clipboard.writeText(URL); DevExpress.ui.notify({ message: 'Link has been Copied ! You can paste it as Required...', width: 500, shading: true, position: 'center' }, "success", 1000);}
+                        HideLoader();
+                    }
+                });
+            });
+        }
+        function Recommendation_Summary_EditResponse()
+        {
+
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            if (focusIndex < 0) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+
+            Recommendation_SummaryInfo_GetRowData(focusIndex);
+            ShowLoader();
+            //var URL = ServicePath + "ViewChartUser/" + chartInstanceID + "/" + UserID + "/" + UserABID + "/?ActionMethod=_Edit&ResponseID=" + Chart_Response_ID;
+            ////OpenPopup("ChartResponse_Preview", "Preview", URL, "100%", "100%", false, null);//
+            //window.open(URL);
+            var form = $("#CallServicesFormResponse")
+            if (form.length > 0) {
+                let windowName = 'w_' + Date.now() + Math.floor(Math.random() * 100000).toString();
+                $(form).attr("target", windowName);
+                $("#ResponseID").val(Chart_Response_ID)
+                $("#UserID").val(UserID)
+                $("#User_AB_ID").val(UserABID)
+                $("#ActionMethod").val("_Edit")
+                $("#ChartInstanceId").val(Chart_Instance_ID)
+                window.open('', windowName);
+                $(form).submit();
+            }
+            HideLoader();
+        }
+        function Recommendation_Summary_Preview()
+        {
+
+            var focusIndex = ChartResponse_SummaryInfoGrid.GetFocusedRowIndex();
+            if (focusIndex < 0)
+            {
+               DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+            Recommendation_SummaryInfo_GetRowData(focusIndex);
+            var form = $("#CallServicesFormResponse")
+            if (form.length > 0)
+            {
+                let windowName = 'w_' + Date.now() + Math.floor(Math.random() * 100000).toString();
+                $(form).attr("target", windowName);
+                $("#ResponseID").val(Chart_Response_ID)
+                $("#UserID").val(UserID)
+                $("#User_AB_ID").val(UserABID)
+                $("#ActionMethod").val("_View")
+                $("#ChartInstanceId").val(Chart_Instance_ID)
+                window.open('', windowName);
+                $(form).submit();
+            }
+        }
+        function ClosePopupPreview_SM() {
+            $("#ChartResponse_Preview").dxPopup("hide");
+        }
+
+    </script>
+
+</div>

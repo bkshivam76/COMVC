@@ -1,0 +1,394 @@
+﻿<div class="Recommendation_Facility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        long instanceid = ViewBag.instanceid;
+        Int32 totalregCount = ViewBag.TotalRegCount;
+        string responseids = ViewBag.responseids;
+        string chartid_recommendation = ViewBag.chartid_recommendation;
+    }
+
+
+    <form class="edit_form" id="Recommendation_info_form" data-id="@chartid_recommendation">
+        <div class="row" style="padding:10px 0;">
+            <div style="font-size:large; font-weight:600;">Recommendation To The Selected Responses</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">Building Name:</label>
+                    @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Building_RECMND").ID("Building_RECMND").Placeholder("Choose..").DisplayExpr("SP_SERVICE_PLACE_NAME").ValueExpr("REC_ID")
+                        .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_BuildingsList").Key("REC_ID").LoadParams(
+                                new
+                                {
+                                    DDRefresh = new JS("function (){ return Look_Building_RECMND_DDrefresh;}"),
+                                    instanceid = instanceid,
+                                }).LoadMode(DataSourceLoadMode.Raw)
+                                )
+                        .ContentTemplate(@<text>
+                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Building_RECMND_datagrid")
+                                    .Columns(columns =>
+                                    {
+                                        columns.Add().DataField("SP_SERVICE_PLACE_NAME").Caption("Building Name");
+                                        columns.Add().DataField("REC_ID").Visible(false);
+                                    })
+                                    .Selection(s => s.Mode(SelectionMode.Single))
+                                )
+                            </text>)
+                        .OnValueChanged("Building_RECMND_ValueChange")//.ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                    )
+                </div>
+            </div>
+            <script>
+                var bldgid_Rcmnd = "";
+                var roomNumberid_Rcmnd = "";
+                var Look_Building_RECMND_DDrefresh = false;
+                var Look_RoomNumbersList_DataGrid;
+                async function Building_RECMND_ValueChange(e, FirstCall = false) {                    
+                    var value;
+                    var DG = $("#Building_RECMND_datagrid").dxDataGrid("instance");
+                    Look_RoomNumbersList_DataGrid = $("#RoomNumber_RECMND_datagrid").dxDataGrid("instance");
+                    if (e) {
+                        bldgid_Rcmnd = e.value
+                        value = e.value;
+                        if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                            DG.clearSelection();
+                            Look_RoomNumbersList_DataGrid.clearSelection();
+                            LookUp_GetRoomNumbersList_RECMND()
+                            return;
+                        }
+                    }
+                    else {
+                        var bldgid = "";
+                        var buildingid_array = $("#Building_RECMND").dxDropDownBox("option", "value");
+                        if (buildingid_array != null) { bldgid = buildingid_array[0]; }
+                        value = bldgid;
+                        
+                    }
+                    await DG.selectRows(value);
+                    if (DG.getSelectedRowsData().length > 0) {
+                        var item = DG.getSelectedRowsData()[0];
+                        Look_RoomNumbersList_DataGrid.clearSelection();
+                        LookUp_GetRoomNumbersList_RECMND()
+                        ////  $("#ProjectID_createForm").dxSelectBox("option", "readOnly", true);
+                        //$("#ProjectID_createForm").dxSelectBox("option", "value", item.ProjID);
+                        //if (item.Type == "Service Report") {
+                        //    $("#SR_ID").val(item.ID);
+                        //}
+                        //else {
+                        //    $("#Event_ID").val(item.ID);
+                        //}
+                        //if (FirstCall == false) {
+                        //    await $("#PreReq_createForm_datagrid").dxDataGrid("instance").refresh();
+                        //}
+                    }
+                    onchange_functions_RECMND()
+                }
+                function onchange_functions_RECMND() {
+                    
+                    var gridInstance = $("#LookUp_Get_BulkAllotmentRecommendation_datagrid").dxDataGrid("instance")
+                    var originaldata = gridInstance.getDataSource()
+                    var buildingid = bldgid_Rcmnd;
+                    if (buildingid == null) {
+                        buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value")
+                    }
+                    //if ($("#Building_RECMND").dxDropDownBox("instance").option("value") != null) { buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value")[0]; }
+                    //if (buildingid != undefined) {
+                    //    if (buildingid.length < 36) { buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value") }
+                    //}
+                    var acNonac = $("#Ac_nonAc_RECMND").dxSelectBox("instance").option("value");
+                    var category = $("#Category_RECMND").dxSelectBox("instance").option("value");
+                    var roomCapacity = $("#RoomCapacity_RECMND").dxNumberBox("instance").option("value");
+                    //var BedCount = $("#BedCount_RECMND").dxNumberBox("instance").option("value");
+                    //var remarks = $("#Remarks_RECMND").dxTextArea("instance").option("value");
+
+                    for (var i = 0; i < originaldata._store.__rawData.length; i++) {
+                        if ((originaldata._store.__rawData[i]['AC_R_NONAC_BLK'] == acNonac) &&
+                            (originaldata._store.__rawData[i]['CATEGORY_BLK'] == category) &&
+                            (roomCapacity != null && roomCapacity != undefined && originaldata._store.__rawData[i]['ROOMCAPACITY_BLK'] == roomCapacity) &&
+                            (buildingid != null && buildingid != undefined && originaldata._store.__rawData[i]['BUILDINGID_BLK'] == buildingid)
+                        ) {
+                            if (originaldata._store.__rawData[i]['REMAINING_BEDS'] != null && originaldata._store.__rawData[i]['REMAINING_BEDS'] != undefined && originaldata._store.__rawData[i]['REMAINING_BEDS'] > 0) {
+                                $("#AvailableBeds_RECMND").dxNumberBox("instance").option("value", originaldata._store.__rawData[i]['REMAINING_BEDS'])
+                                return;
+                            } else {
+                                $("#AvailableBeds_RECMND").dxNumberBox("instance").option("value", 0);
+                            }
+
+                        } else {
+                            $("#AvailableBeds_RECMND").dxNumberBox("instance").option("value", 0);
+
+                        }
+                    }
+                }
+            </script>
+
+            <div class="col-md-4 col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">AC or Non-AC:</label>
+
+                    @(Html.DevExtreme().SelectBox().CustomSelectBox().DataSource(new object[] { new {text = "AC", value = "AC"}, new {text = "NonAC", value = "NonAc"} })
+                    .ID("Ac_nonAc_RECMND")
+                    .Name("Ac_nonAc_RECMND")
+                    //.Value(Model.acNonac)
+                    .DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                    .Placeholder("A/c or Non A/c..").OnValueChanged("onchange_functions_RECMND")//.ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)//.OnValueChanged("onchange_functions_BlkW")
+                )
+
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">Category:</label>
+
+                    @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                    .DataSource(new object[] { new { text = "BK Brothers", value = "BKBrothers" }, new { text = "Non-BK Brothers", value = "NonBKBrothers" },
+                        new { text = "BK Sisters", value = "BKSisters" }, new { text = "Non-BK Sisters", value = "NonBKSisters" }, new { text = "Foreigners", value = "foreigners" },
+                        new { text = "VIP", value = "vip" }, new { text = "Teacher", value = "teacher" }, new { text = "Mata", value = "mata" }
+                    })
+                    .ID("Category_RECMND")
+                    .Name("Category_RECMND")
+                    //.Value(Model.category)
+                    .DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                    .Placeholder("Type Category..").OnValueChanged("onchange_functions_RECMND")//.ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)//.OnValueChanged("onchange_functions_BlkW")
+
+                )
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-4">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">Room Capacity:</label>
+
+                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("RoomCapacity_RECMND").Name("RoomCapacity_RECMND").ShowClearButton(false).Min(0)
+                    .Placeholder("Type Bed Count..").OnValueChanged("onchange_functions_RECMND")//.OnValueChanged("onchange_functions_BlkW").Value(Model.roomCapacity).ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                )
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-4">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">No of Beds To Recommend</label>
+                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("BedCount_RECMND").Name("BedCount_RECMND").ShowClearButton(false).Min(0)
+                        .Placeholder("Type No. of Rooms..").ReadOnly(true).Value(@totalregCount)//.OnValueChanged("RoomCapacityOnchange_BlkW").Value(Model.BedCount)
+                    )
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-4">
+                <div class="form-field clearfix">
+                    <label class="control-label text-red" for="user">Available Beds</label>
+                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("AvailableBeds_RECMND").Name("AvailableBeds_RECMND").ShowClearButton(false).Min(0)
+                        .Placeholder("Type No. of Rooms..").ReadOnly(true)//.OnValueChanged("RoomCapacityOnchange_BlkW").Value(Model.BedCount)
+                    )
+
+                </div>
+            </div>
+
+            <div class="col-md-4 col-sm-4">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">Room Number:</label>
+                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("RoomNumber_RECMND")
+                    .Name("RoomNumber_RECMND").ValueExpr("REC_ID").DisplayExpr("AL_LOC_NAME")
+                    .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_GetRoomsList").Key("REC_ID")
+                    .LoadParams(new { DDRefresh = new JS("function (){ return RoomNumber_DDRefresh_RECMND;}"),
+                        buildingid = new JS("function () { return $('#Building_RECMND').dxDropDownBox('instance').option('value');}"),
+                    }).LoadMode(DataSourceLoadMode.Raw)).Placeholder("Type Room Number...").ReadOnly(false).ShowClearButton(true)//.Value(Model.roomid)
+                    .OpenOnFieldClick(false).DeferRendering(false).OnValueChanged("GLookUp_RoomNumbersList_EditValueChanged_RECMND")
+                    .ContentTemplate(@<text>
+                                        @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("RoomNumber_RECMND_datagrid")
+                                            .Columns(columns =>
+                                            {
+                                                columns.Add().DataField("AL_LOC_NAME").Caption("Room Number").Visible(true);
+                                                columns.Add().DataField("REC_ID").Visible(false);
+                                            })
+                                            .Selection(s => s.Mode(SelectionMode.Single))
+                                        )
+                                    </text>)
+                                        )
+                </div>
+            </div>
+            <div class="col-md-8 col-sm-8">
+                <div class="form-field clearfix">
+                    <label class="control-label" for="user">Remarks:</label>
+                    @(Html.DevExtreme().TextBox().ID("Remarks_RECMND").Name("Remarks_RECMND")//.ShowClearButton(false).Min(0)
+                        .Placeholder("Type Remarks..")//.OnValueChanged("RoomCapacityOnchange_BlkW").Value(Model.BedCount).ReadOnly(Model.actionmethod.ToString() == "_Delete" ? true : false)
+                    )
+                </div>
+            </div>
+
+        </div>
+        <div class="row"  style="padding-top:5px; ">
+            <div class="col-sm-4 col-md-8">
+            </div>
+            <div class="col-sm-4 col-md-2">
+                @(Html.DevExtreme().Button().ID("BtnSave_BlkW").Text("Save").OnClick("Save_Recommend").Width("100%"))
+            </div>
+            <div class="col-sm-4 col-md-2 pll">
+                @(Html.DevExtreme().Button().ID("BtnCancel_BlkW").Text("Cancel").OnClick("Cancel_Recommend").Width("100%"))
+            </div>
+        </div>
+        
+    
+
+    </form>
+
+<div class="row" style="padding:15px;">
+    <div class="row" style="padding:0 0 5px 20px;">
+        <div style="font-size:large; font-weight:600;">Bulk Allotment List To This Event</div>
+    </div>
+
+    @(Html.DevExtreme().DataGrid().ID("LookUp_Get_BulkAllotmentRecommendation_datagrid")
+            .ColumnAutoWidth(true)
+            .ShowBorders(true).Width("100%")
+            .Columns(columns =>
+            {
+                columns.Add().DataField("INSTANCEID_BLK").Visible(false);
+                //columns.Add().DataField("RECID_BLK").Caption("RECID_BLK").Visible(false);
+                columns.Add().DataField("BUILDINGNAME").Caption("Building Name").Visible(true).Alignment(HorizontalAlignment.Center);
+                //columns.Add().DataField("FROMDATE_BLK").Caption("From Date").Visible(true);
+                //columns.Add().DataField("TODATE_BLK").Caption("To Date").Visible(true);
+                columns.Add().DataField("BUILDINGID_BLK").Caption("Building ID").Visible(false).Alignment(HorizontalAlignment.Center);
+                columns.Add().DataField("ROOMCAPACITY_BLK").Caption("Room Capacity").Visible(true).Alignment(HorizontalAlignment.Center).Width(80);
+                columns.Add().DataField("AC_R_NONAC_BLK").Caption("AC or Non-AC").Visible(true).Alignment(HorizontalAlignment.Center).Width(80);
+                columns.Add().DataField("CATEGORY_BLK").Caption("Category").Visible(true).Alignment(HorizontalAlignment.Center).Width(120);
+                columns.Add().DataField("TOTAL_BEDS_ALLOTTED").Caption("Total Beds Allotted").Visible(true).Alignment(HorizontalAlignment.Center).Width(80);
+                columns.Add().DataField("BEDS_ALREADY_RECOMMENDED").Caption("Beds Already Recommended").Visible(true).Alignment(HorizontalAlignment.Center).Width(120);
+                columns.Add().DataField("REMAINING_BEDS").Caption("Remaining Beds").Visible(true).Alignment(HorizontalAlignment.Center).Width(80);
+                columns.Add().DataField("CI_CHARTNAME").Caption("Form Name").Visible(false).Alignment(HorizontalAlignment.Center);
+
+            }).FocusedRowEnabled(false).Scrolling(scrolling => scrolling.Mode(GridScrollingMode.Virtual)).Height(200).ShowBorders(true).ShowRowLines(true).ShowColumnLines(true)//.OnSelectionChanged("onSelectionChanged_BlkAlltoment")
+            .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_BulkAllotmentUniqueListForRecommendation").LoadMode(DataSourceLoadMode.Raw)//.Key("RECID_BLK")
+            .LoadParams(
+                new
+                {
+                    DDRefresh = new JS("function (){ return Look_BulkAllotment_RECMND_DDrefresh;}"),
+                    instanceid = instanceid,
+                    responseids = responseids,
+                }).LoadMode(DataSourceLoadMode.Raw)
+                ).Selection(s => s.Mode(SelectionMode.Single))
+        )
+</div>
+
+
+<script>
+    async function GLookUp_RoomNumbersList_EditValueChanged_RECMND(e) {
+        roomNumberid_Rcmnd = null;
+        var value;
+        if (e) {
+            e.component.close();
+            value = e.value
+            roomNumberid_Rcmnd = e.value
+            //cityid_BeforeFilter = e.value;
+        }
+
+        Look_RoomNumbersList_DataGrid = $("#RoomNumber_RECMND_datagrid").dxDataGrid("instance");
+        //Look_CentersList_DataGrid = $("#LookUp_GetCentersList_El_datagrid").dxDataGrid("instance");
+        //if (e) {
+        //    if (e.value == null && e.previousValue != null) {
+        //        Look_CentersList_DataGrid.clearSelection();
+        //        LookUp_GetCentersList_El();
+        //    }
+        //    else if (e.value.length >= 0) {
+        //        Look_CentersList_DataGrid.clearSelection();
+        //        LookUp_GetCentersList_El();
+        //    }
+        //}
+        await Look_RoomNumbersList_DataGrid.selectRows(value);
+    }
+    var RoomNumber_DDRefresh_RECMND = false
+    async function LookUp_GetRoomNumbersList_RECMND(FirstCall = false) {
+        if (FirstCall === false) {
+            RoomNumber_DDRefresh_RECMND = true;
+            Look_RoomNumbersList_DataGrid = $("#RoomNumber_RECMND_datagrid").dxDataGrid("instance");
+            await Look_RoomNumbersList_DataGrid.refresh();
+            RoomNumber_DDRefresh_RECMND = false;
+        }
+    }
+    function Cancel_Recommend() {
+        HidePopup("Recommendation_Screen_popup")
+    }
+    var Look_BulkAllotment_RECMND_DDrefresh = false;
+
+    function Save_Recommend() {
+        var countdata = 0; var totalAllottedBedCount = 0;
+        @*"@responseid"*@
+        var buildingid = bldgid_Rcmnd;
+        if (buildingid == null) {
+            buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value")
+        }
+        var roomNumberid = roomNumberid_Rcmnd;        
+        if (buildingid == null) {
+            roomNumberid = $("#RoomNumber_RECMND").dxDropDownBox("instance").option("value")
+        }
+        //if ($("#Building_RECMND").dxDropDownBox("instance").option("value") != null) { buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value")[0];}
+        //if (buildingid != undefined) {
+        //    if (buildingid.length < 36) { buildingid = $("#Building_RECMND").dxDropDownBox("instance").option("value") }
+        //}
+        var acNonac = $("#Ac_nonAc_RECMND").dxSelectBox("instance").option("value");
+        var category = $("#Category_RECMND").dxSelectBox("instance").option("value");
+        var roomCapacity = $("#RoomCapacity_RECMND").dxNumberBox("instance").option("value");
+        
+        var BedCount = $("#BedCount_RECMND").dxNumberBox("instance").option("value");
+        var remarks = $("#Remarks_RECMND").dxTextBox("instance").option("value");
+        if ((buildingid == null || buildingid == undefined) || roomCapacity == null || roomCapacity == undefined) {
+            DevExpress.ui.dialog.alert("Please fill all the required fields", "Incomplete Data")
+            return;
+        }
+        var availableBeds = $("#AvailableBeds_RECMND").dxNumberBox("instance").option("value");
+        if (BedCount > availableBeds) {
+            DevExpress.ui.dialog.alert("Please Recommend within your allotment. All of the allotted rooms of specific categories are given in the table in this screen.", "Incorrect Recommendation")
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'Post',
+            url: "/Facility/Chart/SaveRecommendation_Bulk",
+            cache: false,
+            data: {
+                responseids: "@responseids",
+                BuildingID: buildingid,
+                AC_NONAC: acNonac,
+                Category: category,
+                RoomCapacity: roomCapacity,
+                BedCount: BedCount,
+                Remarks: remarks,
+                chartid:@chartid_recommendation,
+                instanceid:@instanceid,
+                RoomNumber:roomNumberid,
+            },
+            success: function (data) {
+                HideLoader();
+                if (data.jsonParam.result)
+                {
+                    HideLoader();
+                    HidePopup('Recommendation_Screen_popup');
+                    var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    alertClick.done(function (alertResult)
+                    {
+                     
+                        if (alertResult)
+                        {
+                            var GridInstance = $('#ChartResponsesInfoGrid_dx').data("dxDataGrid")//BK SOUMY
+                            if (GridInstance !== void 0) {
+                                ChartResponsesInfo_Dx_Refresh();
+                            }
+                            else
+                                RefreshGridView("ChartResponsesInfoGrid");
+                            //$("#LookUp_Get_BulkAllotmentRecommendation_datagrid").dxDataGrid("instance").refresh();
+                        }
+                    });
+                }
+                else if (data.jsonParam.result == false)
+                {
+                    HideLoader();
+                    if (data.jsonParam.flag != undefined && data.jsonParam.flag == "refeshDropdown")
+                    {
+
+                        //$("#LookUp_Get_BulkAllotmentRecommendation_datagrid").dxDataGrid("instance").refresh();
+                    }
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+            }
+        });
+    }
+
+</script>
+</div>

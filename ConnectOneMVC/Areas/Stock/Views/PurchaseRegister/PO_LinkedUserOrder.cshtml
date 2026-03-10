@@ -1,0 +1,134 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Purchase
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("PO_LinkedUserOrderMainGridData", "PurchaseRegister", new { ActionMethodName = Model.ActionMethod, PO_ID = Model.PO_ID })
+    </div>
+</div>
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-md-12 btnsDiv">
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_UOView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsVisible).OnClick(@<text> function () { OnFrm_PO_UO_View_Click() } </text>))
+                        @(Html.DevExtreme().Button().ID("purchaseBUT_PostDelivery").Text("Post Delivery").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_PO_UO_PostDelivery_Click() } </text>))
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var uosr;
+    var uoid;
+    function OnPurchaseLinkedUOMainGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID;', UO_GridRowValues);
+    }
+    function UO_GridRowValues(values) {
+        uosr = values[0];
+        uoid = values[1];
+    }
+    $("#PO_LinkedUserOrderMainGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+         
+            case 32: //space bar
+                OnFrm_PO_Payment_View_Click();
+                break;
+           
+        }
+       
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_PO_Payment_View_Click();
+        }
+    });
+    
+    function OnFrm_PO_UO_View_Click() {
+
+        if (uosr == null || uosr == undefined || uosr == "undefined") {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+        }
+                    ShowLoader();
+        @*$("#result_Purchaseinnergrid").load("@Url.Action("Frm_PO_Payment", "PurchaseRegister", new {@area= "Stock" })?ActionMethod=View&SR=" + encodeURIComponent(paysr), function () {
+                    HideLoader();
+            });*@
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_NEVD_User_Order",
+            data: {
+                ActionMethod: "View",
+                PostSuccessFunction: "Frm_Purchase_UO_OnSuccess",
+                Post_action_Name: "Purchase_UO_Save",
+                Post_Controller_Name: "PurchaseRegister",
+                Post_Area_Name: "Stock",
+                UO_Grid_Data_SessionName: "Purchase_LinkUserOrderMainData",
+                UO_Grid_SrNo: uosr,
+                ID: uoid,
+                PopUpID: "Purchaseinnergrid",
+                ByteSessionVariable: "PurchaseUO"
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Purchaseinnergrid", "View ~ Linked UO Detail", null, "auto", 1024, true, data);
+            
+            }
+        });
+   
+    
+    }//view click
+
+    function OnFrm_PO_UO_PostDelivery_Click() {
+
+        var menucheck = PO_StatusFlowCheck("LINKED UO - POST DELIVERY");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        DevExpress.ui.dialog.confirm("Coming Soon");
+
+    }
+
+
+    //function PO_StatusFlowCheck(Status) {
+    //    var msg;
+    //    var result;
+    //    $.ajax({
+    //        type: 'POST',
+    //        url: "/Stock/PurchaseRegister/PurchaseOrderStatusFlow",
+    //        data: {
+    //            ID: PO_ID,
+    //            StatusButton: Status,
+    //            CurrUserRole: POCurrUserRole
+    //        },
+    //        async: false,
+    //        cache: false,
+    //        success: function (data) {
+    //            msg = data.message;
+    //            result = data.result;
+    //        }
+    //    });
+    //    return [msg, result];
+    //}
+    function Frm_Purchase_UO_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+
+            $("#Purchaseinnergrid").dxPopup("hide");
+            PO_LinkedUserOrderMainGrid.SetFocusedRowIndex(-1);
+            PO_LinkedUserOrderMainGrid.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+    }
+
+</script>
+
+
+

@@ -1,0 +1,116 @@
+﻿<div class="FDType_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+}
+<div id="content" class="col-md-12">
+    <div class="row" style="margin: 4px -12px">
+        <h3 class="popuphead"><i class="far fa-edit"></i> Select FD Activity </h3>    
+    </div><!--[Header]-->    
+    <div id="VoucherFDPartialView" class="row">
+        <form>
+        @Html.Partial("Frm_Voucher_Win_FD_Type_Grid", Model)
+    </form>
+            </div>
+   
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="row">
+                <div class="styleActionBtn">
+                    @(Html.DevExtreme().Button().ID("FdTypeSubmit").CustomSaveButton().Text("OK").UseSubmitBehavior(false).OnClick("FD_BUT_OK_Click"))
+                    @(Html.DevExtreme().Button().ID("FdTypeCancel").CustomCloseButton().Text("Cancel").FocusStateEnabled(true).OnClick(@<text> function () { $("#Dynamic_Content_popup").dxPopup("hide"); } </text>) )
+                </div>
+            </div>
+        </div>
+    </div><!--[Buttons]-->
+    </div>
+
+<script>
+    var FDVoucherListGrid;
+    function FDVoucherListGrid_Init(e)
+    {
+        FDVoucherListGrid = e.component;    
+    }
+    function FDVoucherListGrid_ContentReady(e)
+    {
+        var selection = FDVoucherListGrid.getSelectedRowKeys();
+        if (selection.length == 0) {
+            FDVoucherListGrid.selectRowsByIndexes([0]);
+        }      
+       FDVoucherListGrid.focus();  
+    }
+    function FDVoucherListGrid_SelectionChanged(e)
+    {         
+    }
+    function OnFDTypeGetRowValues(values)
+    {
+        var SelectedActivityID = values[0]["ITEMID"];
+        var iAction = "";
+        var TitleX = "New";
+        switch (SelectedActivityID)
+        {
+            case "f6e4da62-821f-4961-9f93-f5177fca2a77":
+                iAction = "New_FD";
+                TitleX = "FD Creation";
+                break;
+            case "4eb60d78-ce90-4a9f-891b-7a82d79dc84b":
+                iAction = "Renew_FD";
+                TitleX = "FD Renewal";
+                break;
+            case "65730a27-e365-4195-853e-2f59225fe8f4":
+                iAction = "Close_FD";
+                TitleX = "FD Closure";
+                break;
+        }
+        if (TitleX == "New")
+        {
+            TitleX = "FD related Income / Expenses";
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Account/FDVoucher/Frm_Voucher_Win_FD",
+            data: { iAction: iAction, iSpecific_ItemID: SelectedActivityID, Tag: "_New", TitleX: TitleX },
+            cache: false,
+            success: function (data)
+            {
+                OpenDynamicPopup("New ~ " + TitleX, null, "auto", 750, true, data);
+            }
+        });
+    }
+    
+    function FD_BUT_OK_Click(e)
+    {        
+        var SelectedRowData = FDVoucherListGrid.getSelectedRowsData();      
+        if (SelectedRowData == null || SelectedRowData.length==0)
+        {
+            DevExpress.ui.dialog.alert('Please Select One FD Activity you want to perform...!', 'FD Activity').done(function ()
+            {
+                FDVoucherListGrid.focus();
+            });
+            return;
+        }
+        else
+        {
+            ShowLoader();
+            OnFDTypeGetRowValues(SelectedRowData)
+        }
+    }
+    $(document).ready(function ()
+    {
+        ClosingScreenParentDivClass = "FDType_ClearReferences";   
+    })
+    function FDVoucherListGrid_KeyDown(e)
+    {
+        DxGrid_KeyDown(e)
+        if (e.event.keyCode == 13) //enter key
+        {
+            Event_PreventDefaultAndStopPropagation(e.event)
+            $("#FdTypeSubmit").trigger("dxclick");
+        }
+    }
+</script>
+    </div>

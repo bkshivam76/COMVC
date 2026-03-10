@@ -1,0 +1,500 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.MapIteminfo
+@{
+    Layout = null;
+}
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+
+<style>
+    .pll2 {
+        padding-left: 2px !important;
+    }
+
+    .margR4 {
+        margin-right: 4px;
+    }
+</style>
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_SubItem_Property_PopUp" class="edit_form">
+    @using (Ajax.BeginForm("Frm_Stock_Item_Map_Save", "StockItemWindow",
+                          new AjaxOptions
+                          {
+                              HttpMethod = "POST",
+                              UpdateTargetId = "frm_Item_Window_Mapping_PopUp",
+                              InsertionMode = InsertionMode.InsertAfter,
+                              OnBegin = "AjaxBeginFormPost",
+                              OnSuccess = "StockItemMapAjaxSuccessForm"
+
+                          },
+                          new
+                          {
+                              id = "ID_frm_Item_Window_Mapping",
+                              @class = "edit_form"
+                          }))
+    {
+        @Html.AntiForgeryToken()
+
+
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i>  </h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                </div>
+            </div><!--[]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label text-red" for="user">Store:</label>
+                        </div>
+                        <div class="col-sm-9 prm pll1">
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                                                           .ID("MapItem_Store_id")
+                                                                                                           .Name("MapItem_Store_id")
+                                                                                                           .ValueExpr("StoreID")
+                                                                                                           .DisplayExpr("Store_Name")
+                                                                                                           .DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("LookUp_StoreList").Key("StoreID"))
+                                                                                                           .OnValueChanged("LookUp_StoreList_ChangeEvent")
+                                                                                                           .ContentTemplate(@<text>
+                                                                                                            @Html.Partial("LookUp_StoreList")
+                                                                                                        </text>)
+                            )
+                            @Html.ValidationMessageFor(model => model.MapItem_Store_id, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+          
+               
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label" for="user">Consumption Type:</label>
+                        </div>
+                        <div class="col-sm-9 prm pll1">
+                            @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                                                                                           .ID("MapItem_Consumption_Type")
+                                                                                           .Name("MapItem_Consumption_Type")
+                                                                                           //    .Value(Model.MapItem_Consumption_Type)
+                                                                                           .HoverStateEnabled(true)
+                                                                                           .DataSource(new[] { "Consumable", "Non-Consumable" }).ReadOnly(false))
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-3 col-md-3 col-lg-3 paddLR5">
+                                <label class="control-label" for="user">Main Category:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Main_Category").Name("Main_Category")
+                                                                                                                           // .Value(Model.Main_Category)
+                                                                                                                           .DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetMainCategories_SMap").Key("Main_Category"))
+                                                                                                                           .DisplayExpr("Main_Category")
+                                                                                                                           .ValueExpr("Main_Category")
+                                                                                                                           .OnValueChanged("OnChangeMain_Category")
+                                                                                                                          //  .OnInitialized("OnInitializedMainCategory")
+                                                                                                                          .ContentTemplate(@<text> @Html.Partial("GetMainCategories_SMap") </text>))
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid pll prm">
+                        <div class="row">
+                            <div class="col-sm-3 col-md-3 col-lg-3 paddLR5">
+                                <label class="control-label" for="user">Sub Category:</label>
+                            </div>
+                            <div class="col-sm-4 col-md-4 col-lg-4 paddLR5">
+                                <div class="dx-texteditor dx-widget dx-textbox">
+                                    <div class="dx-texteditor-container">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Sub_Category").Name("Sub_Category")
+                                                                                                                //  .Value(Model.Sub_Category)
+                                                                                                                .HoverStateEnabled(true)
+                                                                                                                .Placeholder("Please Select...")
+                                                                                                                .DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetsubCategoriesMaster_SMap").Key("Sub_Category").LoadParams(new { MainCategoryId = new JS("function(){ return MainCategoryValue ;}") }))
+                                                                                                                .ReadOnly(false)
+                                                                                                                  .ValueExpr("Sub_Category")
+                                                                                                                .DisplayExpr("Sub_Category")
+                                                                                                                 .OnValueChanged("SubCategoryValueChanged")
+                                                            .ContentTemplate(@<text> @Html.Partial("GetsubCategoriesMaster_SMap") </text>))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-3 pll">
+                            <label class="control-label" for="user">Search Text:</label>
+                        </div>
+                        <div class="col-sm-8 prm pll1">
+                            @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                              .ID("Search_Text")
+                                                                                              .Name("Search_Text")
+                                                                                            .Value(Model.Search_Text)
+                                                                                              .MaxLength(11)
+                            )
+                        </div>
+                        <div class="col-sm-1 prm pll1">
+                            @(Html.DevExtreme().Button()
+                                                                                                             .ID("BUT_Search")
+                                                                                                             .Text("Search")
+                                                                                                             .OnClick(@<text>
+                                                                                                                function () {
+                                                                                                                OnFrm_Search_Click()
+                                                                                                                }
+                                                                                                            </text>))
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row" style="margin-bottom: 5px; ">
+                <div class="col-sm-12 prm pll1">
+                    <label class="control-label" for="user">
+                        <h6 style="padding-left:9px;margin-top:5px;" class="text-red">Items :</h6>
+                    </label>
+
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-12 prm pll1 table-responsive tbnew2 overflow-scroll scrollbar" id="result_ItemMapGridData">
+                    @Html.Action("MapItemGridData", "StockItemWindow")
+
+                </div>
+            </div><!--[Row]-->
+
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="styleActionBtn">
+                        @(Html.DevExtreme().Button().CustomSaveButton().ID("StockNew").Text("Save").FocusStateEnabled(true).UseSubmitBehavior(true))
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("StockItemCancel").Text("Cancel").FocusStateEnabled(true).OnClick(@<text> function () { $("#popup_frm_StockItem_Map_Window").dxPopup("hide");  } </text>))
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+
+        }
+    }
+</div>
+
+<script>
+    var Mapped_Item = "";
+    var UnMapped_Item = "";
+    var MainCategoryValue = "";
+    var Store_ID;
+    var storeID;
+    var SI_Store_DG;
+    var form = "ID_frm_Item_Window_Mapping";
+    $(document).ready(async function () {
+     sessionclearpath = "/Stock/StockItemWindow/ItemMasterSessionclear";
+
+
+        $("#MapItem_Consumption_Type").dxSelectBox({ value: "", readOnly: false });
+        $("#Main_Category").dxDropDownBox({ value: "", readOnly: false });
+        $("#Sub_Category").dxDropDownBox({ value: "", readOnly: false });
+        var Search_Text = "@Model.Search_Text";
+        $("#result_ItemMapGridData").html("");
+     
+        Refresh_SI_Store_DG();
+
+        if ("@Model.MapItem_Store_id" != null && "@Model.MapItem_Store_id" != "" )
+        {
+            await SI_Store_DG.selectRows(parseInt("@Model.MapItem_Store_id"), false);
+                 Store_ID = "@Model.MapItem_Store_id";
+        }
+
+    
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/StockItemWindow/MapItemData",
+            data: { Search_Text: Search_Text, Store_ID: Store_ID },
+            cache: false,
+            success: function (MapItem_result) {
+                $("#result_ItemMapGridData").html("");
+                $("#result_ItemMapGridData").html(MapItem_result);
+                HideLoader();
+            }
+        });
+
+        setTimeout(function ()
+        {
+            Focus_FirstEditable_Field(form);                     
+        }, Timeout500);
+    });
+
+
+    function OnFrm_Search_Click()
+    {
+     
+        var Store_ID;
+        var Main_Category = null;
+        var Sub_Category = null;
+        var _ID = $("#MapItem_Store_id").dxDropDownBox("instance").option("value");
+        if (_ID != null)
+        {
+            Store_ID = _ID[0];
+        }
+        //var MapItemConsumption_Type = $("#MapItem_Consumption_Type").dxSelectBox({ value: "", readOnly: false });
+        var MapItemConsumption_Type = $("#MapItem_Consumption_Type").dxSelectBox("instance").option("value");
+        var Main_CategoryID = $("#Main_Category").dxDropDownBox("instance").option("value");
+        if (Main_CategoryID != null) {
+            Main_Category = Main_CategoryID[0];
+        }
+        var Sub_CategoryID = $("#Sub_Category").dxDropDownBox("instance").option("value");
+        if (Sub_CategoryID != null) {
+            Sub_Category = Sub_CategoryID[0];
+        }
+       var Search_Text = $("#Search_Text").dxTextBox("instance").option("value");
+        ShowLoader();
+   
+        $.ajax({
+          
+            type: 'GET',
+            url: "/Stock/StockItemWindow/MapItemData",
+            data: { Main_Category: Main_Category, Sub_Category: Sub_Category, MapItemConsumption_Type: MapItemConsumption_Type, Search_Text: Search_Text, Store_ID: Store_ID },
+            cache: false,
+            success: function (MapItem_result) {
+                    $("#result_ItemMapGridData").html("");
+                    $("#result_ItemMapGridData").html(MapItem_result);
+                    HideLoader();
+            }
+        });
+    }
+    
+
+    function StockStoreMapContextMenuFunction(s, e) {
+        if (e.item.name == 'Select_All') {
+            Select_All_Click();
+        }
+    }
+    function LookUp_StoreList_ChangeEvent(e) {
+        var dropdown = $("#MapItem_Store_id").dxDropDownBox("instance");
+        dropdown.close();
+        if (e.value == null && e.previousValue != null) {
+            SI_Store_DG.clearSelection();
+            return;
+        }
+        if (SI_Store_DG.getSelectedRowsData().length > 0) {
+            var item = SI_Store_DG.getSelectedRowsData()[0];
+            Store_ID = item.StoreID;
+        }
+    }
+
+    async function Refresh_SI_Store_DG() {
+        try {
+            var $SI_Store_DG = $("#LookUp_StoreList_datagrid");
+            if ($SI_Store_DG.length) {
+                SI_Store_DG = $SI_Store_DG.dxDataGrid("instance");
+                await SI_Store_DG.refresh();
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+    function SubCategoryValueChanged(e) {
+        var dropDownBoxSubCategory = $("#Sub_Category").dxDropDownBox("instance");
+        dropDownBoxSubCategory.close();
+    }
+
+    function OnChangeMain_Category(e) {
+     
+      
+        var dropDownBox = $("#Main_Category").dxDropDownBox("instance");
+        dropDownBox.close();
+        MainCategoryValue = e.value;//mantis #1179
+
+        $("#Sub_Category").dxDropDownBox("instance").reset();
+        var $dataGrid1 = $("#Frm_Sub_Category_Grid_StockMap");
+        if ($dataGrid1.length) {
+            var dataGrid1 = $dataGrid1.dxDataGrid("instance");
+            dataGrid1.clearSelection();
+            dataGrid1.refresh();
+        }
+
+        var $dataGrid = $("#Frm_GetMainCategories_StockMap");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (e.value == null) {
+                dataGrid.clearSelection();
+            }
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                $("#Frm_Sub_Category_Grid_StockMap").dxDataGrid("instance");
+            }
+        }
+
+    }
+  
+    function OnValueChanged(s, FieldName, KeyValue, Dataitem, VisibleIndex) {
+     
+        var data = { FieldName: FieldName, Key: KeyValue, Dataitem: Dataitem, VisibleIndex: VisibleIndex };
+        if (s.GetValueString() != null)
+            data.value = s.GetValueString();
+        
+        Itemid = data.Key;
+        MapStatus = data.value;
+        var SelectedRowIndex = data.VisibleIndex;
+
+        var _ID = $("#MapItem_Store_id").dxDropDownBox("instance").option("value");
+        if (_ID != null) {
+            StoreID = _ID[0];
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/StockItemWindow/OnChangeChecked",
+            data: {
+                ID: Itemid, StoreID: StoreID, Mapstatus: MapStatus
+            },
+            cache: false,
+            success: function (data1) {
+            
+                if (data1.result == false) {
+                    DevExpress.ui.dialog.alert(data1.Message, "Error");
+
+                }
+                else {
+
+                    MapItemListGrid.Refresh();
+                }
+
+            }
+        });
+         
+    }
+
+    function onSelectionChanged(s, e) {
+       
+        var Itemid;
+      
+            console.log(e);
+            var Mapstatus = e.isSelected;
+            SelectedRowIndex = e.visibleIndex;
+        var StoreID = $("#MapItem_Store_id").dxDropDownBox("instance").option("value");
+
+        if (Mapstatus == true) {
+                Itemid = s.GetSelectedKeysOnPage()[0];
+            }
+
+            else if (Mapstatus == false) {
+
+                Itemid = s.GetRowKey(SelectedRowIndex);
+            }
+
+
+
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/StockItemWindow/OnChangeChecked",
+                data: {
+                    ID: Itemid, StoreID: StoreID, Mapstatus: Mapstatus
+                },
+                cache: false,
+                success: function (data1) {
+                  
+                    if (data1.result == false) {
+                        DevExpress.ui.dialog.alert(data1.Message, "Error");
+
+                    }
+                    else
+                        MapItemListGrid.Refresh();
+
+                }
+            });
+
+
+        
+        
+    }
+    var Item_id="";
+    var Unit_id = "";
+    var Map_Item = "";
+    var Item_Name = "";
+
+
+    var selected = [];
+    var requested = [];
+    var command;
+    function StockItemMapAjaxSuccessForm(data) {
+     
+        
+        HideLoader();
+        if (data.result == true || data.result == "true") {
+            DevExpress.ui.dialog.alert(data.Message, "Inform");
+            //var StackSubmitSuccess = DevExpress.ui.dialog.alert(data.Message, "Inform..");
+            $("#popup_frm_StockItem_Map_Window").dxPopup("hide");
+            StockItemListGrid.SetFocusedRowIndex(-1);
+            StockItemListGrid.Refresh();
+        }
+        else {
+          
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+    }
+
+
+    function Select_All_Click() {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/StockItemWindow/OnAllSelect",
+            data: {
+              
+            },
+            cache: false,
+            success: function (data1) {
+           
+                if (data1.result == false) {
+                    DevExpress.ui.dialog.alert(data1.Message, "Error");
+
+                }
+
+                else
+                    MapItemListGrid.Refresh();
+
+            }
+        });
+
+    }
+  
+</script>
+
+
+

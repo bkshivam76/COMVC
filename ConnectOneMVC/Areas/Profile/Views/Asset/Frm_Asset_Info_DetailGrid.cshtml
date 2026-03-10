@@ -1,0 +1,471 @@
+﻿@using System.Text.RegularExpressions;
+@{
+    int ShowHorizontalBar = ViewBag.AssetInfo_ShowHorizontalBar == null ? 0 : (int)ViewBag.AssetInfo_ShowHorizontalBar;
+    string RecID = ViewBag.AssetInfo_RecID == null ? "" : (string)ViewBag.AssetInfo_RecID;
+    string MID = ViewBag.AssetInfo_MID == null ? "" : (string)ViewBag.AssetInfo_MID;
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool VouchingMode = (bool)ViewBag.VouchingMode;
+}
+@Html.DevExpress().GridView(settings =>
+{
+    settings.Name = "AssetListGrid" + RecID;
+    settings.SettingsDetail.MasterGridName = "AssetListGrid";
+    settings.CallbackRouteValues = new { Controller = "Asset", Action = "Frm_Asset_Info_DetailGrid", RecID = RecID, SessionGUID = SessionGUID, VouchingMode = VouchingMode };
+    settings.EnableTheming = true;
+    settings.Theme = "Aqua";
+    settings.HtmlRowPrepared = (s, e) =>
+    {
+        MVCxGridView grid = (MVCxGridView)s;
+        if (e.RowType == GridViewRowType.Data)
+        {
+            if (e.VisibleIndex % 2 == 0)
+            {
+                e.Row.BackColor = System.Drawing.Color.Linen;
+            }
+            else
+            {
+                e.Row.BackColor = System.Drawing.Color.AliceBlue;
+            }
+        }
+        if (e.RowType == GridViewRowType.Preview)
+        {
+            e.Row.BackColor = System.Drawing.Color.LightGray;
+        }
+
+    };
+    settings.Styles.FocusedRow.BackColor = System.Drawing.Color.FromArgb(0, 114, 198);
+    settings.Styles.FocusedRow.ForeColor = System.Drawing.Color.White;
+    settings.HtmlRowCreated = (s, e) =>
+    {
+        MVCxGridView grid = (MVCxGridView)s;
+        if (e.RowType == GridViewRowType.Preview)
+        {
+            e.Row.BackColor = System.Drawing.Color.LightGray;
+            var Rejection_Reason = e.GetValue("Rejection_Reason") == null ? "" : e.GetValue("Rejection_Reason").ToString();
+            var VouchingRemarks = e.GetValue("Vouching_Remarks") == null ? "" : e.GetValue("Vouching_Remarks").ToString();
+            var VouchingHistory = e.GetValue("Vouching_History") == null ? "" : e.GetValue("Vouching_History").ToString();
+            var VouchingDetails = e.GetValue("Vouching_Details") == null ? "" : e.GetValue("Vouching_Details").ToString();
+            if ((Rejection_Reason.ToString().Length == 0) && (VouchingRemarks.ToString().Length == 0) && (VouchingHistory.ToString().Length == 0) && (VouchingDetails.ToString().Length == 0))
+            {
+                //e.Row.Visible = false;
+            }
+        }
+        if (e.RowType == GridViewRowType.Data && grid.FocusedRowIndex == -1)
+        {
+            var Doc_Status = e.GetValue("Doc_Status");
+            var Doc_Category = e.GetValue("Document_Category");
+            if (VouchingMode == false)
+            {
+                if ((Doc_Status == null || (string)Doc_Status == "") && Doc_Category.ToString().ToLower() != "others")
+                {
+                    var index = e.VisibleIndex;
+                    grid.FocusedRowIndex = index;
+                    return;
+                }
+            }
+        }
+    };
+    settings.Init = (s, e) =>
+    {
+        MVCxGridView grid = (MVCxGridView)s;
+        if (VouchingMode == false)
+        {
+            grid.FocusedRowIndex = -1;
+        }
+    };
+
+
+    settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+    settings.KeyFieldName = "UniqueID";
+    if (ShowHorizontalBar == 1)
+    {
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+    }
+    else
+    {
+        if (VouchingMode == true)
+        {
+            settings.Styles.AdaptiveHeaderPanel.CssClass = "hideHeader";
+            settings.SettingsAdaptivity.AdaptiveDetailColumnCount = 2;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCellsWindowLimit;
+            settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 2000;
+            settings.SettingsAdaptivity.AllowOnlyOneAdaptiveDetailExpanded = false;
+
+            var mainLayoutGroup = new GridViewLayoutGroup();
+            mainLayoutGroup.Width = Unit.Percentage(100);
+            mainLayoutGroup.GroupBoxDecoration = GroupBoxDecoration.None;
+            mainLayoutGroup.GridSettings.StretchLastItem = DefaultBoolean.True;
+            mainLayoutGroup.GridSettings.Breakpoints.Add(new LayoutBreakpoint() { MaxWidth = 600, ColumnCount = 2, Name = "M" });
+            mainLayoutGroup.GridSettings.Breakpoints.Add(new LayoutBreakpoint() { MaxWidth = 150, ColumnCount = 1, Name = "S" });
+            var dataColumnsGroup = new GridViewLayoutGroup();
+            dataColumnsGroup.Name = "dataColumnsGroup";
+            dataColumnsGroup.Width = Unit.Percentage(100);
+            dataColumnsGroup.GroupBoxDecoration = GroupBoxDecoration.None;
+            dataColumnsGroup.ColumnCount = 2;
+            dataColumnsGroup.UseDefaultPaddings = false;
+            dataColumnsGroup.AlignItemCaptions = false;
+            dataColumnsGroup.GridSettings.Breakpoints.Add(new LayoutBreakpoint() { MaxWidth = 600, ColumnCount = 2, Name = "M" });
+            dataColumnsGroup.GridSettings.Breakpoints.Add(new LayoutBreakpoint() { MaxWidth = 150, ColumnCount = 1, Name = "S" });
+            var Item_Name = dataColumnsGroup.Items.AddColumnItem("Item_Name");
+            Item_Name.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 2, RowSpan = 1 });
+            Item_Name.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var Document_Name = dataColumnsGroup.Items.AddColumnItem("Document_Name");
+            Document_Name.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 2, RowSpan = 1 });
+            Document_Name.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var Reason = dataColumnsGroup.Items.AddColumnItem("Reason");
+            Reason.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 2, RowSpan = 1 });
+            Reason.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var ATTACH_FILE_NAME = dataColumnsGroup.Items.AddColumnItem("ATTACH_FILE_NAME");
+            ATTACH_FILE_NAME.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 2, RowSpan = 1 });
+            ATTACH_FILE_NAME.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var FromDate = dataColumnsGroup.Items.AddColumnItem("FromDate");
+            FromDate.Caption = "From";
+            FromDate.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 1, RowSpan = 1 });
+            FromDate.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var ToDate = dataColumnsGroup.Items.AddColumnItem("ToDate");
+            ToDate.Caption = "To";
+            ToDate.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 1, RowSpan = 1 });
+            ToDate.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            var Description = dataColumnsGroup.Items.AddColumnItem("Description");
+            Description.SpanRules.Add(new SpanRule() { BreakpointName = "M", ColumnSpan = 2, RowSpan = 1 });
+            Description.SpanRules.Add(new SpanRule() { BreakpointName = "S", ColumnSpan = 1, RowSpan = 1 });
+            mainLayoutGroup.Items.Add(dataColumnsGroup);
+
+            settings.SettingsAdaptivity.AdaptiveDetailLayoutProperties.Items.AddGroup(mainLayoutGroup);
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+        }
+    }
+    settings.Settings.ShowPreview = true;
+    settings.SetPreviewRowTemplateContent(c =>
+    {
+        var Rejection_Reason = DataBinder.Eval(c.DataItem, "Rejection_Reason") == null ? "" : DataBinder.Eval(c.DataItem, "Rejection_Reason").ToString();
+        var VouchingStatus = DataBinder.Eval(c.DataItem, "Vouching_Status") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Status").ToString();
+        var VouchingRemarks = DataBinder.Eval(c.DataItem, "Vouching_Remarks") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Remarks").ToString();
+        var Vouching_History = DataBinder.Eval(c.DataItem, "Vouching_History") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_History").ToString();
+        var VouchingDetails = DataBinder.Eval(c.DataItem, "Vouching_Details") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Details").ToString();
+        var Vouching_Auditor = DataBinder.Eval(c.DataItem, "Vouching_Auditor") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Auditor").ToString();
+        Boolean? Vouching_During_Audit = (Boolean?)DataBinder.Eval(c.DataItem, "Vouching_During_Audit");
+        string MainID = DataBinder.Eval(c.DataItem, "TxnID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnID").ToString();
+        string MainMID = DataBinder.Eval(c.DataItem, "TxnMID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnMID").ToString();
+        string TempID = MainMID.Length > 0 ? MainMID : MainID;
+        TempID = Regex.Replace(TempID, "[^0-9A-Za-z-]+", "_");
+        if (Rejection_Reason.Length > 0)
+        {
+            ViewContext.Writer.Write("<div><span style='color: #FF0000'> <i>Document has been rejected by Madhuban. Reason : " + Rejection_Reason + "</i></span></div>");
+        }
+        ViewContext.Writer.Write("<div id='Attachment_PrevRow_AuditInfo_DailyBalancesListGrid" + TempID + c.KeyValue + "'>");
+        if (VouchingRemarks.Length > 0 || VouchingDetails.Length > 0)
+        {
+            if (VouchingStatus.ToUpper() == "REJECTED")
+            {
+                ViewContext.Writer.Write("<div><span style='color:#FF0000'> <i>" + (Vouching_During_Audit == false ? "Vouching" : "Audit") + (VouchingRemarks.Length > 0 ? " Rejection Remarks: " : " Rejection Details: ") + VouchingRemarks + VouchingDetails + "</i></span></div>");
+            }
+            else if (VouchingStatus.ToUpper() == "ACCEPTED")
+            {
+                ViewContext.Writer.Write("<div><span style='color:#008000'> <i>" + (Vouching_During_Audit == false ? "Vouching" : "Audit") + (VouchingRemarks.Length > 0 ? " Acceptance Remarks: " : " Acceptance Details: ") + VouchingRemarks + VouchingDetails + "</i></span></div>");
+            }
+        }
+        if (Vouching_History.Length > 0)
+        {
+            ViewContext.Writer.Write("<div>" + Vouching_History + "</div>");
+        }
+        ViewContext.Writer.Write("</div>");
+    });
+
+    settings.Columns.Add(column =>
+    {
+        column.Caption = "";
+        column.MinWidth = 30;
+        column.MaxWidth = 30;
+        column.Visible = VouchingMode == true ? false : true;
+        column.SetDataItemTemplateContent(c =>
+        {
+            string Doc_Status = c.Grid.GetRowValues(c.VisibleIndex, "Doc_Status").ToString();
+            string Doc_Checking_Status = c.Grid.GetRowValues(c.VisibleIndex, "Doc_Checking_Status").ToString();
+            string ATTACH_FILE_NAME = c.Grid.GetRowValues(c.VisibleIndex, "ATTACH_FILE_NAME") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "ATTACH_FILE_NAME").ToString();
+            string Rejection_Reason = c.Grid.GetRowValues(c.VisibleIndex, "Rejection_Reason") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "Rejection_Reason").ToString();
+            string VOUCHING_REMARKS = DataBinder.Eval(c.DataItem, "Vouching_Remarks") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Remarks").ToString();
+            string VOUCHING_STATUS = DataBinder.Eval(c.DataItem, "Vouching_Status") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Status").ToString().ToUpper();
+            string VOUCHING_DETAILS = DataBinder.Eval(c.DataItem, "Vouching_Details") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Details").ToString().ToUpper();
+            Boolean? Vouching_During_Audit = (Boolean?)DataBinder.Eval(c.DataItem, "Vouching_During_Audit");
+            string ItemName = c.Grid.GetRowValues(c.VisibleIndex, "Item_Name").ToString();
+            string MainID = DataBinder.Eval(c.DataItem, "TxnID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnID").ToString();
+            string MainMID = DataBinder.Eval(c.DataItem, "TxnMID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnMID").ToString();
+            string TempID = MainMID.Length > 0 ? MainMID : MainID;
+            var VOUCHING_AUDITOR = DataBinder.Eval(c.DataItem, "Vouching_Auditor") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Auditor").ToString();
+            TempID = Regex.Replace(TempID, "[^0-9A-Za-z-]+", "_");
+            Html.RenderAction("AttachmentIcons_Attachment", "AuditButton", new { Area = "", Doc_Status = Doc_Status, Doc_Checking_Status = Doc_Checking_Status, ATTACH_FILE_NAME = ATTACH_FILE_NAME, Rejection_Reason = Rejection_Reason, ItemName = ItemName, SessionGUID = SessionGUID });
+            ViewContext.Writer.Write("<span id='Attachment_Icon_AssetListGrid" + TempID + c.KeyValue + "'>");
+            //Html.RenderAction("VouchingAuditIcons_Attachment", "AuditButton", new { Area = "", VOUCHING_STATUS = VOUCHING_STATUS, VOUCHING_REMARKS = VOUCHING_REMARKS, Vouching_During_Audit = Vouching_During_Audit, SessionGUID = SessionGUID });
+            Html.RenderAction("VouchingAuditIcons_Attachment", "AuditButton", new { Area = "", VOUCHING_STATUS = VOUCHING_STATUS, VOUCHING_REMARKS = VOUCHING_REMARKS, VOUCHING_DETAILS = VOUCHING_DETAILS, Vouching_During_Audit = Vouching_During_Audit, VOUCHING_AUDITOR = VOUCHING_AUDITOR, SessionGUID = SessionGUID });
+            ViewContext.Writer.Write("</span>");
+        });
+        column.AdaptivePriority = 0;
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Doc_Status";
+            column.Caption = "Doc_Status";
+            column.Visible = false;
+
+        }
+    });
+    settings.FormatConditions.AddIconSet("Doc_Status", GridConditionIconSetFormat.Symbols3Circled);
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Document_Name";
+            column.Caption = "Document_Name";
+            column.MinWidth = 70;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Item_Name";
+            column.Caption = "Item Name";
+            column.MinWidth = 70;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            if (VouchingMode == true)
+            {
+                column.SetDataItemTemplateContent(c =>
+                {
+                    string Doc_Status = c.Grid.GetRowValues(c.VisibleIndex, "Doc_Status").ToString();
+                    string Doc_Checking_Status = c.Grid.GetRowValues(c.VisibleIndex, "Doc_Checking_Status").ToString();
+                    string ATTACH_FILE_NAME = c.Grid.GetRowValues(c.VisibleIndex, "ATTACH_FILE_NAME") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "ATTACH_FILE_NAME").ToString();
+                    string Rejection_Reason = c.Grid.GetRowValues(c.VisibleIndex, "Rejection_Reason") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "Rejection_Reason").ToString();
+                    string VOUCHING_REMARKS = DataBinder.Eval(c.DataItem, "Vouching_Remarks") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Remarks").ToString();
+                    string VOUCHING_STATUS = DataBinder.Eval(c.DataItem, "Vouching_Status") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Status").ToString().ToUpper();
+                    string VOUCHING_DETAILS = DataBinder.Eval(c.DataItem, "Vouching_Details") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Details").ToString().ToUpper();
+                    Boolean? Vouching_During_Audit = (Boolean?)DataBinder.Eval(c.DataItem, "Vouching_During_Audit");
+                    string ItemName = c.Grid.GetRowValues(c.VisibleIndex, "Item_Name").ToString();
+                    string MainID = DataBinder.Eval(c.DataItem, "TxnID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnID").ToString();
+                    string MainMID = DataBinder.Eval(c.DataItem, "TxnMID") == null ? "" : DataBinder.Eval(c.DataItem, "TxnMID").ToString();
+                    string TempID = MainMID.Length > 0 ? MainMID : MainID;
+                    var VOUCHING_AUDITOR = DataBinder.Eval(c.DataItem, "Vouching_Auditor") == null ? "" : DataBinder.Eval(c.DataItem, "Vouching_Auditor").ToString();
+                    TempID = Regex.Replace(TempID, "[^0-9A-Za-z-]+", "_");
+                    Html.RenderAction("AttachmentIcons_Attachment", "AuditButton", new { Area = "", Doc_Status = Doc_Status, Doc_Checking_Status = Doc_Checking_Status, ATTACH_FILE_NAME = ATTACH_FILE_NAME, Rejection_Reason = Rejection_Reason, ItemName = ItemName, SessionGUID = SessionGUID });
+                    ViewContext.Writer.Write("<span id='Attachment_Icon_AssetListGrid" + TempID + c.KeyValue + "'>");
+                    //Html.RenderAction("VouchingAuditIcons_Attachment", "AuditButton", new { Area = "", VOUCHING_STATUS = VOUCHING_STATUS, VOUCHING_REMARKS = VOUCHING_REMARKS, Vouching_During_Audit = Vouching_During_Audit, SessionGUID = SessionGUID });
+                    Html.RenderAction("VouchingAuditIcons_Attachment", "AuditButton", new { Area = "", VOUCHING_STATUS = VOUCHING_STATUS, VOUCHING_REMARKS = VOUCHING_REMARKS, VOUCHING_DETAILS = VOUCHING_DETAILS, Vouching_During_Audit = Vouching_During_Audit, VOUCHING_AUDITOR = VOUCHING_AUDITOR, SessionGUID = SessionGUID });
+                    ViewContext.Writer.Write("</span>");
+                    ViewContext.Writer.Write("<span>" + ItemName + "</span></div>");
+                });
+            }
+        }
+    });
+
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Reason";
+            column.Caption = "Reason for No Attachment";
+            column.MinWidth = 70;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "FromDate";
+            column.Caption = "From Date";
+            column.MinWidth = 60;
+            column.MaxWidth = 100;
+            column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ToDate";
+            column.Caption = "To Date";
+            column.MinWidth = 60;
+            column.MaxWidth = 100;
+            column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Description";
+            column.Caption = "Description";
+            column.MinWidth = 70;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ATTACH_FILE_NAME";
+            column.Caption = "File Name";
+            column.MinWidth = 70;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+        }
+    });
+
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "MAP_ID";
+            column.Caption = "MAP_ID";
+
+            column.Visible = false;
+
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ATTACH_ID";
+            column.Caption = "ATTACH_ID";
+
+            column.Visible = false;
+
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "TxnMID";
+            column.Caption = "MID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "TxnID";
+            column.Caption = "XID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Params_Mandatory";
+            column.Caption = "Params_Mandatory";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "LABEL_FROM_DATE";
+            column.Caption = "LABEL_FROM_DATE";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "LABEL_TO_DATE";
+            column.Caption = "LABEL_TO_DATE";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "LABEL_DESCRIPTION";
+            column.Caption = "LABEL_DESCRIPTION";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "UniqueID";
+            column.Caption = "UniqueID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Doc_Checking_Status";
+            column.Caption = "Doc_Checking_Status";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Rejection_Reason";
+            column.Caption = "Rejection_Reason";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Attachment_Action_Status";
+            column.Caption = "Attachment_Action_Status";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ReasonID";
+            column.Caption = "ReasonID";
+            column.Visible = false;
+        }
+    });
+    settings.ClientSideEvents.FocusedRowChanged = "OnAssetListGridNestedFocusedRowChange";
+    settings.ClientSideEvents.BeginCallback = "AssetGrid_Nested_BeginCallBack";
+
+
+    settings.Settings.ShowGroupPanel = false;
+    settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.Hidden;
+    settings.SettingsContextMenu.Enabled = true;
+    settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.False;
+    settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+    settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+    settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+    settings.Settings.ShowHeaderFilterButton = true;
+    settings.KeyboardSupport = true;
+    //settings.AccessKey = "G";
+    settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+    settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+    settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+    settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+    settings.Settings.UseFixedTableLayout = true;
+    settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+    settings.SettingsBehavior.AllowSort = true;
+    settings.SettingsBehavior.AllowSelectByRowClick = true;
+    settings.SettingsBehavior.EnableCustomizationWindow = true;
+    settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+    settings.SettingsSearchPanel.ShowApplyButton = true;
+    settings.SettingsSearchPanel.ShowClearButton = true;
+    settings.SettingsBehavior.AllowFocusedRow = true;
+    // show filter control
+    settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+    settings.Settings.ShowFilterRow = false;
+    settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+    settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+    settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+    settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+    settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+    settings.Settings.ShowFooter = false;
+    settings.SettingsCustomizationDialog.ShowSortingPage = true;
+    settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+    settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+    settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+    MyExtensions.GridViewHelper.CustomGridView(settings);
+}).Bind(Model).GetHtml()
+
+
+
+

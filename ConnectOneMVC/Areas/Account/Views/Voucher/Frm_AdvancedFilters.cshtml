@@ -1,0 +1,400 @@
+﻿<div class="CashBookAdvanceFilter_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Account.Models.AdvanceFilter
+
+    <div>
+        @using (Ajax.BeginForm("Frm_AdvancedFilters", "Voucher",
+                    new AjaxOptions
+                    {
+                        HttpMethod = "POST",
+                        InsertionMode = InsertionMode.InsertAfter,
+                        OnBegin = "AjaxBeginFormPost",
+                        OnSuccess = "AdvanceFilter_IssueAjaxSuccess"
+                    },
+                     new
+                     {
+                         id = "AdvanceFilterForm",
+                         @class = "edit_form"
+                     }))
+        {
+            @Html.HiddenFor(x => x.Advanced_Filter_Category)
+            @Html.HiddenFor(x => x.Advanced_Filter_RefID)
+            @Html.HiddenFor(x => x.FilterType)
+            @Html.HiddenFor(x => x.AssetProfile)    
+            using (Html.DevExtreme().ValidationGroup())
+            {
+                <div class="full-width-header-bg2">
+                    <div class="row">
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead">Advance Filters</h3>
+                        </div>
+                    </div>
+                </div><!-- Header -->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    @Html.LabelFor(x => x.Cmb_FilterTypes_CB, htmlAttributes: new { @class = "control-label " })<br>
+                                    @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Cmb_FilterTypes_CB").Name("Cmb_FilterTypes_CB").DataSource(new[] { "FD", "LAND AND BUILDING", "GOLD", "SILVER", "MOVABLE ASSETS", "VEHICLES", "LIVESTOCK", "ADVANCES", "LIABILITIES", "OTHER DEPOSITS", "BANK ACCOUNTS", "VOUCHING STATUS", "AUDIT STATUS" }).OnValueChanged("Cmb_FilterTypes_SelectedIndexChanged") )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- Filter Type -->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    @Html.LabelFor(x => x.GlookUp_FilterCriteria_CB, htmlAttributes: new { @class = "control-label" })<br>
+
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GlookUp_FilterCriteria_CB").Name("GlookUp_FilterCriteria_CB").DataSource(d => d.Mvc().Controller("Voucher").LoadAction("Frm_AdvancedFilters_Lookup").Key("REC_ID").LoadMode(DataSourceLoadMode.Raw).LoadParams(new { filterType = new JS("function (){ return $('#AssetProfile').val();}") }))
+                                              .ValueExpr("REC_ID").DisplayExpr("Item").Placeholder("Select Filter Criteria").OnValueChanged("CB_AdvFilter_Criteria_Change").ContentTemplate(@<text>@Html.Partial("CB_AdvanceFilter_DataGrid")</text>))
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- Filter Criteria -->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().ID("ADvFilter_OK").Text("Ok").UseSubmitBehavior(false).OnClick("SubmitAdvanceFilter").TabIndex(2) )
+                            @(Html.DevExtreme().Button().CustomCloseButton().ID("ADvFilter_Cancel").Text("Cancel").OnClick(@<text> function () { $("#popup_frm_Voucher_Advance_Filter").dxPopup("hide"); } </text>).TabIndex(3) )
+                        </div>
+                    </div>
+                </div><!-- Buttons -->
+            }
+        }
+    </div>
+    <script>
+
+    var Cmb_FilterTypes;
+    var FilterCriteria_DG;
+    var FilterCriteria_ID;
+    $(document).ready(function ()
+    {
+        ShowLoader();
+        FilterCriteria_DD();
+        $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("readOnly", true);
+        if ("@Model.Advanced_Filter_Category".length > 0)
+        {
+            DataBinding();
+        }
+        $("#Cmb_FilterTypes_CB").dxSelectBox("instance").focus();
+        HideLoader();
+    });
+    function FilterCriteria_DD()
+    {
+        var $FilterCriteria_DG = $("#CB_AdvanceFilter_DG");
+        if ($FilterCriteria_DG.length)
+        {
+            FilterCriteria_DG = $FilterCriteria_DG.dxDataGrid("instance");
+        }
+    }
+    async function DataBinding()
+    {
+        $("#AssetProfile").val("@Model.Advanced_Filter_Category");
+        if ("@Model.FilterType".length > 0)
+        {
+            var FilterType = "@Model.FilterType";
+            if (FilterType == "OTHER ASSETS") {
+                FilterType = "MOVABLE ASSETS";
+            }
+            else if (FilterType == "LAND &amp; BUILDING")
+            { FilterType = "LAND AND BUILDING" }
+            await $("#Cmb_FilterTypes_CB").dxSelectBox("instance").option("value", FilterType);
+        }
+        FilterCriteria_DG.selectRows("@Model.Advanced_Filter_RefID", false);
+    }
+    function Cmb_FilterTypes_SelectedIndexChanged(e)
+    {
+        Cmb_FilterTypes = e.value;
+        if (e.value != null)
+        {
+            ShowLoader();
+            if (Cmb_FilterTypes == "MOVABLE ASSETS")
+            {
+                $("#AssetProfile").val("OTHER ASSETS");
+            }
+            if (Cmb_FilterTypes == "SILVER") {
+                $("#AssetProfile").val("SILVER");
+            }
+            if (Cmb_FilterTypes == "GOLD") {
+                $("#AssetProfile").val("GOLD");
+            }
+            if (Cmb_FilterTypes == "VEHICLES") {
+                $("#AssetProfile").val("VEHICLES");
+            }
+            if (Cmb_FilterTypes == "LIVESTOCK") {
+                $("#AssetProfile").val("LIVESTOCK");
+            }
+            if (Cmb_FilterTypes == "ADVANCES") {
+                $("#AssetProfile").val("ADVANCES");
+            }
+            if (Cmb_FilterTypes == "LIABILITIES") {
+                $("#AssetProfile").val("OTHER DEPOSITS");
+            }
+            if (Cmb_FilterTypes == "LAND AND BUILDING") {
+                $("#AssetProfile").val("LAND & BUILDING");
+            }
+            if (Cmb_FilterTypes == "FD") {
+                $("#AssetProfile").val("FD");
+            }
+            if (Cmb_FilterTypes == "BANK ACCOUNTS") {
+                $("#AssetProfile").val("BANK ACCOUNTS");
+            }
+            if (Cmb_FilterTypes == "PURPOSE") {
+                $("#AssetProfile").val("PURPOSE");
+            }
+            if (Cmb_FilterTypes == "VOUCHING STATUS")
+            {
+                $("#AssetProfile").val("VOUCHING STATUS");
+            }
+            if (Cmb_FilterTypes == "AUDIT STATUS")
+            {
+                $("#AssetProfile").val("AUDIT STATUS");
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").reset();
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("readOnly", false);
+            AdvFilter_Dropdown_refresh();
+        }
+        else
+        {
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").reset();
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("readOnly", true);
+        }
+    }
+        async function AdvFilter_Dropdown_refresh()
+        {
+        await FilterCriteria_DG.refresh();
+        var DG_ColumnName_CSV = "";
+        var DG_Columns_Object = FilterCriteria_DG.getVisibleColumns();
+        for (var i = 0; i < DG_Columns_Object.length; i++) {
+            DG_ColumnName_CSV = DG_ColumnName_CSV + DG_Columns_Object[i].dataField + ",";
+        }
+        if (DG_ColumnName_CSV.length > 0) {
+            var DG_ColumnName_Array = DG_ColumnName_CSV.split(',');
+        }
+        if (Cmb_FilterTypes == "MOVABLE ASSETS") {
+            FilterCriteria_DG.columnOption("Make", "visible", true);
+            FilterCriteria_DG.columnOption("Model", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "Make" && DG_ColumnName_Array[i] != "Model") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "SILVER" || Cmb_FilterTypes == "GOLD") {
+            FilterCriteria_DG.columnOption("DESC", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "DESC") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "VEHICLES") {
+            FilterCriteria_DG.columnOption("Make", "visible", true);
+            FilterCriteria_DG.columnOption("Model", "visible", true);
+            FilterCriteria_DG.columnOption("Reg_No", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "Make" && DG_ColumnName_Array[i] != "Model" && DG_ColumnName_Array[i] != "Reg_No") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "LIVESTOCK") {
+            FilterCriteria_DG.columnOption("Name", "visible", true);
+            FilterCriteria_DG.columnOption("BIRTHYEAR", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "Name" && DG_ColumnName_Array[i] != "BIRTHYEAR") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "ADVANCES" || Cmb_FilterTypes == "LIABILITIES") {
+            FilterCriteria_DG.columnOption("Party", "visible", true);
+            FilterCriteria_DG.columnOption("Date", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "Party" && DG_ColumnName_Array[i] != "Date") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "LAND AND BUILDING") {
+            FilterCriteria_DG.columnOption("Category", "visible", true);
+            FilterCriteria_DG.columnOption("Type", "visible", true);
+            FilterCriteria_DG.columnOption("Use", "visible", true);
+            FilterCriteria_DG.columnOption("Item", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "Item" && DG_ColumnName_Array[i] != "Category" && DG_ColumnName_Array[i] != "Type" && DG_ColumnName_Array[i] != "Use") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Item");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "FD")
+        {
+            FilterCriteria_DG.columnOption("FD_No", "visible", true);
+            FilterCriteria_DG.columnOption("FD_Date", "visible", true);
+            FilterCriteria_DG.columnOption("FD_Amt", "visible", true);
+            FilterCriteria_DG.columnOption("Bank", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++) {
+                if (DG_ColumnName_Array[i] != "FD_No" && DG_ColumnName_Array[i] != "FD_Date" && DG_ColumnName_Array[i] != "FD_Amt" && DG_ColumnName_Array[i] != "Bank") {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "FD_No");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "BANK ACCOUNTS")
+        {
+            FilterCriteria_DG.columnOption("AccNo", "visible", true);
+            FilterCriteria_DG.columnOption("Bank", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++)
+            {
+                if (DG_ColumnName_Array[i] != "AccNo" && DG_ColumnName_Array[i] != "Bank")
+                {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Bank");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "PURPOSE")
+        {
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Purpose");
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("valueExpr", "REC_ID");
+        }
+        else if (Cmb_FilterTypes == "VOUCHING STATUS" || Cmb_FilterTypes == "AUDIT STATUS")
+        {
+            FilterCriteria_DG.columnOption("Status", "visible", true);
+            for (var i = 0; i < DG_ColumnName_Array.length; i++)
+            {
+                if (DG_ColumnName_Array[i] != "Status")
+                {
+                    FilterCriteria_DG.columnOption(DG_ColumnName_Array[i], "visible", false);
+                }
+            }
+            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").option("displayExpr", "Status");
+
+        }
+        HideLoader();
+    }
+    function CB_AdvFilter_Criteria_Change(e)
+    {
+        FilterCriteria_ID = e.value;
+        e.component.close();
+        if (e.value == null && e.previousValue != null)
+        {
+                FilterCriteria_DG.clearSelection();
+        }
+    }
+    function SubmitAdvanceFilter(e)
+    {
+        $("#FilterType").val(Cmb_FilterTypes);
+        $("#Advanced_Filter_Category").val($("#AssetProfile").val());
+        $("#Advanced_Filter_RefID").val(FilterCriteria_ID);
+        var result = e.validationGroup.validate();
+        if (result.isValid)
+        {
+            var GridInstance = $('#CashBookListGrid').data("dxDataGrid") //dxdatagrid
+            if (GridInstance !== void 0)
+            {
+                if (Cmb_FilterTypes == null || Cmb_FilterTypes.length == 0)
+                {
+                    DevExpress.ui.dialog.alert("Filter Type Not Selected...!", 'Error').done(function ()
+                    {
+                        $("#Cmb_FilterTypes_CB").dxSelectBox("focus")
+                    });
+                    return;
+                }
+                if (FilterCriteria_ID == null || FilterCriteria_ID.length == 0)
+                {
+                    DevExpress.ui.dialog.alert("Filter Criteria Not Selected...!", 'Error').done(function ()
+                    {
+                        $("#GlookUp_FilterCriteria_CB").dxDropoDownBox("focus")
+                    });
+                    return;
+                }
+                var Advanced_Filter_Category = $("#Advanced_Filter_Category").val();
+                var Advanced_Filter_RefID = $("#Advanced_Filter_RefID").val();
+                if (Advanced_Filter_Category != null && Advanced_Filter_Category.length > 0)
+                {
+                    Grid_Display_CB("Advanced_Filter,=," + Advanced_Filter_Category + " = " + Advanced_Filter_RefID)
+                }
+                $("#popup_frm_Voucher_Advance_Filter").dxPopup("hide");
+            }
+            else
+            {
+                $("#AdvanceFilterForm").submit();
+            }
+        }
+    }
+    function AdvanceFilter_IssueAjaxSuccess(result)
+    {
+        HideLoader();
+        if (result.Valid)
+        {
+            $("#popup_frm_Voucher_Advance_Filter").dxPopup("hide");
+            Grid_Display(result.ActiveFilterString);
+        }
+        else
+        {
+            var alrtDone=DevExpress.ui.dialog.alert(result.Message, 'Error');
+            alrtDone.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    switch (result.Focus)
+                    {
+                        case "Cmb_FilterTypes_CB":
+                            $("#Cmb_FilterTypes_CB").dxSelectBox("instance").focus();
+                            break;
+                        case "GlookUp_FilterCriteria_CB":
+                            $("#GlookUp_FilterCriteria_CB").dxDropDownBox("instance").focus();
+                            break;
+                    }
+                }
+            });
+        }
+        }
+        function ClearAllReferences_CashBookAdvanceFilter()
+        {
+            Cmb_FilterTypes=null;
+            FilterCriteria_DG = null;
+            FilterCriteria_ID = null;
+
+            ClearAllReferences("CashBookAdvanceFilter_ClearReferences");
+        }
+        $(function ()
+        {
+            $("#popup_frm_Voucher_Advance_Filter").dxPopup({
+                onHiding: function (e)
+                {
+                    ClearAllReferences_CashBookAdvanceFilter();
+                    e.component.content()[0].innerHTML = "";
+                    e.component.dispose();
+                    $("#popup_frm_Voucher_Advance_Filter").remove();
+                }
+            });
+        })//popup hide
+    </script>
+    </div>

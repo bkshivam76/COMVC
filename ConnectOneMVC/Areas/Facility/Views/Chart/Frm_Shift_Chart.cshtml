@@ -1,0 +1,156 @@
+﻿
+<div class="ShiftChart_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.ShiftChart
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+    }
+    <div id="Create_Chart_Copy">
+        @using (Ajax.BeginForm("Frm_Shift_Chart", "Chart",
+                                       new AjaxOptions
+                                       {
+                                           HttpMethod = "POST",
+                                           UpdateTargetId = "ServiceReportWindow",
+                                           InsertionMode = InsertionMode.InsertAfter,
+                                           OnBegin = "AjaxBeginFormPost",
+                                           OnSuccess = "Frm_Shift_Chart_AjaxSuccessForm"
+                                       },
+                               new
+                               {
+                                   id = "Frm_Shift_Chart",
+                                   @class = "edit_form form-horizontal"
+                               }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.chartId_shiftChart)
+            @Html.HiddenFor(x => x.chartName_shiftChart)
+            @Html.HiddenFor(x => x.cenName_shiftChart)
+            @Html.HiddenFor(x => x.cenUId_shiftChart)
+
+        <div class="row">
+            <div class="col-sm-8">
+                <h3 class="popuphead"><i class="far fa-edit"></i>Form Name: @Model.chartName_shiftChart</h3>
+            </div>
+            <div class="col-sm-4 prm">
+                <h5 class="mand-txt-align">
+                    <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                </h5>
+            </div>
+        </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 pll">
+                            <label class="control-label text-red" for="user">Centre: </label>
+                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("cenID_shiftChart").Name("cenID_shiftChart").Value(Model.cenId_shiftChart).Placeholder("Choose Center").DisplayExpr("cen_name").ValueExpr("cen_id")
+                              .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_Centres").Key("cen_id").LoadMode(DataSourceLoadMode.Raw))
+                              .ContentTemplate(@<text>
+                        @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("cenID_shiftChart_datagrid")
+                        .Columns(columns =>
+                        {
+                            columns.Add().DataField("cen_name").Caption("Name");
+                            columns.Add().DataField("cen_uid").Caption("UID");
+                            columns.Add().DataField("ins_short").Caption("Institute");
+                            columns.Add().DataField("cen_id").Caption("cen_id").Visible(false);
+                        })
+                        .Selection(s => s.Mode(SelectionMode.Single))
+                        .FilterRow(s=>s.Visible(false))
+                        .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);};}"))
+                    </text>).OnValueChanged("cenID_shiftChart_valueChange"))
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-12 styleActionBtn">
+                            @(Html.DevExtreme().Button().CustomSaveButton().Text("Ok").ID("Btn_ShiftChart").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("Btn_ShiftChart_Click"))
+                            @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Btn_ShiftChart_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { Btn_ShiftChart_Cancel_Click();} </Text>))
+
+                        </div>
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+
+        }
+    </div><!--[Form Div]-->
+
+    <script>
+        var centreName = null;
+        var centreUid = null;
+        $(document).ready(function () {
+            cenID_shiftChart_valueChange(null,true)
+        })
+
+        function Btn_ShiftChart_Cancel_Click() {
+            $("#Dynamic_Content_popup").dxPopup("hide");
+        }
+        async function cenID_shiftChart_valueChange(e, FirstCall = false) {
+            debugger;
+            var value;
+            var DG = $("#cenID_shiftChart_datagrid").dxDataGrid("instance");
+            if (e) {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    DG.clearSelection();
+                    return;
+                }
+            }
+            else {
+                value = $("#cenID_shiftChart").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);
+            centreName = DG.getSelectedRowsData()[0]['cen_name'];
+            centreUid = DG.getSelectedRowsData()[0]['cen_uid'];
+            $("#cenName_shiftChart").val(centreName);
+            $("#cenUId_shiftChart").val(centreUid);
+        }
+        function Btn_ShiftChart_Click(e) {
+            var value = $("#cenID_shiftChart").dxDropDownBox("option", "value");
+            if (value == "@Model.cenId_shiftChart") {
+                DevExpress.ui.dialog.alert("Form : <b>@Model.chartName_shiftChart</b> already present in selected Centre : <b>" + centreName + "(" + centreUid+")</b>.", "Invalid Operation...");
+                return;
+            }
+            var form = $("#Frm_Shift_Chart")
+            ShowLoader();
+            form.submit();
+        }
+        function Frm_Shift_Chart_AjaxSuccessForm(data) {
+            HideLoader();
+            if (data.jsonParam.result == false) {
+                var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertClick.done(function (alertResult) {
+                    if (alertResult) {
+                        if (data.jsonParam.focusid) {
+                            var id = "#" + data.jsonParam.focusid;
+                            setTimeout(function () {
+                                $(id).find('input').focus();
+                            }, 500);
+                        }
+                    }
+                })
+            }
+            else {
+                var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertClick.done(function (alertResult) {
+                    if (alertResult) {
+                        var _ActiveTab_ID = $(".TabPanalMenu-tabs .active").attr("id");
+                        var GridInstance = $('#ChartInfoGrid_dx').data("dxDataGrid")//BK SOUMY
+
+                        if (_ActiveTab_ID == "contact_Frm_Chart_Info" || $("#ChartInfoGrid").length>0) {
+                            RefreshGridView("ChartInfoGrid")
+                        }
+                        if ((GridInstance !== void 0)) {
+                            ChartInfoGrid_dx_Refresh();
+                        }
+                        $("#Dynamic_Content_popup").dxPopup("hide");
+                    }
+                })
+            }
+        }
+    </script>
+
+</div>

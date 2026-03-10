@@ -1,0 +1,87 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    int ShowHorizontalBar = ViewBag.ShowHorizontalBar == null ? 0 : (int)ViewBag.ShowHorizontalBar;
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    var DisplayType = ViewBag.DisplayType;
+
+}
+@(Html.DevExtreme().DataGrid().CustomDataGridListing(ShowHorizontalBar).ID("DailyBalancesListGrid") 
+    .DataSource(new JS("DailyBalanceReport_DS()"))
+                 .Columns(columns =>
+                 {
+                     columns.Add().DataField("SummaryColumn").Name("SummaryColumn").Caption("SummaryColumn").Visible(false).ShowInColumnChooser(false);//Bug #137209 Fix
+                     columns.Add().DataField("iIcon").Name("iIcon").Caption("").CellTemplate(new JS("DailyBalancesListGrid_dx_iIconTemplate")).Width(30)
+                     .HeaderFilter(filter => filter.DataSource("DxGrid_HeaderFilterDataSource")).RenderAsync(true).AllowEditing(false);
+                     columns.Add().DataField("DailyBalancesListGrid_dx_Compact_Column").Name("DailyBalancesListGrid_dx_Compact_Column").Caption("").Visible(false).CellTemplate(new JS("DailyBalancesListGrid_dx_Compact_Column_Template"))
+                     .CalculateCellValue("DailyBalancesListGrid_dx_Compact_Column_CellValue").Width("100%").RenderAsync(true).ShowInColumnChooser(false).AllowEditing(false); ;
+
+                     columns.Add().DataField("ITR_Date").Caption("Date").MinWidth(65).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy").AllowEditing(false);
+                     columns.Add().DataField("Item").Caption("Item").MinWidth(120).AllowEditing(false);
+                     if (DisplayType == "BANK")
+                     {
+                         columns.Add().DataField("Mode").Caption("Mode").MinWidth(120).AllowEditing(false);
+                         columns.Add().DataField("RefNo").Caption("RefNo").MinWidth(80).AllowEditing(false);
+                     }
+                     columns.Add().DataField("Party").Caption("Party").MinWidth(120).AllowEditing(false);
+                     columns.Add().DataField("Instrumentdate").Caption("Ref Date").MinWidth(70).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy").AllowEditing(false);
+                     if (DisplayType == "BANK")
+                     {
+                         columns.Add().DataField("Clearingdate").Caption("Clearing Date").MinWidth(70).DataType(GridColumnDataType.Date).Format("dd-MM-yyyy").AllowEditing(true).ShowEditorAlways(true).ValidationRules(s=>s.AddCustom().IgnoreEmptyValue(true).Reevaluate(true).ValidationCallback("clearingDateValidation_DB").Message("Clearing Date cannot be less than Instrument Date!!")).SortingMethod("clearingDateCustomSort_DB");
+                     }
+                     columns.Add().DataField("Debit").Caption("Debit").MinWidth(120).AllowEditing(false).DataType(GridColumnDataType.Number).Format(new JS("function(cellInfo){return DxGrid_FormatNumber(cellInfo)}"));
+                     columns.Add().DataField("Credit").Caption("Credit").MinWidth(120).AllowEditing(false).DataType(GridColumnDataType.Number).Format(new JS("function(cellInfo){return DxGrid_FormatNumber(cellInfo)}"));
+                     columns.Add().DataField("Balance").Caption("Balance").MinWidth(120).AllowEditing(false).DataType(GridColumnDataType.Number).Format(new JS("function(cellInfo){return DxGrid_FormatNumber(cellInfo)}"));
+                     columns.Add().DataField("iTR_TEMP_ID").Caption("iTR_TEMP_ID").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("Grid_PK").Caption("Grid_PK").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iREC_ID").Caption("iREC_ID").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iTR_M_ID").Caption("iTR_M_ID").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iTR_ITEM_ID").Caption("iTR_ITEM_ID").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iRESPONDED_COUNT").Caption("iRESPONDED_COUNT").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iCOMPLETE_ATTACH_COUNT").Caption("iCOMPLETE_ATTACH_COUNT").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iREQ_ATTACH_COUNT").Caption("iREQ_ATTACH_COUNT").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("SpecialVoucherReference").Caption("Voucher Ref").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iOTHER_ATTACH_CNT").Caption("iOTHER_ATTACH_CNT").Visible(false).AllowEditing(false);
+                     columns.Add().DataField("iALL_ATTACH_CNT").Caption("iALL_ATTACH_CNT").Visible(false).AllowEditing(false);
+
+
+                 })
+                 .Summary(s =>
+{
+    s.TotalItems(item =>
+    {
+        item.Add().Name("Credit_Credit_sum").SummaryType(SummaryType.Sum).Column("Credit").ShowInColumn("Credit").DisplayFormat("{0}").ValueFormat(new JS("function(value){return DxGrid_FormatNumber(value)}"));
+        item.Add().Name("Debit_Debit_sum").SummaryType(SummaryType.Sum).Column("Debit").ShowInColumn("Debit").DisplayFormat("{0}").ValueFormat(new JS("function(value){return DxGrid_FormatNumber(value)}"));
+    });
+})
+         .Editing(editing =>
+         {
+             editing.Mode(GridEditMode.Batch);
+             editing.AllowUpdating(true);
+             editing.AllowAdding(false);
+             editing.AllowDeleting(false);
+             editing.SelectTextOnEditStart(true);
+             editing.StartEditAction(GridStartEditAction.Click);
+
+         })
+
+         .MasterDetail(md =>
+         {
+             md.AutoExpandAll(false);
+             md.Enabled(!VouchingMode);
+             md.Template(new JS("DailyBalancesListGrid_dx_DetailTemplate"));
+         })
+         .OnInitialized("DailyBalancesListGrid_dx_OnInitialized")
+         .OnCellPrepared("DailyBalancesListGrid_dx_OnCellPrepared")
+         .OnRowPrepared("DailyBalancesListGrid_dx_OnRowPrepared")
+         .OnContentReady("DailyBalancesListGrid_dx_OnContentReady")
+         .OnCellDblClick("DailyBalancesListGrid_dx_OnCellDblClick")
+         .OnSelectionChanged("DailyBalancesListGrid_dx_OnSelectionChanged")
+         .OnRowExpanding("DailyBalancesListGrid_dx_OnRowExpanding")
+         .OnRowCollapsing("DailyBalancesListGrid_dx_OnRowCollapsing")
+         .OnContextMenuPreparing("DailyBalancesListGrid_dx_OnContextMenuPreparing")      
+         .OnEditorPreparing("DailyBalancesListGrid_dx_OnEditorPreparing")
+         .OnEditorPrepared("DailyBalancesListGrid_dx_OnEditorPrepared")
+         .OnToolbarPreparing("DailyBalancesListGrid_dx_ToolBarPreparing")     
+         
+)

@@ -1,0 +1,819 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.UOOrderItemDetails
+@{
+    ViewBag.Test = Model.UO_OT_ActionMethod;
+    bool IsVisible = Model != null && (Model.UO_OT_ActionMethod.ToString().Trim() == "View") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+
+    bool UO_AddStockItemRight = (bool)ViewData["UO_AddStockItemRight"];
+    bool UO_AddHelpRequestRight = (bool)ViewData["UO_AddHelpRequestRight"];
+}
+@*<style>
+        .demo {
+            margin-bottom: -99999px !important;
+            padding-bottom: 99999px !important;
+        }
+
+        #equalheight {
+            overflow: hidden;
+        }
+
+        [type="radio"]:checked,
+        [type="radio"]:not(:checked) {
+            position: absolute;
+            left: -9999px;
+        }
+
+            [type="radio"]:checked + label,
+            [type="radio"]:not(:checked) + label {
+                position: relative;
+                padding-left: 20px;
+                cursor: pointer;
+                line-height: 15px;
+                display: inline-block;
+                color: #666;
+            }
+
+                [type="radio"]:checked + label:before,
+                [type="radio"]:not(:checked) + label:before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 16px;
+                    height: 16px;
+                    border: 1px solid #ddd;
+                    border-radius: 100%;
+                    background: #fff;
+                }
+
+                [type="radio"]:checked + label:after,
+                [type="radio"]:not(:checked) + label:after {
+                    content: '';
+                    width: 8px;
+                    height: 8px;
+                    background: #337ab7;
+                    position: absolute;
+                    top: 4px;
+                    left: 4px;
+                    border-radius: 100%;
+                    -webkit-transition: all 0.2s ease;
+                    transition: all 0.2s ease;
+                }
+
+                [type="radio"]:not(:checked) + label:after {
+                    opacity: 0;
+                    -webkit-transform: scale(0);
+                    transform: scale(0);
+                }
+
+                [type="radio"]:checked + label:after {
+                    opacity: 1;
+                    -webkit-transform: scale(1);
+                    transform: scale(1);
+                }
+
+        .paddLR5 {
+            padding-left: 5px !important;
+            padding-right: 5px !important;
+        }
+
+        .margT4 {
+            margin-top: 4px !important;
+        }
+
+        .buttonMrgTB {
+            margin-bottom: 15px !important;
+            margin-top: 15px !important;
+            min-width: 152px;
+            margin: auto;
+        }
+    </style>*@
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="Frm_User_Order_Item_Popup">
+    @using (Ajax.BeginForm("Frm_User_Order_Item_Popup", "UserOrder",
+                                           new AjaxOptions
+                                           {
+                                               HttpMethod = "POST",
+                                               UpdateTargetId = "Frm_User_Order_Item_Popup",
+                                               InsertionMode = InsertionMode.InsertAfter,
+                                               OnBegin = "AjaxBeginFormPost",
+                                               OnSuccess = String.Format("{0}", Model.UOItemPostSuccessFunction)
+                                           },
+                                           new
+                                           {
+                                               id = "ID_Frm_User_Order_Item_Popup",
+                                               @class = "edit_form"
+                                           }))
+    {
+        @Html.HiddenFor(x => x.UO_OT_ActionMethod)
+        //  @Html.HiddenFor(x => x.OT_Item_ID)
+        @Html.HiddenFor(x => x.OT_Item_Name)
+        @Html.HiddenFor(x => x.OT_UnitName)
+        @Html.HiddenFor(x => x.OT_Delivery_Location)
+        @Html.HiddenFor(y => y.UO_OT_AddedOn)
+        @Html.HiddenFor(y => y.UO_OT_AddedBy)
+        @Html.HiddenFor(x => x.Sr)
+        @Html.HiddenFor(x => x.UOid)
+        @Html.HiddenFor(x => x.UO_OT_ID)
+        @Html.HiddenFor(x => x.UOItemPopupName)
+        @Html.HiddenFor(x => x.UOItemSubDept)
+
+  @Html.HiddenFor(x => x.UOItemPostSuccessFunction)
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="row formRow">
+                <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                    <label class="control-label text-red" for="user">Item Name</label>
+                </div>
+                <div class="col-sm-4 col-md-4 col-lg-4 prm pll4">
+                    @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                .ID("OT_Item_ID")
+                                                                .Name("OT_Item_ID")
+                                                                //.Value(Model.OT_Item_ID)
+                                                                .Placeholder("Select Item Name..")
+                                                                .ValueExpr("ItemID")
+                                                                .DisplayExpr("Name")
+                                                                .DataSource(d => d.Mvc().Controller("UserOrder").LoadAction("Store_Items_List").Key("ItemID").LoadParams(new { ReqStoreID = new JS("function (){ return Requestee_Store_ID;}") }))
+
+                                                                .OnValueChanged("OnOT_Item_Name_Changed")
+
+                                                                .ReadOnly(true)
+                                                                .Disabled(IsVisible)
+                                                                .OnInitialized("OnInitialized_OT_Item_Name_Changed")
+                                                                .ContentTemplate(@<text>
+                                                                    @Html.Partial("Store_Items_List")
+                                                                </text>)
+                    )
+                    @Html.ValidationMessageFor(model => model.OT_Item_ID, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6 prm pll4">
+                    @*<input type="button" value="Add/Request Item" />*@
+                    @(Html.DevExtreme().Button()
+                                                                        .ID("AddRequestItem")
+                                                                        .Text("Add/Request Item")
+                                                                        .Disabled(IsVisible)
+                                                                        .OnClick(@<text>
+                                                                            function () {
+                                                                            AddRequestItem_Click()
+                                                                            }
+                                                                        </text>))
+                    @(Html.DevExtreme().Button()
+                                                                           .ID("UOIOCheckAvailability")
+                                                                           .Text("Check Availability")
+                                                                           .Disabled(IsVisible)
+                                                                           .OnClick(@<text>
+                                                                            function () {
+                                                                            CheckAvailability_Click()
+                                                                            }
+                                                                        </text>))
+                </div>
+            </div><!--[row1]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="col-sm-4 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Head</label></div>
+                    <div class="col-sm-8 col-md-6 col-lg-6 prm pll2">
+                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                .ID("OT_Head")
+                                                                                                                                .Name("OT_Head")
+                                                                                                                                .Value(Model.OT_Head)
+                                                                                                                                .ReadOnly(true)
+                                                                                                                                .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[1]-->
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="col-sm-4 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Item Type</label></div>
+                    <div class="col-sm-8 col-md-6 col-lg-6 prm">
+                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                                .ID("OT_Item_Type")
+                                                                                                                                .Name("OT_Item_Type")
+                                                                                                                                .Value(Model.OT_Item_Type)
+                                                                                                                                .ReadOnly(true)
+                                                                                                                                .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[2]-->
+                <div class="col-sm-12 col-md-4 col-lg-4 padTop4">
+                    <div class="col-sm-2 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Item Code</label></div>
+                    <div class="col-sm-10 col-md-6 col-lg-6 prm">
+                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                            .ID("OT_Item_Code")
+                                                                                                                            .Name("OT_Item_Code")
+                                                                                                                            .Value(Model.OT_Item_Code)
+                                                                                                                            .ReadOnly(true)
+                                                                                                                            .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[3]-->
+            </div><!--[row2]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Make</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll2">
+                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                        .ID("OT_Make")
+                                                                                                                        .Name("OT_Make")
+                                                                                                                        .Value(Model.OT_Make)
+                                                                                                                        .MaxLength(255)
+                                                                                                                        .ReadOnly(IsVisible)
+                                                                                                                        .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[1]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Model</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                        @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                                                                            .ID("OT_Model")
+                                                                                                                            .Name("OT_Model")
+                                                                                                                            .Value(Model.OT_Model)
+                                                                                                                            .MaxLength(255)
+                                                                                                                            .ReadOnly(IsVisible)
+                                                                                                                            .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[2]-->
+            </div><!--[row3]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Delivery Location</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                    .ID("OT_DeliveryLocID")
+                                                                    .Name("OT_DeliveryLocID")
+                                                                    .Value(Model.OT_DeliveryLocID)
+                                                                    .Placeholder("Select Location...")
+                                                                    .ValueExpr("Loc_Id")
+                                                                    .DisplayExpr("Location_Name")
+                                                                    .DataSource(d => d.Mvc().Controller("UserOrder").LoadAction("LookUp_OT_GetLocations").Key("Loc_Id").LoadParams(new { UOReqMainDeptID = new JS("function (){ return MainDeptID;}") , UOReqSubDeptID = new JS("function (){ return subdeptid;}") } ))
+
+                                                                    .ReadOnly(IsVisible)
+                                                                    .Disabled(IsVisible)
+                                                                    .OnValueChanged("Delivery_Location_ChangeEvent")
+
+                                                                    .OnInitialized("onInitialized_LookUp_Delivery_Location")
+                                                                    .ContentTemplate(@<text>
+                                                                        @Html.Partial("LookUp_OT_GetLocations")
+                                                                    </text>)
+                        )
+                        @Html.ValidationMessageFor(model => model.OT_DeliveryLocID, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Unit</label></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5 prm">
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown()
+                                                                    .ID("OT_UnitID")
+                                                                    .Name("OT_UnitID")
+                                                                    .Value(Model.OT_UnitID)
+                                                                    .Placeholder("Select Unit")
+                                                                    .ValueExpr("Unit_ID")
+                                                                    .DisplayExpr("Unit")
+                                                                    .DataSource(d => d.Mvc().Controller("UserOrder").LoadAction("LookUp_Units_List").Key("Unit_ID"))
+
+                                                                    .ReadOnly(IsVisible)
+                                                                    .Disabled(IsVisible)
+                                                                    .OnValueChanged("OT_Unit_ChangeEvent")
+
+                                                                    .OnInitialized("onInitialized_LookUp_OT_Unit")
+                                                                    .ContentTemplate(@<text>
+                                                                        @Html.Partial("LookUp_Units_List")
+                                                                    </text>)
+                        )
+                        @Html.ValidationMessageFor(model => model.OT_UnitID, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-sm-3 col-md-3 col-lg-3 prm ">
+                        @(Html.DevExtreme().Button()
+                                                                    .ID("UORequestUnit")
+                                                                    .Text("Request Unit")
+                                                                    .Disabled(IsVisible)
+                                                                    .OnClick(@<text>
+                                                                        function () {
+                                                                        UORequestUnit_Click()
+                                                                        }
+                                                                    </text>))
+
+                    </div>
+                </div>
+            </div><!--[row3 a]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Requested Quantity</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll2">
+                        @(Html.DevExtreme().NumberBox().CustomNumberBox()
+                                                                    .ID("OT_Requested_Qty")
+                                                                    .Name("OT_Requested_Qty")
+                                                                    .Value(Model.OT_Requested_Qty)
+                                                                    .Format("##0")
+                                                                    .ReadOnly(true)
+                                                                    .Disabled(IsVisible)
+                        )
+                        @Html.ValidationMessageFor(model => model.OT_Requested_Qty, "", new { @class = "text-danger" })
+                    </div>
+                </div><!--[1]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Approved Quantity</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll2">
+                        @(Html.DevExtreme().NumberBox().CustomNumberBox()
+                                                                    .ID("OT_Approved_Qty")
+                                                                    .Name("OT_Approved_Qty")
+                                                                    .Value(Model.OT_Approved_Qty)
+                                                                    .Format("##0")
+                                                                    .ReadOnly(true)
+                                                                    .Disabled(IsVisible)
+                        )
+
+                    </div>
+                </div><!--[2]-->
+            </div><!--[row4]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label text-red" for="user">Required Delivery Date</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm pll2">
+                        @(Html.DevExtreme().DateBoxFor(m => m.OT_Req_Deliver_Date).CustomDateBox()
+                                                                            .ID("OT_Req_Deliver_Date")
+                                                                            .Name("OT_Req_Deliver_Date")
+                                                                            .Placeholder("Choose Date..")
+
+                                                                            .ReadOnly(true)
+                                                                            .Disabled(IsVisible)
+                                                                            .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                        )
+                        @Html.ValidationMessageFor(model => model.OT_Req_Deliver_Date, "", new { @class = "text-danger" })
+                    </div>
+                </div><!--[1]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Scheduled Delivery Date</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm">
+                        @(Html.DevExtreme().DateBoxFor(m => m.OT_Sch_Deliver_Date).CustomDateBox()
+                                                                    .ID("OT_Sch_Deliver_Date")
+                                                                    .Name("OT_Sch_Deliver_Date")
+
+                                                                    .ReadOnly(true)
+                                                                    .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[2]-->
+            </div><!--[row5]-->
+            <div class="row formRow">
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Priority</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm pll2">
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                                                                    .ID("OT_Priority")
+                                                                    .Name("OT_Priority")
+                                                                    .Placeholder("Select Priority...")
+                                                                    .ReadOnly(IsVisible)
+                                                                    .Disabled(IsVisible)
+                                                                    .DataSource(new[] { "High", "Normal", "Low" })
+                                                                    .Value(Model.OT_Priority)
+                                                                    .OnValueChanged("Priority_SelectedIndexChanged")
+                        )
+                    </div>
+                </div><!--[1]-->
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Part Delivery Allowed?</label></div>
+                    <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                        @(Html.DevExtreme().RadioGroup()
+                                                                    .ID("OT_Delivery_Allowed")
+                                                                    .Name("OT_Delivery_Allowed")
+                                                                    .DisplayExpr("text")
+                                                                    .ValueExpr("value")
+                                                                    .Value(Model.OT_Delivery_Allowed)
+                                                                    .ActiveStateEnabled(true)
+                                                                    .DataSource(new object[] { new { text = "Yes", value = true }, new { text = "No", value = false }, })
+                                                                    .Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal)
+                                                                    .ReadOnly(IsVisible)
+                                                                    .Disabled(IsVisible)
+                        )
+                    </div>
+                </div><!--[2]-->
+            </div><!--[row6]-->
+            <div class="row formRow">
+                <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Remarks:</label></div>
+                <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                    @(Html.DevExtreme().TextBox().CustomTextBox()
+                                                                .ID("OT_Remarks")
+                                                                .Name("OT_Remarks")
+                                                                .Value(Model.OT_Remarks)
+                                                                .Placeholder("Enter Remarks...")
+                                                                .MaxLength(8000)
+                                                                .ReadOnly(IsVisible)
+                                                                .Disabled(IsVisible)
+                    )
+                </div>
+            </div><!--[row7]-->
+            <div class="row styleActionBtn marginAll8">
+                @if (Model.UO_OT_ActionMethod.ToString().Trim() == "View")
+                {
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Close").ID("UserOrder_item_Cancle").FocusStateEnabled(true).OnClick(@<text> function () { close_UO_Item();} </text>) )
+                }
+                @if (Model.UO_OT_ActionMethod.ToString().Trim() == "New" || Model.UO_OT_ActionMethod.ToString().Trim() == "Edit")
+                {
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("UserOrder_item_Save").FocusStateEnabled(true).UseSubmitBehavior(true) )
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("UserOrder_item_Cancled").FocusStateEnabled(true).OnClick(@<text> function () { close_UO_Item();} </text>) )
+                }
+            </div>
+        }
+    }
+</div>
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("ItemOrderedGrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").ContentTemplate(@<text> <div id="result_ItemOrderedGrid">  </div> </text>))
+
+<script>
+    var store;
+    var subitem;
+    var subdeptid;
+    var UO_IO_Item_DG;
+    $(document).ready(async function () {
+        debugger
+        @*if ("@UO_AddStockItemRight" == "False")
+        {
+            $("#AddRequestItem").hide();
+        }*@
+    
+        var form = "ID_Frm_User_Order_Item_Popup";
+        ShowLoader();
+        if ("@Model.UOid" != "0") {
+
+            subdeptid = "@Model.UOItemSubDept";
+        }
+        else {
+            subdeptid = $("#UORequestor_Sub_Department_Name_Id").dxDropDownBox("instance").option("value");
+        }
+
+        AssignIDtoLabel(form, "UO_orderItem");
+
+        Refresh_UO_ItemGrid_Item_DG();
+        if ("@Model.OT_Item_ID".length > 0)
+        {
+            await UO_IO_Item_DG.selectRows(parseInt("@Model.OT_Item_ID"), false);
+            
+        }
+
+        if ("@Model.UOid" != 0) {
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/CurrentUserRoleGrids",
+                data: {
+                    ID: "@Model.UOid",
+                },
+                cache: false,
+                success: function (result) {
+
+                    if (result.Req || result.ReqI) {
+
+                        $('#OT_Requested_Qty').dxNumberBox("instance").option("readOnly", false);
+                        $('#OT_Item_ID').dxDropDownBox("instance").option("readOnly", false);
+                        $('#OT_Req_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+                        $('#OT_Delivery_Allowed').dxRadioGroup("instance").option("readOnly", false);
+                        $('#OT_Approved_Qty').dxNumberBox("instance").option("readOnly", true);
+                        $('#OT_Sch_Deliver_Date').dxDateBox("instance").option("readOnly", true);
+                    }
+                    if (result.Sk || result.SkI) {
+
+
+                        $('#OT_Requested_Qty').dxNumberBox("instance").option("readOnly", false);
+                        $('#OT_Item_ID').dxDropDownBox("instance").option("readOnly", false);
+                        $('#OT_Req_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+                        $('#OT_Delivery_Allowed').dxRadioGroup("instance").option("readOnly", false);
+                        $('#OT_Approved_Qty').dxNumberBox("instance").option("readOnly", false);
+                        $('#OT_Sch_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+                    }
+                }
+            });
+        }
+        else
+        {
+            if (is_Requestor || is_RequestorIncharge) {
+
+                $('#OT_Requested_Qty').dxNumberBox("instance").option("readOnly", false);
+                $('#OT_Item_ID').dxDropDownBox("instance").option("readOnly", false);
+                $('#OT_Req_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+                $('#OT_Delivery_Allowed').dxRadioGroup("instance").option("readOnly", false);
+                $('#OT_Approved_Qty').dxNumberBox("instance").option("readOnly", true);
+                $('#OT_Sch_Deliver_Date').dxDateBox("instance").option("readOnly", true);
+
+            }
+
+            if (is_Store_Keeper || is_Store_KeeperIncharge) {
+
+
+                $('#OT_Requested_Qty').dxNumberBox("instance").option("readOnly", false);
+                $('#OT_Item_ID').dxDropDownBox("instance").option("readOnly", false);
+                $('#OT_Req_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+                $('#OT_Delivery_Allowed').dxRadioGroup("instance").option("readOnly", false);
+                $('#OT_Approved_Qty').dxNumberBox("instance").option("readOnly", false);
+                $('#OT_Sch_Deliver_Date').dxDateBox("instance").option("readOnly", false);
+            }
+
+        }
+                          setTimeout(function ()
+
+                    {
+            Set_Form_View_Delete_Mode(null, form, "@Model.UO_OT_ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.UO_OT_ActionMethod");
+            HideLoader();
+
+                          }, Timeout500);
+
+    });
+
+    function OnInitialized_OT_Item_Name_Changed(e) {
+        Itemid = "@Model.UO_OT_ID";
+        if ("@Model.UO_OT_ActionMethod" != "New") {
+            e.component.option("dataSource").store.load().done(function (d) {
+                @*if (d.length > 0) {
+                    e.component.option("value", @Model.OT_Item_ID);
+                }*@
+                OnOT_Item_Name_Changed( @Model.OT_Item_ID);
+            });
+
+        }
+        if ("@Model.UO_OT_ActionMethod" == "New") {
+            if (Itemid != 0) {
+                e.component.option("dataSource").store.load().done(function (d) {
+                @*if (d.length > 0) {
+                    e.component.option("value", @Model.OT_Item_ID);
+                }*@
+                    OnOT_Item_Name_Changed( @Model.OT_Item_ID);
+                });
+            }
+
+        }
+
+
+    }
+  
+    async function Refresh_UO_ItemGrid_Item_DG() {
+        try {
+            var $UO_IO_Item_DG = $("#LookUp_GetStoreItems_datagrid");
+            if ($UO_IO_Item_DG.length) {
+                UO_IO_Item_DG = $UO_IO_Item_DG.dxDataGrid("instance");
+                await UO_IO_Item_DG.refresh();
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+    async function OnOT_Item_Name_Changed(e) {    
+        debugger
+        try {
+            e.component.close();
+            if (e.value == null && e.previousValue != null) {
+                UO_IO_Item_DG.clearSelection();
+                return;
+            }
+
+            recid = "@Model.UO_OT_ID";
+            var itemid = e.value;
+            subitem = itemid;
+
+
+            if ("@Model.UO_OT_ActionMethod" == "New") {
+
+
+                //dataGrid.selectRows(e.value, false);
+                if (UO_IO_Item_DG.getSelectedRowsData().length > 0) {
+                    var item = UO_IO_Item_DG.getSelectedRowsData()[0];
+
+                    $("#OT_Head").dxTextBox("instance").option("value", item["Head"]);
+                    $("#OT_Item_Type").dxTextBox("instance").option("value", item["Item_Type"]);
+                    $("#OT_Item_Code").dxTextBox("instance").option("value", item["Item_Code"]);
+                    $("#OT_Item_Name").val(item["Name"]);
+                    $("#OT_UnitID").dxDropDownBox("instance").option("value", item["UnitID"]);
+                    $("#OT_UnitName").val(item["Unit"]);
+
+
+                }
+
+            }
+            else if ("@Model.UO_OT_ActionMethod" == "Edit" || "@Model.UO_OT_ActionMethod" == "View") {
+
+
+
+                //dataGrid.selectRows(e.value, false);
+                if (UO_IO_Item_DG.getSelectedRowsData().length > 0) {
+                    var item = UO_IO_Item_DG.getSelectedRowsData()[0];
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Stock/UserOrder/Check_Unsaved_Item_Entry_in_Delivery_Grid_Item_Grid",
+                        data: { ID_Item: recid },
+                        cache: false,
+                        success: function (res) {
+                            if (res.result == true)// no added row exists in delivery
+                            {
+                                $("#OT_Head").dxTextBox("instance").option("value", item["Head"]);
+                                $("#OT_Item_Type").dxTextBox("instance").option("value", item["Item_Type"]);
+                                $("#OT_Item_Code").dxTextBox("instance").option("value", item["Item_Code"]);
+                                $("#OT_Item_Name").val(item["Name"]);
+                                $("#OT_UnitID").dxDropDownBox("instance").option("value", item["UnitID"]);
+                                $("#OT_UnitName").val(item["Unit"]);
+                            }
+                            else if (res.result == false) {
+                                DevExpress.ui.dialog.alert(res.message, 'Alert');
+                                $("#OT_Head").dxTextBox("instance").reset();
+                                $("#OT_Item_Type").dxTextBox("instance").reset();
+                                $("#OT_Item_Code").dxTextBox("instance").reset();
+                                $("#OT_UnitID").dxDropDownBox("instance").reset();
+                                $("#OT_DeliveryLocID").dxDropDownBox("instance").reset();
+                                $("#OT_Requested_Qty").dxNumberBox("instance").reset();
+                                $("#OT_Approved_Qty").dxNumberBox("instance").reset();
+                                $("#OT_Req_Deliver_Date").dxDateBox("instance").reset();
+
+
+                            }
+
+                        }
+                    });
+
+                }
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+    function close_UO_Item()
+    {
+           HidePopup("@Model.UOItemPopupName");
+    }
+    function Delivery_Location_ChangeEvent(e)
+    {
+        var dropDownBox = $("#OT_DeliveryLocID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_Delivery_Location_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropDownBox.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                var LocationName = item.Location_Name;
+                $("#OT_Delivery_Location").val(LocationName);
+            }
+        }
+    }
+
+
+
+    function onInitialized_LookUp_Delivery_Location(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+                    e.component.option("value", d[0].Loc_Id); //mantis bug #1371
+            });
+        }
+    }
+
+    function OT_Unit_ChangeEvent(e) {
+        var dropDownBox = $("#OT_UnitID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#LookUp_Units_datagrid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                var unitName = item.Unit;
+                $("#OT_UnitName").val(unitName);
+
+            }
+        }
+    }
+
+    function onInitialized_LookUp_OT_Unit(e) {
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+
+                if (d.length == 1)
+                    e.component.option("value", d[0].Unit);
+            });
+        }
+    }
+
+    function Priority_SelectedIndexChanged(e) {
+        var priority = $("#OT_Priority").dxSelectBox('instance').option('value');
+    }
+
+    function CheckAvailability_Click() {
+        if (subitem == null || subitem == 0 || subitem == "undefined") {
+            DevExpress.ui.dialog.alert("Please Select Item", "Error");
+            return;
+        }
+        store = Requestee_Store_ID;
+     
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/Frm_User_Order_Check_Availability",
+            data: {
+                ItemID: subitem,
+                Requestee_Store_ID: store,
+                Screenname: "UO",
+                 UOid: "@Model.UOid",
+                 
+
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Check_Avl_Popup", "Search ~ Stock Availability", null, "auto", 1150, true, data);
+            }
+        });
+
+    }
+
+    function AddRequestItem_Click() {
+      
+        if ("@UO_AddStockItemRight"=="True") {
+        
+            ShowLoader();
+            $.ajax({
+                type: "GET",
+                url: "/Stock/StockItemWindow/StockItemWindowNew",
+                data: {
+                    ActionMethod: "_New",
+                    ID: 0,
+                    PostSucessFunction: "StockItem_Add_ItemWindow_OnSuccess",
+                    PopupName: "ItemOrderedGrid",
+                    ButtonID: "AddRequestItem"
+
+                },
+                success: function (data) {
+                    OpenPopup("ItemOrderedGrid", "Request ~ Add UO Item", null, "auto", 1150, true, data);
+                }
+            });
+         
+        }
+        else if ("@UO_AddHelpRequestRight"=="True")
+        {
+            ShowLoader();
+
+             $.ajax({
+                type: 'Get',
+                url: "/Help/RequestBox/Frm_Request_Window",
+                 data: { PopUpId: "ItemOrderedGrid", ActionMethod: "New", _Send_From: "UO -Item Ordered Screen" },
+                cache: false,
+                 success: function (resultsuccess)
+                 {
+                     OpenPopup("ItemOrderedGrid", "Request ~ Add New Stock Item", null, "auto", "50%", true, resultsuccess);
+                 }
+             });
+        }
+    }
+
+    function UORequestUnit_Click() {
+        ShowLoader();
+
+        $.ajax({
+            type: 'Get',
+            url: "/Help/RequestBox/Frm_Request_Window",
+            data: { PopUpId: "ItemOrderedGrid", ActionMethod: "New", _Send_From: "UO -Item Ordered Screen" },
+            cache: false,
+            success: function (resultsuccess) {
+                OpenPopup("ItemOrderedGrid", "Request ~ Add New Unit", null, "auto", "50%", true, resultsuccess);
+            }
+        });
+    }
+
+    function StockItem_Add_ItemWindow_OnSuccess(data) {
+        HideLoader();
+        if (data.result == true) {
+            $("#ItemOrderedGrid").dxPopup("hide");
+            $("#LookUp_GetStoreItems_datagrid").dxDataGrid("instance").refresh();
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+    }
+
+    function Frm_User_Order_Item_InsideCheckAvl_Popup_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+            // var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); //Mantis #1021 fixed
+            $("#checkavlinnerpopup").dxPopup("hide");
+            Order_Item_Grid.SetFocusedRowIndex(-1);
+            Order_Item_Grid.Refresh();
+        }
+        else {
+            $("#checkavlinnerpopup").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+
+        }
+    }
+</script>

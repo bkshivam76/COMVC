@@ -1,0 +1,1016 @@
+﻿<div class="ServiceMaterialFacility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model IEnumerable<dynamic>
+    @{
+        string UserType = (string)ViewBag.UserType;
+        string CenID = (string)ViewData["CENID"];
+        bool Service_Material_AddRight = (bool)ViewData["Service_Material_AddRight"];
+        bool Service_Material_UpdateRight = (bool)ViewData["Service_Material_UpdateRight"];
+        bool Service_Material_DeleteRight = (bool)ViewData["Service_Material_DeleteRight"];
+        bool Service_Material_ReportRight = (bool)ViewData["Service_Material_ReportRight"];
+        bool Service_Material_ListRight = (bool)ViewData["Service_Material_ListRight"];
+        bool Service_Material_ExportRight = (bool)ViewData["Service_Material_ExportRight"];
+        bool Help_Attachment_AddRight = ViewData["Help_Attachment_AddRight"] == null ? false : (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = ViewData["Help_Attachment_EditRight"] == null ? false : (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = ViewData["Help_Attachment_ViewRight"] == null ? false : (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = ViewData["Help_Attachment_DeleteRight"] == null ? false : (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool ServiceMaterial_Auto_Vouching_Mode = ViewData["ServiceMaterial_Auto_Vouching_Mode"] == null ? false : (bool)ViewData["ServiceMaterial_Auto_Vouching_Mode"];
+        string Servicespath = System.Configuration.ConfigurationManager.AppSettings["Servicespath"].ToString()+"servicematerial";
+        string Servicespath_cenID = System.Configuration.ConfigurationManager.AppSettings["Servicespath"].ToString()+ "servicematerial?cenid="+CenID;
+        }
+    <div id="ServiceMaterial_ParentDiv">
+        <div id="ServiceMaterial_content" class="report_header_div_main">
+            <div>
+                <div class="report_header_div">
+                    <label class="report_header_label">Godly Service Material</label> |
+                    <a class="report_header_label" style="padding:30px 0 0 10px" target="_blank" href="@Servicespath_cenID" >View Service Material Uploaded by Current Center</a> |
+                    <a class="report_header_label" style="padding:30px 0 0 10px" target="_blank" href="@Servicespath">View Service Material Uploaded by All Centers</a>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="report_button_div">
+                        @*@(Html.DevExtreme().Switch().ID("ServiceMaterialVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").Width(100).OnValueChanged("ServiceMaterial_VouchingSwitch_ValueChange").Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR") )
+        @(Html.DevExtreme().Switch().ID("ServiceMaterialViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").Width(70).OnValueChanged("ServiceMaterial_ViewSwitch_ValueChange").Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR") )*@
+                        @(Html.DevExtreme().Button().ID("GSMNew").Text("New").Icon("add").OnClick(@<text> function () { DataNavigation_GSM("NEW"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSMCopy").Text("Copy").Icon("add").OnClick(@<text> function () { DataNavigation_GSM("COPY"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSMEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { DataNavigation_GSM("EDIT"); } </text>))
+                        @(Html.DevExtreme().Button().ID("GSMDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_GSM("DELETE"); } </text>))
+                        @(Html.DevExtreme().Button().ID("Service_MaterialToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick("ServiceMaterialchangeMode") )
+                        @(Html.DevExtreme().Button().ID("ServiceMaterialModelListPreview").Text("Export").Icon("save").OnClick("OnServiceMaterialListPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceMaterialModelCLOSE").Text("Close").Icon("clear").OnClick("closeServiceMaterial") )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="ServiceMaterial_gridDiv">
+            <form>
+                <div id="ServiceMaterialGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Service_Material_InfoGrid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ServiceMaterial_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                            <div id="BankLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                        </div>*@
+                        <div class="footer-locktext">
+                            <div id="SR_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="SR_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SR_Create" class="right_footertext_top"></p>
+                            <p id="SR_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+                @Html.Partial("AttachmentFAB", "ServiceMaterial_FAB,ServiceMaterial_gridDiv,Type2,ServiceMaterialFacility," + UserType) @*fab buttons*@
+        
+<script>
+        var ServiceMaterial_PageData = null;
+            var SR_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+            var ServiceMaterial_ID=null;
+            var ServiceMaterial_Edit_Date;
+            var ServiceMaterial_Add_Date;
+            var ServiceMaterial_Add_By;
+            var ServiceMaterial_Edit_By;
+            var ServiceMaterial_Action_Status;
+            var ServiceMaterial_Action_By;
+            var ServiceMaterial_Action_Date;
+
+            var ServiceMaterial_IsVouchingMode = false;
+            var ServiceMaterial_SetVouchingModeOn = "@ServiceMaterial_Auto_Vouching_Mode" == "True" ? true : false;
+            var ServiceMaterial_ViewMode = "Default";
+            var SR_Select_xid = "";
+            var SRFocusedRowIndexBeforeRefresh;
+            var SR_ColumnToBeShownIndex = "";
+            var SR_ColumnToBeHidddenIndex = "";
+            var ServiceMaterialGridLayout = null;
+            var ServiceMaterialInfo_IsDetailRowExpanded = false;
+            var ServiceMaterialInfo_NestedRecord_FocusedRowIndex = -1;
+            var ServiceMaterialInfo_NestedGrid_AccessID;
+            var ServiceMaterialInfo_AtachmentID;
+            var ServiceMaterialInfo_FileName;
+            var ServiceMaterialInfo_ParamMandatory;
+            var ServiceMaterialInfo_FromDateLabel;
+            var ServiceMaterialInfo_ToDateLabel;
+            var ServiceMaterialInfo_DescriptionLabel;
+            var ServiceMaterialInfo_Doc_ID;
+            var ServiceMaterialInfo_Doc_Category;
+            var ServiceMaterialInfo_MasterRowRecID;
+            var ServiceMaterialInfo_MasterRowMID;
+            var ServiceMaterialInfo_NestedRowMapID;
+            var ServiceMaterialInfo_reason;
+            var ServiceMaterialInfo_Attachment_RecStatus;
+            var ServiceMaterialInfo_Nested_Doc_Status;
+            var ServiceMaterialInfo_NestedRowReasonID;
+            var ServiceMaterialInfo_NestedRowKeyValue;
+        var ServiceMaterial_MoreEntry = false;
+</script>    @*Global Variables*@       
+<script>
+        $(document).ready(function ()
+        {
+            if ("@Service_Material_AddRight"=="False")
+            {
+                $("#GSMNew").hide();
+            }
+            if ("@Service_Material_UpdateRight"=="False")
+            {
+                $("#GSMEdit").hide();
+            }
+            if ("@Service_Material_DeleteRight"=="False")
+            {
+                $("#GSMDelete").hide();
+            }
+            if ("@Service_Material_ExportRight"=="False")
+            {
+                $("#ServiceMaterialModelListPreview").hide();
+            }
+            $(".ServiceMaterialListGrid_PreviewRow").hide();
+            GetSessionStorage("ServiceMaterialListGrid");
+            if (ServiceMaterial_SetVouchingModeOn == true)
+            {
+                //$("#ServiceMaterialViewModeSwitch").dxSwitch("instance").option("value", true);
+            }
+        });
+        function DataNavigation_GSM(Action)
+        {
+            if (Action == "NEW")
+            {
+                if ("@Service_Material_AddRight"=="False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                }
+                ShowLoader();
+                OpenDynamicPopup("New ~ Godly Service Material", "@Url.Action("Frm_Service_Material_Window", "GodlyServiceMaterial", new { @area = "Facility" })?ActionMethod=_New", "auto", 750, false, null);
+                HideLoader();
+            }
+            else if (Action == "COPY")
+            {
+                if ("@Service_Material_AddRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                }
+                if (ServiceMaterial_ID == "" || ServiceMaterial_ID == null || ServiceMaterial_ID == 'undefined') {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Facility/GodlyServiceMaterial/Frm_Service_Material_Window",
+                    cache: false,
+                    data:
+                    {
+                        ActionMethod: "_New",
+                        xID: ServiceMaterial_ID,
+                        Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(ServiceMaterial_Edit_Date)
+                    },
+                    success: function (data) {
+                        ShowLoader();
+                        OpenPopup("Dynamic_Content_popup","New ~ Godly Service Material", null, "auto", 750, true, data);
+                        HideLoader();
+                    }
+                });
+            }
+            else if (Action == "EDIT" || Action == "DELETE")
+            {
+                if (!"@Service_Material_UpdateRight" || !"@Service_Material_DeleteRight")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                }
+                if (ServiceMaterial_ID == "" || ServiceMaterial_ID == null || ServiceMaterial_ID == 'undefined')
+                {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                $.ajax({
+                    type: 'GET',
+                    async: false,
+                    url: "/Facility/GodlyServiceMaterial/Frm_Service_Material_Window",
+                    cache: false,
+                    data:
+                    {
+                        ActionMethod: Action == "EDIT" ? "_Edit" : "_Delete",
+                        xID: ServiceMaterial_ID,
+                        Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(ServiceMaterial_Edit_Date)
+                    },
+                    success: function (data)
+                    {
+                        ShowLoader();
+                        OpenPopup("Dynamic_Content_popup", Action == "EDIT" ? "Edit ~ Godly Service Material" : "Delete ~ Godly Service Material", null, "auto", 750, true, data);
+                        HideLoader();
+                    }
+                });
+            }
+        }
+        function AfterWindowClose_GSM(ActionMethod = "", xID = "")
+        {
+            if (ActionMethod == "_Delete" || ActionMethod == "Delete")
+            {
+                RefreshGridView("ServiceMaterialListGrid");
+                return;
+            }
+            if (ActionMethod.includes("New"))
+            {
+                ServiceMaterial_MoreEntry = true;
+            }
+            SR_Select_xid = xID;
+            RefreshGridView("ServiceMaterialListGrid");
+        }
+        function OnServiceMaterialListPreviewClick()
+        {
+            if (!"@Service_Material_ExportRight")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }
+            ShowLoader();
+            OpenPopup("Service_Material_modal", "Export Option", "@Url.Action("Frm_Export_Options", "GodlyServiceMaterial", new { @area = "Facility" })", "auto",130);
+        }
+        function closeServiceMaterial()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/GodlyServiceMaterial/SessionClear",
+                cache: false
+            });
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+            ClearAllReferences_ServiceMaterial();
+        });
+
+        function ClearAllReferences_ServiceMaterial()
+        {
+            IsServiceMaterialSucessPopup = null;
+            IsServiceMaterialViewPopup = null;
+            IsServiceMaterialNewPopup = null;
+            SR_ShowHorizontalBar = null;
+            ServiceMaterial_ID = null;
+            tP_NOField = null;
+            telMiscIdField = null;
+            categoryField = null;
+            Service_Material_typeField = null;
+            ServiceMaterial_Edit_Date = null;
+            ServiceMaterial_Add_Date = null;
+            ServiceMaterial_Add_By = null;
+            ServiceMaterial_Edit_By = null;
+            ServiceMaterial_Action_Status = null;
+            ServiceMaterial_Action_By = null;
+            ServiceMaterial_Action_Date = null;
+            ServiceMaterial_AddRight = null;
+            ServiceMaterial_EditRight = null;
+            ServiceMaterial_DeleteRight = null;
+            ServiceMaterial_ExportRight = null;
+            ServiceMaterial_ListRight = null;
+            UserType_ServiceMaterialPrf = null;
+            _actionName = null;
+            _IsContextMenu = null;
+            ServiceMaterial_IsVouchingMode = null;
+            ServiceMaterial_SetVouchingModeOn = null;
+            ServiceMaterial_ViewMode = null;
+            SR_ColumnToBeShownIndex = null;
+            SR_ColumnToBeHidddenIndex  = null;
+            ServiceMaterialGridLayout = null;
+            ServiceMaterialInfo_IsDetailRowExpanded = null;
+            ServiceMaterialInfo_NestedRecord_FocusedRowIndex = null;
+            ServiceMaterialInfo_NestedGrid_AccessID = null;
+            ServiceMaterialInfo_AtachmentID = null;
+            ServiceMaterialInfo_FileName = null;
+            ServiceMaterialInfo_ParamMandatory = null;
+            ServiceMaterialInfo_FromDateLabel = null;
+            ServiceMaterialInfo_ToDateLabel = null;
+            ServiceMaterialInfo_DescriptionLabel = null;
+            ServiceMaterialInfo_Doc_ID = null;
+            ServiceMaterialInfo_Doc_Category = null;
+            ServiceMaterialInfo_MasterRowRecID = null;
+            ServiceMaterialInfo_MasterRowMID = null;
+            ServiceMaterialInfo_NestedRowMapID = null;
+            ServiceMaterialInfo_reason = null;
+            ServiceMaterialInfo_Attachment_RecStatus = null;
+            ServiceMaterialInfo_Nested_Doc_Status = null;
+            ServiceMaterialInfo_NestedRowReasonID = null;
+            ServiceMaterialInfo_NestedRowKeyValue = null;
+            SR_Select_xid = null;
+            SRFocusedRowIndexBeforeRefresh = null;
+
+            ClearAllReferences("ServiceMaterialFacility_ClearReferences")
+        }
+
+</script>               
+    <script>
+                    function ServiceMaterial_VouchingSwitch_ValueChange(e)
+                    {
+                        ShowLoader();
+                        ServiceMaterial_IsVouchingMode = e.value;
+                        //ServiceMaterialListGrid.SetFocusedRowIndex(-1);
+                        if (ServiceMaterial_SetVouchingModeOn == true)
+                        {
+                            ServiceMaterial_SetVouchingModeOn = false;
+                        }
+                        else
+                        {
+                            ServiceMaterial_FAB.SetVisible(false);
+                        }
+                        if (ServiceMaterial_IsVouchingMode == true)
+                        {
+                            OpenRightPane();
+                            ClearLeftPane();
+                            OpenLeftPane();
+                        }
+                        else
+                        {
+                            //ServiceMaterial_FAB.SetActionContext("AddAttachmentContext", false);
+                            CloseRightPane();
+                            ClearLeftPane();
+                            CloseLeftPane();
+                        }
+                        ServiceMaterialListGrid_CollapseAllDetailRows();
+                    }
+                    function ServiceMaterialListGrid_CollapseAllDetailRows()
+                    {
+                        ShowLoader();
+                        if (typeof window !== 'undefined')
+                        {
+                            if (typeof window.ServiceMaterialListGrid !== 'undefined')
+                            {
+                                if (typeof window.ServiceMaterialListGrid.CollapseAllDetailRows !== 'undefined')
+                                {
+                                    if (typeof ServiceMaterialListGrid.CollapseAllDetailRows == 'function')
+                                    {
+                                        HideLoader();
+                                        ServiceMaterialListGrid.SetFocusedRowIndex(-1);
+                                        ServiceMaterialListGrid.CollapseAllDetailRows();
+                                    }
+                                    else
+                                    {
+                                        alert("CollapseAllDetailRows is not a function");
+                                    }
+                                }
+                                else
+                                {
+                                    setTimeout(function ()
+                                    {
+                                        ServiceMaterialListGrid_CollapseAllDetailRows();
+                                    }, Timeout100);
+                                }
+                            }
+                            else
+                            {
+                                alert('grid undefined')
+                            }
+                        }
+                        else
+                        {
+                            alert('window undefined')
+                        }
+                    }
+                    function ServiceMaterial_ViewSwitch_ValueChange(e)
+                    {
+                        ShowLoader();
+                        ServiceMaterial_ViewMode = e.value == false ? "Default" : "Compact";
+                        if (ServiceMaterial_SetVouchingModeOn == true)
+                        {
+                            $("#ServiceMaterialVouchingModeSwitch").dxSwitch("instance").option("value", true);
+                        }
+                        else
+                        {
+                            //ServiceMaterialListGrid_CollapseAllDetailRows();
+                            if (ServiceMaterial_IsVouchingMode == false)
+                            {
+                                ServiceMaterial_FAB.SetVisible(false);
+                            }
+                            ServiceMaterialListGrid.CollapseAllDetailRows();
+                        }
+                        HideLoader();
+                    }
+
+    </script>
+
+           
+    <script>
+                    function ServiceMaterialOnInit(s, e)
+                    {
+                        ServiceMaterialAdjustSize();
+                        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+                        {
+                            ServiceMaterialAdjustSize();
+                        });
+                    }
+                    function ServiceMaterialAdjustSize()
+                    {
+                        var height = (document.documentElement.clientHeight * 90) / 100;
+                        try
+                        {
+                            ServiceMaterialListGrid.SetHeight(height);
+                        }
+                        catch (err)
+                        {
+                        }
+                    }
+                    function ServiceMaterialListGrid_BeginCallback(s, e)
+                    {
+                        SRFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+                        e.customArgs["command"] = e.command;
+                        e.customArgs["VouchingMode"] = ServiceMaterial_IsVouchingMode;
+                        e.customArgs["ShowHorizontalBar"] = SR_ShowHorizontalBar;
+                        e.customArgs["ViewMode"] = ServiceMaterial_ViewMode;
+                        e.customArgs["ColumnToBeShownIndex"] = SR_ColumnToBeShownIndex;
+                        e.customArgs["ColumnToBeHidddenIndex"] = SR_ColumnToBeHidddenIndex;
+                        e.customArgs["RowKeyToFocus"] = SR_Select_xid;
+                    }
+                    function OnGridServiceMaterialListGrid_EndCallback(s, e)
+                    {
+                        SR_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+                        SR_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+                        ServiceMaterialGridLayout = s.cpClientLayout;
+                        $(".ServiceMaterialListGrid_PreviewRow").hide();
+                        GetSessionStorage("ServiceMaterialListGrid");
+                        SendCustomArgs_FilterControl(s, e);
+                        if (e.command == "REFRESH")
+                        {
+                            if (SRFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex())
+                            {
+                                s.SetFocusedRowIndex(-1);
+                                s.SetFocusedRowIndex(SRFocusedRowIndexBeforeRefresh);
+                            }
+                            SR_Select_xid = "";
+                            if (ServiceMaterial_MoreEntry == true)
+                            {
+                                ServiceMaterial_MoreEntry = false;
+                                var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "Godly Service Material");
+                                confirm.done(function (dialogResult)
+                                {
+                                    if (dialogResult)
+                                    {
+                                        DataNavigation_GSM("NEW");
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    function ServiceMaterialchangeMode()
+                    {
+                        ShowLoader();
+                        if (SR_ShowHorizontalBar == 0)
+                        {
+                            SR_ShowHorizontalBar = 1;
+                            $("#Service_MaterialToggleScrollBar").find("span").text("Default Data");
+                            $("#Service_MaterialToggleScrollBar").width(110);
+                        }
+                        else
+                        {
+                            SR_ShowHorizontalBar = 0;
+                            $("#Service_MaterialToggleScrollBar").find("span").text("Full Data");
+                            $("#Service_MaterialToggleScrollBar").width(90);
+                        }
+                        $.ajax({
+                            url: "/Facility/GodlyServiceMaterial/Frm_Service_Material_InfoGrid",
+                            type: "POST",
+                            data: { ShowHorizontalBar: SR_ShowHorizontalBar, VouchingMode: ServiceMaterial_IsVouchingMode, ViewMode: ServiceMaterial_ViewMode, Layout: ServiceMaterialGridLayout, ColumnToBeHidddenIndex: SR_ColumnToBeHidddenIndex, ColumnToBeShownIndex: SR_ColumnToBeShownIndex },
+                            success: function (res)
+                            {
+                                $("#ServiceMaterialGridPartialView").html(res);
+                                ASPxClientControl.AdjustControls(document.getElementById("ServiceMaterialGridPartialView"));
+                                $(".ServiceMaterialListGrid_PreviewRow").hide();
+                                GetSessionStorage("ServiceMaterialListGrid");
+                                HideLoader();
+                            }
+                        });
+                    }
+                    function ServiceMaterialdblclickEdit(s, e)
+                    {
+                        if (ServiceMaterial_IsVouchingMode == false)
+                        {
+                            if ("@Service_Material_UpdateRight" == "False")
+                            {
+                                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+                            }
+                            else
+                            {
+                                DataNavigation_GSM("EDIT");
+                            }//Redmine Bug #136167 fixed
+                        }
+                    }
+                    function OnServiceMaterialGridFocusedRowChanged(s, e)
+                    {
+                        var focusIndex = s.GetFocusedRowIndex();
+                        if (focusIndex > -1)
+                        {
+                            if (ServiceMaterial_IsVouchingMode)
+                            {
+                                ServiceMaterial_FAB.SetVisible(true);
+                                ServiceMaterial_FAB.SetActionContext("VouchingActionContext", true);
+                            }
+                            ServiceMaterial_ID = s.GetRowKey(focusIndex);
+                            Get_ServiceMaterial_Row_Data(focusIndex);
+                            if (ServiceMaterial_IsVouchingMode == true)
+                            {
+                                OpenLeftPane();
+                                LoadDocumentAndAdditionalInfoInLeftPane("Facility", "GodlyServiceMaterial", "LeftPaneContent", ServiceMaterial_ID, ServiceMaterial_IsVouchingMode, "");
+                            }
+                        }
+                        else
+                        {
+                            ServiceMaterial_ID = null;
+                        }
+                        ServiceMaterial_UpdateFooterDetail(ServiceMaterial_ID, ServiceMaterial_Action_Status, ServiceMaterial_Add_Date, ServiceMaterial_Add_By,
+                            ServiceMaterial_Action_Date, ServiceMaterial_Action_By, ServiceMaterial_Edit_Date, ServiceMaterial_Edit_By);
+                    }
+                    function Get_ServiceMaterial_Row_Data(RowIndex = null)
+                    {
+                        var focusedrow = RowIndex == null ? ServiceMaterialListGrid.GetFocusedRowIndex() : RowIndex;
+                        var topindex = ServiceMaterialListGrid.GetTopVisibleIndex();
+                        var Index = focusedrow - topindex;
+                        ServiceMaterial_PageData = ServiceMaterialListGrid.cpPagedata;
+                        if (ServiceMaterial_PageData != null && ServiceMaterial_PageData.length > 0 && Index < ServiceMaterial_PageData.length)
+                        {
+                            ServiceMaterial_ID = ServiceMaterial_PageData[Index][0];
+                            ServiceMaterial_Add_By = ServiceMaterial_PageData[Index][1];
+                            ServiceMaterial_Add_Date = ServiceMaterial_PageData[Index][2];
+                            ServiceMaterial_Edit_By = ServiceMaterial_PageData[Index][3];
+                            ServiceMaterial_Edit_Date = ServiceMaterial_PageData[Index][4];
+                            ServiceMaterial_Action_Status = ServiceMaterial_PageData[Index][5];
+                            ServiceMaterial_Action_By = ServiceMaterial_PageData[Index][6];
+                            ServiceMaterial_Action_Date = ServiceMaterial_PageData[Index][7];
+                        }
+                    }
+                    function ServiceMaterial_UpdateFooterDetail(ServiceMaterial_ID, ServiceMaterial_Action_Status, ServiceMaterial_Add_Date, ServiceMaterial_Add_By, ServiceMaterial_Action_Date, ServiceMaterial_Action_By, ServiceMaterial_Edit_Date, ServiceMaterial_Edit_By)
+                    {
+                        var Status = "";
+                        var Lbl_Status = "";
+                        var Lbl_StatusBy = "";
+                        var Pic_Status = "";
+                        var Lbl_Create = "";
+                        var Lbl_Modify = "";
+                        var Lbl_Status_Color = "";
+                        var Lbl_ActionOn = "";
+                        var Lbl_ActionBy = "";
+                        var StatusStr = "";
+                        if (ServiceMaterial_ID != null)
+                        {
+                            ServiceMaterial_Add_Date = (moment(ServiceMaterial_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                            ServiceMaterial_Edit_Date = (moment(ServiceMaterial_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                            ServiceMaterial_Action_Date = (moment(ServiceMaterial_Action_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+                            Status = ServiceMaterial_Action_Status;
+                            StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+                            if (Status && Status.toUpperCase() == "LOCKED")
+                            {
+                                Lbl_Status = "Completed";
+                                Lbl_Status_Color = "blue";
+                                Pic_Status = "fa fa-lock";
+                            }
+                            else
+                            {
+                                Pic_Status = "fa fa-unlock";
+                                Lbl_Status = Status;
+                                if (Status && Status.toUpperCase() == "COMPLETED")
+                                {
+                                    Lbl_Status_Color = "green";
+                                }
+                                else
+                                {
+                                    Lbl_Status_Color = "red";
+                                }
+                            }
+                            if (ServiceMaterial_Action_Date)
+                            {
+                                //Lbl_ActionOn = StatusStr + " On: " + ServiceMaterial_Action_Date;
+                                //Lbl_ActionBy = StatusStr + " By: " + ServiceMaterial_Action_By;
+                            }//Redmine Bug #136145 fixed
+
+                            else
+                            {
+                                //Lbl_ActionOn = "";
+                                //Lbl_ActionBy = "";
+                            }
+                            if (ServiceMaterial_Add_Date)
+                            {
+                                Lbl_Create = "Add On: " + ServiceMaterial_Add_Date + ", Add By: " + ServiceMaterial_Add_By;//Redmine Bug #136145 fixed
+                            }
+                            else
+                            {
+                                Lbl_Create = "";
+                            }
+
+                            if (ServiceMaterial_Edit_Date)
+                            {
+                                Lbl_Modify = "Edit On: " + ServiceMaterial_Edit_Date + ", Edit By: " + ServiceMaterial_Edit_By;//Redmine Bug #136145 fixed
+                            }
+                            else
+                            {
+                                Lbl_Modify = "";
+                            }
+                        }
+                        $('#SR_Status').text(Lbl_Status);
+                        $('#SR_Lbl_ActionOn').text(Lbl_ActionOn)
+                        $('#SR_Lbl_ActionBy').text(Lbl_ActionBy);
+                        $('#SR_Create').text(Lbl_Create);
+                        $('#SR_Modify').text(Lbl_Modify);
+                        if (Lbl_Status_Color != "")
+                        {
+                            $('#SR_Status').css('color', Lbl_Status_Color);
+                        }
+                        //if (Pic_Status == "fa fa-lock")
+                        //{
+                        //    $('#ServiceMaterial_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+                        //}
+                        //else if (Pic_Status == "fa fa-unlock")
+                        //{
+                        //    $('#ServiceMaterial_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+                        //}
+                        //else
+                        //{
+                        //    $('#ServiceMaterial_LockICON').removeClass("fa");
+                        //    $('#ServiceMaterial_LockICON').removeClass("fa-lock");
+                        //    $('#ServiceMaterial_LockICON').removeClass("fa-unlock");
+                        //}
+                    }
+                    function ServiceMaterialContextMenuFunction(s, e)
+                    {
+                        if (e.item.name == 'New')
+                        {
+                            DataNavigation_GSM("NEW");
+                        }
+                        else if (e.item.name == 'Edit')
+                        {
+                            DataNavigation_GSM("EDIT");
+                        }
+                        else if (e.item.name == 'Delete')
+                        {
+                            DataNavigation_GSM("DELETE");
+                        }
+                        //else if (e.item.name == 'Attachments')
+                        //{
+                        //    OnService_MaterialMergeClick();
+                        //}
+                        else if (e.item.name == 'Manage_Attachments')
+                        {
+                            ManageAttachment(ServiceMaterial_ID, "Godly Service Material");
+                        }
+                        else if (e.item.name == 'ListPreview')
+                        {
+                            OnServiceMaterialListPreviewClick();
+                        }
+                        else if (e.item.name == 'Close')
+                        {
+                            closeServiceMaterial();
+                        }
+                        else if (e.item.name == 'Import') {
+                           DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+                        }
+                        else if (e.item.name == 'Export') {
+                            DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+                        }
+                        else if (e.item.name == 'Refresh')
+                        {
+                            ServiceMaterialListGrid.Refresh();
+                        }
+                    }
+    </script>
+                @* Grid Functions *@
+              
+    <script>
+        /*Attachment and Nested Grid code*/
+        function On_ServiceMaterialFacility_FABActionItemClick(s, e)
+        {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            if (e.actionName === "add_attach")
+            {
+                if ("@Help_Attachment_AddRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceMaterialInfo_ParamMandatory == 1)
+                {
+                    AddAttachment(ServiceMaterialInfo_MasterRowRecID, "Facility_GodlyServiceMaterial", ServiceMaterialInfo_Doc_ID, ServiceMaterialInfo_Doc_Category, ServiceMaterialInfo_ParamMandatory, ServiceMaterialInfo_FromDateLabel, ServiceMaterialInfo_ToDateLabel, ServiceMaterialInfo_DescriptionLabel, "ServiceMaterialFacilityAttachment", null, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+                }
+                else
+                {
+                    Attachment_DirectBrowse(ServiceMaterialInfo_MasterRowRecID, "Facility_GodlyServiceMaterial", ServiceMaterialInfo_Doc_ID, "ServiceMaterialFacilityAttachment", "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "edit_attach")
+            {
+                if ("@Help_Attachment_EditRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceMaterialInfo_Nested_Doc_Status == "NO" || ServiceMaterialInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                if (ServiceMaterialInfo_Attachment_RecStatus.toUpperCase() == "LOCKED")
+                {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(ServiceMaterialInfo_MasterRowRecID, "Facility_GodlyServiceMaterial", ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_ParamMandatory, ServiceMaterialInfo_FromDateLabel, ServiceMaterialInfo_ToDateLabel, ServiceMaterialInfo_DescriptionLabel, "ServiceMaterialFacilityAttachment", null, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach")
+            {
+                if ("@Help_Attachment_DeleteRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceMaterialInfo_Nested_Doc_Status == "NO" || ServiceMaterialInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+                DeleteAttachment(ServiceMaterialInfo_MasterRowRecID, "Facility_GodlyServiceMaterial", ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_ParamMandatory, ServiceMaterialInfo_FromDateLabel, ServiceMaterialInfo_ToDateLabel, ServiceMaterialInfo_DescriptionLabel, null, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID, ServiceMaterialInfo_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach")
+            {
+                if ("@Help_Attachment_ViewRight" == "False")
+                {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ServiceMaterialInfo_Nested_Doc_Status == "NO" || ServiceMaterialInfo_Nested_Doc_Status == "")
+                {
+                    DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                    return;
+                }
+
+                ViewDocument(ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach")
+            {
+                LinkAttachment(ServiceMaterialInfo_MasterRowRecID, "Facility_GodlyServiceMaterial", "Service Material", "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason")
+            {
+                if (ServiceMaterialInfo_Doc_Category.toLowerCase() == "others")
+                {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else
+                {
+                    AttachmentAddReason(ServiceMaterialInfo_MasterRowRecID, ServiceMaterialInfo_NestedRowMapID, "Facility_GodlyServiceMaterial", "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "Edit_Reason")
+            {
+                AttachmentEditReason(ServiceMaterialInfo_MasterRowRecID, ServiceMaterialInfo_NestedRowMapID, "Facility_GodlyServiceMaterial", "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID, ServiceMaterialInfo_reason);
+            }
+            else if (e.actionName === "Delete_Reason")
+            {
+                AttachmentDeleteReason(ServiceMaterialInfo_MasterRowRecID, ServiceMaterialInfo_NestedRowMapID, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Rotate")
+            {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut")
+            {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn")
+            {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit")
+            {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back")
+            {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "AuditAction")
+            {
+                ServiceMaterial_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit")
+            {
+                if (ServiceMaterialInfo_Nested_Doc_Status == "")
+                {
+                    ServiceMaterial_FAB.SetActionContext("actionItemContext", true);
+                }
+                if (ServiceMaterialInfo_Nested_Doc_Status == "NO")
+                {
+                    ServiceMaterial_FAB.SetActionContext("EditItemContext", true);
+                }
+                if (ServiceMaterialInfo_Nested_Doc_Status == "YES")
+                {
+                    ServiceMaterial_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName == "Accept")
+            {
+                ServiceMaterialInfo_AcceptwithoutRemarks();
+            }
+            else if (e.actionName == "Reject")
+            {
+                ServiceMaterialInfo_AcceptRejectVoucher("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks")
+            {
+                ServiceMaterialInfo_AcceptRejectVoucher("Accept");
+            }
+            else if (e.actionName == "AcceptDoc")
+            {
+                OnServiceMaterialInfo_AcceptDoc();
+            }
+            else if (e.actionName == "RejectDoc")
+            {
+                OnServiceMaterialInfo_RejectDoc();
+            }
+        }
+        function OnServiceMaterialInfo_RejectDoc()
+        {
+            if (ServiceMaterialInfo_AtachmentID == null || ServiceMaterialInfo_AtachmentID.length == 0)
+            {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+            }
+            RejectAttachment(ServiceMaterialInfo_AtachmentID, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+        }
+        function OnServiceMaterialInfo_AcceptDoc()
+        {
+            if (ServiceMaterialInfo_AtachmentID == null || ServiceMaterialInfo_AtachmentID.length == 0)
+            {
+            DevExpress.ui.dialog.alert("No Document Attached..", "Error");
+            return;
+        }
+        AcceptAttachment(ServiceMaterialInfo_AtachmentID, "ServiceMaterialListGrid", ServiceMaterialInfo_NestedGrid_AccessID);
+    }
+    function ServiceMaterialInfo_AcceptwithoutRemarks()
+    {
+        var Recid;
+        if (ServiceMaterialInfo_IsDetailRowExpanded == true || ServiceMaterial_IsVouchingMode == true)
+        {
+            if (ServiceMaterialInfo_MasterRowRecID == null || ServiceMaterialInfo_MasterRowRecID == "")
+            {
+                Recid = ServiceMaterial_ID;
+            }
+            else
+            {
+                Recid = ServiceMaterialInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ServiceMaterial_ID;
+        }
+        Entry_AcceptwithoutRemarks(Recid, "Facility_GodlyServiceMaterial", "ServiceMaterialListGrid", ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_NestedRowReasonID, ServiceMaterialInfo_NestedRowKeyValue);
+    }
+    function ServiceMaterialInfo_AcceptRejectVoucher(_actionMethod)
+    {
+        var Recid;
+        if (ServiceMaterialInfo_IsDetailRowExpanded == true || ServiceMaterial_IsVouchingMode == true)
+        {
+            if (ServiceMaterialInfo_MasterRowRecID == null || ServiceMaterialInfo_MasterRowRecID == "")
+            {
+                Recid = ServiceMaterial_ID;
+            }
+            else
+            {
+                Recid = ServiceMaterialInfo_MasterRowRecID;
+            }
+        }
+        else
+        {
+            Recid = ServiceMaterial_ID;
+        }
+        Entry_AcceptReject(_actionMethod, Recid, "Facility_GodlyServiceMaterial", "ServiceMaterialListGrid", ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_NestedRowReasonID, ServiceMaterialInfo_NestedRowKeyValue);
+    }
+    function OnServiceMaterialListGridNestedFocusedRowChange(s, e)
+    {
+        if (ServiceMaterialInfo_IsDetailRowExpanded == true || ServiceMaterial_IsVouchingMode == true)
+        {
+            ServiceMaterialInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (ServiceMaterialInfo_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                ServiceMaterial_FAB.SetVisible(true);
+                ServiceMaterialInfo_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID;ReasonID', OnServiceMaterialInfo_GetGridRowValues);
+            }
+            else
+            {
+                ServiceMaterial_FAB.SetVisible(false);
+            }
+        }
+    }
+    function OnServiceMaterialInfo_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            ServiceMaterialInfo_Nested_Doc_Status = values[0];
+            ServiceMaterial_FAB.SetVisible(true);
+            if (ServiceMaterial_IsVouchingMode == true)
+            {
+                ServiceMaterial_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else
+            {
+                if (ServiceMaterialInfo_Nested_Doc_Status == "")
+                {
+                    ServiceMaterial_FAB.SetActionContext("actionItemContext", true);
+                }
+                else if (ServiceMaterialInfo_Nested_Doc_Status == "NO")
+                {
+                    ServiceMaterial_FAB.SetActionContext("EditItemContext", true);
+                }
+                else if (ServiceMaterialInfo_Nested_Doc_Status == "YES")
+                {
+                    ServiceMaterial_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+           // ServiceMaterial_FAB.SetActionContext("actionItemContext", true);
+            ServiceMaterialInfo_ParamMandatory = values[1];
+            ServiceMaterialInfo_FromDateLabel = values[2];
+            ServiceMaterialInfo_ToDateLabel = values[3];
+            ServiceMaterialInfo_DescriptionLabel = values[4];
+            ServiceMaterialInfo_Doc_Category = values[5];
+            ServiceMaterialInfo_Doc_ID = values[6];
+            ServiceMaterialInfo_AtachmentID = values[7];
+            IndexAttachmentID = ServiceMaterialInfo_AtachmentID;
+            ServiceMaterialInfo_MasterRowRecID = values[8];
+            ServiceMaterialInfo_MasterRowMID = values[9];
+            ServiceMaterialInfo_NestedRowMapID = values[10];
+            ServiceMaterialInfo_reason = values[11];
+            ServiceMaterialInfo_FileName = values[12];
+            ServiceMaterialInfo_Attachment_RecStatus = values[13];
+            ServiceMaterialInfo_NestedRowKeyValue = values[14];
+
+                if (ServiceMaterial_IsVouchingMode == true)
+                {
+                    if (ServiceMaterialInfo_FileName != null && ServiceMaterialInfo_FileName.length > 0)
+                    {
+                        ViewDocument(ServiceMaterialInfo_AtachmentID, ServiceMaterialInfo_FileName, "ServiceMaterial_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else
+                    {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            ServiceMaterialInfo_NestedRowReasonID = values[15];
+            IndexAttachmentReasonID = ServiceMaterialInfo_NestedRowReasonID;
+        }
+        function ServiceMaterialGrid_Nested_BeginCallBack(s, e)
+        {
+            e.customArgs["ShowHorizontalBar"] = SR_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = ServiceMaterial_IsVouchingMode;
+            e.customArgs["command"] = e.command;
+        }
+        function ServiceMaterialGrid_DetailRowExpanding(s, e)
+        {
+            ServiceMaterialInfo_IsDetailRowExpanded = true;
+            s.SetFocusedRowIndex(e.visibleIndex);
+            var pane = Mainspliter.GetPaneByName('RightPane');
+            if (ServiceMaterial_IsVouchingMode == true)
+            {
+                pane.Expand();
+            }
+            else
+            {
+                pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        function ServiceMaterialGrid_DetailRowCollapsing(s, e)
+        {
+            ServiceMaterialInfo_IsDetailRowExpanded = false;
+            s.SetFocusedRowIndex(e.visibleIndex);
+            if (ServiceMaterial_IsVouchingMode == true)
+            {
+                if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+                {
+                    CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+                }
+            }
+            else
+            {
+                ServiceMaterial_FAB.SetVisible(false);
+            }
+        }
+                </script>
+                @*attachment and nested grid*@
+        
+    </div>

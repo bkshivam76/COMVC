@@ -1,0 +1,111 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    var to_Cen_Rec_ID = (string)ViewBag.to_Cen_Rec_ID;
+    var to_Match_Txn_ID = (string)ViewBag.to_Match_Txn_ID;
+}
+
+<div class="row">
+    <div class="">
+        <div id="content" class="col-md-12">
+            <div style="padding-left:0px;" class="col-md-6">
+                <h4>@ViewBag.Header</h4>
+            </div>
+            <div class="col-md-6">
+                <div class="styleActionBtn">                    
+                    @(Html.DevExtreme().Button().ID("BTN_Match_Match").Text("Match").Icon(Url.Content("../../../../Icons/Internal_Transfer2_16x16.png")).OnClick(@<text> function() {OnMatchClick(); } </text>) )
+                    @(Html.DevExtreme().Button().ID("BUT_Match_ListPreview").Text("List Preview").Icon("print").OnClick(@<text> function () { MatchingListPreview(); } </text>) )
+                    @(Html.DevExtreme().Button().ID("BUT_Match_Close").Text("Close").Icon("close").OnClick(@<text> function () { $("#Dynamic_Content_popup").dxPopup("hide");  } </text>) )
+
+                </div>
+            </div>
+            <br>
+            <div id="IT_MatchingPartialView" class="parent_table">
+                <form>
+                    @Html.Partial("Frm_I_Transfer_Matching_Grid", Model)
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@(Html.DevExtreme().Popup().ID("ITR_Match_report_modal").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="id_ITR_Match_Result"></div> </text>))
+<script>
+    var xTemp_ID = null;
+    function Matching_FocusedRowChange(s, e)
+    {        
+        if (s.GetFocusedRowIndex() > -1)//Redmine Bug #133233 fixed
+        {
+            xTemp_ID = s.GetRowKey(s.GetFocusedRowIndex());
+        }
+        else
+        {
+            xTemp_ID = null;
+        }
+    }
+    function OnMatchClick()
+    {        
+        if (xTemp_ID == null)
+        {
+            DevExpress.ui.dialog.alert("Select A Row", "Error");
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/MatchClick",
+            data: {
+                xTemp_ID: xTemp_ID,
+                to_Match_Txn_ID:"@to_Match_Txn_ID"
+            },
+            cache: false,
+            success: function (data)
+            {
+                if (typeof CashBookListGrid != "undefined")
+                {
+                    RefreshCashBookGrid();
+                }
+                DevExpress.ui.dialog.alert(data.message, 'Internal Transfer Matching');
+                if (data.result == true)
+                {
+                    $("#Dynamic_Content_popup").dxPopup("hide");
+                }
+            }
+        });
+    }
+    function Matching_BeginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        e.customArgs["to_Match_Txn_ID"] = "@to_Match_Txn_ID";
+        e.customArgs["to_Cen_Rec_ID"] = "@to_Cen_Rec_ID";
+    }
+    function Matching_ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'Close') {
+            $("#Dynamic_Content_popup").dxPopup("hide");
+        }
+        else if (e.item.name == 'ListPreview') {
+            MatchingListPreview();
+        }
+        else if (e.item.name == 'Refresh') {
+            InternalTransferMatchingGrid.Refresh();
+        }
+        else if (e.item.name == "MatchTransfer")
+        {
+            OnMatchClick();
+        }
+    }
+    function MatchingListPreview()
+    {
+        $("#ITR_Match_report_modal").dxPopup("show");
+        $("#ITR_Match_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#id_ITR_Match_Result").html('');
+        ShowLoader();
+        $("#id_ITR_Match_Result").load("@Url.Action("Frm_Export_Options_Match", "InternalTransfer", new { @area = "Account" })", function () {
+            HideLoader();
+        })
+    }
+    $(document).ready(function ()
+    {
+        sessionclearpath = "/Account/InternalTransfer/SessionClear_Match";       
+    })
+</script>

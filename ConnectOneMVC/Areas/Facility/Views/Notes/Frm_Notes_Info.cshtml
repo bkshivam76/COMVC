@@ -1,0 +1,753 @@
+﻿<div class="NotesFacility_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool Notes_AddRight = (bool)ViewData["Notes_NewRight"];
+        bool Notes_UpdateRight = (bool)ViewData["Notes_EditRight"];
+        bool Notes_DeleteRight = (bool)ViewData["Notes_DeleteRight"];
+        bool Notes_ExportRight = (bool)ViewData["Notes_ExportRight"];
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool Notes_Auto_Vouching_Mode = (bool)ViewData["Notes_Auto_Vouching_Mode"];
+    }
+    <div id="Notes_ParentDiv" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Notes</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("NotesVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("Notes_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button().ID("BUT_Notes_NEW").Text("New").Icon("add").OnClick(@<text> function () { OnNotesNewClick(); } </text>) )
+            @(Html.DevExtreme().Button().ID("BUT_Notes_EDIT").Text("Edit").Icon("edit").OnClick(@<text> function () { OnNotesEditClick(); } </text>) )
+            @(Html.DevExtreme().Button().ID("BUT_Notes_Delete").Text("Delete").Icon("clear").OnClick(@<text> function () { OnNotesDeleteClick(); } </text>) )
+            @(Html.DevExtreme().Button().ID("Notes_InfosModelListPreview").Text("Export").Icon("save").Width(75).OnClick(@<text> function () { OnNotes_InfoListPreviewClick(); } </text>) )
+            @(Html.DevExtreme().Button().ID("NotesToggleScrollBar").Text("Full Data").Width(90).Icon("toolbox").OnClick(@<text> function () { NoteschangeMode(); } </text>) )
+            @(Html.DevExtreme().Button().ID("Notes_InfoModelCLOSE").Text("Close").Icon("clear").OnClick("close_notes"))
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="Notes_InforeloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Notes_Info_Grid", Model)
+            </div>
+        </form>
+    </div>
+    <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+        <div class="setFooterItem">
+            <div class="footer-inner">
+                <div class="list_footer_left_margin">
+                    <div class="footericon">
+                        <i id="Notes_LockICON" style="color:red;font-size:35px;"></i>
+                    </div>
+                    @*<div class="footer-locktext">
+                            <div id="NotesLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                        </div>*@
+                    <div class="footer-locktext">
+                        <div id="Notes_Lbl_ActionOn" class="left_footertext_top"></div>
+                        <div id="Notes_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                    </div>
+                </div>
+                <div class="list_footer_left_margin">
+                    <div class="footer-text">
+                        <p id="NotesLbl_Create" class="right_footertext_top"></p>
+                        <p id="NotesLbl_Modify" class="right_footertext_bottom"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("AttachmentFAB", "NotesPrf_FAB,Notes_ParentDiv,Type2,NotesFacility") @*fab buttons*@
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                                        .ID("Notes_Info_report_modal")
+                                         .OnShowing("PopupOnShowing")
+                                        .Title("Notes List Preview")
+                                        .FullScreen(false)
+                                        .MaxWidth(125)
+                                       .Height("auto")
+                                        .ShowCloseButton(true)
+                                        .ContentTemplate(@<text>
+                                            <div id='Notes_Info_report_modal_result'>
+                                            </div>
+                                        </text>)
+    )
+
+    </div>
+
+    @*Javascript Events*@
+    <script type="text/javascript">
+
+    var Notes_ShowHorizontalBar = 0;
+    var Notes_ExportRight = ("@Notes_ExportRight" == "True") ? true : false;
+    var Notes_DeleteRight=("@Notes_DeleteRight" == "True") ? true : false;
+    var Notes_UpdateRight=("@Notes_UpdateRight" == "True") ? true : false;
+    var Notes_AddRight = ("@Notes_AddRight" == "True") ? true : false;
+    var Notes_IsVouchingMode = false;
+    var Notes_SetVouchingModeOn = "@Notes_Auto_Vouching_Mode" == "True" ? true : false;
+    function NotesGrid_CollapseAllDetailRows()
+    {
+        if (typeof window !== 'undefined') {
+            if (typeof window.Notes_InfoListGrid !== 'undefined') {
+                if (typeof window.Notes_InfoListGrid.CollapseAllDetailRows !== 'undefined') {
+                    if (typeof Notes_InfoListGrid.CollapseAllDetailRows == 'function') {
+                        Notes_InfoListGrid.CollapseAllDetailRows();
+                    }
+                    else {
+                        alert("CollapseAllDetailRows is not a function");
+                    }
+                }
+                else {
+                    ShowLoader();
+                    setTimeout(function () {
+                        NotesGrid_CollapseAllDetailRows();
+                        HideLoader();
+                    }, Timeout500);
+                }
+            }
+            else {
+                alert('grid undefined')
+            }
+        }
+        else {
+            alert('window undefined')
+        }
+    }
+    function Notes_VouchingSwitch_ValueChange(e)
+    {
+        Notes_IsVouchingMode = e.value;
+        NotesGrid_CollapseAllDetailRows();
+    }
+    $(document).ready(function ()
+    {
+        if (Notes_AddRight == false) { $("#BUT_Notes_NEW").hide();}
+        if (Notes_UpdateRight == false) { $("#BUT_Notes_EDIT").hide(); }
+        if (Notes_DeleteRight == false) { $("#BUT_Notes_Delete").hide();}
+        if (Notes_ExportRight != true)
+        {
+            $("#Notes_InfosModelListPreview").hide();
+        }
+        $(".Notes_InfoListGrid_PreviewRow").hide();
+        GetSessionStorage("Notes_InfoListGrid");
+        if (Notes_SetVouchingModeOn == true) {
+            $("#NotesVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            //$("#DonRegViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+
+    function close_notes()
+        {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Notes/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_NotesFacility();
+    });
+        function ClearAllReferences_NotesFacility() {
+            Notes_ShowHorizontalBar = null;
+            Notes_ExportRight = null;
+            Notes_DeleteRigh = null;
+            Notes_UpdateRigh = null;
+            Notes_AddRight = null;
+            Notes_IsVouchingMode = null;
+            Notes_SetVouchingModeOn = null;
+            UserType_NotesPrf = null;
+            NotesID = null;
+            Notes_EditDate = null;
+            Notes_AddDate = null;
+            Notes_AddBy = null;
+            Notes_EditBy = null;
+            Notes_ActionStatus = null;
+            Notes_ActionDate = null;
+            Notes_ActionBy = null;
+            NotesFocusedRowIndexBeforeRefresh = null;
+            Select_xid_Notes = null;
+            NotesGridLayout = null;
+            Notes_IsDetailRowExpanded = null;
+            Notes_NestedRecord_FocusedRowIndex = null;
+            Notes_NestedGrid_AccessID = null;
+            Notes_AtachmentID = null;
+            Notes_FileName = null;
+            Notes_ParamMandatory = null;
+            Notes_FromDateLabel = null;
+            Notes_ToDateLabel = null;
+            Notes_DescriptionLabel = null;
+            Notes_Doc_ID = null;
+            Notes_Doc_Category = null;
+            Notes_MasterRowRecID = null;
+            Notes_MasterRowMID = null;
+            Notes_NestedRowMapID = null;
+            Notes_reason = null;
+            Notes_Attachment_RecStatus = null;
+            Notes_Nested_Doc_Status = null;
+
+        ClearAllReferences("NotesFacility_ClearReferences");
+    }
+
+    var UserType_NotesPrf = "@UserType".toUpperCase();
+    function OnNotesCellClick(event, cell,col, row)
+    {
+        if (UserType_NotesPrf == "AUDITOR" || UserType_NotesPrf == "SUPERUSER")
+        {
+            if (event.button == 0)
+            {
+                if (cell.style.backgroundColor.length > 0)
+                {
+                    cell.style.backgroundColor = "";
+                }
+                else
+                {
+                    cell.style.backgroundColor = 'skyblue';
+                }
+            }
+        }
+    }
+
+
+
+    </script>
+
+    <script>
+
+        var NotesID;
+        var Notes_EditDate;
+        var Notes_AddDate;
+        var Notes_AddBy;
+        var Notes_EditBy;
+        var Notes_ActionStatus;
+        var Notes_ActionDate;
+        var Notes_ActionBy;
+        var NotesFocusedRowIndexBeforeRefresh;
+        var Select_xid_Notes = "";
+        var NotesGridLayout = null;
+        function NotesOnInit(s, e) {
+            NotesAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                NotesAdjustSize();
+            });
+        }
+        function NotesGrid_BeginCallBack(s, e) {
+            e.customArgs["command"] = e.command;
+            e.customArgs["ShowHorizontalBar"] = Notes_ShowHorizontalBar;
+            e.customArgs["VouchingMode"] = Notes_IsVouchingMode;
+        }
+        function NotesGrid_EndCallBack(s, e) {
+            NotesAdjustSize();
+            NotesGridLayout = s.cpClientLayout;
+            $(".Notes_InfoListGrid_PreviewRow").hide();
+            GetSessionStorage("Notes_InfoListGrid");
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+
+                NotesFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+                s.SetFocusedRowIndex(-1);
+                if (Select_xid_Notes.length > 0) {
+                    for (var i = 0; i < s.GetVisibleRowsOnPage(); i++) {
+                        if (s.GetRowKey(i) == Select_xid_Notes) {
+                            s.SetFocusedRowIndex(i);
+                            break;
+                        }
+                    }
+                }
+                else {
+                    s.SetFocusedRowIndex(NotesFocusedRowIndexBeforeRefresh);
+                }
+                Select_xid_Notes = "";
+            }
+        }
+        function NotesAdjustSize() {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            try { Notes_InfoListGrid.SetHeight(height); } catch (err) { }
+        }
+        function OnNotesGridFocusedRowChanged(s, e) {
+            if (s.GetFocusedRowIndex() >= 0) {
+                s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By', NotesOnGetRowValues);
+            }
+            else {
+                NotesID = null;
+                Notes_UpdateFooterDetail(NotesID, Notes_ActionStatus, Notes_AddDate, Notes_AddBy,
+                    Notes_ActionDate, Notes_ActionBy, Notes_EditDate, Notes_EditBy);
+            }
+        }
+        function NotesOnGetRowValues(values) {
+            NotesID = values[0];
+            Notes_EditDate = values[1];
+            Notes_AddDate = values[2];
+            Notes_AddBy = values[3];
+            Notes_EditBy = values[4];
+            Notes_ActionStatus = values[5];
+            Notes_ActionDate = values[6];
+            Notes_ActionBy = values[7];
+            Notes_UpdateFooterDetail(NotesID, Notes_ActionStatus, Notes_AddDate, Notes_AddBy, Notes_ActionDate, Notes_ActionBy, Notes_EditDate, Notes_EditBy);
+        }
+        function Notes_UpdateFooterDetail(NotesID, Notes_Action_Status, Notes_Add_Date, Notes_Add_By, Notes_Action_Date, Notes_Action_By, Notes_Edit_Date, Notes_Edit_By) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (NotesID != null) {
+
+                Status = Notes_Action_Status;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+
+                Lbl_ActionOn = StatusStr + " On: " + Notes_Action_Date;
+                Lbl_ActionBy = StatusStr + " By: " + Notes_Action_By;
+
+                Lbl_Create = "Add On: " + Notes_Add_Date + ", By: " + Notes_Add_By;
+
+                Lbl_Modify = "Edit On: " + Notes_Edit_Date + ", By: " + Notes_Edit_By;
+
+            }
+            $('#NotesLbl_Status').text(Lbl_Status);
+            $('#Notes_Lbl_ActionOn').text(Lbl_ActionOn)
+            $('#Notes_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#NotesLbl_Create').text(Lbl_Create);
+            $('#NotesLbl_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#NotesLbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#Notes_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#Notes_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#Notes_LockICON').removeClass("fa");
+                $('#Notes_LockICON').removeClass("fa-lock");
+                $('#Notes_LockICON').removeClass("fa-unlock");
+            }
+        }
+        function NoteschangeMode() {
+            ShowLoader();
+            if (Notes_ShowHorizontalBar == 0) {
+                Notes_ShowHorizontalBar = 1;
+                $("#NotesToggleScrollBar").find("span").text("Default Data");
+                $("#NotesToggleScrollBar").width(110);
+            }
+            else {
+                Notes_ShowHorizontalBar = 0;
+                $("#NotesToggleScrollBar").find("span").text("Full Data");
+                $("#NotesToggleScrollBar").width(90);
+            }
+            $.ajax({
+                url: "/Facility/Notes/Frm_Notes_Info_Grid",
+                type: "GET",
+                data: { ShowHorizontalBar: Notes_ShowHorizontalBar, Layout: NotesGridLayout, VouchingMode: Notes_IsVouchingMode },
+                success: function (res) {
+                    $("#Notes_InforeloadPartialView").html(res);
+                    $(".Notes_InfoListGrid_PreviewRow").hide();
+                    GetSessionStorage("Notes_InfoListGrid");
+
+                }
+            });
+            HideLoader();
+        }
+        function NotesContextMenuFunction(s, e) {
+            if (e.item.name == 'Close') {
+                btnCloseActiveTab();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnNotes_InfoListPreviewClick();
+            }
+            else if (e.item.name == 'Refresh') {
+                Notes_InfoListGrid.Refresh();
+            }
+            else if (e.item.name == 'New') {
+                OnNotesNewClick();
+            }
+            else if (e.item.name == 'Edit') {
+                OnNotesEditClick();
+            }
+            else if (e.item.name == 'Delete') {
+                OnNotesDeleteClick();
+            }
+            else if (e.item.name == 'Completed') {
+                Notes_ChangeStatus("COMPLETED");
+            }
+            else if (e.item.name == 'Incomplete') {
+                Notes_ChangeStatus("INCOMPLETE");
+            }
+
+        }
+    </script>
+    <script>
+    function OnNotesNewClick()
+    {
+        if (!Notes_AddRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Notes/Frm_Notes_Window",
+            data:
+            {
+                ActionMethod: "New"
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                OpenDynamicPopup("New ~ Notes", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function OnNotesEditClick()
+    {
+        if (!Notes_UpdateRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (NotesID == null)
+        {
+            DevExpress.ui.dialog.alert("Please Select A Row", "Information...");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Notes/Frm_Notes_Window",
+            data:
+            {
+                ActionMethod: "Edit",
+                ID: NotesID,
+                Info_LastEditedOn: Notes_EditDate
+            },
+            cache: false,
+            success: function (data) {
+                HideLoader();
+                OpenDynamicPopup("Edit ~ Notes", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function OnNotesDeleteClick() {
+        if (!Notes_DeleteRight) {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if (NotesID == null) {
+            DevExpress.ui.dialog.alert("Please Select A Row", "Information...");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Notes/Frm_Notes_Window",
+            data:
+            {
+                ActionMethod: "Delete",
+                ID: NotesID,
+                Info_LastEditedOn: Notes_EditDate
+            },
+            cache: false,
+            success: function (data) {
+                HideLoader();
+                OpenDynamicPopup("Delete ~ Notes", null, "auto", "60%", true, data);
+            }
+        });
+    }
+    function Notes_ChangeStatus(status)
+    {
+        if (NotesID == null) {
+            DevExpress.ui.dialog.alert("Please Select A Row", "Information...");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Facility/Notes/ChangeStatus",
+            data:
+            {
+                Status: status,
+                ID: NotesID
+            },
+            cache: false,
+            success: function (data)
+            {
+                HideLoader();
+                if (typeof Notes_InfoListGrid !== 'undefined')
+                {
+                    if (data.xid != null)
+                    {
+                        Select_xid_Notes = data.xid;
+                    }
+                    Notes_InfoListGrid.Refresh();
+                }
+                DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            }
+        });
+    }
+    function OnNotes_InfoListPreviewClick()
+    {
+        if (!Notes_ExportRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }
+        ShowLoader();
+        OpenPopup("Notes_Info_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Notes", new { @area = "Facility" })", "auto", "auto", false, null);
+    }
+    </script>
+
+    <script>
+    var Notes_IsDetailRowExpanded = false;
+    var Notes_NestedRecord_FocusedRowIndex = -1;
+    var Notes_NestedGrid_AccessID;
+    var Notes_AtachmentID;
+    var Notes_FileName;
+    var Notes_ParamMandatory;
+    var Notes_FromDateLabel;
+    var Notes_ToDateLabel;
+    var Notes_DescriptionLabel;
+    var Notes_Doc_ID;
+    var Notes_Doc_Category;
+    var Notes_MasterRowRecID;
+    var Notes_MasterRowMID;
+    var Notes_NestedRowMapID;
+    var Notes_reason;
+    var Notes_Attachment_RecStatus;
+    var Notes_Nested_Doc_Status;
+
+    function On_NotesFacility_FABActionItemClick(s, e)
+    {
+        var img = document.getElementById('RightPane_Img');
+        s.ExpandActionGroupItems();
+        if (e.actionName === "add_attach")
+        {
+            if ("@Help_Attachment_AddRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Notes_ParamMandatory == 1)
+            {
+                AddAttachment(Notes_MasterRowRecID, "Facility_Notes", Notes_Doc_ID, Notes_Doc_Category, Notes_ParamMandatory, Notes_FromDateLabel, Notes_ToDateLabel, Notes_DescriptionLabel, "NotesFacilityAttachment", null, "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+            }
+            else
+            {
+                Attachment_DirectBrowse(Notes_MasterRowRecID, "Facility_Notes", Notes_Doc_ID, "NotesFacilityAttachment", "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "edit_attach")
+        {
+            if ("@Help_Attachment_EditRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Notes_Nested_Doc_Status == "NO" || Notes_Nested_Doc_Status == "") {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            if (Notes_Attachment_RecStatus.toUpperCase() == "LOCKED")
+            {
+                DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                return;
+            }
+            EditAttachment(Notes_MasterRowRecID, "Facility_Notes", Notes_AtachmentID, Notes_ParamMandatory, Notes_FromDateLabel, Notes_ToDateLabel, Notes_DescriptionLabel, "NotesFacilityAttachment", null, "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "delete_attach")
+        {
+            if ("@Help_Attachment_DeleteRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Notes_Nested_Doc_Status == "NO" || Notes_Nested_Doc_Status == "") {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+            DeleteAttachment(Notes_MasterRowRecID, "Facility_Notes", Notes_AtachmentID, Notes_ParamMandatory, Notes_FromDateLabel, Notes_ToDateLabel, Notes_DescriptionLabel, null, "Notes_InfoListGrid", Notes_NestedGrid_AccessID, Notes_Attachment_RecStatus);
+        }
+        else if (e.actionName === "view_attach")
+        {
+            if ("@Help_Attachment_ViewRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                return;
+            }
+            if (Notes_Nested_Doc_Status == "NO" || Notes_Nested_Doc_Status == "") {
+                DevExpress.ui.dialog.alert("Please Attach document First", "Error");
+                return;
+            }
+
+            ViewDocument(Notes_AtachmentID, Notes_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+        }
+        else if (e.actionName == "Link_Attach")
+        {
+            LinkAttachment(Notes_MasterRowRecID, "Facility_Notes", "Notes", "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Add_Reason")
+        {
+            if (Notes_Doc_Category.toLowerCase() == "others") {
+                DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+            }
+            else {
+                AttachmentAddReason(Notes_MasterRowRecID, Notes_NestedRowMapID, "Facility_Notes", "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+            }
+        }
+        else if (e.actionName === "Edit_Reason")
+        {
+            AttachmentEditReason(Notes_MasterRowRecID, Notes_NestedRowMapID, "Facility_Notes", "Notes_InfoListGrid", Notes_NestedGrid_AccessID, Notes_reason);
+        }
+        else if (e.actionName === "Delete_Reason")
+        {
+            AttachmentDeleteReason(Notes_MasterRowRecID, Notes_NestedRowMapID, "Notes_InfoListGrid", Notes_NestedGrid_AccessID);
+        }
+        else if (e.actionName === "Rotate")
+        {
+            ImageRotate(img);
+        }
+        else if (e.actionName === "ZoomOut")
+        {
+            ImageZoomOut(img);
+        }
+        else if (e.actionName === "ZoomIn")
+        {
+            ImageZoomIn(img);
+        }
+        else if (e.actionName == "Fit")
+        {
+            ImageFit(img);
+        }
+        else if (e.actionName == "Back")
+        {
+            ImageBack(s.uniqueID, "actionItemContext");
+        }
+    }
+    function OnNotes_InfoListGridNestedFocusedRowChange(s, e)
+    {
+        if (Notes_IsDetailRowExpanded)
+        {
+            Notes_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            if (Notes_NestedRecord_FocusedRowIndex >= 0)
+            {
+                ShowLoader();
+                NotesPrf_FAB.SetVisible(true);
+                Notes_NestedGrid_AccessID = s.uniqueID;
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Doc_Status;Params_Mandatory;LABEL_FROM_DATE;LABEL_TO_DATE;LABEL_DESCRIPTION;Document_Category;Document_ID;ATTACH_ID;TxnID;TxnMID;MAP_ID;Reason;ATTACH_FILE_NAME;Attachment_Action_Status;UniqueID', OnNotes_GetGridRowValues);
+            }
+            else
+            {
+                NotesPrf_FAB.SetVisible(false);
+            }
+        }
+    }
+    function OnNotes_GetGridRowValues(values)
+    {
+        HideLoader();
+        if (values[14] != null)
+        {
+            NotesPrf_FAB.SetVisible(true);
+            Notes_Nested_Doc_Status = values[0];
+
+            NotesPrf_FAB.SetActionContext("actionItemContext", true);
+
+            Notes_ParamMandatory = values[1];
+            Notes_FromDateLabel = values[2];
+            Notes_ToDateLabel = values[3];
+            Notes_DescriptionLabel = values[4];
+            Notes_Doc_Category = values[5];
+            Notes_Doc_ID = values[6];
+            Notes_AtachmentID = values[7];
+            Notes_MasterRowRecID = values[8];
+            Notes_MasterRowMID = values[9];
+            Notes_NestedRowMapID = values[10];
+            Notes_reason = values[11];
+            Notes_FileName = values[12];
+            Notes_Attachment_RecStatus = values[13];
+            if (Notes_IsVouchingMode == true)
+            {
+                if (Notes_FileName != null && Notes_FileName.length > 0)
+                {
+                    ViewDocument(Notes_AtachmentID, Notes_FileName, "NotesPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                }
+                else
+                {
+                    var pane = Mainspliter.GetPaneByName('RightPane');
+                    pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+                    document.getElementById('RightPane_div_Iframe').style.display = "none";
+                    document.getElementById('RightPane_div_Img').style.display = "none";
+                }
+            }
+        }
+    }
+    function Notes_InfoGrid_Nested_BeginCallBack(s, e)
+    {
+        e.customArgs["ShowHorizontalBar"] = Notes_ShowHorizontalBar;
+        e.customArgs["VouchingMode"] = Notes_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+    }
+    function Notes_DetailRowExpanding(s, e)
+    {
+        Notes_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        var pane = Mainspliter.GetPaneByName('RightPane');
+        if (Notes_IsVouchingMode == true)
+        {
+            pane.Expand();
+        }
+        else
+        {
+            pane.Collapse(Mainspliter.GetPaneByName('MiddlePane'));
+        }
+    }
+    function Notes_DetailRowCollapsing(s, e)
+    {
+        Notes_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+        if (Notes_IsVouchingMode == true)
+        {
+            if (Mainspliter.GetPaneByName('RightPane').IsCollapsed() == false)
+            {
+                CollapsePane(Mainspliter.GetPaneByName('RightPane'), Mainspliter.GetPaneByName('MiddlePane'));
+            }
+        }
+        else
+        {
+            NotesPrf_FAB.SetVisible(false);
+        }
+    }
+    </script>
+    @*attachment and nested grid*@
+</div>

@@ -1,0 +1,463 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@*@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Production*@
+@{
+    bool Production_AddRight=(bool) ViewData["Production_AddRight"];
+    bool Production_UpdateRight = (bool)ViewData["Production_UpdateRight"];
+    bool Production_ViewRight = (bool)ViewData["Production_ViewRight"];
+    bool Production_DeleteRight = (bool)ViewData["Production_DeleteRight"];
+    bool Production_ExportRight = (bool)ViewData["Production_ExportRight"];
+    bool Production_AddAccVouPaymentRight = (bool)ViewData["Production_AddAccVouPaymentRight"];
+    bool Production_AddItemMasterRight = (bool)ViewData["Production_AddItemMasterRight"];
+    bool Production_AddPersonnelRight = (bool)ViewData["Production_AddPersonnelRight"];
+ }
+<style>
+    .dx-toolbar-after .dx-button-content {
+        padding-right: 0px !important;
+    }
+    #productiondateselection .padding15 {
+        padding-left: 15px !important;
+    }
+   
+    .dx-state-disabled .dx-texteditor-input {
+        color: darkgoldenrod;
+    }
+    .padd70 {
+        padding-left: 70px !important;
+    }
+    /*.dx-icon {
+        line-height: 14px !important;
+        font-size: 18px !important;
+    }*/
+</style>
+<script>
+    function LookUp_ViewType_ChangeEvent_Production(e) {
+        var SelectBox = $("#ProductionPeriodSelection").dxSelectBox("instance").option("value");
+        $("#ProductionChangePeriodMain").dxButton("instance").option("disabled", true);
+        if (SelectBox == "Specific Period") {
+            $("#ProductionChangePeriodMain").dxButton("instance").option("disabled", false);
+            $("#Production_View_Period").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/ProductionRegister/LookUp_ViewType_ChangeEvent_Production",
+                data: { Chaval: $("#ProductionPeriodSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true) {
+                        $("#Production_View_Period").dxTextBox("instance").option("value", data.Message.Production_BE_View_Period);
+                        ShowLoader();
+                        ProductionRegisterListGrid.Refresh();
+                        HideLoader();
+                    }
+                }
+            });
+        }
+    } //Period Selection //0000117 bug fixed
+    function ChangePeriodinLayout() {
+
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_Production", "ProductionRegister", new { @area = "Stock" })", "auto", "45%");
+    }// Change Period Button Click
+</script>
+
+<div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Production Register</label>
+        </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("ProductionNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text>function(){ProductionButton_Click("New");}</text>))
+        @(Html.DevExtreme().Button().ID("ProductionEdit").Text("EDIT").Icon("edit").Visible(true).Disabled(false).OnClick(@<text>function(){ProductionButton_Click("Edit");}</text>))
+        @(Html.DevExtreme().Button().ID("ProductionDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text>function(){ProductionButton_Click("Delete");}</text>))
+        @(Html.DevExtreme().Button().ID("ProductionView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Disabled(false).OnClick(@<text>function (){ProductionButton_Click("View");}</text>))
+        @(Html.DevExtreme().Button().ID("ProductionListPreview").Text("List Export").Icon("save").OnClick(@<text>function(){ ProductionRegisterPreviewClick();} </text>))
+        @(Html.DevExtreme().Button().ID("Production_MasterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {Production_MasterchangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("btnproductionExpandAll").Icon("preferences").Text("Expand All").OnClick(@<text> function () { ProductionMasterExpandAll(); } </text>) )
+        @(Html.DevExtreme().Button().ID("ProductionCLOSE").Text("Close").Icon("clear").OnClick(@<text>function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+    </div><!--[Buttons]-->
+</div>
+<div id="productiondateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().ID("ProductionPeriodSelection").Name("ProductionPeriodSelection").Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value")
+                                                                  .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).DataSource(d => d.Mvc().Controller("ProductionRegister").LoadAction("LookUp_Get_ViewType_List_Production")
+                                                                  .Key("Value")).SearchEnabled(true).ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent_Production").Visible(true))
+        </div><!--[Select Date]-->
+        <div class="col-md-2  no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("ProductionChangePeriodMain").Text("Change Period").Disabled(true).OnClick(@<text>function (){ ChangePeriodinLayout(); } </text>))
+        </div><!--[Change Period]-->
+        <div class="col-sm-4 col-md-3subHead">
+            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                <div class="">
+                    @(Html.DevExtreme().TextBox().ID("Production_View_Period").Name("Production_View_Period").Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100) )
+                </div>
+            </div>
+        </div><!--[View Period TextBox]-->
+    </div>
+    <div class="row">
+        <div class="col-md-12 padding15 ">
+            <div id="ProductionRegisterPartialView" class="parent_table">
+               <form>
+                        @Html.Partial("Frm_ProductionRegister_Grid", Model)
+                </form>
+            </div>
+        </div>
+    </div><!--[Grid]-->
+    <div class="footer-MainBoxdiv full-width-footer">
+        <div class="list_footer_left_margin col-md-9">
+            @if (ViewBag.Change != "Change")
+            {
+                <div style="float:left;margin-top:5px">
+                    @(Html.DevExtreme().Button().ID("btnproductionExpandAll").ElementAttr("style", "padding-right:0px;margin-right:5px;").Icon("preferences").Hint("Expand/Collapse All").OnClick(@<text> function () { ProductionMasterExpandAll(); } </text>) )
+                </div>
+            }
+            <div class="list_footer_left_margin">
+                <p id="ProductionRegisterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                <p id="ProductionRegisterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+            </div>
+        </div>
+    </div><!--[Grid Footer]-->
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("ProductionRegister_report_modal").Title("Production Register").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text><div id="id_ProductionRegister_Result" class="export_popup"></div></text>))
+
+<script>
+    var ProductionIsAllDetailExpanded = false;
+    var ProductionAddedBy = "";
+    var ProductionAddedOn = "";
+    var ProductionEditedBy = "";
+    var ProductionEditedOn = "";
+    var ProductionDate;
+    var Prod_ID;
+    var Prod_Item_ID;
+    var Productiongrid;
+    var Production_Master_ShowHorizontalBar = 0;
+    var ProductionNewright;
+    var ProductionEditright;
+    var ProductionDeleteright;
+    var ProductionViewright;
+    var ProductionExportright;
+    var isProductionGridRefresh = false;
+    $(document).ready(function () {   
+        var DefaultDateString = '@ViewBag.DefualtDateString';
+        $("#ProductionPeriodSelection").dxSelectBox("instance").option("value", DefaultDateString);
+
+        ProductionNewright = "@Production_AddRight" == "True" ? true : false;
+        ProductionEditright = "@Production_UpdateRight" == "True" ? true : false;
+        ProductionDeleteright = "@Production_DeleteRight" == "True" ? true : false;
+        ProductionViewright = "@Production_ViewRight" == "True" ? true : false;
+        ProductionExportright = "@Production_ExportRight" == "True" ? true : false;
+
+        if (ProductionNewright != true) { $("#ProductionNew").hide(); }
+
+        if (ProductionEditright != true) { $("#ProductionEdit").hide(); }
+
+        if (ProductionViewright != true) { $("#ProductionView").hide(); }
+
+        if (ProductionDeleteright != true) { $("#ProductionDelete").hide(); }
+
+        if (ProductionExportright != true) { $("#ProductionListPreview").hide(); }
+
+    });//document ready function(setting default date & check rights)//0000117 bug fixed
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProductionRegister/SessionClear",
+            cache: false
+        });
+        DeleteCookie("ProdCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProductionRegister/InfoSessionclear",
+            cache: false
+        });
+    });
+    function Production_RegisterAdjustSize()
+        {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+            ProductionRegisterListGrid.SetHeight(height);
+        }
+    function ProductionRegisterOnInit(s, e) {
+            Production_RegisterAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                Production_RegisterAdjustSize();
+            });
+            s.SetFocusedRowIndex(-1);
+        }
+    function ProductionRegisterGrid_BeginCallBack(s, e) {
+        e.customArgs["command"] = e.command;
+        
+        if (e.command == "REFRESH") {
+            isProductionGridRefresh = true;
+        }
+        e.customArgs["ShowHorizontalBar"] = Production_Master_ShowHorizontalBar;
+    }
+    function ProductionRegisterGrid_EndCallBack(s, e) {
+        Production_RegisterAdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function ItemProduceGrid_BeginCallBack(s, e) {
+        e.customArgs["Command"] = e.command;
+    }
+    function OnItemProduceInit(s, e)
+    {
+        s.SetFocusedRowIndex(-1);
+    }
+    function ProductionRegisterGridFocusedRowChanged(s, e) {
+        if (s.GetFocusedRowIndex() == -1)
+        {
+            Prod_ID = 0;
+        }
+        else
+        {
+           Productiongrid = "Production";
+            Prod_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: Prod_ID }, ProductionRegisterGetRowValues);
+            s.CollapseAllDetailRows();
+        }
+       }
+    function ProductionRegisterGetRowValues(Data)
+    {
+        var values = Data.split("![");
+        Prod_ID = values[0];
+        ProductionEditedBy = values[1];
+        ProductionEditedOn = values[2];
+        ProductionAddedBy = values[3];
+        ProductionAddedOn = values[4];
+        ProductionDate = values[5];
+        ProductionRegister_UpdateFooterDetail(Prod_ID, ProductionAddedOn, ProductionAddedBy, ProductionEditedBy, ProductionEditedOn);
+    }
+    function ProductionRegister_UpdateFooterDetail(ID, ProductionAddedOn, ProductionAddedBy, ProductionEditedBy, ProductionEditedOn)
+    {
+
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProductionRegister/CreationDetail",
+            data: {
+                Xrow:ID, AddOn:ProductionAddedOn,AddBy: ProductionAddedBy,EditOn:ProductionEditedOn, EditBy:ProductionEditedBy
+            },
+            cache: false,
+            success: function (ProductionRegisterLbl_result) {
+                $('#ProductionRegisterLbl_Create').text(ProductionRegisterLbl_result.Lbl_Create);
+                $('#ProductionRegisterLbl_Modify').text(ProductionRegisterLbl_result.Lbl_Modify);
+
+            }
+        });
+    }
+    function OnItemProduceFocusedRowChange(s, e)
+    {
+        ProductionRegisterListGrid.SetFocusedRowIndex(-1);
+        Productiongrid = "Item";
+        Prod_Item_ID = s.GetRowKey(s.GetFocusedRowIndex());
+        s.GetValuesOnCustomCallback({ key: Prod_Item_ID }, ItemProduceGetData);
+                    }
+    function ItemProduceGetData(Data)
+    {
+        var value = Data.split("![");
+        Prod_ID = value[0];
+        ProductionEditedOn = value[2];
+        ProductionEditedBy = value[1];
+        ProductionAddedBy = value[3];
+        ProductionAddedOn = value[4];
+        ProductionRegister_UpdateFooterDetail(Prod_Item_ID, ProductionAddedOn, ProductionAddedBy, ProductionEditedBy, ProductionEditedOn);
+    }
+    function CollapseProductionRow(s, e) {
+           s.SetFocusedRowIndex(index);
+    }
+    function ExpandProductionRow(s, e) {
+        index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+        }
+    function ProductionMasterExpandAll() {
+        if (!ProductionIsAllDetailExpanded) {
+            ProductionRegisterListGrid.ExpandAllDetailRows();
+            ProductionIsAllDetailExpanded = true;
+            $("#btnproductionExpandAll").find("span").text("Collapse All");
+        }
+        else {
+            ProductionRegisterListGrid.CollapseAllDetailRows();
+            ProductionIsAllDetailExpanded = false;
+            $("#btnproductionExpandAll").find("span").text("Expand All");
+        }
+        }
+    function Production_MasterchangeMode()
+                       {
+                        ShowLoader();
+                        if (Production_Master_ShowHorizontalBar == 0) {
+                            Production_Master_ShowHorizontalBar = 1;
+                            $("#Production_MasterToggleScrollBar").find("span").text("Default Data");
+                        }
+                        else {
+                            Production_Master_ShowHorizontalBar = 0;
+                            $("#Production_MasterToggleScrollBar").find("span").text("Full Data");
+                        }
+                        $.ajax({
+                            url: '@Url.Action("Frm_ProductionRegister_Grid", "ProductionRegister")',
+                            type: "GET",
+                            async: false,
+                            data: { ShowHorizontalBar: Production_Master_ShowHorizontalBar },
+                            success: function (res) {
+                                $("#ProductionRegisterPartialView").html(res);
+                            }
+                        });
+                        HideLoader();
+                    }//full data button click
+</script>
+<script>
+    var productionflag= true;
+    function ProductionButton_Click(actionMethod) {  
+        if (Productiongrid == "Item")
+        {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (actionMethod == "Edit" && ProductionEditright == false) {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "New" && ProductionNewright == false) {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "View" && ProductionViewright == false) {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "Delete" && ProductionDeleteright == false) {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (actionMethod == "Edit" || actionMethod == "Delete" || actionMethod == "View") {
+            
+            if (!Prod_ID) {
+                DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+                return;
+            }
+        }
+        //else {
+        //    Prod_ID = 0;//0000067 bug fixed
+        //}
+        if (actionMethod == "Edit" || actionMethod == "Delete")
+        {           
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/ProductionRegister/DataNavigation",
+                async:false,
+                data: {
+                    ActionMethod: actionMethod,
+                    ID: Prod_ID,
+                    ProdDate: ProductionDate
+                },
+                cache: false,            
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.Message, 'Alert ');
+                        productionflag = false;
+                    }
+                    else if (data.result == "NoDeleteRights")
+                    {
+                        $("#ProductionDelete").hide();
+                        DevExpress.ui.dialog.alert(data.Message, 'Warning!');
+                        HideLoader();
+                    }
+                    else if (data.result == "NoUpdateRights")
+                    {
+                        $("#ProductionEdit").hide();
+                        DevExpress.ui.dialog.alert(data.Message, 'Warning!');
+                        HideLoader();
+                    }
+                }
+            });
+        }
+        if (!productionflag) { return;}              
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/ProductionRegister/Frm_NEVD_Production",
+                data: {
+                    ActionMethod: actionMethod,
+                    ID: Prod_ID
+                },               
+                cache: false,
+                success: function (data)
+                {
+                    OpenDynamicPopup(actionMethod + " ~ Production Of Goods", null, "auto", 1150, true, data);                  
+                }
+            });         
+        } 
+    function ProductionRegisterPreviewClick()
+    {
+        if ( ProductionExportright == false) {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        $("#ProductionRegister_report_modal").dxPopup("show");
+        $("#ProductionRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#ProductionRegister_report_modal").html('');
+        ShowLoader();
+        $("#id_ProductionRegister_Result").load("@Url.Action("Frm_Export_Options", "ProductionRegister", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }// Production List Preview
+    function ProductionRegisterContextMenuFunction(s, e) {
+        if (Prod_ID == 'undefined' || Prod_ID == undefined || Prod_ID == "" || Prod_ID == 0) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert ');
+            return;
+        }
+        if (e.item.name == 'New') {
+            ProductionButton_Click("New")
+        }
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Edit') {
+            ProductionButton_Click("Edit")
+        }
+        else if (e.item.name == 'ListPreview') {
+            ProductionRegisterPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            ProductionRegisterListGrid.Refresh();
+        }
+        else if (e.item.name == 'Delete') {
+            ProductionButton_Click("Delete")
+        }
+        else if (e.item.name == 'View') {
+            ProductionButton_Click("View")
+        }
+    }    
+    function OnProductionRegisterAjaxSuccessForm(data)
+    {
+        if (data.result == true)
+        {
+            dontaskpopupcloseconfirmation = true;
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.Message, "Inform");
+            ProductionRegisterListGrid.SetFocusedRowIndex(-1);
+                    ProductionRegisterListGrid.Refresh();
+                    HideLoader();
+                }
+                if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            HideLoader()
+        }
+        if (data.result == "falsestockproduce")
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            $("#Productiontabpanel").dxTabPanel("instance").focus();
+            $("#Productiontabpanel").dxTabPanel("instance").option("selectedIndex", 5);
+            HideLoader();
+        }
+        if (data.result == "falsestockconsume")//0000059 bug number fixed.
+        {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            $("#Productiontabpanel").dxTabPanel("instance").focus();
+            $("#Productiontabpanel").dxTabPanel("instance").option("selectedIndex", 0);
+            HideLoader();
+        }
+     
+    }
+</script>

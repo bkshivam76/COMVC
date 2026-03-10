@@ -1,0 +1,284 @@
+﻿<div class="VoucherWIPNew_ClearReferences">
+    @using DevExtreme.AspNet.Mvc
+    @model ConnectOneMVC.Areas.Account.Models.Frm_WIP_Window_Model
+    @{
+        Layout = null;
+        bool IsReadOnlyLedger = !string.IsNullOrEmpty(Model.LedID) ? true : false;
+        bool IsReadOnlyAmount = !string.IsNullOrEmpty(Convert.ToString(Model.Amount_WIP)) ? true : false;
+        bool isvisible = Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete" ? true : false;
+        bool From_DNK = (bool)ViewBag.FromDNK;
+        bool From_JV = (bool)ViewBag.FromJV;
+    }
+
+    <div id="NewVoucherReferenceTypeProfilePartialView" class="form-horizontal">
+        @using (Ajax.BeginForm("Frm_WIP_Window_BUT_SAVE_Click", "ProfilePaymentVoucher", new AjaxOptions
+        {
+            HttpMethod = "POST",
+            UpdateTargetId = "",
+            OnBegin = "AjaxBeginFormPost",
+            OnSuccess = "OnReferenceTypeSaveSuccess"
+        }, new { id = "ID_Frm_WIP_Window", @class = "edit_form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.LedID)
+            @Html.HiddenFor(x => x.Ref_RecID)
+            @Html.HiddenFor(x => x.iSpecific_itemID)
+            @Html.HiddenFor(x => x.iTxnM_ID)
+            @Html.HiddenFor(x => x.iReftype)
+            @Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(x => x.xID)
+
+            using (Html.DevExtreme().ValidationGroup())
+            {
+                <div class="full-width-header-bg2">
+                    <div class="row">
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i>Reference</h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                        </div>
+                    </div>
+                </div><!--[Header]-->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label disabletxt" id="payment_WIPNew_Ledger">Ledger:</label></div>
+                                    <div class="col-sm-10 col-md-10 col-lg-10 prm ">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_WIP_LedgerList").Name("GLookUp_WIP_LedgerList").ValueExpr("WIP_LED_ID").DisplayExpr("WIP_LEDGER").DataSource(Model.WIPLedgerListData, "WIP_LED_ID")
+                                                  .ContentTemplate(@<text>@Html.Partial("Frm_WIP_Window_Lookup_WIP_LedgerList")</text>).OnValueChanged("WIP_Ledger_ValueChange").Disabled(isvisible).Value(Model.GLookUp_WIP_LedgerList))
+                                        @Html.ValidationMessageFor(model => model.LedID, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Ledger]-->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label text-red" id="payment_WIPNew_Reference">Reference:</label></div>
+                                    <div class="col-sm-10 col-md-10 col-lg-10 prm ">
+                                        @(Html.DevExtreme().TextBoxFor(x => x.Reference_WIP).CustomTextBox(true).ID("Reference_WIP").Placeholder("Type Reference...").Disabled(isvisible) )
+                                        @Html.ValidationMessageFor(model => model.Reference_WIP, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Reference]-->
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label disabletxt" id="payment_WIPNew_OV">Opening Value:</label></div>
+                                    <div class="col-sm-10 col-md-10 col-lg-10 prm ">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Amount_WIP").Name("Amount_WIP").Placeholder("Amount").Disabled(isvisible).Value(Model.Amount_WIP.ToString()))
+                                        @Html.ValidationMessageFor(model => model.Amount_WIP, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Opening Value]-->
+
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="row">
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0}...)...", Model.Tag.ToString().Substring(1)))
+                            </div>
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                <div class="styleActionBtn">
+                                    @(Html.DevExtreme().Button().CustomSaveButton().ID("WIP_ReferenceTypeSave").Text(Model.TempActionMethod == "_Delete" ? "Delete" : "Save").UseSubmitBehavior(true).Visible(Model.TempActionMethod == "_View" ? false : true) )
+                                    @(Html.DevExtreme().Button().CustomCloseButton().ID("WIP_ReferenceTypeCancel").Text(Model.TempActionMethod == "_View" ? "Close" : "Cancel").OnClick(@<text> function () {CloseWip(); } </text>) )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Buttons]-->
+
+            }
+        }
+    </div>
+
+
+    <script type="text/javascript">
+    function CloseWip()
+    {
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Cancel This Entry...?", "Confirm");
+        result.done(function (dialogResult)
+        {
+            if (dialogResult)
+            {
+                $("#Frm_References_Popup").dxPopup("hide");
+                if ("@From_DNK" == "True")
+                {
+                    $("#Win_Gift_Item_Content_popup").dxPopup("hide");
+                }
+                else if ("@From_JV" == "True")
+                {
+                    $("#JV_Item_Content_popup").dxPopup("hide");
+                }
+                else
+                {
+                    $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                }
+            }
+        });
+    }
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        TransformTextForDB("ID_Frm_WIP_Window");
+        LookUp_GetWIPLedgerList();   
+        Control_SetReadOnly("Amount_WIP", "dxTextBox", true, "#696969");
+        if ("@Model.LedID".length > 0)
+        {
+            await WIP_Ledger_ValueChange();
+        }
+        Control_SetReadOnly("GLookUp_WIP_LedgerList", "dxDropDownBox", true, "#696969");
+        if ("@Model.TempActionMethod" != "_New")
+        {
+            $("#Reference_WIP").dxTextBox("instance").option("value", TransformText("@Model.Reference_WIP"));
+        }
+
+        if ("@From_DNK" == "True") //From DNK
+        {
+
+        }
+        else if ("@From_JV" == "True") //From JV
+        {
+
+        }
+        else // From Payment
+        {
+            if ($("#Txt_Amt").dxNumberBox("instance").option("readOnly"))
+            {
+                $("#Amount_WIP").dxTextBox({ inputAttr: { title: "Created WIP has been referenced in other entries" } });
+                $("#Amount_WIP").dxTextBox("instance").option("readOnly", true);
+            }
+        }
+        Set_Form_View_Delete_Mode(null, "ID_Frm_WIP_Window", "@Model.Tag");
+        Focus_FirstEditable_Field("ID_Frm_WIP_Window");
+        HideLoader_Ready();       
+    });
+    @*document.body.addEventListener("keydown", PaymentItem_NewWIP, false);
+    function PaymentItem_NewWIP(evt) {
+        if (evt.ctrlKey && evt.keyCode == 83)//ctrl+s save
+        {
+            evt.preventDefault();
+            if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection") {
+                $("#WIP_ReferenceTypeSave").trigger("dxclick");
+            }
+        }
+        else if (evt.ctrlKey && evt.keyCode == 68)//ctrl+d delete
+        {
+            evt.preventDefault();
+            if ("@Model.TempActionMethod" == "_Delete") {
+                $("#WIP_ReferenceTypeSave").trigger("dxclick");
+            }
+        }
+    }*@ //shortcuts
+
+
+    function OnReferenceTypeSaveSuccess(data)
+    {
+        HideLoader();
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message , data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                    else
+                    {
+                        if ("@From_DNK" == "True") // from DNK
+                        {
+                            $("#Frm_References_Popup").dxPopup("hide");
+                        }
+                        else          //Calling from Payments screen
+                        {
+                            $("#Frm_References_Popup").dxPopup("hide");
+                        }
+                    }
+                }
+            });
+        }
+        else
+        {
+            if ("@From_DNK"=="True") // from DNK
+            {
+                $("#iReference_DNK_Itm").val(data.iReference);
+                $("#iRefType_DNK_Itm").val(data.iRefType);
+                $("#Ref_RecID_DNK_Itm").val(data.Ref_RecID);
+
+                Fill_Item_Grid_DonationInKindVoucher();
+            }
+            else if ("@From_JV"=="True") // from DNK
+            {
+                $("#iReference_JV_Itm").val(data.iReference);
+                $("#iRefType_JV_Itm").val(data.iRefType);
+                $("#Ref_RecID_JV_Itm").val(data.Ref_RecID);
+
+                Fill_Item_Grid_JournalVoucher();
+            }
+            else          //Calling from Payments screen
+            {
+                $("#iReference").val(data.iReference);
+                $("#iRefType").val(data.iRefType);
+                $("#Ref_RecID").val(data.Ref_RecID);
+                Fillgrid1_PaymentVoucher();
+            }
+            $("#Frm_References_Popup").dxPopup("hide");
+        }
+    }
+    </script>
+    <script>
+    var WipLedger_DG;
+    async function LookUp_GetWIPLedgerList()
+    {
+        var $WipLedger_DG = $("#Frm_WIP_Window_Ledger_LookUp_ItemList_datagrid");
+        if ($WipLedger_DG.length)
+        {
+            WipLedger_DG = $WipLedger_DG.dxDataGrid("instance");    
+            if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_New_From_Selection")
+            {
+                $("#GLookUp_WIP_LedgerList").dxDropDownBox("instance").option("readOnly", false);
+            }                   
+        }
+    }
+        async function WIP_Ledger_ValueChange(e)
+        {
+            var WIPLedger;
+            if (e)
+            {
+                WIPLedger = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null)
+                {
+                    WipLedger_DG.clearSelection();
+                    return;
+                }
+            }
+            else
+            {
+                WIPLedger = $("#GLookUp_WIP_LedgerList").dxDropDownBox("instance").option("value");
+            }
+            await WipLedger_DG.selectRows(WIPLedger);
+        }
+    </script>
+    </div>

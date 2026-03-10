@@ -1,0 +1,318 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+}
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-3">
+        <div class="col-md-12 report_header_div">
+            @(Html.DevExtreme().SelectBox()
+                                                                      .ID("Issue_date")
+                                                                      .Name("Issue_date")
+                                                                      .DisplayExpr("Issue")
+                                                                      .ValueExpr("ID")
+                                                                      .DataSource(d => d.Mvc().Controller("MagazineReceiptRegister").LoadAction("LookUp_GetMagIssues").Key("ID").LoadParams(new { CC_MemType = new JS("function (){ return Ms_mdid;}") }))
+                                                                      .SearchEnabled(true)
+                                                                      .ReadOnly(false)
+                                                                      .Disabled(false)
+                                                                      // .OnValueChanged("LookUp_Language_ChangeEvent")
+                                                                      .TabIndex(2)
+            )
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="col-md-12 report_header_div">
+            <div class="row">
+                @(Html.DevExtreme().RadioGroup()
+                                .ID("Showissue")
+                                .Name("Showissue")
+                                .DisplayExpr("text")
+                                .Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal)
+                                .ValueExpr("value")
+                               // .Value(Model.FixedPeriod)
+                                .DataSource(new object[] {
+                                                                          new { text = "Issue Date", value = "Issue Date" },
+                                                                          new { text = "All Issues", value = "All Issues"  },
+                                })
+                                 .ReadOnly(false)
+                                 .Disabled(false)
+                )
+            </div>
+    </div>
+        </div>
+    <div class="col-md-6">
+        <div class="col-md-12">
+            <div class="fa-pull-left">
+                @(Html.DevExtreme().Button()
+                                                .ID("LedgerCLOSE")
+                                                .Text("Close")
+                                                .Icon("clear")
+                                                .OnClick(@<text>
+                                                    function () {
+                                                    OnMagRegClose();
+                                                    }
+                                                </text>)
+
+                )
+            </div>
+            <div class="pull-right">
+                @(Html.DevExtreme().Button()
+                                                .ID("LedgerListPreview")
+                                                .Text("Show")
+                                                .Icon("save")
+                                                .Width(75)
+                                                .OnClick(@<text>
+                                                    function () {
+                                                    OnMagazineNotDeliveredClick();
+                                                    }
+                                                </text>)
+                )
+            </div>
+
+        </div>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+
+    </div>
+</div>
+<div class="col-md-12 no-padding">
+    <form>
+        <div id="LedgerPartialView" class="parent_table">
+            @Html.Partial("Frm_Dispatch_Info_Grid", Model)
+        </div>
+    </form>
+</div>
+
+<div class="footer-MainBoxdiv full-width-footer">
+    <div class="">
+        <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Nett Balance (in Rs.):@ViewBag.lblNetBalance</label></div>
+        @*<div class="col-sm-6 col-md-6 col-lg-6 pll">
+            <div class="row">
+                <div class="col-sm-6 col-md-6 col-lg-6 pll">
+                    <div class="pull-right">
+                        @(Html.DevExtreme().Button()
+                                        .ID("LedgerdownCLOSE")
+                                        .Text("Close")
+                                        .Icon("clear")
+                                        .OnClick(@<text>
+                                            function () {
+                                            OnMagRegClose();
+                                            }
+                                        </text>)
+
+                        )
+                    </div>
+                </div>
+            </div>
+        </div>*@
+    </div>
+
+
+</div>
+
+<script>
+    var Ms_mdid = "";
+    var IsAllDetailExpanded = false;
+    $(document).ready(function () {
+        $("#popup_frm_Box").dxPopup("instance").option("title", '@ViewBag.Txt_Title_Text');
+        selsectvalue();
+    });
+    function OnMagRegClose()
+    {
+        $("#popup_frm_Box").dxPopup("hide");
+    }
+    function OnMagazineRegPreviewClick()
+    {
+        $("#MagazineReg_report_modal").dxPopup("show");
+        $("#MagazineReg_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#MagazineReg_report_modal").html('');
+        ShowLoader();
+        $("#MagazineReg_report_modal_result").load("@Url.Action("Frm_Ledger_Export_Options", "MagazineReceiptRegister", new { @area = "Magazine" })", function () {
+            HideLoader();
+        });
+    }
+    function CollapseDonationRow(s, e)
+    { IsAllDetailExpanded = false; }
+    function ExpandDonationRow(s, e)
+    { IsAllDetailExpanded = true; }
+
+    function DispatchOnInit(s, e) {
+        DispatchAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DispatchAdjustSize();
+        });
+    }
+    function OnEndCallback(s, e) {
+        DispatchAdjustSize();
+    }
+    function DispatchAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        DispatchListGrid.SetHeight(height);
+    }
+
+    var MemberID;
+    var MemberOldID;
+    var Member;
+    var Magazine;
+    var TotalCopies;
+    var DispatchedCopies;
+    var Status;
+    var MemberStatus;
+    var MII_ISSUE_DATE;
+    var DISP_DONE_MODE;
+    var MAG_REC_ID;
+    var ExpiryStatus;
+    var REGION;
+    var RMS;
+    var PSO;
+    var CONTACT_NO;
+    var CURRTIME;
+    var Issue;
+    var ISSUE_ID;
+    var MEM_ID;
+    var ISSUE_MEMBER;
+
+
+    function DispatchGridFocusedRowChanged(s, e) {
+        debugger;
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        DispatchListGrid.GetValuesOnCustomCallback({ key: key }, DispatchOnGetRowValues);
+    }
+
+    //function DispatchGridFocusedRowChanged(s, e) {
+    //    alert("hi");
+    //    s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By', DispatchOnGetRowValues);
+    //}
+
+    function DispatchOnGetRowValues(DispatchData) {
+        var values = DispatchData.split("![");
+        MemberID = values[0];
+        MemberOldID = values[1];
+        Member = values[2];
+        Magazine = values[3];
+        TotalCopies = values[4];
+        DispatchedCopies = values[5];
+        Status = values[6];
+        MemberStatus = values[7];
+        MII_ISSUE_DATE = values[8];
+        DISP_DONE_MODE = values[9];
+        MAG_REC_ID = values[10];
+        ExpiryStatus = values[11];
+        REGION = values[12];
+        RMS = values[13];
+        PSO = values[14];
+        CONTACT_NO = values[15];
+        CURRTIME = values[16];
+        Issue = values[17];
+        ISSUE_ID = values[18];
+        MEM_ID = values[19];
+        ISSUE_MEMBER = values[20];
+    }
+
+    function selsectvalue()
+    {
+        Ms_mdid = "d7b002cd-6637-492f-8aa3-15e272ba6dbb";
+    }
+    function OnMagazineNotDeliveredClick()
+    {
+        var result = DevExpress.ui.dialog.confirm("Do you want to mark these issues as 'Not Delivered'...?", "Confirmation...");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+               // $("#popup_frm_OB_Window_Close").dxPopup("hide");
+
+                $.ajax({
+            type: 'GET',
+            url: "/Magazine/MagazineReceiptRegister/DataNavigation",
+            data: { Type: "NOT DELIVERED", DispatchedCopies: DispatchedCopies, ISSUE_ID: ISSUE_ID, MEM_ID: MEM_ID, MII_ISSUE_DATE: MII_ISSUE_DATE, Member: Member, MemberID: MemberID },
+            cache: false,
+            success: function (OB_Delete_ButtonClick_result) {
+                if (OB_Delete_ButtonClick_result.result == "true" || OB_Delete_ButtonClick_result.result == true) {
+
+                    $("#popup_frm_OpeningBalances_Window").dxPopup("show");
+                    $("#popup_frm_OpeningBalances_Window").dxPopup("instance").option("title", "Edit ~ Opening Balances");
+                    $("#popup_frm_OpeningBalances_Window_result").html('');
+                    ShowLoader();
+                    $("#popup_frm_OpeningBalances_Window_result").load("@Url.Action("Frm_OpeningBalances_Window", "OpeningBalances", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + ID + "&Head=" + encodeURIComponent(Head) + "&HeadType=" + encodeURIComponent(HeadType) + "&EditedOn=" + encodeURIComponent(Edit_Date), function () {
+                        HideLoader();
+                        // $("#tP_NOField").dxTextBox('instance').focus();
+                    });
+                }
+                else {
+                    DevExpress.ui.dialog.alert(OB_Edit_ButtonClick_result.Message, 'Information!');                 
+                }
+            }
+        });
+            }
+        });
+    }
+
+    function OnMagazineDELIVERYRETURNEDClick()
+    {
+        var result = DevExpress.ui.dialog.confirm("Do you want to mark these issues as 'Not Delivered'...?", "Confirmation...");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                // $("#popup_frm_OB_Window_Close").dxPopup("hide");
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Magazine/MagazineReceiptRegister/DataNavigation",
+                    data: { Type: "DELIVERY RETURNED", DispatchedCopies: DispatchedCopies, ISSUE_ID: ISSUE_ID, MEM_ID: MEM_ID, MII_ISSUE_DATE: MII_ISSUE_DATE, Member: Member, MemberID: MemberID },
+                    cache: false,
+                    success: function (OB_Delete_ButtonClick_result) {
+                        if (OB_Delete_ButtonClick_result.result == "true" || OB_Delete_ButtonClick_result.result == true) {
+
+                            $("#popup_frm_OpeningBalances_Window").dxPopup("show");
+                            $("#popup_frm_OpeningBalances_Window").dxPopup("instance").option("title", "Edit ~ Opening Balances");
+                            $("#popup_frm_OpeningBalances_Window_result").html('');
+                            ShowLoader();
+                            $("#popup_frm_OpeningBalances_Window_result").load("@Url.Action("Frm_OpeningBalances_Window", "OpeningBalances", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + ID + "&Head=" + encodeURIComponent(Head) + "&HeadType=" + encodeURIComponent(HeadType) + "&EditedOn=" + encodeURIComponent(Edit_Date), function () {
+                                HideLoader();
+                                // $("#tP_NOField").dxTextBox('instance').focus();
+                            });
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(OB_Edit_ButtonClick_result.Message, 'Information!');                 
+                        }
+                    }
+                });
+            }
+        });
+    }
+    function OnMagazineByHandClick()
+    {
+        var result = DevExpress.ui.dialog.confirm("Do you want to mark these issues as dispatched by hand...?", "Confirmation...");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                // $("#popup_frm_OB_Window_Close").dxPopup("hide");
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Magazine/MagazineReceiptRegister/DataNavigation",
+                    data: { Type: "BY HAND", DispatchedCopies: DispatchedCopies, ISSUE_ID: ISSUE_ID, MEM_ID: MEM_ID, MII_ISSUE_DATE: MII_ISSUE_DATE, Member: Member, MemberID: MemberID, TotalCopies: TotalCopies, MAG_REC_ID: MAG_REC_ID },
+                    cache: false,
+                    success: function (OB_Delete_ButtonClick_result) {
+                        if (OB_Delete_ButtonClick_result.result == "true" || OB_Delete_ButtonClick_result.result == true) {
+
+                            $("#popup_frm_OpeningBalances_Window").dxPopup("show");
+                            $("#popup_frm_OpeningBalances_Window").dxPopup("instance").option("title", "Edit ~ Opening Balances");
+                            $("#popup_frm_OpeningBalances_Window_result").html('');
+                            ShowLoader();
+                            $("#popup_frm_OpeningBalances_Window_result").load("@Url.Action("Frm_OpeningBalances_Window", "OpeningBalances", new { @area = "Profile" })?ActionMethod=" + "Delete" + "&ID=" + ID + "&Head=" + encodeURIComponent(Head) + "&HeadType=" + encodeURIComponent(HeadType) + "&EditedOn=" + encodeURIComponent(Edit_Date), function () {
+                                HideLoader();
+                                // $("#tP_NOField").dxTextBox('instance').focus();
+                            });
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(OB_Edit_ButtonClick_result.Message, 'Information!');                 
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+

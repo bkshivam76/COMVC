@@ -1,0 +1,481 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Param_paymentVoucherDetailsViewModel
+@{
+    bool IsVisible = (Model != null && Model.TempActionMethod == "_Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") ? true : false;
+}
+<style>
+    .negative .dx-texteditor-input {
+        background: lightsalmon;
+    }
+
+    .positive .dx-texteditor-input {
+        background: aliceblue;
+    }
+    </style>
+<div id="Frm_Voucher_Win_Gen_Pay_Grid_1_PartialView">
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Action("Frm_Voucher_Win_Gen_Pay_Grid_1", "PaymentVoucher")
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="form-field">
+        <div class="container-fluid">
+            <div class="col-sm-12 col-md-5 col-lg-5 btnsDiv">
+                @(Html.DevExtreme().Button().ID("Frm_Voucher_Win_Gen_Pay_ModelNew").Text("New").Icon("add").OnClick(@<text> function () { OnFrm_Voucher_Item_popup_NewClick(); } </text>).Disabled(IsDisabled) )
+                @(Html.DevExtreme().Button().ID("Frm_Voucher_Win_Gen_Pay_ModelEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_EditClick(); } </text>).Disabled(IsDisabled)  )
+                @(Html.DevExtreme().Button().ID("Frm_Voucher_Win_Gen_Pay_ModelDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_DeleteClick(); } </text>).Disabled(IsDisabled)  )
+                @(Html.DevExtreme().Button().ID("Frm_Voucher_Win_Gen_Pay_ModelView").Text("View").Icon("doc").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_ViewClick(); } </text>).Disabled(IsVisible) )
+            </div><!--[Item Grid Buttons]-->
+            <div class="col-sm-12 col-md-7 col-lg-7">
+                <div class="row">
+                    <div class="col-sm-3 col-md-3 col-lg-3">
+                        
+                                @(Html.DevExtreme().CheckBoxFor(x => x.CheckEdit2).ID("CheckEdit2").Value(false).OnValueChanged("ShowRemark_valueChange").Text("Show Remarks") )
+                           
+                        </div>
+                   
+                    <div class="col-sm-4 col-md-4 col-lg-4 prm ">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-3 col-lg-3">
+                                <label class="control-label pll blu-txt" for="FormData_Txt_DiffAmt" style="font-size:11px;padding-right:1px">Diff.:</label>
+                            </div>
+                            <div class="col-sm-12 col-md-9 col-lg-9 text-right" id="payment_txtdiff_div">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Txt_DiffAmt").Name("Txt_DiffAmt").Value((double)Model.Txt_DiffAmt).ReadOnly(true).OnValueChanged("Calculation_Check").Format("#0.00").InputAttr(new { @style = "text-align:right;" }).FocusStateEnabled(false) )
+                            </div>
+                        </div>
+                    </div><!--[Diff]-->
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-6 col-lg-6">
+                                <label class="control-label pll blu-txt" for="FormData_Txt_SubTotal" style="font-size:11px;">Total Amount:</label>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-6 text-right">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Txt_SubTotal").Name("Txt_SubTotal").Value((double)Model.Txt_SubTotal).ReadOnly(true).Format("#0.00").InputAttr(new { @style = "text-align:right;" }).FocusStateEnabled(false) )
+                            </div>
+                        </div>
+                    </div><!--[Total]-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    var Payment_Grid_1_RowNumber, Payment_Selected_ItemID;
+    var Payment_ispecificallow_item = false;
+    var Payment_vDate_item = null;
+    var Payment_partyID_item = null;
+    var Grid1_Item_TotalCount;
+    var Actionmethod_pay_item;
+    var Payment_ItemGrid_Data;
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_DblClick(s, e)
+    {
+        OnFrm_Voucher_Win_Gen_Pay_EditClick();
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_Init(s, e)
+    {
+        //ASPxClientUtils.AttachEventToElement(
+        //    s.GetMainElement(),
+        //    "keydown",
+        //    function (evt) {
+        //        switch (evt.keyCode) {
+        //            case 45: // insert key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Item_popup_NewClick();
+        //                break;
+        //            case 13: //enter key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_EditClick();
+        //                break;
+        //            case 32: //space bar
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_ViewClick();
+        //                break;
+        //            case 46://delete key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_DeleteClick();
+        //                break;
+        //        }
+        //    });
+        Grid1_Item_TotalCount = s.cpGrid1_VisibleRowCount;
+    }
+    function ShowRemark_valueChange(e)
+    {
+        if (e.value)
+        {
+           $(".customPreviewRow").show();
+        }
+        else
+        {
+           $(".customPreviewRow").hide();
+        }
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_EndCallBack(s, e)
+    {
+        if ($("#CheckEdit2").dxCheckBox("instance").option("value"))
+        {
+            $(".customPreviewRow").show();
+        }
+        else
+        {
+            $(".customPreviewRow").hide();
+        }
+        Grid1_Item_TotalCount = s.cpGrid1_VisibleRowCount;
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_OnGridFocusedRowChanged(s, e)
+    {
+        s.Focus();
+       // Payment_Grid_1_RowNumber = s.GetRowKey(s.GetFocusedRowIndex());
+        //s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;Item_ID', Frm_Voucher_Win_Gen_Pay_Grid_1_OnGetRowValues);
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_OnGetRowValues(values)
+    {
+        Payment_Grid_1_RowNumber = (values[0]);
+        Payment_Selected_ItemID = values[1];
+    }
+
+    function OnFrm_Voucher_Item_popup_NewClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            Payment_vDate_item = ($("#Txt_V_Date").dxDateBox("instance").option("value") == null || $("#Txt_V_Date").dxDateBox("instance").option("value") == "") ? null : FormatDateToddMMyyyy($("#Txt_V_Date").dxDateBox("instance").option("value"));
+            Payment_partyID_item = $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value") == null ? "" : $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value");
+            if (ActionMethod_Payment == "_New_From_Selection")
+            {
+                ActionMethod_Payment = "_New";
+                $("#TempActionMethod").val("_New");
+                Payment_ispecificallow_item = true;
+            }
+            else
+            {
+                Payment_ispecificallow_item = false;
+            }
+            ShowLoader();
+            Actionmethod_pay_item = "New";
+            @*var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Item", "PaymentVoucher", new { @area = "Account" })?ActionMethod=New" + "&iSpecific_Allow=" + Payment_ispecificallow_item + "&iSpecific_ItemID=" + $("#iSpecific_ItemID_Gen_Pay").val() + "&Vdt=" + Payment_vDate_item +"&iPartyID=" + Payment_partyID_item;*@
+            $.ajax({
+                type: 'GET',
+                url: "/Account/PaymentVoucher/Frm_Voucher_Win_Gen_Pay_Item",
+                data:
+                {
+                    ActionMethod:"New",
+                    iSpecific_Allow:Payment_ispecificallow_item,
+                    iSpecific_ItemID: $("#iSpecific_ItemID_Gen_Pay").val(),
+                    Vdt:Payment_vDate_item,
+                    iPartyID:Payment_partyID_item
+                },
+                cache: false,
+                success: function (data)
+                {
+                    OpenPopup("Frm_Voucher_Item_popup", "New ~ Item Detail", null, "auto",850, true,data);
+                }
+            });
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_EditClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            Payment_partyID_item = $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value") == null ? "" : $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value");
+            if (Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex()>-1)
+            {
+                Payment_ItemGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_1.cpPagedata;
+                Payment_Grid_1_RowNumber = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][0];
+                Payment_Selected_ItemID = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][1];
+                Actionmethod_pay_item = "Edit";
+                @*var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Item", "PaymentVoucher", new { @area = "Account" })?ActionMethod=Edit&iPartyID=" + Payment_partyID_item + "&GridRowNo=" + Payment_Grid_1_RowNumber;*@
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/PaymentVoucher/Frm_Voucher_Win_Gen_Pay_Item",
+                    data:
+                    {
+                        ActionMethod: "Edit",
+                        iPartyID: Payment_partyID_item,
+                        GridRowNo: Payment_Grid_1_RowNumber
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        OpenPopup("Frm_Voucher_Item_popup", "Edit ~ Item Detail", null, "auto",850, true, data);
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', "Information!!");
+            }
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_DeleteClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if (Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() > -1)
+            {
+                Payment_ItemGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_1.cpPagedata;
+                Payment_Grid_1_RowNumber = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][0];
+                Payment_Selected_ItemID = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][1];
+                Actionmethod_pay_item = "Delete";
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/PaymentVoucher/Frm_Voucher_Win_Gen_Pay_Item",
+                    data:
+                    {
+                        ActionMethod: "Delete",
+                        GridRowNo: Payment_Grid_1_RowNumber
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        HideLoader();
+                        if (data.result == false)
+                        {
+                            DevExpress.ui.dialog.alert(data.message, "Error..");
+                        }
+                        else if (data.result == true)
+                        {
+                            ShowLoader();
+                            $.ajax({
+                                type: 'POST',
+                                url: "/Account/PaymentVoucher/FillGrid1",
+                                data:
+                                {
+                                    TempActionMethod: "_Delete",
+                                    GLookUp_PartyList: $("#GLookUp_PartyList1_Tag").dxDropDownBox("option", "value") == null ? null : $("#GLookUp_PartyList1_Tag").dxDropDownBox("option", "value"),
+                                    Payment_Credit_Amt: $("#Txt_CreditAmt").dxNumberBox("instance").option("value") //Redmine Bug #134863 fix
+                                },
+                                cache: false,
+                                success: function (data)
+                                {
+                                    if (data.result == "true" || data.result == true)
+                                    {
+                                        $("#Txt_DiffAmt").dxNumberBox("instance").option("value", data.Txt_DiffAmt);
+                                        $("#iParty_Req_Gen_Pay").val(data.iParty_Req);
+                                        $("#Txt_SubTotal").dxNumberBox("instance").option("value", data.Txt_SubTotal);
+                                        $("#Txt_TDS_Amt").dxNumberBox("instance").option("value", data.Txt_TDS_Amt);
+                                        $("#Txt_BankAmt").dxNumberBox("instance").option("value", data.Txt_BankAmt);
+                                        $("#Txt_CreditAmt").dxNumberBox("instance").option("value", data.Txt_CreditAmt);
+                                        $("#Txt_CashAmt").dxNumberBox("instance").option("value", data.Txt_CashAmt);
+                                        $("#Txt_AdvAmt").dxNumberBox("instance").option("value", data.Txt_AdvAmt);
+                                        $("#Txt_LB_Amt").dxNumberBox("instance").option("value", data.Txt_LB_Amt);
+                                        Frm_Voucher_Win_Gen_Pay_Grid_1.SetFocusedRowIndex(-1);
+                                        RefreshGridView("Frm_Voucher_Win_Gen_Pay_Grid_1");
+                                        PerformCallbackGridView("Frm_Voucher_Win_Gen_Pay_Grid_3");
+                                        PerformCallbackGridView("Frm_Voucher_Win_Gen_Pay_Grid_4");
+                                    }
+                                    HideLoader();
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', "Information!!");
+            }
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_ViewClick()
+    {
+        if ("@IsVisible" == "False")
+        {
+            Payment_partyID_item = $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value") == null ? "" : $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value");
+            if (Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() > -1)
+            {
+                Payment_ItemGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_1.cpPagedata;
+                Payment_Grid_1_RowNumber = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][0];
+                Payment_Selected_ItemID = Payment_ItemGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_1.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_1.GetTopVisibleIndex()][1];
+                Actionmethod_pay_item = "View";
+                @*var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Item", "PaymentVoucher", new { @area = "Account" })?ActionMethod=View&iPartyID=" + Payment_partyID_item + "&GridRowNo=" + Payment_Grid_1_RowNumber;*@
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/PaymentVoucher/Frm_Voucher_Win_Gen_Pay_Item",
+                    data:
+                    {
+                        ActionMethod: "View",
+                        iPartyID: Payment_partyID_item,
+                        GridRowNo: Payment_Grid_1_RowNumber
+                    },
+                    cache: false,
+                    success: function (data)
+                    {
+                        OpenPopup("Frm_Voucher_Item_popup", "View ~ Item Detail", null, "auto", 850, true, data);
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Please Select One Row', "Information!!");
+            }
+        }
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_1_ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New')
+        {
+            OnFrm_Voucher_Item_popup_NewClick();
+        }
+        else if (e.item.name == 'Edit') {
+            OnFrm_Voucher_Win_Gen_Pay_EditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnFrm_Voucher_Win_Gen_Pay_DeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnFrm_Voucher_Win_Gen_Pay_ViewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Frm_Voucher_Win_Gen_Pay_Grid_1.Refresh();
+        }
+    }
+    function Frm_Voucher_Win_Gen_Pay_Item_Content_OnSuccess(data)
+    {
+        HideLoader();    
+        if (data.jsonParam.result == false)
+        {
+            var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alertclick.done(function (alertResult)
+            {
+                if (alertResult)
+                {
+                    if (data.jsonParam.focusid)
+                    {
+                        var id = "#" + data.jsonParam.focusid;
+                        setTimeout(function ()
+                        {
+                            $(id).find('input').focus();
+                        }, Timeout100);
+                    }
+                }
+            });
+        }
+        else
+        {
+            if (data.jsonParam.popup_form_path == "" || data.jsonParam.popup_form_path == null)
+            {
+                Fillgrid1_PaymentVoucher();
+            }
+            else
+            {
+                var width = 1000;
+                if (data.jsonParam.popup_form_name == "Frm_Reference_Type")
+                {
+                    width = 340;                    
+                }
+                else if (data.jsonParam.popup_form_name == "Frm_Asset_Window")
+                {
+                    width = 870;                    
+                }
+                else if (data.jsonParam.popup_form_name == "Frm_GoldSilver_Window")
+                {
+                    width = 700;
+                }
+                else if (data.jsonParam.popup_form_name == "Frm_Telephone_Select")
+                {
+                    width = 855;
+                }
+                else if (data.jsonParam.popup_form_name == "Frm_Live_Stock_Window")
+                {
+                    width = 870;
+                }
+                else if (data.jsonParam.popup_form_name == "Frm_Vehicles_Window")
+                {
+                    width = 870;
+                }
+                OpenPopup("Frm_Voucher_Item_Content_popup", data.jsonParam.popup_title, data.jsonParam.popup_form_path + "?" + data.jsonParam.popup_querystring, "auto", width, false, null);
+            }
+        }
+    }    
+    function Fillgrid1_PaymentVoucher()
+    {
+        ShowLoader_Ready();
+        $.ajax({
+            type: 'POST',
+            url: "/Account/PaymentVoucher/FillGrid1",
+            data: $("#ID_Frm_Voucher_Win_Gen_Pay_Item_Window").serialize(),
+            cache: false,
+            success: async function (data)
+            {
+                if (data.result == "true" || data.result == true)
+                {
+                    $("#Txt_DiffAmt").dxNumberBox("instance").option("value", data.Txt_DiffAmt);
+                    $("#iParty_Req_Gen_Pay").val(data.iParty_Req);
+                    $("#Txt_SubTotal").dxNumberBox("instance").option("value", data.Txt_SubTotal);
+                    $("#Txt_TDS_Amt").dxNumberBox("instance").option("value", data.Txt_TDS_Amt);
+                    $("#Txt_BankAmt").dxNumberBox("instance").option("value", data.Txt_BankAmt);
+                    $("#Txt_CreditAmt").dxNumberBox("instance").option("value", data.Txt_CreditAmt);
+                    $("#Txt_CashAmt").dxNumberBox("instance").option("value", data.Txt_CashAmt);
+                    $("#Txt_AdvAmt").dxNumberBox("instance").option("value", data.Txt_AdvAmt);
+                    $("#Txt_LB_Amt").dxNumberBox("instance").option("value", data.Txt_LB_Amt);
+                    //Frm_Voucher_Win_Gen_Pay_Grid_1.SetFocusedRowIndex(-1);
+                    RefreshGridView("Frm_Voucher_Win_Gen_Pay_Grid_1");
+                    PerformCallbackGridView("Frm_Voucher_Win_Gen_Pay_Grid_3");
+                    PerformCallbackGridView("Frm_Voucher_Win_Gen_Pay_Grid_4");
+                    Focus_FirstEditable_Field("ID_Frm_Voucher_Win_Gen_Pay", "@Model.TempActionMethod");
+                    if (data.volume_result == "BankGrid")
+                    {
+                        OnFrm_Voucher_Win_Gen_Pay_Grid_2_NewClick(data.volume_amount);
+                    }
+                    else if (data.volume_result == "LBGrid") {
+                        OnFrm_Voucher_Win_Gen_Pay_Grid_4_EditClick(data.volume_amount, data.volume_sr);
+                    }
+                }          
+                ShowLoader();
+                var partyIdItem = $("#GLookUp_PartyList").dxDropDownBox("instance").option("value");
+                if (partyIdItem != null && partyIdItem.length > 0)
+                {
+                    if (Actionmethod_pay_item == "New")
+                    {
+                        var PartyData = GetDataSourceItems("GLookUp_PartyList1_Tag", "dxDropDownBox");                      
+                        if (PartyData.some(data => data.C_ID === partyIdItem))
+                        {
+                            $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value", partyIdItem);
+                        }
+                        else
+                        {
+                            await LookUp_GetPartyList_Payment(false, partyIdItem);
+                        }
+                    }
+                    else
+                    {
+                        $("#GLookUp_PartyList1_Tag").dxDropDownBox("instance").option("value", partyIdItem);
+                    }
+                }           
+                HideLoader();
+                if ($("#Frm_Voucher_Item_Content_popup").length > 0 && $("#Frm_Voucher_Item_Content_popup").dxPopup("instance").option("title") != "PopUpDidnotOpen")
+                {
+                    $("#Frm_Voucher_Item_Content_popup").dxPopup("hide");
+                }
+                $("#Frm_Voucher_Item_popup").dxPopup("hide");
+                HideLoader_Ready();
+            }
+        });
+    } // Redmine Bug #134769 fixed
+</script>
+<script>
+    function Calculation_Check(e)
+    {
+        var value = $("#Txt_DiffAmt").dxNumberBox("instance").option("value");
+        if ("@Model.TempActionMethod" != "_Delete") {
+            if (value != 0) {
+                $("#frm_win_gen_Save").dxButton("instance").option("disabled", true);
+            }
+            else {
+                $("#frm_win_gen_Save").dxButton("instance").option("disabled", false);
+            }
+        }
+        $("#Txt_DiffAmt").toggleClass('negative', value != 0); 
+        $("#Txt_DiffAmt").toggleClass('positive', value == 0); 
+    }
+
+</script>
+
+

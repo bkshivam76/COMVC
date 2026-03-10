@@ -1,0 +1,186 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Account.Models.Param_paymentVoucherDetailsViewModel
+@{
+    bool IsVisible = (Model != null && Model.TempActionMethod == "_Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.TempActionMethod == "_View" || Model.TempActionMethod == "_Delete") ? true : false;
+}
+<div id="Frm_Voucher_Win_Gen_Pay_Grid_1_PartialView">
+    <div class="row">
+        <div class="col-md-12">
+            @Html.Action("Frm_Voucher_Win_Gen_Pay_Grid_2", "PaymentVoucher")
+            <div class="btnsDiv marginAll2">
+                @(Html.DevExtreme().Button().ID("BankPaymentNew").Text("New").Icon("add").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_2_NewClick(); } </text>).Disabled(IsDisabled))
+                @(Html.DevExtreme().Button().ID("BankPaymentEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_2_EditClick(); } </text>).Disabled(IsDisabled).Visible(true) ) 
+                @(Html.DevExtreme().Button().ID("BankPaymentDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_2_DeleteClick(); } </text>).Disabled(IsDisabled))
+                @(Html.DevExtreme().Button().ID("BankPaymentView").Text("View").Icon("doc").OnClick(@<text> function () { OnFrm_Voucher_Win_Gen_Pay_Grid_2_ViewClick(); } </text>).Disabled(IsVisible))
+            </div>
+        </div>
+    </div>
+
+</div>
+<script>
+    var BankPayment_Sr;
+    var Payment_BankGrid_Data;
+    function OnBankPaymentGridFocusedRowChanged(s, e)
+    {
+        s.Focus();
+        //s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;', OnBankPaymentGetRowValues);
+    }
+    function OnBankPaymentGetRowValues(values)
+    {
+       // BankPayment_Sr = values[0];
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_2_Init(s, e)
+    {
+        //ASPxClientUtils.AttachEventToElement
+        //    (
+        //    s.GetMainElement(),
+        //    "keydown",
+        //    function (evt)
+        //    {
+        //        switch (evt.keyCode)
+        //        {
+
+        //            case 13: //enter key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_2_EditClick();
+        //                break;
+        //            case 32: //space bar
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_2_ViewClick();
+        //                break;
+        //            case 46://delete key
+        //                evt.preventDefault();
+        //                OnFrm_Voucher_Win_Gen_Pay_Grid_2_DeleteClick();
+        //                break;
+        //        }
+        //        if (evt.altKey && evt.keyCode == 78)//alt+n
+        //        {
+        //            evt.preventDefault();
+        //            OnFrm_Voucher_Win_Gen_Pay_Grid_2_NewClick();
+        //        }
+        //    });
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_2_DblClick(s, e)
+    {
+        OnFrm_Voucher_Win_Gen_Pay_Grid_2_EditClick();
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_2_NewClick(Bank_amount = 0)
+    {
+        if ("@IsDisabled" == "False")
+        {
+            var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Bank", "PaymentVoucher", new { @area = "Account" })?ActionMethod=New&Amount=" + Bank_amount;
+            ShowLoader();
+            OpenPopup("Frm_Voucher_Item_popup", "New ~ Bank Payment", Url, "auto", 750, false, null);
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_2_EditClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if (Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex()<0)
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+            }
+            else
+            { 
+                Payment_BankGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_2.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_2.GetTopVisibleIndex()];
+                var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Bank", "PaymentVoucher", new { @area = "Account" })?ActionMethod=Edit&SrID=" + BankPayment_Sr;
+                ShowLoader();
+                OpenPopup("Frm_Voucher_Item_popup", "Edit ~ Bank Payment", Url, "auto", 750, false, null);
+            }
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_2_DeleteClick()
+    {
+        if ("@IsDisabled" == "False")
+        {
+            if (Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex() >= 0)
+            {
+                Payment_BankGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_2.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_2.GetTopVisibleIndex()];
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/PaymentVoucher/Frm_Voucher_Win_Gen_Pay_Bank",
+                    data: { ActionMethod: "Delete", SrID: BankPayment_Sr },
+                    cache: false,
+                    success: function (data)
+                    {
+                        if (data.result == true)
+                        {
+                            $.ajax({
+                                type: 'GET',
+                                url: "/Account/PaymentVoucher/FillGrid2",
+                                data: {
+                                    TempActionMethod: "_Delete",
+                                    Payment_Credit_Amt: $("#Txt_CreditAmt").dxNumberBox("instance").option("value")
+                                },
+                                cache: false,
+                                async: false,
+                                success: function (data)
+                                {
+                                    if (data.result == "true" || data.result == true)
+                                    {
+                                        $("#Txt_DiffAmt").dxNumberBox("instance").option("value", data.Txt_DiffAmt);
+                                        $("#Txt_BankAmt").dxNumberBox("instance").option("value", data.Txt_BankAmt);
+                                        $("#Txt_CashAmt").dxNumberBox("instance").option("value", data.Txt_CashAmt);
+                                        Frm_Voucher_Win_Gen_Pay_Grid_2.SetFocusedRowIndex(-1);
+                                        Frm_Voucher_Win_Gen_Pay_Grid_2.Refresh();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+            }
+        }
+    }
+    function OnFrm_Voucher_Win_Gen_Pay_Grid_2_ViewClick()
+    {
+        if ("@IsVisible" == "False")
+        {
+            if(Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex() >= 0)
+            {       
+                Payment_BankGrid_Data = Frm_Voucher_Win_Gen_Pay_Grid_2.cpPagedata;
+                BankPayment_Sr = Payment_BankGrid_Data[Frm_Voucher_Win_Gen_Pay_Grid_2.GetFocusedRowIndex() - Frm_Voucher_Win_Gen_Pay_Grid_2.GetTopVisibleIndex()];
+                var Url = "@Url.Action("Frm_Voucher_Win_Gen_Pay_Bank", "PaymentVoucher", new { @area = "Account" })?ActionMethod=View&SrID=" + BankPayment_Sr;
+                ShowLoader();
+                OpenPopup("Frm_Voucher_Item_popup", "View ~ Bank Payment", Url, "auto", 750, false, null);
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert('Select A Row...!', "Error");
+            }
+        }
+    }
+    function Frm_Voucher_Win_Gen_Pay_Grid_2_ContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New')
+        {
+            OnFrm_Voucher_Win_Gen_Pay_Grid_2_NewClick();
+        }
+        else if (e.item.name == 'Edit') {
+            OnFrm_Voucher_Win_Gen_Pay_Grid_2_EditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            OnFrm_Voucher_Win_Gen_Pay_Grid_2_DeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            OnFrm_Voucher_Win_Gen_Pay_Grid_2_ViewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Frm_Voucher_Win_Gen_Pay_Grid_2.Refresh();
+        }
+    }
+
+</script>
+
+
+
+
+

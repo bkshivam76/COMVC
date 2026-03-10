@@ -1,0 +1,197 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Start.Models.Auditor_Login
+
+@{
+    Layout = "~/Areas/Start/Views/Shared/_LoginLayout.cshtml";
+}
+
+@(Html.DevExtreme().Popup()
+    .ID("popup_frm_COD_Selection_Auditor_Ins")
+    .OnShowing("PopupOnShowing")
+    .OnShown("PopupOnShown")
+    .CloseOnOutsideClick(false)
+    .Height(336)
+    .MaxWidth(545)
+    .ShowCloseButton(true)
+    .ElementAttr("class","login_no_margin")
+    .ShowTitle(true)
+    .Title("Select Institute")
+    .ContentTemplate(@<text>
+        <div id="resultAuditorIns">
+        </div>
+    </text>))
+
+<style>
+    #Txt_Pass_Eye .dx-button-content {
+        position: relative;
+        padding-left: 8px;
+        padding-right: 8px;
+        height: 26px;
+        text-align: center;
+    }
+</style>
+
+<div class="login clearfix">
+    <div class="container">
+        <h1 class="logo"><img src="~/Content/image/logol.png" class="img-responsive" alt="Connect one"></h1>
+        <div class="login-content">
+            <div class="login-img visible-xs">
+                <img src="~/Content/image/phone-login-bg.png" alt="">
+            </div>
+            <h2>Connect One Login</h2>
+
+            @using (Ajax.BeginForm("Frm_Auditor_Login", "Login", new AjaxOptions
+            {
+                HttpMethod = "POST",
+                UpdateTargetId = "AuditorLoginWindow",
+                InsertionMode = InsertionMode.Replace,
+                OnSuccess = "AuditorLoginSuceess",
+                OnBegin = "AjaxBeginFormPost"
+            },
+                new
+                {
+                    id = "validationForm",
+                }))
+            {/*calss form - control*/
+                @Html.HiddenFor(a => a.DEVICE_TOKEN)
+                @Html.HiddenFor(a => a.ANDROID_ID)
+                @Html.HiddenFor(a => a.RedirectToAndroid)
+                <div class="form-group">
+                    @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                    .ID("Txt_User")
+                    .Name("Txt_User")
+                    .ElementAttr(new Dictionary<string, object>() { { "class", "text-input" } })
+                    .Placeholder("User Name")
+                    .ValidationError(true)
+                    .FocusStateEnabled(true)
+                    .Visible(true)
+                    .Value(Model.Txt_User)
+                    .MaxLength(255)
+                    )
+
+                    @Html.ValidationMessageFor(model => model.Txt_User, "", new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @(Html.DevExtreme().TextBox().CustomTextBox()
+                    .ID("Txt_Pass")
+                    .Name("Txt_Pass")
+                    .Placeholder("Password")
+                    .ElementAttr(new Dictionary<string, object>() { { "class", "password-input" } })
+                    .Mode(TextBoxMode.Password)
+                    .ValidationError(true)
+                    .Value(Model.Txt_Pass)
+                    .MaxLength(255)
+                    .Buttons(x=>x.Add().Location(TextEditorButtonLocation.After).Name("Txt_Pass_Btn").Widget(y=>y.Button().ID("Txt_Pass_Eye").Icon("fa fa-eye").OnClick("Txt_Pass_Eye_showPasswordClick")))
+                    )
+                    @Html.ValidationMessageFor(model => model.Txt_Pass, "", new { @class = "text-danger" })
+                </div>
+                @*<div class="form-group">
+                <div class="col-md-12">
+                    @(Html.DevExtreme().CheckBox()
+                .ID("chk_Remember")
+                .Name("chk_Remember")
+                .Text("Remember me till connectone closes")
+                .ElementAttr(new Dictionary<string, object>() { { "style", "padding-bottom:5px" } })
+                .OnInitialized("chKRememberMeAddClass")
+                    .Value((bool)TempData["Ischk_Remember"])
+                    )
+                </div>
+            </div>
+            <br />*@
+                <button type="submit" id="Login" class="btn btn-default login-btn"><span><img src="~/Content/image/lock.png" class="img-responsive"></span> Login to Connect one</button>
+                @*@(Html.DevExtreme().Button()
+            .ID("Login")
+            .Text("Login to Connect one")
+            .UseSubmitBehavior(true)
+            .ElementAttr(new Dictionary<string, object>() { { "class", "btn btn-default login-btn" } })
+            .OnClick(@<text>
+                function () {
+
+                }
+            </text>)
+            )*@
+            }
+            <div class="text-right">
+                <a href="~/Start/Login/Frm_COD_Selection/@Request.Url.Query" class="switch-button">Switch to Select Center &gt;&gt;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        TransformTextForDB()
+        $("#Txt_User").dxTextBox("instance").focus();
+    });
+
+    function AuditorLoginSuceess(data) {
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, 'Login... ');
+            return;
+        }
+        else
+        {
+            if (data != undefined)
+            {
+                SessionGUID = data.Guid;
+            }
+            //Experiment here
+            //popup_frm_COD_Selection_Auditor_Ins_MVC.Show();
+            //end
+            if (data.androidID != null && data.deviceToken != null && data.androidID.length > 0 && data.deviceToken.length > 0 && data.RedirectToAndroid != null && data.RedirectToAndroid.length > 0 && data.RedirectToAndroid == "YES")
+            {
+                window.open("/Help/Android/Android_C1_HomePage?androidID=" + data.androidID + "&deviceToken=" + data.deviceToken, "_self");
+            }
+            else {
+                $("#popup_frm_COD_Selection_Auditor_Ins").dxPopup("show");
+                $("#resultAuditorIns").load("@Url.Action("Frm_COD_Selection_Ins_Auditor", "Login")");
+            }
+        }
+    }
+    //function Frm_COD_Selection_Auditor_Grid_OnGridFocusedRowChanged(s, e) {
+    //    s.GetRowValues(s.GetFocusedRowIndex(), 'CEN_UID;CEN_PAD_NO;COD_YEAR_ID;COD_YEAR_NAME;COD_YEAR_SDT;COD_YEAR_EDT;REC_ID;CEN_ID_MAIN;CEN_PAD_NO_MAIN;CEN_PAD_NO;CEN_ZONE_ID;CEN_ZONE_SUB_ID;CEN_ACC_TYPE_ID;IS_VOLUME;CEN_UID;CEN_NAME_X;CEN_ID;CEN_NAME', Frm_COD_Selection_Auditor_Grid_Values);
+    //}
+
+    //function Frm_COD_Selection_Auditor_Grid_Values(values) {
+    //    CEN_UID = values[0];
+    //    CEN_PAD_NO = values[1];
+    //    COD_YEAR_ID = values[2];
+    //    COD_YEAR_NAME = values[3];
+    //    COD_YEAR_SDT = values[4];
+    //    COD_YEAR_EDT = values[5];
+    //    REC_ID = values[6];
+    //    CEN_ID_MAIN = values[7];
+    //    CEN_PAD_NO_MAIN = values[8];
+    //    CEN_PAD_NO = values[9];
+    //    CEN_ZONE_ID = values[10];
+    //    CEN_ZONE_SUB_ID = values[11];
+    //    CEN_ACC_TYPE_ID = values[12];
+    //    IS_VOLUME = values[13];
+    //    CEN_UID = values[14];
+    //    CEN_NAME_X = values[15];
+    //    CEN_ID = values[16];
+    //    CEN_NAME = values[17];
+
+
+    //    //Frm_COD_Selection_Auditor_Grid.Focus();
+    //}
+
+
+    function chKRememberMeAddClass(e) {
+        e.element.addClass("checkbox-auditor")
+    }
+
+    function Txt_Pass_Eye_showPasswordClick(e) {
+        currentMode = $("#Txt_Pass").dxTextBox("instance").option("mode");
+
+        if (currentMode == "password") {
+            $("#Txt_Pass").dxTextBox("instance").option("mode", "text")
+            $("#Txt_Pass_Eye").dxButton("instance").option("icon", "fa fa-eye-slash")
+        }
+        else if (currentMode == "text") {
+            $("#Txt_Pass").dxTextBox("instance").option("mode", "password")
+            $("#Txt_Pass_Eye").dxButton("instance").option("icon", "fa fa-eye")
+        }
+    }
+</script>

@@ -1,0 +1,1615 @@
+﻿<div class="DonationRegular_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @model ConnectOneMVC.Areas.Account.Models.DonationVoucher
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+        bool Isvisible = (Model.TempActionMethod == "_Delete" || Model.TempActionMethod == "_View") ? true : false;
+
+        bool DonationVou_AddFacilityAddress = (bool)ViewData["DonationVou_AddFacilityAddress"];
+        bool DonationVou_ListFacilityAddress = (bool)ViewData["DonationVou_ListFacilityAddress"];
+    }
+    <style>
+        #DonAdd .dx-button-text, #DonManage .dx-button-text {
+            color: black;
+        }
+
+        #DonorComboView {
+            border: 1px solid #89b9eb;
+        }
+
+        div#DonAdd, #DonManage {
+            border: 1px solid #95c3ef;
+            margin-bottom: 9px;
+            max-width: 125px;
+        }
+
+            #DonAdd .dx-icon, #DonManage .dx-icon {
+                width: 40px;
+                height: 40px;
+                line-height: normal;
+                left: 45px;
+                top: -17px;
+                bottom: 0;
+            }
+
+            #DonAdd .dx-button-content, #DonManage .dx-button-content {
+                height: inherit;
+                padding-top: 45px;
+                padding-left: 0
+            }
+
+        /*FCRA Related Style*/
+        #ListSpecialVoucherRef_DnR .dx-list-item-content {
+            padding: 4.5px;
+        }
+
+        .ListOneRow .dx-scrollable {
+            overflow-y: hidden
+        }
+    </style>
+
+    <div id="Frm_Voucher_Donation_popup" class="col-md-12" style="padding-right:0; padding-left:0;">
+
+        @using (Ajax.BeginForm("Frm_Voucher_Win_Donation_R", "DonationVoucher",
+
+                                new AjaxOptions
+                                {
+                                    HttpMethod = "POST",
+                                    UpdateTargetId = "Frm_Voucher_Donation_popup",
+                                    InsertionMode = InsertionMode.InsertAfter,
+                                    OnBegin = "AjaxBeginFormPost",
+                                    OnSuccess = "AjaxSuccessDonationVoucher"
+                                },
+                                new
+                                {
+                                    id = "donationvalidationForm",
+                                    @class = "edit_form"
+                                }
+                                ))
+
+        {
+            @Html.HiddenFor(x => x.ActionMethod)
+            @Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(x => x.Donor_RecEditOn)
+            @Html.HiddenFor(x => x.DepositBank_RecEditOn)
+            @Html.HiddenFor(x => x.iTrans_Type)
+            @Html.HiddenFor(x => x.iLed_ID)
+            @Html.HiddenFor(x => x.xID)
+            @Html.HiddenFor(x => x.LastEditedOn)
+            @Html.HiddenFor(x => x.Info_LastEditedOn)
+            @Html.HiddenFor(x => x.iVoucher_Type)
+            @Html.HiddenFor(x => x.iSpecific_ItemID)
+            @Html.HiddenFor(x => x.TitleX)
+            @Html.HiddenFor(x => x.Text)
+            @Html.HiddenFor(x => x.SelectedBankID)
+            @Html.HiddenFor(x => x.SelectedDepositSlipNo)
+            @Html.HiddenFor(x => x.SelectedRefBankID)
+            @Html.HiddenFor(x => x.DnR_SplVchrReferenceSelected)
+            @Html.HiddenFor(x => x.splVchrRefsCount_DnR)
+
+            @(Html.DevExtreme().Popup().CustomPopup().ID("Donar_Mng_or_Add").ElementAttr("class", "popup")//.Width(1260).Height(521)
+                                                                                    .ShowTitle(true).Title("Information").Visible(false).DragEnabled(true).ContentTemplate(@<text>
+                                                                                        <div id="Donar_Mng_or_Add_result"> </div> </text>))
+
+            using (Html.DevExtreme().ValidationGroup("donationvoucher"))
+            {
+
+                <div class="full-width-header-bg">
+                    <div class="row">
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead">
+                                <i class="far fa-money-bill-alt money-icon"></i> Donation
+                            </h3>
+                        </div>
+                        <div class="col-sm-4 prl">
+                            <h5 class="mand-txt-align">
+                                <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                            </h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                    </div>
+                </div><!--[Header]-->
+                <div class="row">
+                    <div class="col-sm-7">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="col-sm-4 pll">
+                                    @Html.Label("Item Name:", htmlAttributes: new { id = "itemtypelabel", @class = "control-label" })
+                                </div>
+                                <div class="col-sm-8 prm">
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_ItemList_Donation").Name("GLookUp_ItemList_Donation").ValueExpr("ITEM_ID").DisplayExpr("ITEM_NAME")  .Placeholder("Select Item...").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible)
+                                          .OnValueChanged("GLookUp_ItemList_EditValueChanged").ContentTemplate(@<text> @Html.Partial("LookUp_GetItemList_DonationVoucher") </text>).DataSource(Model.ItemData, "ITEM_ID").Value(Model.GLookUp_ItemList_Donation))
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[Item Name]-->
+                    <div class="col-sm-5">
+                        <div class="form-field">
+                            <div class="container-fluid">
+
+                                <div class="col-sm-4 pll">
+                                    @Html.Label("Voucher Date:", htmlAttributes: new { id = "voucherdatelabel", @class = "control-label text-red" })
+                                </div>
+                                <div class="col-sm-8 prm">
+                                    @(Html.DevExtreme().DateBox().CustomDateBox().ID("Txt_V_Date_Donation").Name("Txt_V_Date_Donation").Placeholder("dd-MM-yyyy").Disabled(Isvisible)
+                                                                                                              .Value(Model.Txt_V_Date_Donation))
+                                    @Html.ValidationMessageFor(model => model.Txt_V_Date_Donation, "", new { @class = "text-red" })
+
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[Voucher Date]-->
+                </div><!--[Row 1]-->
+                <div class="row">
+                    <div class="col-sm-7">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="col-sm-4 pll">
+                                    @Html.Label("Head:", htmlAttributes: new { @class = "control-label disabletxt" })
+                                </div>
+                                <div class="col-sm-8 prm ">
+
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("BE_Item_Head_Donation").Name("BE_Item_Head_Donation").ReadOnly(true).FocusStateEnabled(false).MaxLength(50).Disabled(Isvisible))
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div><!--[Head]-->
+                    <div class="col-sm-5">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="col-sm-4 pll">
+                                    @Html.Label("Voucher No:", htmlAttributes: new { @class = "control-label disabletxt" })
+                                </div>
+                                <div class="col-sm-8 prm">
+
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Txt_V_NO_Donation").Name("Txt_V_NO_Donation").Value(Model.Txt_V_NO_Donation).ReadOnly(true).FocusStateEnabled(false).MaxLength(50).Disabled(Isvisible))
+                                </div>
+
+
+                            </div>
+                        </div>
+                        @if (Request.Browser.IsMobileDevice)
+                        {
+                            <div class="form-field">
+                                <div class="container-fluid">
+                                    <div class="col-sm-4 pll">
+                                        @Html.Label("Receipt No:", htmlAttributes: new { @class = "control-label  disabletxt" })
+                                    </div>
+                                    <div class="col-sm-8 prm">
+
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("BE_Receipt_No_Donation").Name("BE_Receipt_No_Donation").Value(Model.BE_Receipt_No_Donation).ShowClearButton(true).ReadOnly(true).FocusStateEnabled(false).ValidationError(true).MaxLength(50).Disabled(Isvisible))
+
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        }
+                    </div><!--[Voucher No]-->
+                </div><!--[Row 2]-->
+                <div class="row">
+                    <div class="col-sm-7 ">
+                        <div class="form-field">
+                            <div class="container-fluid" style="padding:2px 0px 0px 0px">
+                                <fieldset class="default-fieldset">
+                                    <legend id="donordetaillabel" class="custom-legend mlm">Donor Detail:</legend>
+                                    @*<div class="btn-align marginAll2">
+                                            @(Html.DevExtreme().Button().ID("DonAdd").Text("Add Donor Ctrl+A").Type(DevExtreme.AspNet.Mvc.ButtonType.Default).OnClick(@<text> function() { Add_a_Donar(); }</text>).Disabled(Isvisible))
+                                            @(Html.DevExtreme().Button().ID("DonManage").Text("Manage Donor Ctrl+M").Type(DevExtreme.AspNet.Mvc.ButtonType.Default).OnClick(@<text> function() { Manage_Donar() } </text>).Disabled(Isvisible))
+                                        </div>*@
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            @Html.Label("Donor Name:", htmlAttributes: new { id = "voucherdonorlabel", @class = "control-label text-red" })
+                                        </div>
+                                        <div class="col-sm-8 prm" data-toggle="tooltip" data-placement="bottom" title="Select Donor Name">
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_PartyList_Donation").Name("GLookUp_PartyList_Donation").DataSource(Model.PartyData, "C_ID").ValueExpr("C_ID").DisplayExpr("C_NAME").Placeholder("Select Donor...").Disabled(Isvisible)
+                                                  .Value(Model.GLookUp_PartyList_Donation).ReadOnly(true).FocusStateEnabled(false).OnValueChanged("GLookUp_PartyList_EditValueChanged").ContentTemplate(@<text> @Html.Partial("LookUp_GetPartyList_DonationVoucher")</text>))
+                                            @Html.ValidationMessageFor(model => model.GLookUp_PartyList_Donation, "", new { @class = "text-red" })
+                                        </div>
+
+                                    </div><!--[Donor Name]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            @Html.Label("Address:", htmlAttributes: new { id = "donoraddress", @class = "control-label text-red" })
+                                            <div class="row ptl ptm">
+                                                <div class="col-md-12 donr pb4">
+                                                    @(Html.DevExtreme().Button().ID("DonAdd").Text("Add Donor").Type(DevExtreme.AspNet.Mvc.ButtonType.Default).Height(111).Width(130).Icon(Url.Content("../../../../Icons/add user.png")).OnClick(@<text> function() { Add_a_Donar(); }</text>).Disabled(Isvisible).FocusStateEnabled(false))
+                                                    @*</div>
+                                                        <div class="col-md-12 prm rgt-box-btn">*@
+                                                    @(Html.DevExtreme().Button().ID("DonManage").Text("Manage Donor").Type(DevExtreme.AspNet.Mvc.ButtonType.Default).Height(111).Width(130).Icon(Url.Content("../../../../Icons/manage user.png")).OnClick(@<text> function() { Manage_Donar() } </text>).Disabled(Isvisible).FocusStateEnabled(false))
+                                                </div>
+                                            </div>
+                                        </div>  <!--[Address Label/Add Donor/Manage Donor]-->
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Add1_Donation").ID("BE_Add1_Donation").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+                                            @Html.ValidationMessageFor(model => model.BE_Add1_Donation, "", new { @class = "text-red" })
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Add2_Donation").ID("BE_Add2_Donation").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Add3_Donation").ID("BE_Add3_Donation").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Add4_Donation").ID("BE_Add4_Donation").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+
+                                            <div class="row ptl pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donorcity" class="control-label add-txt-blue text-red bot-marg" for="Name">City:</label>
+                                                </div>
+                                                <div class="col-sm-8 ">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_City_Donation").ID("BE_City_Donation").ReadOnly(true).FocusStateEnabled(false).Height("21px").Disabled(Isvisible))
+
+                                                    @Html.ValidationMessageFor(model => model.BE_City_Donation, "", new { @class = "text-red" })
+                                                </div>
+                                            </div><!--[City]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donorpincode" class="control-label add-txt-blue bot-marg" for="Name">Pin Code:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Pincode_Donation").ID("BE_Pincode_Donation").ReadOnly(true).FocusStateEnabled(false).Height("21px").Disabled(Isvisible))
+
+                                                </div>
+                                            </div><!--[PinCode]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donordistrict" class="control-label add-txt-blue text-red bot-marg" for="Name">District:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_District_Donation").ID("BE_District_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+
+                                                </div>
+                                            </div><!--[District]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donorstate" class="control-label add-txt-blue text-red bot-marg" for="Name">State:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_State_Donation").ID("BE_State_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+
+
+                                                </div>
+                                            </div><!--[State]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div ">
+                                                    <label id="donorcountry" class="control-label text-red bot-marg" for="Name">Country:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Country_Donation").ID("BE_Country_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+                                                </div>
+                                            </div><!--[Country]-->
+                                            <div class="row ptm ptl pbtm3">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donorAadhar" class="control-label add-txt-blue bot-marg" for="Name">Aadhar No.:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_AADHAAR_No_Donation").ID("BE_AADHAAR_No_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+
+                                                </div>
+                                            </div><!--[Aadhar No]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="donorpan" class="control-label add-txt-blue bot-marg" for="Name">PAN No.:</label>
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_PAN_No_Donation").ID("BE_PAN_No_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+
+                                                </div>
+                                            </div><!--[PAN No]-->
+                                            <div class="row pbs">
+                                                <div class="col-sm-4 brd-div">
+                                                    <label id="BE_ID_No_Label_Donation" class="control-label add-txt-blue bot-marg">Passport No.:</label>
+                                                    @*@Html.Label("ID No.:", htmlAttributes: new { @class = "control-label add-txt-blue bot-marg", @ID = "BE_ID_No_Label_Donation" })*@
+                                                </div>
+                                                <div class="col-sm-8">
+
+                                                    @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_ID_No_Donation").ID("BE_ID_No_Donation").ReadOnly(true).FocusStateEnabled(false).Height("22px").Disabled(Isvisible))
+
+                                                </div>
+                                            </div><!--[Other ID]-->
+                                        </div>
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </div><!--[Donor Detail Block]-->
+                    </div><!--[Row 3-Left]-->
+
+                    <div class="col-sm-5">
+                        @if (Request.Browser.IsMobileDevice == false)
+                        {
+                            <div class="row">
+                                <div class="form-field" style="padding: 8px 4px 8px 4px">
+                                    <div class="container-fluid">
+                                        <div class="col-sm-4 pll">
+                                            @Html.Label("Receipt No:", htmlAttributes: new { @class = "control-label  disabletxt" })
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("BE_Receipt_No_Donation").Name("BE_Receipt_No_Donation").Value(Model.BE_Receipt_No_Donation).ShowClearButton(true).ReadOnly(true).FocusStateEnabled(false).ValidationError(true).MaxLength(50).Disabled(Isvisible))
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!--[Receipt No]-->}
+                        <div class="row">
+                            <div class="form-field" style="padding: 8px 4px 8px 4px">
+                                <div class="container-fluid">
+                                    <div class="col-sm-4 pll">
+                                        @Html.Label("Mode:", htmlAttributes: new { id = "donationvouchermode", @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-8 prm" data-toggle="tooltip" data-placement="bottom" title="Select Payment Mode">
+
+                                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Cmd_Mode_Donation").Name("Cmd_Mode_Donation").DataSource(new[] { "CASH", "CHEQUE", "DD", "CBS", "RTGS", "NEFT", "MO", "CASH TO BANK" }).ShowClearButton(false)
+                                              .Value(Model.Cmd_Mode_Donation).OnValueChanged("Cmd_Mode_SelectedIndexChanged").Disabled(Isvisible))
+                                        @Html.ValidationMessageFor(model => model.Cmd_Mode_Donation, "", new { @class = "text-red" })
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[Mode]-->
+                        <div class="form-field" style="padding: 6px 4px 8px 4px">
+                            <div class="container-fluid">
+                                <fieldset class="default-fieldset" id="Ref_Item_Donation">
+                                    <legend class="custom-legend mlm"><span id="lbl_Ref_Title" class="disabletxt"> Reference Detail:</span></legend>
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Ref_Bank" class="control-label " for="Name">Bank Name:</label>
+                                        </div>
+                                        <div class="col-sm-8 Bank prm" data-toggle="tooltip" data-placement="bottom" title="Select Bank Name">
+
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_RefBankList_Donation").Name("GLookUp_RefBankList_Donation").DataSource(Model.RefBankData, "BI_ID").ValueExpr("BI_ID").DisplayExpr("BI_BANK_NAME").Value(Model.GLookUp_RefBankList_Donation)
+                                                  .Placeholder("Select Bank...").OnValueChanged("GLookUp_RefBankList_EditValueChanged").ContentTemplate(@<text> @Html.Partial("LookUp_GetRefBankList_DonationVoucher") </text>).ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+                                            @Html.ValidationMessageFor(model => model.GLookUp_RefBankList_Donation, "", new { @class = "text-red" })
+
+                                        </div>
+                                    </div><!--[Bank Name]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Ref_Branch" class="control-label  mrg-top-sm" for="Name">Branch Name:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox(true,true).Name("Txt_Ref_Branch_Donation").ID("Txt_Ref_Branch_Donation").Value(Model.Txt_Ref_Branch_Donation).Disabled(Isvisible))
+                                            @Html.ValidationMessageFor(model => model.Txt_Ref_Branch_Donation, "", new { @class = "text-red" })
+
+                                        </div>
+                                    </div><!--[Branch Name]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Ref_No" class="control-label mrg-top-sm" for="Name">Ref.No.:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox(true,true).Name("Txt_Ref_No_Donation").ID("Txt_Ref_No_Donation").Value(Model.Txt_Ref_No_Donation).Disabled(Isvisible))
+                                            @Html.ValidationMessageFor(model => model.Txt_Ref_No_Donation, "", new { @class = "text-red" })
+
+                                        </div>
+                                    </div><!--[Ref.No]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Ref_Date" class="control-label  mrg-top-sm" for="Name">Date:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().DateBox().CustomDateBox().ID("Txt_Ref_Date_Donation").Name("Txt_Ref_Date_Donation").OnValueChanged("refdatechange").Min("01/01/1936")
+                                                                                                                                      .Value(Model.Txt_Ref_Date_Donation).Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[Date]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Ref_Cdate" class="control-label  mrg-top-sm" for="Name">Clearing Date:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().DateBoxFor(x => x.Txt_Ref_CDate_Donation).CustomDateBox().OnValueChanged("refdatechange").ID("Txt_Ref_CDate_Donation").Name("Txt_Ref_CDate_Donation").Min("01/01/1936").Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[Clearing Date]-->
+                                </fieldset>
+                            </div>
+                        </div><!--[Txt_Reference_Donation Detail Block]-->
+                        <div class="form-field" style="padding: 6px 4px 8px 4px">
+                            <div class="container-fluid">
+                                <fieldset class="default-fieldset" id="Deposit_Bank_Item_Donation">
+                                    <legend class="custom-legend mlm"><span id="lbl_Bank_Title" class="disabletxt">Deposited Bank Detail:</span></legend>
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Bank_Name" class="control-label  mrg-top-sm " for="Name">Bank Name:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm" data-toggle="tooltip" data-placement="bottom" title="Select Bank Name">
+
+                                            @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("GLookUp_BankList_Donation").Name("GLookUp_BankList_Donation").DataSource(Model.BankData, "BA_ID").ValueExpr("BA_ID").DisplayExpr("BANK_NAME").Disabled(Isvisible)
+                                                  .Value(Model.GLookUp_BankList_Donation).Placeholder("Select Bank...").OnValueChanged("GLookUp_BankList_EditValueChanged").ContentTemplate(@<text> @Html.Partial("LookUp_GetBankList_DonationVoucher") </text>).ReadOnly(true).FocusStateEnabled(false))
+                                            @Html.ValidationMessageFor(model => model.GLookUp_BankList_Donation, "", new { @class = "text-red" })
+
+                                        </div>
+                                    </div><!--[Bank Name]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="lbl_Acc_No" class="control-label mrg-top-sm" for="Name">A/c.No.:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox().Name("BE_Bank_Acc_No_Donation").ID("BE_Bank_Acc_No_Donation").ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[A/c No]-->
+                                </fieldset>
+                            </div>
+                        </div><!--[Deposited Bank Detail Block]-->
+                        <div class="row">
+                            <div class="col-sm-6 ">
+                                <div class="row">
+                                    <div class="form-field">
+                                        <div class="container-fluid">
+                                            <div class="col-sm-8 pll">
+                                                <label id="lbl_Slip_Txn_No" class="control-label" for="Name">Slip Txn No.:</label>
+                                            </div>
+                                            <div class="col-sm-4 prm plm">
+
+                                                @(Html.DevExtreme().NumberBox().CustomNumberBox().Name("Txt_Slip_Count_Donation").ID("Txt_Slip_Count_Donation").Value(Model.Txt_Slip_Count_Donation).ReadOnly(true).FocusStateEnabled(false).Disabled(Isvisible))
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!--[Slip Txn No]-->
+                            <div class="col-sm-6 ">
+                                <div class="row">
+                                    <div class="form-field">
+                                        <div class="container-fluid">
+                                            <div class="col-sm-6 pll">
+                                                <label id="lbl_Slip_No" class="control-label" for="Name">Slip No.:</label>
+                                            </div>
+                                            <div class="col-sm-6 prm">
+
+                                                @(Html.DevExtreme().NumberBox().CustomNumberBox().Name("Txt_Slip_No_Donation").ID("Txt_Slip_No_Donation").Format("#").OnValueChanged("Txt_Slip_No_EditValueChanged").ReadOnly(true).Disabled(Isvisible) )
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!--[Slip  No]-->
+                        </div>
+
+                    </div><!--[Row 3-Right]-->
+                </div><!--[Row 3]-->
+
+                <div class="row">
+                    <div class="col-sm-7">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <fieldset class="default-fieldset">
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="donationnarration" class="control-label" for="Name">Narration:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox(true).Name("Txt_Narration_Donation").Placeholder("Type Any Narration").ID("Txt_Narration_Donation").Value(Model.Txt_Narration_Donation).MaxLength(250).Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[Narration]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="donationremarks" class="control-label" for="Name">Remarks:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox(true).Name("Txt_Remarks_Donation").MaxLength(250).Placeholder("Type Any Other Detail/Remarks...").ID("Txt_Remarks_Donation").Value(Model.Txt_Remarks_Donation).Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[Txt_Remarks_Donation]-->
+                                    <div class="row">
+                                        <div class="col-sm-4 pll">
+                                            <label id="donationreference" class="control-label col-sm-4 " for="Name">Reference:</label>
+                                        </div>
+                                        <div class="col-sm-8 prm">
+
+                                            @(Html.DevExtreme().TextBox().CustomTextBox(true).Name("Txt_Reference_Donation").Placeholder("Type Any Reference Details...").ID("Txt_Reference_Donation").Value(Model.Txt_Reference_Donation).MaxLength(250).Disabled(Isvisible))
+
+                                        </div>
+                                    </div><!--[Txt_Reference_Donation]-->
+                                </fieldset>
+                            </div>
+                        </div>
+                    </div><!--[Txt_Narration_Donation/Txt_Remarks_Donation/Txt_Reference_Donation]-->
+                    <div class="col-sm-5">
+
+                        <div class="row">
+                            <div class="form-field">
+                                <div class="container-fluid" style="padding:3px 0px 4px 0px">
+                                    <div class="col-sm-4 pll">
+                                        <label id="donationamount" class="control-label text-red" for="Name">Amount:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm">
+
+                                        @(Html.DevExtreme().NumberBox().CustomNumberBox().Name("Txt_Amount_Donation").ID("Txt_Amount_Donation").Placeholder("Type Amount...").Value(Model.Txt_Amount_Donation).Format("#0.00").Disabled(Isvisible))
+                                        @Html.ValidationMessageFor(model => model.Txt_Amount_Donation, "", new { @class = "text-red" })
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[Txt_Amount_Donation]-->
+                        <div class="row">
+                            <div class="form-field">
+                                <div class="container-fluid" style="padding:3px 0px 3px 0px">
+                                    <div class="col-sm-4 pll">
+                                        @Html.Label("Purpose:", htmlAttributes: new { id = "donationpurpose", @class = "control-label text-red" })
+                                    </div>
+                                    <div class="col-sm-8 prm" data-toggle="tooltip" data-placement="bottom" title="Select Purpose">
+
+                                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("GLookUp_PurList_Donation").Name("GLookUp_PurList_Donation").DataSource(Model.PurposeData, "PUR_ID").DisplayExpr("PUR_NAME").ValueExpr("PUR_ID").Value(Model.GLookUp_PurList_Donation).Placeholder("Select Purpose...").Disabled(Isvisible)
+                                                                                                                                                 )
+                                        @Html.ValidationMessageFor(model => model.GLookUp_PurList_Donation, "", new { @class = "text-red" })
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--[Purpose]-->
+
+                    </div><!--[Amount/Purpose]-->
+                </div><!--[Row 4]-->
+
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 ListOneRow" id="DnR_SpecialVoucherRefDiv">
+                        <div class="form-field ">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().List().CustomList().ID("ListSpecialVoucherRef_DnR")
+                                    .DataSource(Model.SpecialReferenceList_Data_DnR, "Task_Name")
+                                    .SearchEnabled(false)
+                                    .SelectionMode(DevExtreme.AspNet.Mvc.ListSelectionMode.Multiple)
+                                    .KeyExpr("Task_Name")
+                                    .DisplayExpr("Task_Name")
+                                    .OnSelectionChanged("OnSplVchrRefsListSelectionChanged_DnR")
+                                    .Height(90).Width(300).ShowScrollbar(ShowScrollbarMode.Always).UseNativeScrolling(false)
+                                    .ShowSelectionControls(true)
+                                    .SelectedItemKeys(Model.SpecialReference_Get_SelectedValue_DnR))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="row">
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ Donation )...", Model.TempActionMethod.Substring(1)))
+                            </div>
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                <div class="styleActionBtn">
+                                    @if (Model.TempActionMethod == "_New" || Model.TempActionMethod == "_Edit" || Model.TempActionMethod == "_New_From_Selection")
+                                    {
+                                        @(Html.DevExtreme().Button().CustomSaveButton().ID("SAVE_COM").Text("Save").FocusStateEnabled(true).OnClick("DonationVoucherSaveClick").UseSubmitBehavior(false).ValidationGroup("donationvoucher"))
+                                        @(Html.DevExtreme().Button().CustomCloseButton().ID("donation_CANCEL").Text("Cancel").Icon("fa fa-times-circle fa-w-16 btn-icons crossgrey").OnClick(@<text> function () {$("#Dynamic_Content_popup").dxPopup("hide");  } </text>) )
+                                    }
+                                    else if (Model.TempActionMethod == "_Delete")
+                                    {
+                                        @(Html.DevExtreme().Button().CustomSaveButton(Model.TempActionMethod).ID("Delete_COM").Text("Delete").FocusStateEnabled(true).OnClick("DonationVoucherDeleteClick") )
+                                        @(Html.DevExtreme().Button().CustomCloseButton().ID("donation_CANCEL").Text("Cancel").OnClick(@<text> function () {$("#Dynamic_Content_popup").dxPopup("hide");  } </text>) )
+                                    }
+                                    else
+                                    {
+                                        @(Html.DevExtreme().Button().CustomCloseButton().ID("donation_CANCEL").Text("Close").OnClick(@<text> function () {$("#Dynamic_Content_popup").dxPopup("hide");  } </text>) )
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Buttons]-->
+            }
+        }
+    </div>
+
+    <script>
+        var Cnt_BankAccount;
+        var ItemDD_Donation_ReadOnly = true;
+        var ItemDD_Donation_Enabled = true;
+        var RefBankDD_Donation_ReadOnly = true;
+        var RefBankDD_Donation_Enabled = true;
+        var BankDD_Donation_ReadOnly = true;
+        var BankDD_Donation_Enabled = true;
+        var BankDD_Donation_ReadOnly = true;
+        var SlipTxn_Donation_Enabled = false;
+        var SlipTxn_Donation_ReadOnly = true;
+        var Banklist_Dropdown_event;
+        var Item_DG_Donation;
+        var Party_DG_Donation;
+        var Bank_DG_Donation;
+        var RefBank_DG_Donation;
+        var BankID_Donation;
+        var DonRTag = "@Model.ActionMethod";
+        var dataSource_Party_Donation = null;
+    </script> @* DonationRegular_Global_Variables *@
+    <script>
+    function Manage_Donar()
+    {
+        if ("@DonationVou_ListFacilityAddress" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection") {
+
+            ManageParty("Donar_Mng_or_Add", "LookUp_GetPartyList_DonationR");
+        }
+
+    }//Manage Donor
+    function Add_a_Donar()
+    {
+        if ("@DonationVou_AddFacilityAddress" == "False")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+            return;
+        }
+        if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection")
+        {
+            AddParty("Donar_Mng_or_Add", "LookUp_GetPartyList_DonationR", "Add_a_Donar", "DonAdd", "New ~ Address Book (Donor Details)");
+        }
+    }// Add Donor
+    </script> @* Mange Owner *@
+    <script>
+
+
+    @*document.body.addEventListener("keydown", Donation_doucumentKeyDown, false);
+    function Donation_doucumentKeyDown(evt)
+    {
+         if (evt.ctrlKey && evt.keyCode == 65)//ctrl+A
+        {
+            evt.preventDefault();
+            Add_a_Donar();
+        }
+        if (evt.ctrlKey && evt.keyCode == 77)//ctrl+m
+        {
+            evt.preventDefault();
+            Manage_Donar();
+        }
+        if (evt.ctrlKey && evt.keyCode == 83)//ctrl+s
+        {
+            if ("@Model.TempActionMethod" == "_New" || "@Model.TempActionMethod" == "_Edit" || "@Model.TempActionMethod" == "_New_From_Selection") {
+                evt.preventDefault();
+                $("#SAVE_COM").trigger(jQuery.Event("click"));
+            }
+        }
+        if (evt.ctrlKey && evt.keyCode == 68)//ctrl+d
+        {
+            if ("@Model.TempActionMethod" == "_Delete") {
+                evt.preventDefault();
+                $("#Delete_COM").trigger(jQuery.Event("click"));
+            }
+        }
+        if (evt.ctrlKey && evt.keyCode == 67)//ctrl+c
+        {
+            if ("@Model.TempActionMethod" == "_Edit") {
+                evt.preventDefault();
+                //ConvertToInternalTransfer();
+            }
+        }
+        if (evt.which == 113)//f2 key
+        {
+            evt.preventDefault();
+            $("#Txt_V_Date_Donation").dxDateBox("instance").focus();
+        }
+        if (evt.which == 27)//esc key
+        {
+            evt.preventDefault();
+            $("#donation_CANCEL").trigger("Click");
+        }
+
+    }*@ //shortcuts //shortcuts to be implemented later
+    </script>
+    <script>
+        function Cmd_Mode_SelectedIndexChanged(e, FirstCall = false) {
+            var value;
+            if (e) {
+                if (e.value == null) {
+                    return;
+                }
+                else {
+                    value = e.value;
+                }
+            }
+            else {
+                value = $("#Cmd_Mode_Donation").dxSelectBox("option", "value");
+            }
+            if (value == "CASH") {
+                Fieldset_SetDisable("Ref_Item_Donation", true);
+                Fieldset_SetDisable("Deposit_Bank_Item_Donation", true);
+                $("#lbl_Slip_Txn_No").addClass("disabletxt").removeClass("text-red");
+                $("#lbl_Slip_No ").addClass("disabletxt").removeClass("text-red");
+                if (FirstCall === false) {
+                    $("#GLookUp_RefBankList_Donation").dxDropDownBox("instance").reset();
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").reset();
+                    $("#Txt_Ref_Date_Donation").dxDateBox("instance").reset();
+                    $("#Txt_Ref_CDate_Donation").dxDateBox("instance").reset();
+                }
+                $("#lbl_Ref_Title").removeClass("text-red").addClass("disabletxt");
+                //$("#lbl_Ref_Bank").removeClass("text-red").addClass("disabletxt");
+                //$("#lbl_Ref_Branch").removeClass("text-red").addClass("disabletxt");
+                $("#lbl_Ref_No").removeClass("text-red").addClass("disabletxt");
+                //$("#lbl_Ref_Date").removeClass("text-red").addClass("disabletxt");
+                $("#lbl_Ref_Cdate").removeClass("text-red").addClass("disabletxt");
+
+                $("#lbl_Ref_Title").text("Reference Detail:");
+                $("#lbl_Ref_No").text("Ref. No.:");
+                $("#Txt_Ref_No_Donation").dxTextBox("instance").option("placeholder", "Type Ref. No...");
+                $("#lbl_Ref_Date").text("Date:");
+                $("#lbl_Ref_Cdate").text("Clearing Date:");
+
+                $("#lbl_Bank_Title").removeClass("text-red").addClass("disabletxt");
+                $("#lbl_Bank_Name").removeClass("text-red").addClass("disabletxt");
+                $("#lbl_Acc_No").removeClass("text-red").addClass("disabletxt");
+
+                $("#GLookUp_RefBankList_Donation").dxDropDownBox("option", "placeholder", "");
+                $("#Txt_Ref_Branch_Donation").dxTextBox("option", "placeholder", "");
+                $("#Txt_Ref_No_Donation").dxTextBox("option", "placeholder", "");
+                $("#Txt_Ref_Date_Donation").dxDateBox("option", "placeholder", "");
+                $("#Txt_Ref_CDate_Donation").dxDateBox("option", "placeholder", "");
+                if (Cnt_BankAccount > 1) {
+                    if (FirstCall === false) {
+
+                        $("#GLookUp_BankList_Donation").dxDropDownBox("instance").reset();
+                        $("#BE_Bank_Acc_No_Donation").dxTextBox("instance").reset();
+                    }
+                }
+                else {
+                    $("#GLookUp_BankList_Donation").find('input').css('color', "#696969");
+                    $("#BE_Bank_Acc_No_Donation").find('input').css('color', "#696969");
+                }
+                Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", true, "#696969");
+                SlipTxn_Donation_Enabled = false;
+                Control_SetReadOnly("Txt_Slip_Count_Donation", "dxNumberBox", (SlipTxn_Donation_Enabled == true && SlipTxn_Donation_ReadOnly == false) ? false : true);
+                $("#Txt_Slip_No_Donation").dxNumberBox("instance").reset();
+                $("#Txt_Slip_Count_Donation").dxNumberBox("instance").reset();
+            }
+            else {
+                Fieldset_SetDisable("Ref_Item_Donation", false);
+                Fieldset_SetDisable("Deposit_Bank_Item_Donation", false);
+
+                $("#GLookUp_RefBankList_Donation").dxDropDownBox("option", "placeholder", "Select Bank..");
+                $("#Txt_Ref_Branch_Donation").dxTextBox("option", "placeholder", "Type Branch Name..");
+                $("#Txt_Ref_Date_Donation").dxDateBox("option", "placeholder", "dd-MM-yyyy");
+                $("#Txt_Ref_CDate_Donation").dxDateBox("option", "placeholder", "dd-MM-yyyy");
+
+                $("#lbl_Slip_Txn_No").removeClass("disabletxt").removeClass("text-red");
+                $("#lbl_Slip_No ").removeClass("disabletxt").removeClass("text-red");
+
+                Control_SetReadOnly("Txt_Ref_Branch_Donation", "dxTextBox", false);
+                Control_SetReadOnly("Txt_Ref_No_Donation", "dxTextBox", false);
+                RefBankDD_Donation_Enabled = true;
+                Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+
+                if (FirstCall === false) {
+                    $("#GLookUp_RefBankList_Donation").dxDropDownBox("instance").reset();
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").reset();
+                    $("#Txt_Ref_Date_Donation").dxDateBox("instance").reset();
+                    $("#Txt_Ref_CDate_Donation").dxDateBox("instance").reset();
+                }
+
+                $("#lbl_Ref_Title").removeClass("text-red").removeClass("disabletxt");
+                //$("#lbl_Ref_Bank").addClass("text-red").removeClass("disabletxt");
+                //$("#lbl_Ref_Branch").addClass("text-red").removeClass("disabletxt");
+                $("#lbl_Ref_No").addClass("text-red").removeClass("disabletxt");
+                //$("#lbl_Ref_Date").addClass("text-red").removeClass("disabletxt");
+                $("#lbl_Ref_Cdate").removeClass("text-red").removeClass("disabletxt");
+
+                if (value == "CHEQUE") {
+                    $("#lbl_Ref_Title").text("Cheque Detail:");
+                    $("#lbl_Ref_No").text("Cheque No.:");
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").option("placeholder", "Type Cheque No..");
+                    $("#lbl_Ref_Date").text("Cheque Date:");
+                    $("#lbl_Ref_Cdate").text("Clearing Date:");
+
+                }
+                else if (value == "DD") {
+                    $("#lbl_Ref_Title").text("D.D. Detail:");
+                    $("#lbl_Ref_No").text("D.D. No.:");
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").option("placeholder", "Type D.D. No..");
+                    $("#lbl_Ref_Date").text("D.D. Date:");
+                    $("#lbl_Ref_Cdate").text("Clearing Date:");
+
+                }
+                else if (value == "CBS" || value == "RTGS" || value == "NEFT" || value == "MO") {
+                    $("#lbl_Ref_Title").text(value + " Reference Detail:");
+                    $("#lbl_Ref_No").text("Ref. No.:");
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").option("placeholder", "Type Ref. No..");
+                    $("#lbl_Ref_Date").text("Date:");
+                    $("#lbl_Ref_Cdate").text("Clearing Date:");
+
+                }
+                if (value == "MO") {
+                    $("#GLookUp_RefBankList_Donation").dxDropDownBox("option", "placeholder", "");
+                    //$("#lbl_Ref_Bank").removeClass("text-red").addClass("disabletxt");
+                    //$("#lbl_Ref_Branch").removeClass("text-red").removeClass("disabletxt");
+                    RefBankDD_Donation_Enabled = false;
+                    Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+                    Fieldset_SetDisable("Deposit_Bank_Item_Donation", true);
+
+                    $("#lbl_Bank_Title").removeClass("text-red").addClass("disabletxt");
+                    $("#lbl_Bank_Name").removeClass("text-red").addClass("disabletxt");
+                    $("#lbl_Acc_No").removeClass("text-red").addClass("disabletxt");
+
+                    Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", true, "#696969");
+                    SlipTxn_Donation_Enabled = false;
+                    Control_SetReadOnly("Txt_Slip_Count_Donation", "dxNumberBox", (SlipTxn_Donation_Enabled == true && SlipTxn_Donation_ReadOnly == false) ? false : true);
+                    $("#Txt_Slip_No_Donation").dxNumberBox("instance").reset();
+                    $("#Txt_Slip_Count_Donation").dxNumberBox("instance").reset();
+                    if (Cnt_BankAccount > 1) {
+                        if (FirstCall === false) {
+                            $("#GLookUp_BankList_Donation").dxDropDownBox("instance").reset();
+                            $("#BE_Bank_Acc_No_Donation").dxTextBox("instance").reset();
+                        }
+                    }
+                    else {
+                        $("#GLookUp_BankList_Donation").find('input').css('color', "#696969");
+                        $("#BE_Bank_Acc_No_Donation").find('input').css('color', "#696969");
+                    }
+                }
+                else if (value == "CASH TO BANK") {
+                    $("#GLookUp_RefBankList_Donation").dxDropDownBox("option", "placeholder", "");
+                    $("#Txt_Ref_Branch_Donation").dxTextBox("option", "placeholder", "");
+                    Fieldset_SetDisable("Deposit_Bank_Item_Donation", false);
+                    $("#lbl_Bank_Title").removeClass("text-red").removeClass("disabletxt");
+                    $("#lbl_Bank_Name").addClass("text-red").removeClass("disabletxt");
+                    $("#lbl_Acc_No").addClass("text-red").removeClass("disabletxt");
+
+                    RefBankDD_Donation_Enabled = false;
+                    Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+                    Control_SetReadOnly("Txt_Ref_Branch_Donation", "dxTextBox", true, "#696969");
+                    Control_SetReadOnly("Txt_Ref_No_Donation", "dxTextBox", true, "#696969");
+
+                    //$("#lbl_Ref_Bank").removeClass("text-red").addClass("disabletxt");
+                    if (FirstCall === false) {
+                        $("#GLookUp_RefBankList_Donation").dxDropDownBox("instance").reset();
+                    }
+                    $("#lbl_Ref_No").text("Ref. No.");
+                    Control_SetReadOnly("Txt_Ref_No_Donation", "dxTextBox", false);
+                    $("#Txt_Ref_No_Donation").dxTextBox("instance").reset();
+
+                    $("#lbl_Ref_Title").text("Detail:");
+                    $("#lbl_Ref_Date").text("Date:");
+                    //$("#lbl_Ref_Date").addClass("text-red").removeClass("disabletxt");//Redmine Bug #132761 fixed
+                    $("#Txt_Ref_Date_Donation").dxDateBox("instance").reset();
+                    Control_SetReadOnly("Txt_Ref_Date_Donation", "dxDateBox", false);
+
+                    $("#lbl_Ref_Cdate").text("Clearing Date:");
+                    $("#lbl_Ref_Cdate").removeClass("text-red").removeClass("disabletxt");
+                    $("#Txt_Ref_CDate_Donation").dxDateBox("instance").reset();
+                    Control_SetReadOnly("Txt_Ref_CDate_Donation", "dxDateBox", false);
+
+                    $("#lbl_Ref_Branch").removeClass("text-red").addClass("disabletxt");
+                    $("#Txt_Ref_Branch_Donation").dxTextBox("instance").reset();
+                }
+                else {
+                    $("#lbl_Bank_Title").removeClass("text-red").removeClass("disabletxt");
+                    $("#lbl_Bank_Name").addClass("text-red").removeClass("disabletxt");
+                    $("#lbl_Acc_No").removeClass("text-red").removeClass("disabletxt");
+
+                    if (Cnt_BankAccount > 1) {
+                        if (FirstCall === false) {
+                            $("#GLookUp_BankList_Donation").dxDropDownBox("instance").reset();
+                            $("#BE_Bank_Acc_No_Donation").dxTextBox("instance").reset();
+                        }
+                    }
+                    else {
+                        $("#GLookUp_BankList_Donation").find('input').css('color', "#696969");
+                        $("#BE_Bank_Acc_No_Donation").find('input').css('color', "#696969");
+                    }
+                }
+                if (DonRTag != "_View" && DonRTag != "_Delete") {
+                    Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", false);
+                    SlipTxn_Donation_Enabled = true;
+                    Control_SetReadOnly("Txt_Slip_Count_Donation", "dxNumberBox", (SlipTxn_Donation_Enabled == true && SlipTxn_Donation_ReadOnly == false) ? false : true);
+                }
+            }
+            if (value == "CHEQUE" || value == "DD") {
+                $("#Txt_Ref_No_Donation").dxTextBox("instance").option("maxLength", 8);
+                $("#Txt_Ref_No_Donation").find("input").addClass("OnlyDigit");
+            }
+            else {
+                $("#Txt_Ref_No_Donation").dxTextBox("instance").option("maxLength", 25);
+                $("#Txt_Ref_No_Donation").find("input").removeClass("OnlyDigit");
+            }
+            RefNoValidation(value);
+            GLookUp_BankList_EditValueChanged(null, FirstCall);
+        }
+    </script> @* Cmd mode changed *@
+    <script>
+        async function GLookUp_ItemList_EditValueChanged(e) {
+            var item;
+            if (e) {
+                item = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    Item_DG_Donation.clearSelection();
+                    return;
+                }
+            }
+            else {
+                item = $("#GLookUp_ItemList_Donation").dxDropDownBox("option", "value");
+            }
+            await Item_DG_Donation.selectRows(item);
+            if (Item_DG_Donation.getSelectedRowsData().length > 0) {
+                var item = Item_DG_Donation.getSelectedRowsData()[0];
+                $("#BE_Item_Head_Donation").dxTextBox("instance").option("value", item["LED_NAME"]);
+                $("#iVoucher_Type").val(item["ITEM_VOUCHER_TYPE"]);
+                $("#iLed_ID").val(item["ITEM_LED_ID"]);
+                $("#iTrans_Type").val(item["ITEM_TRANS_TYPE"]);
+            }
+        }
+        async function GLookUp_PartyList_EditValueChanged(e) {
+            var party;
+            if (e) {
+                party = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    Party_DG_Donation.clearSelection();
+                    $("#BE_Add1_Donation").dxTextBox("instance").reset();
+                    $("#BE_Add2_Donation").dxTextBox("instance").reset();
+                    $("#BE_Add3_Donation").dxTextBox("instance").reset();
+                    $("#BE_Add4_Donation").dxTextBox("instance").reset();
+                    $("#BE_City_Donation").dxTextBox("instance").reset();
+                    $("#BE_State_Donation").dxTextBox("instance").reset();
+                    $("#BE_District_Donation").dxTextBox("instance").reset();
+                    $("#BE_Country_Donation").dxTextBox("instance").reset();
+                    $("#BE_Pincode_Donation").dxTextBox("instance").reset();
+                    $("#BE_PAN_No_Donation").dxTextBox("instance").reset();
+                    $("#BE_AADHAAR_No_Donation").dxTextBox("instance").reset();
+                    $("#BE_ID_No_Donation").dxTextBox("instance").reset();
+                    $("#BE_ID_No_Label_Donation").text("Passport No.:");
+                    return;
+                }
+            }
+            else {
+                party = $("#GLookUp_PartyList_Donation").dxDropDownBox("option", "value");
+            }
+            await Party_DG_Donation.selectRows(party);
+            if (Party_DG_Donation.getSelectedRowsData().length > 0) {
+                var item = Party_DG_Donation.getSelectedRowsData()[0];
+                $("#BE_Add1_Donation").dxTextBox("instance").option("value", item["C_R_ADD1"]);
+                $("#BE_Add2_Donation").dxTextBox("instance").option("value", item["C_R_ADD2"]);
+                $("#BE_Add3_Donation").dxTextBox("instance").option("value", item["C_R_ADD3"]);
+                $("#BE_Add4_Donation").dxTextBox("instance").option("value", item["C_R_ADD4"]);
+                $("#BE_City_Donation").dxTextBox("instance").option("value", item["CI_NAME"]);
+                $("#BE_State_Donation").dxTextBox("instance").option("value", item["ST_NAME"]);
+                $("#BE_District_Donation").dxTextBox("instance").option("value", item["DI_NAME"]);
+                $("#BE_Country_Donation").dxTextBox("instance").option("value", item["CO_NAME"]);
+                $("#BE_Pincode_Donation").dxTextBox("instance").option("value", item["C_R_PINCODE"]);
+                $("#BE_PAN_No_Donation").dxTextBox("instance").option("value", item["C_PAN_NO"]);
+                $("#BE_AADHAAR_No_Donation").dxTextBox("instance").option("value", item["C_UID_NO"]);
+                $("#BE_ID_No_Donation").dxTextBox("instance").option("value", item["C_OTHER_ID"]);
+                $("#BE_ID_No_Label_Donation").text(item["C_OTHER_ID_LABEL"]);
+                $("#Donor_RecEditOn").val(JS_Json_Date_To_ddMMyyyy(item["REC_EDIT_ON"]));
+            }
+            donorAddressValidator();
+        }
+        async function GLookUp_RefBankList_EditValueChanged(e) {
+            var refbank;
+            if (e) {
+                refbank = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    RefBank_DG_Donation.clearSelection();
+                    return;
+                }
+            }
+            else {
+                refbank = $("#GLookUp_RefBankList_Donation").dxDropDownBox("option", "value");
+            }
+            await RefBank_DG_Donation.selectRows(refbank);
+        }
+        async function GLookUp_BankList_EditValueChanged(e, FirstCall = false) {
+            if (e) {
+                BankID_Donation = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    Bank_DG_Donation.clearSelection();
+                    Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", true, "#696969");
+                    return;
+                }
+            }
+            else {
+                BankID_Donation = $("#GLookUp_BankList_Donation").dxDropDownBox("instance").option("value");
+            }
+            await Bank_DG_Donation.selectRows(BankID_Donation);
+            if (Bank_DG_Donation.getSelectedRowsData().length > 0 && ($("#Cmd_Mode_Donation").dxSelectBox("instance").option("value") != "CASH" && $("#Cmd_Mode_Donation").dxSelectBox("instance").option("value") != "MO")) {
+                var item = Bank_DG_Donation.getSelectedRowsData()[0];
+                $("#BE_Bank_Acc_No_Donation").dxTextBox("instance").option("value", item["BANK_ACC_NO"]);
+                $("#DepositBank_RecEditOn").val(JS_Json_Date_To_ddMMyyyy(item["REC_EDIT_ON"]));
+                if (FirstCall == false) {
+                    GetSlipNo_SlipCount();
+                }
+                if (DonRTag != "_Delete" && DonRTag != "_View") {
+                    Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", false);
+                }
+            }
+            else {
+                Control_SetReadOnly("Txt_Slip_No_Donation", "dxNumberBox", true, "#696969");
+            }
+        }
+        function GetSlipNo_SlipCount() {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/DonationVoucher/GetSlipNo_SlipCount",
+                async: false,
+                data: {
+                    BankList: BankID_Donation,
+                    xID: $("#xID").val()
+                },
+                cache: false,
+                success: function (result) {
+                    $("#Txt_Slip_No_Donation").dxNumberBox("instance").option("value", result.Slip_No);
+                    $("#Txt_Slip_Count_Donation").dxNumberBox("instance").option("value", result.Slip_Count);
+                }
+            });
+        }
+    </script> @* DD Value Change *@
+    <script>
+        async function InitAllDropdowns_DonR() {
+            await Promise.all([$("#GLookUp_ItemList_Donation").dxDropDownBox("getDataSource").load(),
+            $("#GLookUp_RefBankList_Donation").dxDropDownBox("getDataSource").load(),
+            $("#GLookUp_PartyList_Donation").dxDropDownBox("getDataSource").load(),
+            $("#GLookUp_BankList_Donation").dxDropDownBox("getDataSource").load()]);
+            var $Item_DG_Donation = $("#DonationVoucher_GLookUp_ItemList_datagrid");
+            if ($Item_DG_Donation.length) {
+                Item_DG_Donation = $Item_DG_Donation.dxDataGrid("instance");
+            }
+            var $Party_DG_Donation = $("#DonationVoucher_GLookUp_DonorList_datagrid");
+            if ($Party_DG_Donation.length) {
+                Party_DG_Donation = $Party_DG_Donation.dxDataGrid("instance");
+            }
+            var $RefBank_DG_Donation = $("#DonationVoucher_GLookUp_RefBankList_datagrid");
+            if ($RefBank_DG_Donation.length) {
+                RefBank_DG_Donation = $RefBank_DG_Donation.dxDataGrid("instance");
+            }
+            var $Bank_DG_Donation = $("#DonationVoucher_GLookUp_DepositedBankList_datagrid");
+            if ($Bank_DG_Donation.length) {
+                Bank_DG_Donation = $Bank_DG_Donation.dxDataGrid("instance");
+            }
+        }
+        async function LookUp_GetItemList_DonationR(FirstCall = false) {
+            var DGItem = ($("#GLookUp_ItemList_Donation").dxDropDownBox("getDataSource")).items();
+            var TotalCount = DGItem.length;
+            if (TotalCount == 1) {
+                $("#GLookUp_ItemList_Donation").find('input').css('color', '#000080');
+                if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                    if (FirstCall === true) {
+                        await GLookUp_ItemList_EditValueChanged();
+                    }
+                    ItemDD_Donation_Enabled = false;
+                    Control_SetReadOnly("GLookUp_ItemList_Donation", "dxDropDownBox", (ItemDD_Donation_Enabled == true && ItemDD_Donation_ReadOnly == false) ? false : true);
+                    $("#itemtypelabel").addClass("disabletxt").removeClass("text-red");
+                }
+            }
+            else {
+                if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                    ItemDD_Donation_ReadOnly = false;
+                    Control_SetReadOnly("GLookUp_ItemList_Donation", "dxDropDownBox", (ItemDD_Donation_Enabled == true && ItemDD_Donation_ReadOnly == false) ? false : true);
+                    $("#itemtypelabel").removeClass("disabletxt").addClass("text-red");
+                }
+            }
+        }
+        async function LookUp_GetPartyList_DonationR(FirstCall = false) {
+            if (FirstCall === false) {
+                ShowLoader();
+                var DDvalue = $("#GLookUp_PartyList_Donation").dxDropDownBox("instance").option("value");
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/DonationVoucher/RefreshPartyList",
+                    cache: false,
+                    success: function (data) {
+                        dataSource_Party_Donation = new DevExpress.data.DataSource({ // need to dispose it in in clearreference
+                            store:
+                            {
+                                type: "array",
+                                key: "C_ID",
+                                data: data
+                            }
+                        });
+                        $("#GLookUp_PartyList_Donation").dxDropDownBox("instance").option("dataSource", dataSource_Party_Donation);
+                        Party_DG_Donation.option("dataSource", dataSource_Party_Donation);
+                        dataSource_Party_Donation.load().done((r) => {
+                            $("#GLookUp_PartyList_Donation").dxDropDownBox("reset");
+                            if (data.some(data => data.C_ID === DDvalue)) {
+                                $("#GLookUp_PartyList_Donation").dxDropDownBox("instance").option("value", DDvalue);
+                            }
+                            $("#GLookUp_PartyList_Donation").dxDropDownBox("focus")
+                            HideLoader();
+                        })
+                    }
+                });
+            }
+            else {
+                if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                    Control_SetReadOnly("GLookUp_PartyList_Donation", "dxDropDownBox", false);
+                }
+            }
+        }
+        async function LookUp_GetRefBankList_DonationR(FirstCall = false) {
+            if ($("#SelectedRefBankID").val() != null && $("#SelectedRefBankID").val().length > 0) {
+                await RefBank_DG_Donation.selectRows($("#SelectedRefBankID").val(), false);
+            }
+            RefBankDD_Donation_ReadOnly = false;
+            Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+            if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                RefBankDD_Donation_ReadOnly = false;
+                Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+            }
+        }
+        async function LookUp_GetBankList_DonationR(FirstCall = false) {
+            //var DGItem = ($("#GLookUp_BankList_Donation").dxDropDownBox("getDataSource"))._store._array;
+            var DGItem = ($("#GLookUp_BankList_Donation").dxDropDownBox("getDataSource")).items();
+            Cnt_BankAccount = DGItem.length;
+            if (Cnt_BankAccount <= 0) {
+                $("#Cmd_Mode_Donation").dxSelectBox("instance").option("dataSource", ["CASH", "MO"]);
+                $("#Cmd_Mode_Donation").dxSelectBox("instance").option("value", "CASH");
+            }
+            if (Cnt_BankAccount == 1) {
+                $("#GLookUp_BankList_Donation").find("input").css("color", "#696969");
+                $("#BE_Bank_Acc_No_Donation").find("input").css("color", "#696969");
+                if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                    //await Bank_DG_Donation.selectRowsByIndexes(0);
+                    if (FirstCall === true) {
+                        await GLookUp_BankList_EditValueChanged(null, FirstCall);
+                    }
+                    BankDD_Donation_Enabled = false;
+                    Control_SetReadOnly("GLookUp_BankList_Donation", "dxDropDownBox", (BankDD_Donation_Enabled == true && BankDD_Donation_ReadOnly == false) ? false : true);
+                }
+            }
+            else {
+                if (DonRTag == "_New" || DonRTag == "_New_From_Selection") {
+                    BankDD_Donation_ReadOnly = false;
+                    Control_SetReadOnly("GLookUp_BankList_Donation", "dxDropDownBox", (BankDD_Donation_Enabled == true && BankDD_Donation_ReadOnly == false) ? false : true);
+                }
+            }
+            if ($("#SelectedBankID").val() != null && $("#SelectedBankID").val().length > 0) {
+                await Bank_DG_Donation.selectRows($("#SelectedBankID").val(), false);
+            }
+            BankDD_Donation_ReadOnly = false;
+            Control_SetReadOnly("GLookUp_BankList_Donation", "dxDropDownBox", (BankDD_Donation_Enabled == true && BankDD_Donation_ReadOnly == false) ? false : true);
+            if ($("#SelectedDepositSlipNo").val() != null && $("#SelectedDepositSlipNo").val() > 0) {
+                $("#Txt_Slip_No_Donation").dxNumberBox("instance").option("value", parseInt($("#SelectedDepositSlipNo").val()));
+            }
+        }
+    </script> @* DD Init *@
+    <script>
+    $(document).ready(async function ()
+    {
+        ShowLoader_Ready();
+        await InitAllDropdowns_DonR();
+        await Promise.all([LookUp_GetItemList_DonationR(true),LookUp_GetPartyList_DonationR(true), LookUp_GetRefBankList_DonationR(true), LookUp_GetBankList_DonationR(true)]);
+        Fieldset_SetDisable("Ref_Item_Donation", true);
+        Fieldset_SetDisable("Deposit_Bank_Item_Donation", true);
+        if (DonRTag == "_Edit" || DonRTag == "_View" || DonRTag == "_Delete")
+        {
+            Cmd_Mode_SelectedIndexChanged(null, true);
+            await GLookUp_ItemList_EditValueChanged();
+            ItemDD_Donation_ReadOnly = false;
+            Control_SetReadOnly("GLookUp_ItemList_Donation", "dxDropDownBox", (ItemDD_Donation_Enabled == true && ItemDD_Donation_ReadOnly == false) ? false : true);
+            if ("@Model.GLookUp_BankList_Donation".length > 0)
+            {
+                await GLookUp_BankList_EditValueChanged(null,true);
+            }
+            Control_SetReadOnly("GLookUp_BankList_Donation", "dxDropDownBox", false);
+            await GLookUp_PartyList_EditValueChanged();
+            Control_SetReadOnly("GLookUp_PartyList_Donation", "dxDropDownBox", false);
+            if ("@Model.GLookUp_RefBankList_Donation".length > 0)
+            {
+                await GLookUp_RefBankList_EditValueChanged();
+            }
+            RefBankDD_Donation_ReadOnly = false;
+            Control_SetReadOnly("GLookUp_RefBankList_Donation", "dxDropDownBox", (RefBankDD_Donation_Enabled == true && RefBankDD_Donation_ReadOnly == false) ? false : true);
+            if ("@Model.Txt_Ref_No_Donation".length > 0)
+            {
+                $("#Txt_Ref_No_Donation").dxTextBox("instance").option("value", TransformText("@Model.Txt_Ref_No_Donation"));
+            }
+            if ("@Model.Txt_Ref_Date_Donation".length > 0)
+            {
+                $("#Txt_Ref_Date_Donation").dxDateBox("instance").option("value", moment("@Model.Txt_Ref_Date_Donation", "DD/MM/YYYY"));
+            }
+            if ("@Model.Txt_Ref_CDate_Donation".length > 0)
+            {
+                $("#Txt_Ref_CDate_Donation").dxDateBox("instance").option("value", moment("@Model.Txt_Ref_CDate_Donation", "DD/MM/YYYY"));
+            }
+            if ("@Model.Txt_Slip_No_Donation".length > 0)
+            {
+                $("#Txt_Slip_No_Donation").dxNumberBox("instance").option("value", parseInt("@Model.Txt_Slip_No_Donation"));
+            }
+        }
+        if (DonRTag== "_New_From_Selection")
+        {
+            await GLookUp_ItemList_EditValueChanged();
+            Control_SetReadOnly("GLookUp_ItemList_Donation", "dxDropDownBox", true, "#696969");
+        }
+        TransformTextForDB("donationvalidationForm");
+        if (DonRTag != "_View")
+        {
+            dontaskpopupcloseconfirmation = false;
+        }
+        sessionclearpath = "/Account/DonationVoucher/SessionClear";
+        if ("@DonationVou_AddFacilityAddress" == "False")
+        {
+            $("#DonAdd").hide();
+        }
+        if ("@DonationVou_ListFacilityAddress" == "False")
+        {
+            $("#DonManage").hide();
+        }
+        $('#Txt_Amount_Donation').dxNumberBox({})
+            .dxValidator({
+                validationRules: [{
+                    type: 'compare',
+                    comparisonTarget: function () {
+                        return 0;
+                    },
+                    comparisonType: ">",
+                    message: "Amount cannot be Zero/Negative...!",
+                }],
+                validationGroup: "donationvoucher"
+            });
+
+        //FCRA Related
+        if (parseInt("@Model.splVchrRefsCount_DnR") > 0)
+        {
+            OnSplVchrRefsListSelectionChanged_DnR();
+        }
+        if (parseInt("@Model.splVchrRefsCount_DnR") == 0)
+        {
+            $("#DnR_SpecialVoucherRefDiv").remove();
+        }
+        donorAddressValidator();
+        Set_Form_View_Delete_Mode(null, "donationvalidationForm", DonRTag,false);
+        Focus_FirstEditable_Field("donationvalidationForm");
+        HideLoader_Ready();
+    });
+    </script> @* Document.ready *@
+    <script>
+        function AjaxSuccessDonationVoucher(data)
+        {
+            HideLoader();
+            dontaskpopupcloseconfirmation = true;
+            if (data.jsonParam.result == false)
+            {
+                if (data.jsonParam.closeform)
+                {
+                    $("#Dynamic_Content_popup").dxPopup("hide");
+                }
+                var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertclick.done(function (alertResult)
+                {
+                    if (alertResult)
+                    {
+                        if (data.jsonParam.refreshgrid == true)
+                        {
+                            RefreshGridView("@ViewBag.GridToRefresh");
+                        }
+                        if (data.jsonParam.focusid)
+                        {
+                            var id = "#" + data.jsonParam.focusid;
+                            setTimeout(function ()
+                            {
+                                $(id).find('input').focus();
+                            }, Timeout100);
+                        }
+                    }
+                });
+            }
+            else if (data.jsonParam.result == true)
+            {
+                var _ActiveTab_ID = $(".TabPanalMenu-tabs .active").attr("id");
+                var alertclick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                alertclick.done(function (result)
+                {
+                    if (result)
+                    {
+                        if ("@ViewBag.GridToRefresh" != "CashBookListGrid")
+                        {
+                            RefreshGridView("@ViewBag.GridToRefresh");
+                        }
+                        if (/*typeof CashBookListGrid !== 'undefined'*/ _ActiveTab_ID == "contact_Frm_Voucher_Info_CB")
+                        {
+                            AfterVoucherClose_CB($("#Txt_V_Date_Donation").dxDateBox("instance").option("value"), "@Model.ActionMethod", IsUndefinedOrNull(data.CashbookGridPK) ? "" : data.CashbookGridPK);
+                        }
+                        else if (_ActiveTab_ID == "contact_Frm_Voucher_Info") {
+                            AfterVoucherClose_VoucherEntry();
+                        }
+                        $("#Dynamic_Content_popup").dxPopup("hide");
+                    }
+                });
+            }
+        }
+    </script> @* Save Success *@
+<script>
+    async function DonationVoucherSaveClick(e)
+    {
+        e.component.repaint();
+        ShowLoader("Saving", false);
+        var shouldProceed = true;
+        if (ValidateForm(e))
+        {
+            var item = $("#GLookUp_ItemList_Donation").dxDropDownBox("instance").option("value");
+            var panNo = $("#BE_PAN_No_Donation").dxTextBox("instance").option("value");
+            if (item == "46f72cc7-14b7-4758-affc-e1952bfb469a" && panNo.substr(3, 1) != "C" && panNo != null && panNo.length > 0)
+            {
+                await CreateCustomConfirmDialog("@Model.TitleX", '<div><size=13><b>Usually CSR dononations are from Company...!<br>(सामान्यतः CSR सहयोग कम्पनियों से मिलता है!)<br><br>Is this actually a CSR Donation?<br>(क्या यह सहयोग CSR सहयोग ही है?)</div>', false).show().done(function (dialogResult)
+                {
+                    shouldProceed = dialogResult;
+                });
+            }
+            if (shouldProceed == true)
+            {
+                if ($("#Txt_Slip_No_Donation").dxNumberBox("instance").option("value") > 0)
+                {
+                    var slipCountCheck = await slipCountCheck_Donation();
+                    if (slipCountCheck.result == false)
+                    {
+                        await CreateCustomConfirmDialog("@Model.TitleX", slipCountCheck.message, false).show().done(function (dialogResult)
+                        {
+                            shouldProceed = dialogResult;
+                        });
+                    }
+                }
+                if (shouldProceed == true)
+                {
+                    $("#donationvalidationForm").submit();
+                }
+            }
+        }
+        HideLoader();    
+    }
+    function slipCountCheck_Donation()
+    {
+        return $.ajax({
+            type: "GET",
+            url: "/Account/DonationVoucher/slipCountCheck",
+            data:
+            {
+                SlipCount: $("#Txt_Slip_Count_Donation").dxNumberBox("instance").option("value"),
+                SlipNo: $("#Txt_Slip_No_Donation").dxNumberBox("instance").option("value"),
+                BankId: BankID_Donation,
+                xID: $("#xID").val()
+            },
+            cache: false,
+        });
+    }
+    function DonationVoucherDeleteClick(e)
+        {
+            if (ValidateForm(e))
+            {
+                DeleteAfterConfirmation("@Model.TitleX", "", $("#donationvalidationForm"));
+            }
+        }
+</script> @* Save And delete button click *@
+    <script>
+        function Txt_Slip_No_EditValueChanged(e) {
+            if (e.value != null && e.value != "") {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/DonationVoucher/Txt_Slip_No_EditValueChanged",
+                    data:
+                    {
+                        BankList: BankID_Donation,
+                        Slip_No: e.value,
+                        xID: $("#xID").val()
+                    },
+                    cache: false,
+                    success: function (result) {
+                        $("#Txt_Slip_Count_Donation").dxNumberBox("instance").option("value", result.Slip_Count);
+                    }
+                });
+            }
+        }
+        function donorAddressValidator() {
+            $("#BE_Country_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules: [{
+                        type: 'custom',
+                        reevaluate: true,
+                        validationCallback: function (e) {
+                            if (e.value == null || e.value == "") {
+                                $("#BE_Country_Donation").dxTextBox({
+                                    focusStateEnabled: true
+                                });
+                                return false;
+                            }
+                            $("#BE_Country_Donation").dxTextBox({
+                                focusStateEnabled: false
+                            });
+                            return true;
+                        },
+                        message: " Country Cannot Be Blank..!!"
+                    }],
+                    validationGroup: "donationvoucher"
+                });
+            var country = $("#BE_Country_Donation").dxTextBox("option", "value");
+            country = country == null ? null : country.toUpperCase();
+            if (country == "INDIA") {
+                $("#donorstate").addClass("text-red");
+                $("#donordistrict").addClass("text-red");
+                $("#donorcity").addClass("text-red");
+            }
+            else {
+                $("#donorstate").removeClass("text-red");
+                $("#donordistrict").removeClass("text-red");
+                $("#donorcity").removeClass("text-red");
+            }
+            $("#BE_Add1_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules: [{
+                        type: 'custom',
+                        validationCallback: function (e) {
+                            if (IsNullOrWhitespace(null, null, e.value)) {
+                                $("#BE_Add1_Donation").dxTextBox({
+                                    focusStateEnabled: true
+                                });
+                                return false;
+                            }
+                            $("#BE_Add1_Donation").dxTextBox({
+                                focusStateEnabled: false
+                            });
+                            return true;
+                        },
+                        reevaluate: true,
+                        message: " Address Line 1 Cannot Be Blank..!!"
+                    }],
+                    validationGroup: "donationvoucher"
+                });
+            $("#BE_City_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules: [{
+                        type: 'custom',
+                        reevaluate: true,
+                        validationCallback: function (e) {
+                            if (country == "INDIA") {
+                                if (e.value == null || e.value == "") {
+                                    $("#BE_City_Donation").dxTextBox({
+                                        focusStateEnabled: true
+                                    });
+                                    return false;
+                                }
+                            }
+                            $("#BE_City_Donation").dxTextBox({
+                                focusStateEnabled: false
+                            });
+                            return true;
+                        },
+                        message: " City Cannot Be Blank..!!"
+                    }],
+                    validationGroup: "donationvoucher"
+                });
+            $("#BE_District_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules:
+                        [{
+                            type: 'custom',
+                            reevaluate: true,
+                            validationCallback: function (e) {
+                                if (country == "INDIA") {
+                                    if (e.value == null || e.value == "") {
+                                        $("#BE_District_Donation").dxTextBox({
+                                            focusStateEnabled: true
+                                        });
+                                        return false;
+                                    }
+                                }
+                                $("#BE_District_Donation").dxTextBox({
+                                    focusStateEnabled: false
+                                });
+                                return true;
+                            },
+                            message: " District Cannot Be Blank..!!"
+                        }],
+                    validationGroup: "donationvoucher"
+                });
+            $("#BE_State_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules: [{
+                        type: 'custom',
+                        reevaluate: true,
+                        validationCallback: function (e) {
+                            if (country == "INDIA") {
+                                if (e.value == null || e.value == "") {
+                                    $("#BE_State_Donation").dxTextBox({
+                                        focusStateEnabled: true
+                                    });
+                                    return false;
+                                }
+                            }
+                            $("#BE_State_Donation").dxTextBox({
+                                focusStateEnabled: false
+                            });
+                            return true;
+                        },
+                        message: " State Cannot Be Blank..!!"
+                    }],
+                    validationGroup: "donationvoucher"
+                });
+
+        }
+        function refdatechange(e) {
+            var mode = ($("#Cmd_Mode_Donation").dxSelectBox("instance").option('value')).toLowerCase();
+            clearingdatecheck(mode);
+        }
+        function clearingdatecheck(cmode) {
+            var refcdate = $("#Txt_Ref_CDate_Donation").dxDateBox("instance").option('value');
+            if (refcdate) {
+                $("#Txt_Ref_CDate_Donation").dxDateBox({})
+                    .dxValidator({
+                        validationRules: [{
+                            type: 'compare',
+                            comparisonTarget: function () {
+                                var date = $("#Txt_Ref_Date_Donation").dxDateBox("instance");
+                                if (date) {
+                                    return date.option("value");
+                                }
+                            },
+                            comparisonType: ">=",
+                            message: "clearing date cannot be less than " + cmode + " date",
+                            ignoreEmptyValue: true,
+                        }],
+                        validationGroup: "donationvoucher"
+                    });
+            }
+            else {
+                $("#Txt_Ref_CDate_Donation").dxDateBox({})
+                    .dxValidator({});
+            }
+        }
+        function RefNoValidation(cmdMode) {
+            $("#Txt_Ref_No_Donation").dxTextBox({})
+                .dxValidator({
+                    validationRules: [{
+                        type: 'custom',
+                        validationCallback: function (options) {
+                            var result = true;
+                            if (cmdMode == "CHEQUE" || cmdMode == "DD") {
+                                if (options.value == "" || options.value == null) {
+                                    result = false;
+                                }
+                            }
+                            return result;
+                        },
+                        reevaluate: true,
+                        message: cmdMode + " No. Cannot Be Blank"
+                    },
+                    {
+                        type: 'custom',
+                        validationCallback: function (options) {
+                            var result = true;
+                            if (cmdMode == "CHEQUE" || cmdMode == "DD") {
+                                var regex = /^[0-9]{6,8}$/;
+                                if (regex.test(options.value) == false) {
+                                    result = false;
+                                }
+                            }
+                            return result;
+                        },
+                        reevaluate: true,
+                        message: 'Invalid ' + cmdMode + ' No.Format(Min 6 Digits Max 8 Digits)'
+                    }],
+                    validationGroup: "donationvoucher"
+                });
+        }
+    </script>
+    <script>
+        function OnSplVchrRefsListSelectionChanged_DnR(e) {
+            var listBox = $("#ListSpecialVoucherRef_DnR").dxList("instance");
+            var selecteditemkey = listBox.option("selectedItemKeys")
+            if (selecteditemkey != null && selecteditemkey.length > 0) {
+                $("#DnR_SplVchrReferenceSelected").val(selecteditemkey.join(","));
+            }
+            else {
+                $("#DnR_SplVchrReferenceSelected").val("");
+            }
+        }// List selection
+
+    </script>
+
+</div>

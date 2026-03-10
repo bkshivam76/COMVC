@@ -1,0 +1,266 @@
+﻿@using System.Text.RegularExpressions;
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    // bool DailyBalances_ExportRight = (bool)ViewData["Potamel_ExportRight"];
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "PotamelPaymentListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "Potamel",
+            Action = "Frm_Potamel_Payment_Info_Grid",
+            FilterVisible = false,
+            SearchVisible = false,
+            ShowGroupedColumns = true,
+            SessionGUID = SessionGUID
+        };
+
+        //     settings.CustomDataActionRouteValues = new { Controller = "Potamel", Action = "DBCustomDataAction" };
+
+        settings.Settings.ShowPreview = true;
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            if (VouchingMode == true)
+            {
+                Html.RenderAction("AuditButtons", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue != null ? Regex.Replace((string)c.KeyValue, "[^0-9A-Za-z]+", "_") : "Null" + c.VisibleIndex, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            }
+        });
+        settings.HtmlDataCellPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            string colIdx = e.DataColumn.Index.ToString();
+            string rowIdx = e.VisibleIndex.ToString();
+            string KeyValue = e.KeyValue != null ? Regex.Replace((string)e.KeyValue, "[^0-9A-Za-z]+", "_") : "Null" + e.VisibleIndex;
+            if (VouchingMode == true)
+            {
+                if (e.DataColumn.FieldName.Length > 0)
+                {
+                    e.Cell.Attributes.Add("ondblclick", "OnGridCellClick(event,this,'" + colIdx + "', '" + rowIdx + "','" + settings.Name + "','" + KeyValue + "','" + e.DataColumn.FieldName + "');");
+                }
+                if (e.DataColumn.Name == "iIcon")
+                {
+                    e.Cell.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + KeyValue + "')");
+                    e.Cell.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + KeyValue + "')");
+                }
+            }
+            e.Cell.CssClass += " col_" + e.DataColumn.FieldName + " row_" + KeyValue;
+            e.Cell.ID = "Cell_" + KeyValue + "|" + e.DataColumn.FieldName;
+        };
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (e.RowType == GridViewRowType.Data)
+            {
+                string KeyValue = e.KeyValue != null ? Regex.Replace((string)e.KeyValue, "[^0-9A-Za-z]+", "_") : "Null" + e.VisibleIndex;
+                //e.Row.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.VisibleIndex + "')");
+                //e.Row.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.VisibleIndex + "')");
+                e.Row.CssClass += " " + settings.Name + "_DataRow_" + KeyValue;
+            }
+            else if (e.RowType == GridViewRowType.Preview)
+            {
+                e.Row.BackColor = System.Drawing.Color.White;
+                string KeyValue = e.KeyValue != null ? Regex.Replace((string)e.KeyValue, "[^0-9A-Za-z]+", "_") : "Null" + e.VisibleIndex;
+                if (VouchingMode == true)
+                {
+                    e.Row.Attributes.Add("onmouseover", "OnGridPrevRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + KeyValue + "')");
+                    e.Row.Attributes.Add("onmouseout", "OnGridPrevRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + KeyValue + "')");
+                }
+                e.Row.CssClass += " " + settings.Name + "_PreviewRow" + " " + settings.Name + "_PreviewRow_" + KeyValue;
+                //e.Row.ID = "PreviewRow_" + e.VisibleIndex;
+            }
+        };
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "POTAMEL PAYMENT REPORT";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.False;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                //var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                //PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                //PrintViewitem.BeginGroup = true;
+                //e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+            }
+        };
+        // DXCOMMENT: Specify the grid's key field name and define grid columns in accordance with data model fields
+
+        //------------------------------------------------//------------------------------------------------//------------------------------------------------//------------------------------------------------
+        settings.KeyFieldName = "PAYMENTS";
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            gridView.PageIndex = 0;
+        };
+        settings.Columns.Add(column =>
+        {
+            column.Name = "iIcon";
+            column.Caption = "";
+            column.MinWidth = 30;
+            column.MaxWidth = 30;
+            column.Width = 30;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.SetDataItemTemplateContent(c =>
+            {
+                Html.RenderAction("AuditIconAfterClick", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue != null ? Regex.Replace((string)c.KeyValue, "[^0-9A-Za-z]+", "_") : "Null" + c.VisibleIndex, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            });
+            column.SetHeaderTemplateContent(c =>
+            {
+                var Attach = Html.DevExpress().Image(ImageSettings =>
+                {
+                    ImageSettings.ImageUrl = "~/Content/FloatingActionButton/Images/pin.png";
+                    ImageSettings.Height = 15;
+                });
+                Attach.Render();
+            });
+            column.AdaptivePriority = 0;
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PAYMENTS";
+                column.Caption = "PAYMENTS";
+                column.Visible = true;
+                column.Width = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PAMOUNT";
+                column.Caption = "AMOUNT";
+                column.Visible = true;
+                column.Width = 75;
+                column.PropertiesEdit.DisplayFormatString = "{0:#,0.00;-#,0.00}";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PTOTAL";
+                column.Caption = "TOTAL";
+                column.Visible = true;
+                column.Width = 75;
+                column.PropertiesEdit.DisplayFormatString = "{0:#,0.00;-#,0.00}";
+            }
+        });
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        //settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        var ShowHorizontalBar =(int)ViewBag.ShowHorizontalBar;
+        settings.SettingsCookies.Enabled = true;
+        if (ShowHorizontalBar == 1)
+        {
+
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+        }
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        // settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = false;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        //Pager Settings
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSize = 250;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.AllButton.Visible = true;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "PTOTAL").DisplayFormat = "{0:#,0.00;-#,0.00}";
+        settings.Settings.ShowGroupedColumns = true;
+        settings.Settings.ShowFooter = true;
+        settings.ClientSideEvents.Init = "PotamelOnInitPayment";
+        //settings.ClientSideEvents.CustomizationWindowCloseUp = "Depositsgrid_CustomizationWindowCloseUp";
+        settings.ClientSideEvents.ContextMenuItemClick = "PotamelContextMenuFunction";
+        settings.ClientSideEvents.BeginCallback = "DBGrid_BeginCallBack";
+        //settings.ClientSideEvents.FocusedRowChanged = "DBOnGridFocusedRowChanged";        
+        settings.ClientSideEvents.EndCallback = "OnPotamelPaymentListGrid_EndCallback";
+        //  settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Credit").DisplayFormat = "{0:#0.##}";//redmine bug 132620 fix
+        //  settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Debit").DisplayFormat = "{0:#0.##}";//redmine bug 132620 fix
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

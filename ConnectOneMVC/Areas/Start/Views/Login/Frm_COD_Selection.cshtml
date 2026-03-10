@@ -1,0 +1,254 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@{
+    Layout = "~/Areas/Start/Views/Shared/_LoginLayout.cshtml";
+}
+@*@Html.Partial("Frm_COD_Selection_form")*@
+@using DevExtreme.AspNet.Mvc;
+<style>
+    .dx-button:hover, .dx-button:focus {
+        color: #000000;
+        border-color: #ffae49;
+        background: #ffe6ca;
+        background: -moz-linear-gradient(top, #ffe6ca 0%, #ffd08e 64%, #ffae49 100%);
+        background: -webkit-linear-gradient(top, #ffe6ca 0%,#ffd08e 64%,#ffae49 100%);
+        background: linear-gradient(to bottom, #ffe6ca 0%,#ffd08e 64%,#ffae49 100%);
+        filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffe6ca', endColorstr='#ffae49',GradientType=0 );
+    }
+
+    @@media screen and (max-width:768px) {
+        #popup_frm_COD_Selection_popup .dx-toolbar-label > div 
+    {
+            margin: 5px -5px 0 !important
+        }
+        #CenterSelectionListGrid .dxgvCSD 
+        {       
+            width: 89vw !important
+        }
+    }
+</style>
+
+
+@(Html.DevExtreme().Popup()
+    .ID("popup_frm_COD_Selection_popup")
+    .OnShowing("PopupOnShowing")
+       .OnShown("PopupOnShown")
+    .CloseOnOutsideClick(false)
+    .ShowTitle(true)
+     .ShowCloseButton(true)
+    .MaxWidth(800)
+    .Height(336)
+    .ElementAttr("class", "login_no_margin")
+    .Title("Connect One Center selection")
+
+)
+
+<div class="login clearfix">
+    <div class="container">
+        <h1 class="logo">
+            <img src="~/Content/image/logol.png" class="img-responsive" alt="Connect one" loading="lazy">
+        </h1>
+        <div class="login-content">
+            <div class="login-img visible-xs">
+                <img src="~/Content/image/phone-login-bg.png" alt="Connect one" loading="lazy">
+            </div>
+            <h2>Select Center</h2>
+            <div class="form-group">
+                @(Html.DevExtreme().NumberBox()
+                            .ID("certificate_no")
+                            .Name("certificate_no")
+                            .Placeholder("Center Certificate No.")
+                            .ElementAttr(new Dictionary<string, object>() { { "class", "form-control text-input dx-numberbox-left" } })
+                            .ShowClearButton(true)
+                            .ValidationError(true)
+                            .OnInitialized(@<text>
+                                function (e) {
+                                setTimeout(function () {
+                                e.component.focus();
+                                }, 0);
+                                }   </text>)
+                        .Value(null)
+                        .OnInput(@<text>
+                            function (e) {
+                            var inputElement = e.event.target;
+                            if (inputElement.value.length > 15)
+                            inputElement.value = inputElement.value.slice(0, 15);333
+                            }
+                        </text>)
+                )
+            </div>
+            <div class="form-group" style="display: none; visibility: hidden">
+                @(Html.DevExtreme().TextBox().ID("deviceToken").Name("deviceToken").Placeholder("Center Certificate No.").ShowClearButton(true).ValidationError(true).Value(@Model).ReadOnly(true))
+                @(Html.DevExtreme().TextBox().ID("androidID").Name("androidID").Placeholder("Center Certificate No.").ShowClearButton(true).ValidationError(true).Value(ViewBag.androidID).ReadOnly(true))
+                @(Html.DevExtreme().TextBox().ID("RedirectToAndroid_TB").Name("RedirectToAndroid_TB").Placeholder("Center Certificate No.").ShowClearButton(true).ValidationError(true).Value(ViewBag.RedirectToAndroid).ReadOnly(true))
+            </div>
+            @*@(Html.DevExtreme().Button()
+        .Text("Login to Connect one")
+        .ElementAttr(new Dictionary<string, object>() { { "class", "btn btn-default login-btn" } })
+        .OnClick(@<text>
+            function () {
+        Selection();
+            }
+        </text>)
+        )*@
+            <button type="button" onclick="popup_frm_COD_Selection();" class="btn btn-default login-btn"><span><img src="~/Content/image/lock.png" class="img-responsive" loading="lazy"></span> Login to Connect one</button>
+            <div class="text-right">
+                <a href="@Url.Action("Frm_Auditor_Login")/@Request.Url.Query" class="switch-button">Switch to Auditor Login &gt;&gt;</a>
+            </div>
+        </div>
+        <div style="margin-right:auto;margin-left:auto;text-align:center;font-size:12px;color:black"> Version : @typeof(ConnectOneMVC.MvcApplication).Assembly.GetName().Version</div>
+        <div style="margin-right:auto;margin-left:auto;text-align:center;font-size:12px;color:black">* Connectone is developed and maintained by Prajapita Brahma Kumaris Ishwariya Vishwa Vidyalaya</div>
+        <div style="margin-right:auto;margin-left:auto;text-align:center;font-size:12px"> <a style="color:black" href="https://services.connectone.app/feedbacks/askquery/askqueryMain_info?QueryFor=connectone" target="_blank">Post Bugs/Suggestions</a> | <a style="color:black" target="_blank" href=" http://amritmahotsav.bkinfo.in/">Post Sewa Report for Azadi ka Amrit Mahotsav</a> | <a style="color:black" target="_blank" href="https://servicereport.connectone.app">Post General Sewa Report</a></div>
+    </div>
+</div>
+
+<script>
+    var centerloginEnterpressed = false;
+    function popup_frm_COD_Selection()
+    {
+        ShowLoader();
+		//Login_to_connect_cent_NO = $("#certificate_no").dxNumberBox("instance").option("value");
+        if ($("#certificate_no").dxNumberBox("instance").option("value") != null)
+        {
+			$.ajax({
+				type: 'GET',
+				url: "/Start/Login/frm_COD_Selection_Ins",
+				data: { certificate_number: $("#certificate_no").dxNumberBox("instance").option("value")},
+				cache: false,
+                success: function (data)
+                {
+                    HideLoader();
+                    if (data.jsonParam &&(data.jsonParam.result == "false" || data.jsonParam.result == false))
+                    {
+                        var errorAlert =DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                        errorAlert.done(function (result)
+                        {
+                            setTimeout(function () { $("#certificate_no").dxNumberBox("instance").focus(); }, 300)
+                        });
+                    }
+                    else
+                    {
+                        ShowLoader();
+                        var content = $("<div id='popup_frm_COD_Selection_result' class='PopupContentDiv'></div>");
+                        content.html("");
+                        $("#popup_frm_COD_Selection_popup").dxPopup({
+                            contentTemplate: function (contentElement) {
+                                contentElement.append(content);
+                                return contentElement;
+                            }
+                        });
+                        content.load("@Url.Action("frm_COD_Selection_Ins_Check", "Login")?certificate_number=" + $("#certificate_no").dxNumberBox("instance").option("value"), function () { HideLoader(); $("#popup_frm_COD_Selection_popup").dxPopup("show"); })
+                    }
+                    setTimeout(function ()
+                    {
+                        centerloginEnterpressed = false;
+                    }, 1000);
+				}
+			});
+		}
+        else
+        {
+            HideLoader();
+            var errorAlert = DevExpress.ui.dialog.alert('Please Enter Center Certificate No..!', 'Information Missing!');
+            errorAlert.done(function (result)
+            {
+                setTimeout(function () { $("#certificate_no").dxNumberBox("instance").focus(); },300)
+
+            })
+            setTimeout(function () {
+                centerloginEnterpressed = false;
+            }, 1000);
+            return;
+		}
+	}
+    $(document).ready(function ()
+    {
+        document.getElementById("certificate_no").addEventListener('keyup', function (evt)
+        {
+            if (centerloginEnterpressed) { return;}
+            if (evt.repeat) { return };
+            if (evt.keyCode == 13)
+            {
+                centerloginEnterpressed = true;
+                evt.preventDefault();
+                popup_frm_COD_Selection();
+                return false;
+            }
+        });
+	});
+	var selectedRowData;
+	function CenterListGrid_selection_changed(selectedItems) {
+		var data = selectedItems.selectedRowsData[0];
+		if (data) {
+			selectedRowData = data;
+		}
+    }
+    function createGuid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+    function LoginFunction(data) {
+		if (getParameterByName('SessionGUID', window.location.href) == data.Guid) {
+			window.close();
+		}
+        else if (data.result == true || data.result == "true")
+        {
+            if (data.androidID != null && data.deviceToken != null && data.androidID.length > 0 && data.deviceToken.length > 0 && data.RedirectToAndroid != null && data.RedirectToAndroid.length > 0 && data.RedirectToAndroid == "YES") {
+                window.open("/Help/Android/Android_C1_HomePage?androidID=" + data.androidID+ "&deviceToken=" + data.deviceToken, "_self");
+            }
+            else {
+                window.name = createGuid();
+                window.location.href = "/Start/Home/Index?SessionGUID=" + data.Guid;
+            }
+        }
+		else if (data.result == false || data.result == "false") {
+			if (data.message == "Incorrect Password . . . !")
+			{
+                DevExpress.ui.dialog.alert(data.message, 'Login...').done(function (result)
+                {
+                    setTimeout(function()
+                    {
+                        $("#Password").dxTextBox("reset");
+                        $("#Password").dxTextBox("focus");
+                    }, 300);
+                });
+            }
+            else if (data.message.includes("Invalid User ID"))
+            {
+                DevExpress.ui.dialog.alert(data.message, 'Login...').done(function (result) {
+                    setTimeout(function () {
+                        $("#UserName").dxTextBox("reset");
+                        $("#UserName").dxTextBox("option","isValid",true);
+                        $("#UserName").dxTextBox("focus");
+                    }, 300);
+                });
+            }
+            else if (data.message.includes("Incorrect Username")) {
+                DevExpress.ui.dialog.alert(data.message, 'Login...').done(function (result) {
+                    setTimeout(function () {
+                        $("#Password").dxTextBox("reset");
+                        $("#UserName").dxTextBox("reset");
+                        $("#UserName").dxTextBox("option", "isValid", true);
+                        $("#UserName").dxTextBox("focus");
+                    }, 300);
+                });
+            }
+			else {
+				DevExpress.ui.dialog.alert(data.message, 'Alert!!');
+			}
+		}
+		else {
+			DevExpress.ui.dialog.alert(data.message, 'Alert!!');
+		}
+	}
+
+</script>
+
+<script>
+    function numberBox_valueChanged(data) {
+        if (data.event.which == 13) {
+            popup_frm_COD_Selection();
+        }
+    }
+</script>

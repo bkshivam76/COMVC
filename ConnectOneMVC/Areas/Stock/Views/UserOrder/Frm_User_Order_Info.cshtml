@@ -1,0 +1,1942 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@*@model ConnectOneMVC.Areas.Stock.Models.NEVD_UserOrder*@
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    var popupID = ViewBag.UO_PopupID;
+    var RequisitionID = (string)ViewData["UO_RequisitionID"];
+
+    bool UO_Add_Rights = (bool)ViewData["UO_AddRight"];
+    bool UO_UpdateRight = (bool)ViewData["UO_UpdateRight"];
+    bool UO_ViewRight = (bool)ViewData["UO_ViewRight"];
+    bool UO_DeleteRight = (bool)ViewData["UO_DeleteRight"];
+    bool UO_ExportRight = (bool) ViewData["UO_ExportRight"];
+    bool UO_ReportRight = (bool)ViewData["UO_ReportRight"];
+    bool UO_ApproveRight = (bool)ViewData["UO_ApproveRight"];
+    bool UO_AddJobRight = (bool)ViewData["UO_AddJobRight"];
+    bool UO_AddPersonnelRight = (bool)ViewData["UO_AddPersonnelRight"];
+    bool UO_ViewJobRight = (bool)ViewData["UO_ViewJobRight"];
+    bool UO_AddStockItemRight = (bool)ViewData["UO_AddStockItemRight"];
+    bool UO_AddRRRight = (bool)ViewData["UO_AddRRRight"];
+}
+
+<style>
+    .mrgnBtm10 {
+        margin-bottom: 10px;
+    }
+</style>
+<script>
+
+    function LookUp_ViewType_ChangeEvent_UO(e) {
+
+        var SelectBox = $("#UserOrderPeriodSelection").dxSelectBox("instance").option("value");
+        $("#UOChangePeriodMain").dxButton("instance").option("disabled", true);
+
+        if (SelectBox == "Specific Period") {
+            $("#UOChangePeriodMain").dxButton("instance").option("disabled", false);
+            $("#UO_BE_View_Period").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/LookUp_ViewType_ChangeEvent_UO",
+                data: { Chaval: $("#UserOrderPeriodSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true) {
+                        $("#UO_BE_View_Period").dxTextBox("instance").option("value", data.Message.UO_BE_View_Period);
+                        //$("#Fromdate").val(data.Message.UO_Fromdate);
+                        //$("#Todate").val(data.Message.UO_Todate);
+
+                        var fromdate = ConvertJsonDateToString(data.Message.UO_Fromdate);
+                        var todate = ConvertJsonDateToString(data.Message.UO_Todate);
+                    
+                        UserOrderListGrid.Refresh();
+                    @*$("#UserOrderPartialView").load("@Url.Action("Frm_User_Order_Info", "UserOrder", new { @area = "Stock" })?FromDate=" + fromdate + "&Todate=" + todate + "&ChangeStatus=False", function () {
+
+                        HideLoader();
+                    });*@
+                        HideLoader();
+                    }
+
+                }
+            });
+        }
+    }  //Period Selection
+    function ChangePeriodinLayout() {
+
+        ShowLoader();
+
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_UO", "UserOrder", new { @area = "Stock" })", "auto", "55%", false, null);
+    }// Change Period Button Click
+
+
+    //function menuItem_click(data) {
+    //    var item = data.itemData;
+    //    console.log(item);
+    //}
+</script>
+
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">User Order Register</label>
+    </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("URNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text>function () {UserOrder_NewClick(); }</text>))
+        @(Html.DevExtreme().Button().ID("UREdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text>function () {UserOrder_EditClick(); }</text>))
+        @(Html.DevExtreme().Button().ID("URDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text>function () {UserOrder_DeleteClick(); }</text>))
+        @(Html.DevExtreme().Button().ID("URView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text>function () {UserOrder_ViewClick(); }</text>))
+        @(Html.DevExtreme().Button().ID("URtListPreview").Text("List Export").Icon("save")@*.Width(100)*@.OnClick(@<text>function(){ UserOrderPreviewClick();} </text>))
+        @(Html.DevExtreme().Button().ID("UR_MasterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {User_OrderchangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("btnUserOrderExpandAll").Text("Expand All").Icon("preferences").Hint("Expand/Collapse All").OnClick(@<text> function () { UserOrderExpandAll(); } </text>) )
+        @(Html.DevExtreme().Button().ID("URCLOSE").Text("Close").Icon("clear").OnClick("Close_UO"))
+    </div><!--[Buttons]-->
+</div>
+
+<div id="dateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().ID("UserOrderPeriodSelection").Name("UserOrderPeriodSelection").Placeholder("Specific Period").DisplayExpr("Text")
+                                                                                                                                                                                                      .ValueExpr("Value")
+                                                                                                                                                                                                      .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                                                                                                                      .DataSource(d => d.Mvc().Controller("UserOrder").LoadAction("LookUp_Get_ViewType_List_UO").Key("Value"))
+                                                                                                                                                                                                      .SearchEnabled(true)
+                                                                                                                                                                                                      .ReadOnly(false)
+                                                                                                                                                                                                      .Disabled(false)
+                                                                                                                                                                                                      .DeferRendering(false)
+                                                                                                                                                                                                      .OnValueChanged("LookUp_ViewType_ChangeEvent_UO"))
+
+
+        </div><!--[Select Date]-->
+        <div class="col-md-2 no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("UOChangePeriodMain").Text("Change Period").Disabled(true).OnClick(@<text>
+                    function (){ ChangePeriodinLayout(); }
+            </text>))
+        </div><!--[Change Period]-->
+        <div class="col-sm-4 col-md-3 subHead">
+            @(Html.DevExtreme().TextBox().ID("UO_BE_View_Period")
+                                                                                                            .Name("UO_BE_View_Period")
+                                                                                                            .Placeholder("View Period")
+                                                                                                            .ShowClearButton(true)
+                                                                                                            .ReadOnly(true)
+                                                                                                            .ValidationError(true)
+                                                                                                            .MaxLength(100)
+            )
+        </div><!--[View Period TextBox]-->
+    </div>
+    <div class="row margin0">
+        <div class="col-md-12 no-padding">
+
+            <div id="UserOrderPartialView" class="parent_table">
+                <form>
+                    @Html.Partial("Frm_User_Order_Main_Grid", Model)
+                </form>
+            </div>
+
+
+
+        </div>
+    </div><!--[Grid]-->
+    <div class="footer-MainBoxdiv full-width-footer margin8-0">
+        <div class="col-md-9">
+            <p id="UserorderLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="UserorderLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div><!--[Grid Footer]-->
+    <div class="pad-lft-20 mrgnBtm10">
+        <form>
+            @(Html.DevExtreme().Button().ID("IDUORegisterChangesReopen").Text("Re-Open")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Reopen");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterChangesRecommended").Text("Changes Recommended")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Changes Recommended");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterCreate_Requisition").Text("Create Requisition Request")
+                                                                                                        .OnClick(@<text>function(){CreateRequisitionRequest();}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterApprove").Text("Approve")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Approve");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterReject").Text("Reject")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Reject");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterCancelUO").Text("Cancel")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Cancel");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterMrkAsCmpltd").Text("Mark as Complete")
+                                                                                                        .OnClick(@<text>function(){UpDateUserOrderStatus("Complete");}</text>))
+            @(Html.DevExtreme().Button().ID("IDUORegisterClose").Text("Close")
+                                                                                                        .OnClick(@<text>function () {$(".TabPanalMenu-tabs .active span").click();}</text>))
+        </form>
+    </div>
+</div>
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("UserOrderRegister_report_modal").Title("User Order Register List Preview").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text><div id="UserOrderRegister_report_modal_Result" class="export_popup"></div></text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("UserOrderinnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").MaxHeight(800).MaxWidth(1600).ContentTemplate(@<text> <div id="result_UserOrderinnergrid">  </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("RecdPaymentAddLocation").CloseOnOutsideClick(false).ShowTitle(true).Height("auto").Width("auto").DragEnabled(true).Title("New ~ Location").ContentTemplate(@<text> <div id="result_RecdPaymentAddLocation"> </div> </text>) )
+@(Html.DevExtreme().Popup().CustomPopup().ID("UO_Content_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true).Title("New ~ ").MaxHeight(800).MaxWidth(1600).ContentTemplate(@<text> <div id="result_UO_Content_popup">  </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("UserOrderRecd").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").MaxHeight(800).MaxWidth(1600).ContentTemplate(@<text> <div id="result_UserOrderRecd">  </div> </text>))
+
+                                                                                                                                                                        <script>
+
+    var UO_number;
+    var UOID;
+    var MainDeptID;
+    var Requestee_Store_ID;
+    var UO_Status;
+    var UO_RR_mapped;
+    var Delivery_Status;
+    var Edit_Date;
+    var Edit_By;
+    var Add_Date;
+    var Add_By;
+    var UOCurrUserRole = [];
+    var Approval_Required;
+    var Requestee_Store;
+    var CurrUserRole = [];
+    var Complex;
+    var Job; 
+    var JOBID;
+    var Project;
+    var Initiation_Mode;
+    var Requestor_Name;
+    var UO_Date;
+    var UserOrderIsAllDetailExpanded = false
+    var UserOrderNewright = false;
+    var UserOrderEditright = false;
+    var UserOrderDeleteright = false;
+    var UserOrderViewright = false;
+    var UserOrderExportright = false;
+    var UO_Approve_Rights = false;
+    var UserOrdergrid;
+    var UserOrder_ShowHorizontalBar = 0;
+    var UOItemID;//uoid
+    var UserOrderEditedBy;
+    var UserOrderEditedOn ;
+     var UserOrderAddedBy ;
+    var UserOrderAddedOn;
+    var UOid;
+ var projectid;
+     var subitemid;
+    var isUOGridRefresh = false;
+    var isUONestedRefresh = false;
+var subdeptid;
+
+    $(document).ready(function () {
+        @*if ('@ViewBag.Change' != "Change") {
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/SetDate",
+                cache: false,
+                success: function (data) {
+                    $("#UserOrderPeriodSelection").dxSelectBox("instance").option("value", data.Message);
+                }
+            });
+        }*@
+        var DefaultDateString = '@ViewBag.DefualtDateString';
+        $("#UserOrderPeriodSelection").dxSelectBox("instance").option("value", DefaultDateString);
+
+
+        if ("@UO_Add_Rights" == "False")
+        {                    
+            $("#URNew").hide();
+        }                
+        if ("@UO_UpdateRight" == "False")
+        {                 
+            $("#UREdit").hide();
+        }                
+        if ("@UO_DeleteRight" == "False")
+        {                
+            $("#URDelete").hide();
+        }                
+        if ("@UO_ViewRight" == "False")
+        {                 
+            $("#URView").hide();
+        }
+        if ("@UO_ExportRight" == "False")
+        {                
+            $("#URListPreview").hide();
+        }
+
+        var SelectBox = $("#UserOrderPeriodSelection").dxSelectBox("instance").option("value");
+        if (SelectBox == "Specific Period") {
+            $("#UOChangePeriodMain").dxButton("instance").option("disabled", false);
+        }
+    });//document ready function(setting default date & check rights)
+
+
+    function UserOrderAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        UserOrderListGrid.SetHeight(height);
+    }
+
+    function UserOrderOnInit(s,e) {
+        UserOrderAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+         UserOrderAdjustSize();
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+    function UserOrderListGrid_BeginCallBack(s,e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isUOGridRefresh = true;
+        }
+        e.customArgs["ShowHorizontalBar"] = UserOrder_ShowHorizontalBar;
+   }
+    function UserOrderListGrid_EndCallBack(s,e) {
+        UserOrderAdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function ItemUserOrderGrid_BeginCallBack(s,e) {
+        e.customArgs["command"] = e.command;
+        if (e.command == "REFRESH") {
+            isUONestedRefresh = true;
+        }
+    }
+    function OnItemUserOrderInit(s) {
+        s.SetFocusedRowIndex(-1);
+    }
+function UserOrderListGridFocusedRowChanged(s) {
+        if (s.GetFocusedRowIndex() == -1) {
+            UOID = 0;
+        }
+        else {
+            UserOrdergrid = "UserOrder";
+            UOID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: UOID }, UserOrderGetRowValues);
+            s.CollapseAllDetailRows();
+        }
+    }
+
+    function UserOrderGetRowValues(data) {
+
+        var values = data.split("![");
+        UO_number = values[0];
+
+        UOID = values[1];
+        UO_Date = values[2];
+        UO_Status = values[3];
+        Delivery_Status = values[4];
+        Edit_Date = values[5];
+        Edit_By = values[6];
+        Add_Date = values[7];
+        Add_By = values[8];
+      
+        Approval_Required = values[10];
+        Requestee_Store = values[11];
+        Complex = values[12];
+        Job = values[13];
+        Project = values[14];
+        Initiation_Mode = values[15];
+        Requestor_Name = values[16];
+        MainDeptID = values[17];
+        Requestee_Store_ID = values[18];
+        JOBID = values[19];
+        UO_RR_mapped = values[20];
+        projectid = values[21];
+        subdeptid = values[22];
+
+        UOCurrUserRole = (values[9].split(','));
+        for (var i = 0; i < UOCurrUserRole.length; i++) {
+           UOCurrUserRole[i] = UOCurrUserRole[i].trim();
+        }
+
+        UserOrder_UpdateFooterDetail(UOID, Add_Date, Add_By, Edit_Date, Edit_By);
+
+    }
+
+    function UserOrder_UpdateFooterDetail(ID, Add_Date, Add_By, Edit_Date, Edit_By)
+        {
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+
+
+        if (Add_Date) {
+            Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, By: " + Add_By;
+        }
+
+
+
+        if (Edit_Date) {
+            Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, By: " + Edit_By;
+        }
+
+        $('#UserorderLbl_Create').text(Lbl_Create);
+        $('#UserorderLbl_Modify').text(Lbl_Modify);
+
+    }
+
+    function OnItemUserOrderFocusedRowChange(s, e) {
+        if (s.GetFocusedRowIndex() == -1) {
+            UOItemID = 0;
+        }
+        else {
+            UserOrderListGrid.SetFocusedRowIndex(-1);
+            UserOrdergrid = "Item";
+            UOItemID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: UOItemID }, ItemUserOrderGetData);
+        }
+    }
+
+    function ItemUserOrderGetData(Data) {
+  
+        var values = Data.split("![");
+        UOID = values[16];//uoid
+        UOItemID = values[15];
+        UserOrderEditedBy = values[13];
+        UserOrderEditedOn = values[14];
+        UserOrderAddedBy = values[11];
+        UserOrderAddedOn = values[12];
+        subitemid = values[17];
+
+        UserOrder_UpdateFooterDetail(UOItemID, UserOrderAddedOn, UserOrderAddedBy, UserOrderEditedOn, UserOrderEditedBy);
+    }
+
+
+    function CollapseUserOrderRow(s, e) {
+        s.SetFocusedRowIndex(index);
+    }
+    function ExpandUserOrderRow(s, e) {
+        index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+    }
+    function UserOrderExpandAll() {
+        if (!UserOrderIsAllDetailExpanded)
+        {
+            UserOrderListGrid.ExpandAllDetailRows();
+            UserOrderIsAllDetailExpanded = true;
+            $("#btnUserOrderExpandAll").find("span").text("Collapse All");
+        }
+        else
+        {
+            UserOrderListGrid.CollapseAllDetailRows();
+            UserOrderIsAllDetailExpanded = false;
+            $("#btnUserOrderExpandAll").find("span").text("Expand All");
+        }
+    }
+
+
+    function User_OrderchangeMode() {
+        ShowLoader();
+        if (UserOrder_ShowHorizontalBar == 0) {
+            UserOrder_ShowHorizontalBar = 1;
+            $("#UR_MasterToggleScrollBar").find("span").text("Default Data");
+
+        }
+        else {
+            UserOrder_ShowHorizontalBar = 0;
+            $("#UR_MasterToggleScrollBar").find("span").text("Full Data");
+
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_User_Order_Main_Grid", "UserOrder")',
+            type: "GET",
+            async: false,
+            data: { ShowHorizontalBar: UserOrder_ShowHorizontalBar },
+            success: function (res) {
+                $("#UserOrderPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }//full data button click
+
+
+    $("#UserOrderListGrid").keydown(function (evt) {
+
+        switch (evt.keyCode) {
+
+            case 45: // insert key
+                UserOrder_NewClick();
+                break;
+            case 13: //enter key
+                UserOrder_EditClick();
+                break;
+            case 32: //space bar
+              //  UserOrder_ViewClick(); mantis #1398
+                break;
+            case 46://delete key
+                UserOrder_DeleteClick();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            UserOrder_NewClick();
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            UserOrder_EditClick();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+           // UserOrder_ViewClick(); mantis #1398
+        }
+    });
+
+    function UserOrder_NewClick()
+    {
+        if ("@UO_Add_Rights" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+
+        ShowLoader();
+        OpenDynamicPopup("New ~ User Order", "@Url.Action("Frm_NEVD_User_Order", "UserOrder", new {@area= "Stock" })?ActionMethod=New", "auto", 1000, false, null);
+    }
+
+
+    function UserOrder_EditClick() {
+
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+
+
+        if ("@UO_UpdateRight"=="False") {
+
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        if (UO_Status == "Completed") {
+            DevExpress.ui.dialog.alert("Completed UO Cannot Be Edited..!!", "Error");
+            return;
+        }
+
+        var statusflowcheck = UO_StatusFlowCheck("Edit");
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+        var check = UO_datanavigation("Edit");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+
+        UOIsEditPopup = true;
+        ShowLoader();
+        OpenDynamicPopup("Edit ~ User Order", "@Url.Action("Frm_NEVD_User_Order", "UserOrder", new {@area= "Stock" })?ActionMethod=Edit&ID=" + UOID, "auto", 1000, false, null);
+    }
+
+
+    function UserOrder_ViewClick()
+   {
+        if (UserOrdergrid == "Item") {
+           DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+           return;
+       }
+
+        if ("UO_ViewRight" == "False") {
+        DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+        return;
+    }
+       if (!UOID) {
+           DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+           return;
+       }
+
+
+        ShowLoader();
+        OpenDynamicPopup("View ~ User Order", "@Url.Action("Frm_NEVD_User_Order", "UserOrder", new {@area= "Stock" })?ActionMethod=View&ID=" + UOID, "auto", 1000, false, null);
+    }
+
+    function UserOrder_DeleteClick() {
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if ("@UO_DeleteRight" == "False") {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        if (UO_Status == "Completed") {
+            DevExpress.ui.dialog.alert("Completed UO Cannot Be Deleted..!!", "Error");
+            return;
+        }
+
+        var statusflowcheck = UO_StatusFlowCheck("Delete");
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+        var check = UO_datanavigation("Delete");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        ShowLoader();
+        OpenDynamicPopup("Delete ~ User Order", "@Url.Action("Frm_NEVD_User_Order", "UserOrder", new {@area= "Stock" })?ActionMethod=Delete&ID=" + UOID, "auto", 1000, false, null);
+
+    }
+
+    function UserOrderPreviewClick()
+    {
+        if ("@UO_ExportRight" == "False")
+        {
+                DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+                return;
+        }
+
+       ShowLoader();
+
+        OpenPopup("UserOrderRegister_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "UserOrder", new { @area = "Stock" })", "auto", "30%", false, null);
+   }//list preview
+
+
+
+
+
+    function UserOrderContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            UserOrder_NewClick();
+        }
+        if (e.item.name == 'Close') {
+            Close_UO();
+        }
+        else if (e.item.name == 'Edit') {
+            UserOrder_EditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            UserOrder_DeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            UserOrder_ViewClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            UserOrderPreviewClick();
+        }
+        else if (e.item.name == 'CreateRR') {
+            CreateRequisitionRequest();
+        }
+        else if (e.item.name == 'Merge_UO_in_Existing_RR') {
+            OnMergeExistingRRClick();
+        }
+        else if (e.item.name == 'UnmapUO_RR') {
+            OnUnmapUOClick();
+        }
+        else if (e.item.name == 'Mark_fullydeli') {
+            OnMarkFullyDeliveredClick();
+        }
+        else if (e.item.name == 'Mark_fullyrecd') {
+            OnMarkFullyReceivedClick();
+        }
+        else if (e.item.name == 'PrintRecoverySlip') {
+            OnPrintRecoverySlipClick();
+        }
+        else if (e.item.name == 'Print_Gatepass') {
+            OnPrintGatePassClick();
+        }
+        else if (e.item.name == 'Jobdetails_UO') {
+            OnUOJobDetailsClick();
+        }
+        else if (e.item.name == 'Schedule_Deli') {
+            OnUOScheduleDeliveryClick();
+        }
+        else if (e.item.name == 'CheckBudgetStatus') {
+            UserOrderCheckBudgetClick();
+        }
+        else if (e.item.name == 'AddItems_UO') {
+            UserOrderItemClick();
+        }
+        else if (e.item.name == 'AddDocument_uo') {
+            OnAddDocumentClick();
+        }
+    }
+    function UserOrderNestedContextMenuFunction(s, e) {
+        //innergrid contextmenu items
+       if (e.item.name == 'PostUo_Scrap') {
+            UOPostScrap();
+        }
+        else if (e.item.name == 'CheckAvail_Item') {
+            UOCheckAvail();
+        }
+        else if (e.item.name == 'AddGoodsDeli_UO') {
+            UOGoodsDeli();
+        }
+        else if (e.item.name == 'AddGoodsRecd_UO') {
+            UOGoodsRecd();
+        }
+        else if (e.item.name == 'AddGoodsRetn_UO') {
+            UOGoodsRetn();
+        }
+        else if (e.item.name == 'AddGoodsRetnRecd_UO') {
+            UOGoodsRetnRecd();
+        }
+       else if (e.item.name == 'Refresh') {
+           UserOrderListGrid.Refresh();
+       }
+
+    }
+  @*function Close_UO(e)
+    {
+        @if ("@popupID".length > 0)
+        {
+            HidePopup("@popupID");
+
+       else
+        {
+            btnCloseActiveTab();
+        }*@
+
+
+    function CreateRequisitionRequest()
+    {
+        
+        $("#RRvalidationForm").remove();
+        if ("@UO_AddRRRight" != "True") {
+                DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+                return;
+            }
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        if (!(UOCurrUserRole.includes("Store Keeper") || UOCurrUserRole.includes("Store Keeper in-charge"))) {
+            DevExpress.ui.dialog.alert("Only 'Store Keeper'Can Create Requisition Request", "Error");
+            return;
+        }
+        if (UO_Status != "Approved" ) {
+            DevExpress.ui.dialog.alert("New RR can be created only against “Approved” Status UO", "Error");
+            return;
+        }
+       
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/Check_Approved_Item_Status",
+            data: {
+                UOID: UOID,
+            },
+            success: function (res) {
+            
+                if (res.result == false) {
+                    DevExpress.ui.dialog.alert(res.message, "Error");
+                    return;
+                }
+                else {
+
+                    $.ajax({
+                        type: 'POST',
+                        url: "/Stock/UserOrder/Check_Unmapped_UO_Items_for_CreatingRR",
+                        data: {
+                            UO_ID: UOID,
+                        },
+                        success: function (res) {
+                            if (res.result == false) {
+                                DevExpress.ui.dialog.alert(res.message, "Error");
+                                return;
+                            }
+                            else {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Stock/RequestRegister/Frm_NEVD_Requisition",
+                                    data:
+                                    {
+                                        ActionMethod: "New",
+                                        ID: 0,
+                                        //CurUserRole: UOCurrUserRole,
+                                        PostSuccessFunction: "Frm_UO_RR_OnSuccess_NEVD",
+                                        PopupName: "UserOrderinnergrid",
+                                        UO_ID: UOID,
+                                        Jobid: JOBID,
+                                        projectid: projectid
+                                    },
+                                    cache: false,
+                                    success: function (data) {
+                                        OpenPopup("UserOrderinnergrid", "New ~ Create RR", null, "auto", 900, true, data);
+                                        //UserOrderListGrid.SetFocusedRowIndex(-1);
+                                        //UserOrderListGrid.Refresh();
+                                    }
+                                });
+                               
+
+                            }
+                        }
+                    });
+                }
+            }
+        });       
+     }
+ function Frm_UO_RR_OnSuccess_NEVD(data) {
+
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            HideLoader();
+        }
+        else {
+            dontaskpopupcloseconfirmation = true;
+           $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.Message, "Inform");
+            UserOrderListGrid.SetFocusedRowIndex(-1);
+            UserOrderListGrid.Refresh();
+            if (typeof RequestRegisterListGrid !== 'undefined') {
+                RequestRegisterListGrid.SetFocusedRowIndex(-1);
+                RequestRegisterListGrid.Refresh();
+
+            }
+            HideLoader();
+
+        }
+    }
+
+    function Close_UO(e)
+    {
+        if ("@popupID".length > 0)
+        {
+            HidePopup("@popupID");
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/UOSessionclear",
+                cache: false
+            });
+            DeleteCookie("UOCookie");
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/UserOrder/InfoSessionclear",
+                cache: false
+            }); 
+        }
+        else
+        {
+            btnCloseActiveTab();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/UOSessionclear",
+            cache: false
+        });  
+	    DeleteCookie("UOCookie");    
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/InfoSessionclear",
+            cache: false
+        }); 
+    });
+    function OnMergeExistingRRClick() {
+       
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        if (UOCurrUserRole.includes("Store Keeper") || UOCurrUserRole.includes("Store Keeper in-charge")) {
+            if (!((UO_Status == "Approved") || (UO_Status == "In-Progress"))) {
+                DevExpress.ui.dialog.alert("User Order should be in 'Approved/InProgress' status for this operation.", "Error");
+                return;
+            }
+        }
+        else {
+            DevExpress.ui.dialog.alert("Only 'Store Keeper'and 'Store Keeper Incharge'  Can Merge User Order in Existing Requisition Request", "Error");
+            return;
+
+        }
+        var check = UO_datanavigation("MapUO");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+            ShowLoader();
+            OpenPopup("UserOrderinnergrid", "New ~ Map Screen", "@Url.Action("UO_MapExistingRR_Register", "UserOrder", new { @area = "Stock" })?UO_ID=" + encodeURIComponent(UOID), "auto", 900, false, null);
+     
+                UserOrderListGrid.SetFocusedRowIndex(-1);
+                UserOrderListGrid.Refresh();
+
+
+
+    }
+    function OnUnmapUOClick() {
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        if (UO_RR_mapped != 1) { 
+            DevExpress.ui.dialog.alert('Selected UO is not Mapped/ Already Unmapped', 'Alert');
+            return;
+        }//mantis #1308
+        if (!(UOCurrUserRole.includes("Store Keeper") || UOCurrUserRole.includes("Store Keeper in-charge"))) {
+
+            DevExpress.ui.dialog.alert("Only 'Store Keeper' and 'Store Keeper Incharge' Can Unmap User Order from Requisition Request", "Error");
+            return;
+
+        }
+
+        var check = UO_datanavigation("UnmapUO");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        $.ajax({
+            type: "POST",
+            async: false,
+            url: "/Stock/UserOrder/UnmapUORR",
+            data: {
+                UO_ID: UOID,
+            },
+            success: function (data) {
+                if (data.result == true) {
+                    DevExpress.ui.dialog.alert(data.message, "Success");
+                    UserOrderListGrid.SetFocusedRowIndex(-1);
+                    UserOrderListGrid.Refresh();
+                }
+                else {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+            }
+        });
+    }
+    function OnMarkFullyDeliveredClick() {
+      
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-DELIVERY");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Delivery_All",
+            data: {
+                ActionMethod: "New",
+                UOid: UOID,
+                MainDeptID: MainDeptID,
+                Requestee_Store_ID: Requestee_Store_ID,
+                PostSucessFunctionName: "Frm_User_Order_Delivered_All_OnSuccess",
+            },
+            cache: false,
+            success: function (data)
+            {
+
+                OpenPopup("UserOrderinnergrid","New ~ Items  Delivered All", null, "auto", 900, true, data);
+
+            }
+        });
+
+    }
+
+    function OnMarkFullyReceivedClick() {
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-RECEIVED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Received_All",
+            data: {
+                ActionMethod: "New",
+                UOid: UOID,
+                MainDeptID: MainDeptID,
+                Requestee_Store_ID: Requestee_Store_ID,
+                PostSucessFunctionName: "Frm_User_Order_All_Received_OnSuccess",
+            },
+            cache: false,
+            success: function (data) {
+
+                OpenPopup("UserOrderinnergrid", "New ~ Items  Delivered All", null, "auto", 900, true, data);
+
+            }
+        });
+
+
+    }
+    function OnPrintRecoverySlipClick() {
+
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+           if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = UO_StatusFlowCheck("PRINT RECOVERY SLIP");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function OnPrintGatePassClick() {
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = UO_StatusFlowCheck("PRINT GATE PASS");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function OnUOJobDetailsClick() {
+        if ("@UO_ViewJobRight" != "True")
+        {
+                DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+                return;
+        }
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: "GET",
+            url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+            data: {
+                ActionMethod: "View",
+                ID: JOBID,
+                CallingScreen: "UserOrder",
+               // PostSuccessFunction: "UOAddJobSuccess",
+                PopupID: "UserOrderinnergrid",
+             //   ButtonID: "UO_AddJob"
+            },
+            success: function (data) {
+                OpenPopup("UserOrderinnergrid", "View ~ Job", "null", "auto", 1150, true, data);
+            }
+        });
+    }
+
+    function OnUOScheduleDeliveryClick() {
+     
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("Schedule Delivery");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: "GET",
+            async: false,
+            url: "/Stock/UserOrder/UO_Scheduledelivery",
+            data: {
+                UO_ID: UOID,
+            },
+            success: function (data)
+            {
+                OpenPopup("UserOrderinnergrid","User Order ~  Schedule Delivery", null, "auto", "60%", true, data);
+
+            }
+        });
+
+    }
+    function UserOrderCheckBudgetClick() {
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function UserOrderItemClick() {
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("ADD-ITEMS");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        //$.ajax({
+        //    type: 'POST',
+        //    url: "/Stock/UserOrder/Received_grid_oldest_delivery",
+        //    data: {
+        //        uoselectedrowarr: UOItemID,
+        //         UOid: UOID,
+        //    },
+        //    success: function (data) {
+        //        if (data.result == false) {
+        //            DevExpress.ui.dialog.alert(data.message, "Error");
+        //        }
+        //        if (data.result == true) {
+        //            //DevExpress.ui.dialog.alert(data.message, "Inform");
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Item",
+            data: {
+                ActionMethod: "New",
+                UOid: UOID,
+                UOItemPopupName: "UserOrderinnergrid",
+                PostSucessFunctionName: "Frm_User_Order_Item_Popup_OnSuccess",
+                SubDeptID: subdeptid,
+            },
+            cache: false,
+            success: function (data) {
+
+                OpenPopup("UserOrderinnergrid", "New ~ Add Items", null, "auto", 900, true, data);
+
+            }
+        });
+    }
+    function OnAddDocumentClick() {
+
+        if (UserOrdergrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("Documents");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            data: {
+                AM: "New",
+                PostSucessFunctionName: "Frm_UserOrder_Documents_Windowdirect_OnSuccess",
+                Post_action_Name: "UserOrder_Documents_Attachment",
+                Post_Controller_Name: "UserOrder",
+                Post_Area_Name: "Stock",
+                Document_Grid_PopupName: "UserOrderinnergrid",
+                ByteSessionVariable: "UserOrderDocument",
+                Refrecid: UOID.toString()
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("UserOrderinnergrid", "New ~ Documents", null, "auto", 900, true, data);
+            }
+        });
+    }
+
+
+
+     //innergrid contextmenu functions
+    function UOPostScrap() {
+
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+
+        var menucheck = UO_StatusFlowCheck("POST SCRAP CREATED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        $("#UserOrderinnergrid").dxPopup("show");
+        $("#UserOrderinnergrid").dxPopup("instance").option("title", "New ~ Scrap Items");
+        $("#UserOrderinnergrid").dxPopup("instance").option("width", "65%");
+        $("#UserOrderinnergrid").dxPopup("instance").option("height", "40%");
+        $("#result_UserOrderinnergrid").html(null);
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Scrap",
+            data: {
+                ActionMethod: "New",
+                UOid: UOID,
+
+                UO_number: UO_number,
+                Requestee_Store_ID: Requestee_Store_ID,
+                PostSucessFunctionName: "Frm_User_Order_Scrap_Window_OnSuccess",
+            },
+            cache: false,
+            success: function (data) {
+                ShowLoader();
+                $("#result_UserOrderinnergrid").html(data);
+                HideLoader();
+            }
+        });
+    }
+    function UOCheckAvail() {
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+               
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Check_Availability",
+            data: {
+                ItemID: subitemid,                
+                Requestee_Store_ID: Requestee_Store_ID,     
+                UOid: UOID,
+                                
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Check_Avl_Popup", "Search ~ Stock Availability", null, "auto", 1150, true, data);
+            }
+        });
+        
+   @*OpenPopup("UserOrderinnergrid", "Search ~ Stock Availability", "@Url.Action("Frm_User_Order_Check_Availability", "UserOrder", new { @area = "Stock" })?ItemID=" + encodeURIComponent(UOItemID), "auto", 900, false, null);
+        UserOrderListGrid.SetFocusedRowIndex(-1);*@
+        UserOrderListGrid.SetFocusedRowIndex(-1);
+        UserOrderListGrid.Refresh();
+    }
+    function UOGoodsDeli() {
+
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-DELIVERY");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/Delivery_grid_oldest_item",
+            data: {
+                UO_ItemID: UOItemID,
+                     UOid: UOID,
+            },
+            success: function (data) {
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                if (data.result == true)
+                {
+                 
+                    //DevExpress.ui.dialog.alert(data.message, "Inform");
+
+
+                    ShowLoader();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Stock/UserOrder/Frm_User_Order_Delivery",
+                        data: {
+                            ActionMethod: "New",
+                            Item_Rec_Id: data.selID,
+                            UOid: UOID,
+                            Requestee_Store_ID: Requestee_Store_ID,
+                            MainDeptID: MainDeptID,
+                            PostSucessFunctionName: "Frm_User_Order_Delivered_OnSuccess",
+                        },
+                        cache: false,
+                        success: function (data) {
+                            OpenPopup("UserOrderinnergrid", "New ~ Goods Delivered", null, "auto", 1150, true, data);
+                        }
+                    });
+
+
+                }
+
+            }
+
+        });
+
+        //DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+
+
+    function UOGoodsRecd() {
+        
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+
+
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-RECEIVED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/Received_grid_oldest_delivery",
+            data: {
+                UO_ItemID: UOItemID,
+                 UOid: UOID,
+            },
+            success: function (data) {
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                if (data.result == true) {
+                    //DevExpress.ui.dialog.alert(data.message, "Inform");
+                    ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Received",
+            data: {
+                ActionMethod: "New",
+                UOid: UOID,
+                Item_Rec_Id: data.selID,
+                MainDeptID: MainDeptID,
+                Requestee_Store_ID: Requestee_Store_ID,
+                PostSucessFunctionName: "Frm_User_Order_Received_OnSuccess",
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("UserOrderinnergrid", "New ~Items Received", null, "auto", 900, true, data);
+            }
+        });
+
+                }
+            }
+
+        });
+
+
+    }
+
+
+    function UOGoodsRetn() {
+        //if (UserOrdergrid != "Item") {
+        //    DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+        //    return;
+        //}
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-RETURNED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/Returned_grid_oldest_received",
+            data: {
+                UO_ItemID: UOItemID,
+                UOid: UOID,
+            },
+            success: function (data) {
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                if (data.result == true) {
+                 
+                    //DevExpress.ui.dialog.alert(data.message, "Inform");
+
+
+                    ShowLoader();
+
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_User_Order_Returned",
+            data: {
+                ActionMethod: "New",
+                Item_Rec_Id: data.selID,
+                UOid: UOID,
+                MainDeptID: MainDeptID,
+                Requestee_Store_ID: Requestee_Store_ID,
+                PostSucessFunctionName: "Frm_User_Order_Returned_OnSuccess",
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("UserOrderinnergrid", "New ~ Items Returned", null, "auto", 900, true, data);
+            }
+        });
+
+                }
+            }
+
+        });
+
+
+    }
+
+    function UOGoodsRetnRecd() {
+        if (UserOrdergrid == "UserOrder") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!UOItemID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var menucheck = UO_StatusFlowCheck("ADD-GOODS-DELIVERY-RETURNED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/ReturnedReceived_grid_oldest_returned",
+            data: {
+                UO_ItemID: UOItemID,
+                UOid: UOID,
+            },
+            success: function (data) {
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                if (data.result == true) {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Stock/UserOrder/Frm_User_Order_Return_Received",
+                        data: {
+                            ActionMethod: "New",
+                            UOid: UOID,
+                            Item_Rec_Id: data.selID,
+                            MainDeptID: MainDeptID,
+                            Requestee_Store_ID: Requestee_Store_ID,
+                            //  ItemID: UOItemID,
+                            PostSucessFunctionName: "Frm_User_Order_ReturnedReceived_OnSuccess",
+                        },
+                        cache: false,
+                        success: function (data) {
+
+                            OpenPopup("UserOrderinnergrid", "New ~ Items Returned Received", null, "auto", 900, true, data);
+
+                        }
+                    });
+
+                }
+            }
+
+        });
+
+
+    }
+
+
+
+
+    function UO_datanavigation(_actionmethod) {
+        if (!_actionmethod) { _actionmethod = null; }
+
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Stock/UserOrder/DataNavigation",
+            data: {
+                ActionMethod: _actionmethod,
+                ID: UOID,
+                UO_Date: UO_Date
+            },
+            cache: false,
+            success: function (data) {
+                msg = data.Message;
+                result = data.result;
+            }
+        });
+
+        return [msg, result];
+    }
+    function UO_StatusFlowCheck(Status) {
+        var msg;
+        var result;
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/UserOrder/UserOrderStatusFlow",
+            data: {
+                ID: UOID,
+                StatusButton: Status,
+                CurrUserRole: UOCurrUserRole
+            },
+            async: false,
+            cache: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+        return [msg, result];
+    }
+
+
+
+
+    function UpDateUserOrderStatus(Status_Button) {
+     
+        if (!UOID) {
+            DevExpress.ui.dialog.alert("Please select A User Order...!", 'alert!');
+            return;
+        }
+
+
+        var statusflowcheck = UO_StatusFlowCheck(Status_Button);
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+
+        var check = UO_datanavigation(Status_Button);
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        var StatusType = "";
+
+        switch (Status_Button) {
+            case "Reject":
+                StatusType = "Do you want reject the User Order ?";
+                break;
+            case "Changes Recommended":
+                StatusType = "Do you want to change User Order ?";
+                break;
+            case "Approve":
+                StatusType = "Do you want to approve the User Order ?";
+                break;
+            case "Reopen":
+                StatusType = "Do you want to re open the User Order ?";
+                break;
+            case "Complete":
+                StatusType = "Do you want to Mark the User Order as completed?";
+                break;
+            case "Cancel":
+                StatusType = "Please confirm to Cancel User Order...";
+                break;
+            default:
+                StatusType = "";
+                break;
+        }
+        if (StatusType != "") {
+
+            var result = DevExpress.ui.dialog.confirm(StatusType, "Confirm changes");
+            result.done(function (dialogResult) {
+
+                if (dialogResult) {
+
+                    switch (Status_Button) {
+
+
+                        case "Reject":
+                        case "Cancel":
+                        case "Changes Recommended":
+
+                            ShowLoader();
+                            $.ajax({
+                                type: "GET",
+                                async: false,
+                                url: "/Stock/UserOrder/UO_StatusChange_Window",
+                                data: {
+                                    ID: UOID,
+                                    StatusButton: Status_Button
+                                },
+                                success: function (data)
+                                {
+                                    OpenDynamicPopup("User Order ~ " + Status_Button, null, "auto", "60%", true, data);
+                                }
+                            });
+                            break;
+
+                        case "Complete":
+                        case "Approve":
+                        case "Reopen":
+                            $.ajax({
+                                type: "GET",
+                                url: "/Stock/UserOrder/User_StatusChange",
+                                data: {
+                                    ID: UOID,
+                                    StatusButton: Status_Button
+                                },
+                                success: function (data) {
+                                    if (data.result == false) { DevExpress.ui.dialog.alert(data.message, 'Error..!!'); }
+                                    else {
+                                        DevExpress.ui.dialog.alert(data.message, 'Success..!!');
+                                        UserOrderListGrid.Refresh();
+                                    }
+                                }
+                            });
+                            break;
+                    }
+                }
+            });
+        }
+
+    }
+
+    //function UO_StatusChangeAjaxSuccessForm(data) {
+    //    HideLoader();
+    //    dontaskpopupcloseconfirmation = true;
+    //    if (data.result == true) {
+    //        DevExpress.ui.dialog.alert(data.message, 'Inform!');
+    //        $("#Dynamic_Content_popup").dxPopup("hide");
+    //        UO_Goods_Delivered_Main_Grid.Refresh();
+    //    }
+    //    if (data.result == false) {
+    //        DevExpress.ui.dialog.alert(data.message, 'Inform!');
+    //        $("#Dynamic_Content_popup").dxPopup("hide");
+    //    }
+    //}
+                                                                                                                                                                        </script>
+
+<script type="text/javascript">
+
+    function Frm_User_Order_Delivered_OnSuccess(data) {
+    
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+          //  var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); //Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Delivered_Main_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Delivered_Main_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+           
+        }
+    }
+    function Frm_User_Order_Received_OnSuccess(data) {
+   
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+          //  var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");// Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Received_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Received_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+        
+        }
+
+    }
+
+    function Frm_User_Order_Returned_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+           // var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); //Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Returned_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Returned_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+           
+        }
+    }
+
+    function Frm_User_Order_ReturnedReceived_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+            // var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Ret_Recd_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Ret_Recd_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+            HideLoader();
+        }
+    }
+
+    function Frm_UO_RR_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+            HideLoader();
+        }
+        else {
+            dontaskpopupcloseconfirmation = true; 
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.Message, "Inform");
+           
+            UserOrderListGrid.Refresh();
+            HideLoader();
+
+        }
+    }
+
+
+    function Frm_User_Order_Scrap_Window_OnSuccess(data) {
+        HideLoader();
+     
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+            //var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Received_Grid.SetFocusedRowIndex(-1);
+            UOScrapCreated_Window_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+   
+        }
+    }
+
+    function Frm_UserOrder_Documents_Windowdirect_OnSuccess(data) {
+
+        if (data.result == true) {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.SetFocusedRowIndex(-1);
+            UserOrderListGrid.Refresh();
+            HideLoader();
+        }
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+            HideLoader();
+        }
+
+    }
+
+    function Frm_User_Order_Item_Popup_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+           // var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); //Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            Order_Item_Grid.SetFocusedRowIndex(-1);
+            Order_Item_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+           
+        }
+    }
+
+    function Frm_User_Order_All_Received_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+           // var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");// Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Received_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Received_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+            HideLoader();
+        }
+    }
+
+    function Frm_User_Order_Delivered_All_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+           //var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); // Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Delivered_Main_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Delivered_Main_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+          
+        }
+    }
+    function Frm_User_Order_Returned_All_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+         //   var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success"); // Mantis #1021 fixed
+            $("#UserOrderinnergrid").dxPopup("hide");
+            UO_Goods_Returned_Grid.SetFocusedRowIndex(-1);
+            UO_Goods_Returned_Grid.Refresh();
+        }
+        else {
+            $("#UserOrderinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            UserOrderListGrid.Refresh();
+          
+        }
+    }
+
+    function Frm_NEVD_User_Order_OnSuccess(data) {
+    
+        dontaskpopupcloseconfirmation = true;
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+            DevExpress.ui.dialog.alert(data.message, "Success");
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            UserOrderListGrid.SetFocusedRowIndex(-1);
+            UserOrderListGrid.Refresh();
+        }
+    }
+
+</script>

@@ -1,0 +1,185 @@
+﻿@using DevExtreme.AspNet.Mvc
+@model ConnectOneMVC.Areas.Stock.Models.UOOrderItemDetails
+<style>
+    .dx-button-has-icon .dx-button-content {
+        padding-right: 8px !important;
+    }
+
+    .dx-toolbar-after .dx-button-content {
+        padding-right: 0px !important;
+    }
+</style>
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+<link href="/content/fontawesome/css/fontawesome-all.css" rel="stylesheet">
+<div id="id_UOstatus" class="edit_form">
+    @using (Ajax.BeginForm("UO_Scheduledelivery_Save", "UserOrder",
+              new AjaxOptions
+              {
+                  HttpMethod = "POST",
+                  UpdateTargetId = "UO_Sscheduledelivery_Window",
+                  InsertionMode = InsertionMode.InsertAfter,
+                  OnBegin = "AjaxBeginFormPost",
+                  OnSuccess = "UO_scheduledeliveryAjaxSuccessForm"
+              },
+               new
+               {
+                   id = "UO_Scheduledelivery_validationForm",
+                   @class = "edit_form"
+               }))
+    {
+
+        @Html.HiddenFor(x => x.UOid)
+        @Html.HiddenFor(x => x.UO_Schedule_Item_ID)
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg2">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i> UO Status Change</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align">
+                            <i class="fas fa-info-circle"></i> Red Fields are mandatory
+                        </h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            </div><!--[Header]-->
+
+
+
+            <div class="row formRow">
+
+                <div class="col-sm-6 col-md-6 col-lg-6">
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll"><label class="control-label" for="user">Scheduled Delivery Date</label></div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 prm">
+                        @(Html.DevExtreme().DateBoxFor(model => model.OT_Sch_Deliver_Date).CustomDateBox()
+                                                                                    .ID("OT_Sch_Deliver_Date")
+                                                                                    .Name("OT_Sch_Deliver_Date")
+
+
+
+                        )
+                        @Html.ValidationMessageFor(model => model.OT_Sch_Deliver_Date, "", new { @class = "text-danger" })
+                    </div>
+                </div><!--[2]-->
+            </div><!--[row5]-->
+            <div class="row">
+                <div class="form-field wbg brd-bot-none">
+                    <div class="col-lg-6 col-xs-12"></div>
+                    <div class="col-lg-6 col-xs-12">
+
+
+                        <div class="action-btn-wrap">
+                            @(Html.DevExtreme().Button().CustomCloseButton().ID("ID_CancelUO_Cancel").Text("Cancel").ElementAttr("style", "float:right;margin-left:5px;margin-right:0px;margin-top:0px").FocusStateEnabled(true).OnClick(@<text> function () { $("#UserOrderinnergrid").dxPopup("hide"); } </text>) )
+                        </div>
+                        <div class="action-btn-sec-wrap">
+                            @(Html.DevExtreme().Button().CustomSaveButton().ID("ID_CancelUO_Save").Text("Ok").ElementAttr("style", "float:right;margin-top:0px").FocusStateEnabled(true).OnClick(@<text>
+                                    function () {
+                                    OnFrm_UOScheduleDelivery_Click()
+                                    }
+                            </text>))
+                        </div>
+                    </div>
+                    <div class="clear"></div>
+                </div>
+            </div>
+
+
+        }
+    }
+
+</div>
+
+
+<script>
+    var scheduleFinalID;
+    var UO_ID;
+    var scheduledeliverydate;
+
+    $(document).ready(function () {
+        sessionclearpath = "/Stock/UserOrder/UOSessionclear";
+        var form = "UO_Scheduledelivery_validationForm";
+        setTimeout(function () {
+            $("#OT_Sch_Deliver_Date").dxDateBox("instance").focus();
+        }, Timeout100);
+    });
+  
+
+
+    function OnFrm_UOScheduleDelivery_Click(e) {
+      
+
+        var form = "UO_Scheduledelivery_validationForm";
+        
+        UOScheduleItemID = "@Model.UO_Schedule_Item_ID";
+
+        scheduleFinalID = (UOScheduleItemID.split(','));
+        for (var i = 0; i < scheduleFinalID.length; i++) {
+            scheduleFinalID[i] = scheduleFinalID[i].trim();
+        }
+
+        UO_ID = "@Model.UOid";
+
+        scheduledeliverydate = $("#OT_Sch_Deliver_Date").dxDateBox("instance").option("value");
+        var current_datetime = new Date(scheduledeliverydate);
+        var formatted_date = current_datetime.getDate() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getFullYear();
+      
+        $.ajax({            
+            type: 'POST',
+            url: "/Stock/UserOrder/UO_Scheduledelivery_Save",
+            data: { 
+                schedule_Date: formatted_date, UO_Item_ID: scheduleFinalID, UO_ID: UO_ID,
+
+            },
+            success: function (data) {
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert(data.message, "Error");
+                }
+                else if (data.result == true) {
+                    $("#UserOrderinnergrid").dxPopup("hide");
+                    DevExpress.ui.dialog.alert(data.message, "Inform");                   
+                    Order_Item_Grid.SetFocusedRowIndex(-1);                    
+                    Order_Item_Grid.Refresh();
+                }
+                else {
+                    $("#UserOrderinnergrid").dxPopup("hide");
+                    DevExpress.ui.dialog.alert(data.message, "Inform");
+                    UserOrderListGrid.Refresh();
+
+                }
+                
+            },
+
+        });
+    }
+
+    //function UO_scheduledeliveryAjaxSuccessForm(data)
+    //{
+    //    debugger
+    //    HideLoader();
+    //    if (data.result == false) {
+    //        DevExpress.ui.dialog.alert("Date not updated", 'Error..');
+    //    }
+    //    else if (data.result == true) {
+          
+    //        DevExpress.ui.dialog.alert("Schedule Date updated Successfully", 'Success..');
+    //        $("#Dynamic_Content_popup").dxPopup("hide");
+    //        UserOrderListGrid.Refresh();
+    //    }
+    //    else {
+    //        DevExpress.ui.dialog.alert("Schedule Date updated in selected Items", 'Success..');
+    //        $("#Dynamic_Content_popup").dxPopup("hide");
+    //        Order_Item_Grid.SetFocusedRowIndex(-1);
+    //        Order_Item_Grid.Refresh();
+    //    }
+    //}
+   
+</script>
+

@@ -1,0 +1,232 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@*@model IEnumerable<dynamic>*@
+@model ConnectOneMVC.Areas.Stock.Models.NEVD_UserOrder
+@{
+    ViewBag.Test = Model.UO_ActionMethod;
+    bool IsVisible = (Model != null && Model.UO_ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.UO_ActionMethod == "View" || Model.UO_ActionMethod == "Delete") ? true : false;
+}
+<div id="gudrcvd" class="tab-pane fade in">
+    <div class="row">
+        <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+            @Html.Action("UO_GoodsDeliveredMainGridData", "UserOrder", new { ActionMethodName = Model.UO_ActionMethod, UOID = Model.UOID })
+        </div>
+    </div>
+    <div class="row btnsDiv formRow">
+        @(Html.DevExtreme().Button().ID("UOBUT_DLNew").Text("New").Disabled(IsDisabled).OnClick(@<text>function () {UserOrderDelivered_NEVD("New");}</text>))
+        @(Html.DevExtreme().Button().ID("UOBUT_DLEdit").Text("Edit").Disabled(IsDisabled).OnClick(@<text> function () {UserOrderDelivered_NEVD("Edit");} </text>))
+        @(Html.DevExtreme().Button().ID("UOBUT_DLDelete").Text("Delete").Disabled(IsDisabled).OnClick(@<text>function () {UserOrderDelivered_NEVD("Delete");} </text>))
+        @(Html.DevExtreme().Button().ID("UOBUT_DLView").Text("View").Disabled(IsVisible).OnClick(@<text>function () {UserOrderDelivered_NEVD("View");} </text>))
+    </div>
+</div><!--[3]-->
+<script>
+    var Delivered_Rec_Id;//sr
+    var UO_Deli_Id;//id
+
+    function UODeliveredMainGridFocusedRowChanged(s, e) {
+           
+            s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID', Delivered_GridRowValues);
+        };
+    function Delivered_GridRowValues(values) {
+           
+        Delivered_Rec_Id = values[0];
+        UO_Deli_Id = values[1];
+    };
+
+    $("#UO_Goods_Delivered_Main_Grid").keydown(function (evt) {
+        switch (evt.keyCode) {
+            case 45: // insert key
+                UserOrderDelivered_NEVD("New")
+                break;
+            case 13: //enter key
+                UserOrderDelivered_NEVD("Edit");
+                break;
+
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            UserOrderDelivered_NEVD("New");
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            UserOrderDelivered_NEVD("Edit");
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            UserOrderDelivered_NEVD("View");
+        }
+    }); 
+
+    //function UO_Delivery_datanavigation(_actionmethod) {
+    //    if (!_actionmethod) { _actionmethod = null; }
+
+    //    var msg;
+    //    var result;
+    //    $.ajax({
+    //        type: 'GET',
+    //        async: false,
+    //        url: "/Stock/UserOrder/DataNavigationDelivery",
+    //        data: {
+    //            ActionMethod: _actionmethod,
+    //            SR: Delivered_Rec_Id,
+              
+    //        },
+    //        cache: false,
+    //        success: function (data) {
+    //            msg = data.Message;
+    //            result = data.result;
+    //        }
+    //    });
+
+    //    return [msg, result];
+    //}
+    function UserOrderDelivered_NEVD(actionMethod)
+    {
+
+            if (actionMethod == "New")
+            {
+                if ("@IsDisabled" == "true") { return; }
+
+
+                var menucheck = UO_StatusFlowCheck("ADD-GOODS-DELIVERY");
+                if (menucheck[1] == false) {
+                    DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                    return;
+                }     
+                ShowLoader();          
+                OpenPopup("UserOrderinnergrid", "New Item Detail ~ Goods Delivered","@Url.Action("Frm_User_Order_Delivery", "UserOrder", new {@area= "Stock" })?ActionMethod=New", "auto", 1000, false, null);
+            }
+
+            if (actionMethod == "Edit")
+            {
+                debugger
+                    if ("@IsDisabled" == "true") { return; }
+
+                    if (Delivered_Rec_Id == null || Delivered_Rec_Id == undefined || Delivered_Rec_Id == "undefined") {
+                        DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                        return;
+                    }
+                     
+                    var menucheck = UO_StatusFlowCheck("UPDATE-GOODS-DELIVERY");
+                    if (menucheck[1] == false) {
+                        DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                        return;
+                    }
+                var check = UO_Delivery_datanavigation("Edit");
+                if (check[1] == false) {
+                    DevExpress.ui.dialog.alert(check[0], "Error");
+                    return;
+                }  
+                ShowLoader();          
+                OpenPopup("UserOrderinnergrid", "Edit Item Detail ~ Goods Delivered","@Url.Action("Frm_User_Order_Delivery", "UserOrder", new {@area= "Stock" })?ActionMethod=Edit&SR=" + encodeURIComponent(Delivered_Rec_Id), "auto", 1000, false, null);
+            }
+            
+            else if (actionMethod == "Delete")
+            {
+                debugger
+                    if ("@IsDisabled" == "true") {
+                        return;
+                    }
+                if (Delivered_Rec_Id == 'undefined' || Delivered_Rec_Id == undefined || Delivered_Rec_Id == null || UO_Deli_Id == 'undefined' || UO_Deli_Id == undefined) {
+                        DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+                        return;
+                }
+                var menucheck = UO_StatusFlowCheck("DELETE-GOODS-DELIVERY");
+                if (menucheck[1] == false) {
+                    DevExpress.ui.dialog.alert(menucheck[0], "Error");
+                    return;
+                }
+                var check = UO_Delivery_datanavigation("Delete");
+                if (check[1] == false) {
+                    DevExpress.ui.dialog.alert(check[0], "Error");
+                    return;
+                }
+                    var Actual_Manpower_Details = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+                    Actual_Manpower_Details.done(function (dialogResult) {
+                        if (dialogResult) {
+                            $.ajax({
+                                type: 'GET',
+                                url: "/Stock/UserOrder/Check_Unsaved_Item_Entry_in_Recd_and_RetRecd_Grid", //mantis bug #976,#930
+                                data: { ID_Delivery: UO_Deli_Id },
+                                cache: false,
+                                success: function (res) {
+                                    if (res.result == true)// no added row exists in recd
+                                    {
+
+                                        $.ajax({
+                                            type: 'GET',
+                                            url: "/Stock/UserOrder/Frm_GoodsDel_DetailWin_Delete_Grid_Record",
+                                            data: { ActionMethod: "Delete", SrID: Delivered_Rec_Id, Goods_Del_Id: UO_Deli_Id },
+                                            cache: false,
+                                            success: function (data) {
+                                                if (data.result == false) {
+                                                    DevExpress.ui.dialog.alert(data.message, "Error");
+                                                }
+                                                else if (data.result == true) {
+                                                    DevExpress.ui.dialog.alert("Record Deleted Successfully", "Inform..");
+                                                    UO_Goods_Delivered_Main_Grid.SetFocusedRowIndex(-1);
+                                                    UO_Goods_Delivered_Main_Grid.Refresh();
+                                                }
+                                            }
+                                        });
+                                    }
+                                    else if (res.result == false) {
+                                        DevExpress.ui.dialog.alert(res.message, 'Alert');
+                                    }
+                                }
+                            });
+
+                        }
+                    });
+            }
+
+            else if (actionMethod == "View")
+            {
+                if (Delivered_Rec_Id == null || Delivered_Rec_Id == undefined || Delivered_Rec_Id == "undefined")
+                {
+                    DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                    return;
+                }
+
+                                ShowLoader();          
+                OpenPopup("UserOrderinnergrid", "View Item Detail ~ Goods Delivered","@Url.Action("Frm_User_Order_Delivery", "UserOrder", new {@area= "Stock" })?ActionMethod=View&SR=" + encodeURIComponent(Delivered_Rec_Id), "auto", 1000, false, null);
+            }
+
+    }
+
+    function UO_Delivery_datanavigation(_actionmethod) {
+        debugger
+        if (!_actionmethod) { _actionmethod = null; }
+
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Stock/UserOrder/DataNavigationDelivery",
+            data: {
+                ActionMethod: _actionmethod,
+                ID: UO_Deli_Id,               
+            },
+            cache: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+
+        return [msg, result];
+    }
+    //function Frm_User_Order_Delivered_OnSuccess(data) {
+    //    HideLoader();
+    //    if (data.result == false) {
+    //        DevExpress.ui.dialog.alert(data.message, "Error");
+    //    }
+    //    else {
+    //        var lbSubmitSuccess = DevExpress.ui.dialog.alert(data.message, "Success");
+    //        $("#UserOrderinnergrid").dxPopup("hide");
+    //        UO_Goods_Delivered_Main_Grid.SetFocusedRowIndex(-1);
+    //        UO_Goods_Delivered_Main_Grid.Refresh();
+    //    }
+    //}
+</script>

@@ -1,0 +1,99 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Production
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == "Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ActionMethod == "View" || Model.ActionMethod == "Delete") ? true : false;
+
+}
+<div class="row">
+    
+        <div class="col-lg-12 col-xs-12 table-responsive tbnew2 overflow-scroll scrollbar" id="result_ExitRemarksgridData">
+            @Html.Action("ProductionExistingRemarksGridData", "ProductionRegister", new { ActionMethodName=Model.ActionMethod,Prod_ID =Model.Prod_ID})
+        </div>
+   
+</div>
+<div class="row tablbuttons">
+    <div class="col-md-12">
+        <div class="form-field">
+
+            <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History" >
+
+                @(Html.DevExtreme().Button().ID("productionBUT_ExistingRemDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text> function () { OnFrm_Existing_Remarks_Delete_Click() } </text>))
+            </div><!--[button]-->
+            <div class="dx-button dx-button-normal dx-widget dx-button-has-text" role="button" aria-label="Price History">
+
+                @(Html.DevExtreme().Button().ID("productionBUT_ExistingRemView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsVisible).OnClick(@<text> function () { OnFrm_Existing_Remarks_View_Click() } </text>))
+            </div><!--[button]-->
+
+        </div>
+    </div>
+</div>
+<script>
+    var remarkssr;
+    var ExistingRemarks_Id;
+    var Remarks = "";
+    function OnExistingRemarksGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr_No;ID;Remarks', OnRemarksDetailsGridRowValues);
+    };
+    function OnRemarksDetailsGridRowValues(values) {
+        remarkssr = values[0];
+        ExistingRemarks_Id = values[1];
+        Remarks = values[2];
+    };
+    $("#ExistingRemarks_Window_Grid").keydown(function (evt) {
+        switch (evt.keyCode) {
+
+            case 32: //space bar
+                OnFrm_Existing_Remarks_View_Click();
+                break;
+            case 46://delete key
+                OnFrm_Existing_Remarks_Delete_Click();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            OnFrm_Existing_Remarks_View_Click();
+        }
+    });
+    function OnFrm_Existing_Remarks_Delete_Click() { if ("@IsDisabled"=="true") { return; }
+        if (remarkssr == 'undefined' || remarkssr == undefined || remarkssr== null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        deleteResultPaymentDetail.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/ProductionRegister/Frm_ExistingRemarks_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", ID: ExistingRemarks_Id },
+                    cache: false,
+                    success: function (Result) {
+                        if (Result.result == true) {
+                           
+                            ExistingRemarks_Window_Grid.Refresh();
+                            ExistingRemarks_Window_Grid.SetFocusedRowIndex(-1);
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(Result.message, "Error");
+                        }
+                    }
+                });
+            }
+        });
+    };
+    function OnFrm_Existing_Remarks_View_Click() {
+        if (remarkssr == 'undefined' || remarkssr == undefined || remarkssr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        else {
+
+                        ShowLoader();
+            OpenPopup("Productioninnergrid", "View Remarks", "@Url.Action("Frm_ViewRemarks", "ProductionRegister", new {@area= "Stock" })?SR=" + encodeURIComponent(remarkssr), "auto", 900, false, null);
+        }
+    }//view click
+</script>
+
+

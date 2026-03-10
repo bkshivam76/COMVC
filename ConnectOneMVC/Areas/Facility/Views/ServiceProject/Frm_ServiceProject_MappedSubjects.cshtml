@@ -1,0 +1,414 @@
+﻿<div class="ServiceProjectMappedSubject_ClearReferences">
+
+    <style>
+        .inline {
+            display: inline-block;
+        }
+        .mapped_subjects_div{padding:10px}
+        .mapped_subjects_div .dx-button-has-icon .dx-button-content{height:22px; padding-bottom:2px}
+        .mapped_subjects_div .dx-texteditor.dx-editor-outlined{width:calc(100% - 162px)}
+
+        @@media (max-width:767px) {
+        .mapped_subjects_div .dx-texteditor.dx-editor-outlined{width:100%}
+        }
+    </style>
+
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        var title = (ViewBag.ProjName == null ? "" : (string)ViewBag.ProjName) + " Mapped Users";
+        var PopupID = ViewBag.PopupID;
+        var Screen = ViewBag.Screen;
+        var ProjectID = ViewBag.ProjID;
+    }
+    <div id="ServiceProjectMappedSubject_ParentDiv">
+        <div id="ServiceProjectMappedSubject_content" class="report_header_div_main">
+            <div>
+                <div class="">
+                    <label class="report_header_label"> @title</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="mapped_subjects_div clearfix">
+                    <div class="col-md-3">
+                        @Html.Label("From: ", htmlAttributes: new { @class = "control-label", @id = "lbl_ServiceProjectMappedSubject_FromDate" })
+                        @(Html.DevExtreme().DateBox().CustomDateBox().ID("ServiceProjectMappedSubject_FromDate")
+                            .Name("ServiceProjectMappedSubject_FromDate").Min(new DateTime(1900, 01, 01)))
+                    </div>
+                    <div class="col-md-3">
+                        @Html.Label("To: ", htmlAttributes: new { @class = "control-label", @id = "lbl_ServiceProjectMappedSubject_ToDate" })
+                        @(Html.DevExtreme().DateBox().CustomDateBox().ID("ServiceProjectMappedSubject_ToDate")
+                            .Name("ServiceProjectMappedSubject_ToDate").Min(new DateTime(1900, 01, 01)))
+                    </div>
+                    <div class="col-md-6">
+                        @Html.Label("Schedule:", htmlAttributes: new { @class = "control-label", @ID = "Label_ScheduleDD", @style = "display:block" })
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("ServiceProjectMappedSubject_ScheduleDD").Name("ServiceProjectMappedSubject_ScheduleDD")
+                            .Placeholder("Select the Schedule to Map").ElementAttr(new { @class = "inline" })
+                            .DataSource(d => d.Mvc().Controller("ServiceProject").LoadAction("LookUp_Get_ScheduleList").Key("ID")
+                            .LoadMode(DataSourceLoadMode.Raw)).DisplayExpr("NAME").ValueExpr("ID").OnValueChanged("ScheduleDD_ValueChange").Visible(true)
+                            .ContentTemplate(@<text>
+                                                @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("ServiceProjectMappedSubject_ScheduleDD_datagrid")
+                                                .Columns(columns =>
+                                                {
+                                                    columns.Add().DataField("NAME").Caption("Name");
+                                                    columns.Add().DataField("ID").Caption("ID").Visible(false);
+                                                    columns.Add().DataField("SCHEDULE_TYPE").Caption("Schedule Type");
+                                                    columns.Add().DataField("FROM_TIME_1").Format("hh:mm a").DataType(GridColumnDataType.Date).Caption("From Time");
+                                                })
+                                                .Selection(s => s.Mode(SelectionMode.Single)).FilterRow(s=>s.Visible(false))
+                                                .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);};}"))
+                                            </text>))
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_SendNow").Text("Send Now").OnClick("OnServiceProjectMappedSubjectSendNowClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_Schedule").Text("Save").Visible(true).OnClick("OnServiceProjectMappedSubjectScheduleClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_Edit").Text("Edit").Visible(true).OnClick("OnServiceProjectMappedSubjectEditClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_Delete").Text("Delete").Visible(true).OnClick("OnServiceProjectMappedSubjectDeleteClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_ModelListPreview").Text("List Preview").Icon("save").OnClick("OnServiceProjectMappedSubjectPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("ServiceProjectMappedSubject_ModelCLOSE").Text("Close").Icon("clear").OnClick("closeServiceProjectMappedSubject") )
+                    </div>
+                        
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="ServiceProjectMappedSubject_gridDiv">
+            <form>
+                <div id="ServiceProjectMappedSubjectGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Service_Project_Info_DetailGrid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ServiceReport_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="BankLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="SR_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="SR_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SR_Create" class="right_footertext_top"></p>
+                            <p id="SR_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <script>
+            var fromTime = null;
+            var scheduleType = null;
+            var ProjectMappedUser_Rec_ID = "";
+            var screen_MappedSubject = "@Screen";
+            $(document).ready(function ()
+            {
+                $("#ServiceProjectMappedSubject_Schedule").hide();
+                $("#ServiceProjectMappedSubject_ScheduleDD").hide();
+                $("#ServiceProjectMappedSubject_ToDate").hide();
+                $("#ServiceProjectMappedSubject_FromDate").hide();
+                $("#lbl_ServiceProjectMappedSubject_FromDate").hide();
+                $("#lbl_ServiceProjectMappedSubject_ToDate").hide();
+                $("#Label_ScheduleDD").hide();
+                $("#ServiceProjectMappedSubject_Edit").hide();
+                $("#ServiceProjectMappedSubject_Delete").hide();
+                if ("@Screen" == "SEND_NOTIFICATION")
+                {
+                    $("#ServiceProjectMappedSubject_ModelListPreview").hide();
+                }
+                else
+                {
+                    $("#ServiceProjectMappedSubject_SendNow").hide();
+                }
+                if ("@Screen" == "SCHEDULE_NOTIFICATION")
+                {
+
+                    $("#ServiceProjectMappedSubject_ModelListPreview").hide();
+                    $("#ServiceProjectMappedSubject_SendNow").hide();
+                    $("#ServiceProjectMappedSubject_ModelCLOSE").show();
+                    $("#ServiceProjectMappedSubject_Schedule").show();
+                    $("#ServiceProjectMappedSubject_ScheduleDD").show();
+                    $("#ServiceProjectMappedSubject_ToDate").show();
+                    $("#ServiceProjectMappedSubject_FromDate").show();
+                    $("#lbl_ServiceProjectMappedSubject_FromDate").show();
+                    $("#lbl_ServiceProjectMappedSubject_ToDate").show();
+                    $("#Label_ScheduleDD").show();
+
+                }
+                if ("@Screen" == "Sparc_EditSubject") {
+                    $("#ServiceProjectMappedSubject_Edit").show();
+                    $("#ServiceProjectMappedSubject_Delete").hide();
+                }
+                else if ("@Screen" == "Sparc_DeleteSubject") {
+                    $("#ServiceProjectMappedSubject_Delete").show();
+                    $("#ServiceProjectMappedSubject_Edit").hide();
+                }
+
+            });
+            function OnServiceProjectMappedSubjectEditClick() {
+                ShowLoader();
+                ServiceProjectMappedSubject_GetSelectedRowData("@Screen");
+                HideLoader();
+            }
+            function OnServiceProjectMappedSubjectDeleteClick() {
+                ShowLoader();
+                var SelectedRowCount = ServiceProjectMappedSubjectListGrid.GetSelectedRowCount();
+                if (SelectedRowCount < 1) {
+                    DevExpress.ui.dialog.alert("Please Select Subject for Deletion!!", "Alert");
+                    HideLoader();
+                    return;
+                }
+                ServiceProjectMappedSubject_GetSelectedRowData("@Screen");
+                HideLoader();
+            }
+            function ServiceProjectMappedSubject_GetSelectedRowData(_Action)
+            {
+                if (ServiceProjectMappedSubjectListGrid.GetSelectedRowCount() > 0)
+                {
+                    ShowLoader();
+                    ServiceProjectMappedSubjectListGrid.GetSelectedFieldValues("SERVICE_USER_ID;AB_ID",
+                        function (values) { GetSelectedFieldValuesCallback_ServiceProjectMappedSubjec(values, _Action) })
+                }
+                else
+                {
+                    ProjectMappedUser_Rec_ID = "";
+                }
+            }
+            function GetSelectedFieldValuesCallback_ServiceProjectMappedSubjec(values, _Action)
+            {
+                HideLoader();
+                if (values != null)
+                {
+                    console.log(values);
+                    var user_id = ""
+                    var user_AB_id = ""                    
+                    console.log(" ProjectID:  " + "@ProjectID")
+                    ProjectMappedUser_Rec_ID = "";
+                    for (var i = 0; i < values.length;i++)
+                    {
+                        if (i == 0)
+                        {
+                            ProjectMappedUser_Rec_ID = ProjectMappedUser_Rec_ID + values[i][0];
+                            if (screen_MappedSubject == "Sparc_EditSubject" || screen_MappedSubject == "Sparc_DeleteSubject") {
+                                user_id = user_id + values[i][0];
+                                user_AB_id = user_AB_id + values[i][1];
+                            }                           
+                        }
+                        else
+                        {
+                            ProjectMappedUser_Rec_ID = ProjectMappedUser_Rec_ID + "," + values[i][0];
+                            if (screen_MappedSubject == "Sparc_DeleteSubject") {//In Sparc Subject Edit only One ROW will be Selected
+                                user_id = user_id + "," + values[i][0];
+                                user_AB_id = user_AB_id + "," + values[i][1];
+                            }
+                        }
+                    }
+                }
+                if (_Action == "SEND_NOW")
+                {
+                    ServiceProjectNotificationFormSubmit(ProjectMappedUser_Rec_ID);
+                }
+                if (_Action == "SCHEDULE") {
+                    schedule_ID = $("#ServiceProjectMappedSubject_ScheduleDD").dxDropDownBox("option", "value");
+                    //var testTime1 = '17:00:00';
+                    //var testTime2 = '11:00:00';
+                    var date = null;
+                    //var testScheduleType1 = 'ONCE';
+                    //var testScheduleType = 'RECURRING';
+                    if (schedule_ID == null || schedule_ID.length == 0)  {
+                        DevExpress.ui.dialog.alert("Please Select Schedule", "Alert");
+                        return;
+                    }
+                    //alert(fromTime);
+                    //alert(scheduleType);
+                    debugger;
+                    var fromDate = $('#ServiceProjectMappedSubject_FromDate').dxDateBox("instance").option("value");
+                    var toDate = $('#ServiceProjectMappedSubject_ToDate').dxDateBox("instance").option("value");
+                    if (scheduleType === 'ONCE') {
+                        if (fromDate === null || fromDate === undefined) {
+                            DevExpress.ui.dialog.alert("From Date is MANDATORY(in case where Selected Schedule's Schedule Type is Once))!!", "Invalid Data...").done(
+                                function () { $("#ServiceProjectMappedSubject_FromDate").dxDateBox("instance").focus() });
+                            HideLoader();
+                            return;
+                        }
+                        var arr = fromTime.split(':');
+                        date = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate(), arr[0], arr[1], arr[2], 0);
+                        if (date.getTime() <= (new Date().getTime())) {
+                            DevExpress.ui.dialog.alert("From Date and Selected From time(from Schedule type column of Schedule field) must be greater than current Date and Time!!", "Invalid Data...").done(
+                                function () { $("#ServiceProjectMappedSubject_FromDate").dxDateBox("instance").focus() });
+                            HideLoader();
+                            return;
+                        }
+                    }
+                    if (fromDate != null && toDate != null) {
+                        if (toDate.getTime() < fromDate.getTime()) {
+                            DevExpress.ui.dialog.alert('From Date must be equal or before To Date', "Information...").done(
+                                function () { $("#ServiceProjectMappedSubject_FromDate").dxDateBox("instance").focus() });
+                            HideLoader();
+                            return;
+                        }
+                    }
+
+                    ServiceProjectNotificationFormSubmit_MapSchedule(ProjectMappedUser_Rec_ID, schedule_ID, fromDate, toDate);
+                }
+                if (_Action == "Sparc_EditSubject") {
+                    Creat_Edit_Subject_ServiceProject("_Edit", user_AB_id, user_id, Title ="Edit Subject");
+                }
+                else if (_Action == "Sparc_DeleteSubject") {
+                    CreateCustomConfirmDialog("Delete Subject", "This User will be Unmapped from the Project and all the Charts of Selected Project. Are you sure want to Proceed?", true).show().done(function (dialogResult) {
+                        if (dialogResult) {
+                            ShowLoader();
+                            //make API call for DAL Operation
+                            $.ajax({
+                                type: 'GET',
+                                url: "/Facility/ServiceProject/ServiceProject_DeleteSubject",
+                                cache: false,
+                                data:
+                                {
+                                    ProjectID: "@ProjectID",
+                                    UserAbId: user_AB_id,
+                                    UserId: user_id
+                                },
+                                success: function (data) {
+                                    if (data.jsonParam.result) {
+                                        // The API returned true
+                                        HideLoader();
+                                        DevExpress.ui.dialog.alert("Subject Deleted Successfully!!!", "Deletion Success...");
+                                        RefreshGridView("ServiceProjectMappedSubjectListGrid");
+                                        console.log('Subject Deleted Successfully!!!');
+                                    } else {
+                                        // The API returned false
+                                        HideLoader();
+                                        DevExpress.ui.dialog.alert("Failed to Deleted!!!", "Deletion Failed...");
+                                        console.log('Deletion Failed!!!');
+                                    }
+                                    HideLoader();
+                                },
+                                error: function (jqXHR, textStatus, errorThrown) {
+                                    HideLoader();
+                                    console.log(jqXHR);
+                                    console.log(textStatus);
+                                    console.log(errorThrown);
+                                    DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+
+            function OnServiceProjectMappedSubjectSendNowClick(e)
+            {
+                ServiceProjectMappedSubject_GetSelectedRowData("SEND_NOW");
+            }
+
+            function OnServiceProjectMappedSubjectPreviewClick()
+                {
+                    ShowLoader();
+                OpenPopup("Service_ProjectMappedSubject_modal", "Export Option", "@Url.Action("Frm_Export_Options_MappedSubject", "ServiceProject", new { @area = "Facility" })", "auto", 130);
+                }
+
+            function closeServiceProjectMappedSubject()
+            {
+                    $("#"+"@PopupID").dxPopup("hide");
+                }
+
+            function OnServiceProjectMappedSubjectScheduleClick(e) {
+            var SelectedRowCount = ServiceProjectMappedSubjectListGrid.GetSelectedRowCount();
+            if (SelectedRowCount < 1) {
+                DevExpress.ui.dialog.alert("Please Select Users", "Alert");
+                return;
+            }
+            ServiceProjectMappedSubject_GetSelectedRowData("SCHEDULE");
+        }
+
+        </script>
+
+        <script>
+            var MappedSubjectRec_Id=null;
+            function ServiceProjectMappedSubjectOnInit(s, e)
+            {
+                ServiceProjectMappedSubjectAdjustSize();
+                ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+                {
+                    ServiceProjectMappedSubjectAdjustSize();
+                });
+                if ("@Screen" == "SEND_NOTIFICATION" || "@Screen" == "SCHEDULE_NOTIFICATION")
+                {
+                    s.SelectRows();
+                }
+
+            }
+
+            function ServiceProjectMappedSubjectAdjustSize()
+            {
+                if ( screen_MappedSubject!= "" && isDesktop) {
+                    var height = (document.documentElement.clientHeight * 70) / 100;
+                }
+                else {
+                    var height = (document.documentElement.clientHeight * 81.5) / 100;
+                }
+                try {
+                    ServiceProjectMappedSubjectListGrid.SetHeight(height);
+                }
+                catch (err)
+                {
+                }
+            }
+            function ServiceProjectMappedSubjectFocusedRowChanged(s, e) {
+                var focusIndex = s.GetFocusedRowIndex();
+                if (focusIndex > -1) {
+                    MappedSubjectRec_Id = s.GetRowKey(focusIndex);
+                }
+                else {
+                    MappedSubjectRec_Id = null;
+                }
+            }
+            function ServiceProjectMappedSubject_BeginCallback(s, e) {
+                e.customArgs["command"] = e.command;
+                if (screen_MappedSubject == "Sparc_DeleteSubject") {
+                    e.customArgs["MultipleSelection"] = true;
+                }
+            }
+            function ServiceProjectMappedSubject_EndCallback(s, e) { }
+            function ServiceProjectMappedSubject_SelectionChanged(s, e)
+            {
+                if (s.GetSelectedRowCount() == 0) {
+                    ProjectMappedUser_Rec_ID = "";
+                }
+            }
+        </script>
+
+        <script>
+
+            async function ScheduleDD_ValueChange(e, FirstCall = false) {
+                var value;
+                var DG = $("#ServiceProjectMappedSubject_ScheduleDD_datagrid").dxDataGrid("instance");
+                if (e) {
+                    value = e.value;
+                    if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                        DG.clearSelection();
+                        return;
+                    }
+                }
+                else {
+                    value = $("#ServiceProjectMappedSubject_ScheduleDD").dxDropDownBox("option", "value");
+                }
+                await DG.selectRows(value);
+                if (DG.getSelectedRowsData().length > 0) {
+                    var item = DG.getSelectedRowsData()[0];
+                    //  $("#ProjectID_createForm").dxSelectBox("option", "readOnly", true);
+                    fromTime = item.FROM_TIME_1;
+                    scheduleType = item.SCHEDULE_TYPE;
+                }
+            }
+
+        </script> @*Dropdown Function*@
+    </div>
+
+</div>

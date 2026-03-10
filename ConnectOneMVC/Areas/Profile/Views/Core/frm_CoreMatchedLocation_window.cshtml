@@ -1,0 +1,123 @@
+﻿<div class="CoreMapLocation_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Profile.Models.CoreProfile
+<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+@{
+
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+
+}
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+}
+<div id="Frm_CoreLocationSave_window_Content">
+    @using (Ajax.BeginForm("frm_CoreLocation_window", "CoreLocation",//Redmine Bug #133431 fixed
+               new AjaxOptions
+               {
+                   HttpMethod = "POST",
+                   UpdateTargetId = "frm_CoreLocation_window",
+                   InsertionMode = InsertionMode.InsertAfter,
+                   OnBegin = "AjaxBeginFormPost",
+                   OnSuccess = "CoreLocationAjaxSuccessForm"
+               },
+               new
+               {
+                   id = "CoreLocationValidationForm",
+                   @class = "edit_form"
+               }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.EditDate)
+        @Html.HiddenFor(x => x.LocationName)
+        @Html.HiddenFor(x => x.OldLocationName)
+        @Html.HiddenFor(x => x.otherDetails)
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.LastEditedOn)
+        @Html.HiddenFor(x => x.Max_Capacity_core)
+        @Html.HiddenFor(x => x.AC_or_NONAC)
+        @Html.HiddenFor(x => x.Category)
+        
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="row">
+                <div class="dx-field-label">Location Name :</div><div><span>@Html.Label(Model.LocationName)</span></div>
+            </div>
+            <div class="row"><div class="dx-field-label">Other Details : </div><span>@Html.Label(Model.otherDetails)</span></div>
+            <div class="row">
+                <div class="dx-field">
+                    <div class="dx-field-label">Matching For : </div>
+                    <div class="dx-field-value">
+                        @(Html.DevExtreme().RadioGroupFor(m=>m.RAD_PropertyService).ID("RAD_PropertyService").Name("RAD_PropertyService").DisplayExpr("text").Layout(DevExtreme.AspNet.Mvc.Orientation.Horizontal)
+                                                                 .ValueExpr("value")
+                                                                 .Value(Model.RAD_PropertyService)
+                                                                 .DataSource(new object[] {
+                                                                 new { text = "Property", value = "Property" },
+                                                                 new { text = "Service Place", value = "Service Place" },})
+                                                                 .OnValueChanged("RAD_PropertyServiceChangeValue"))
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="row">
+                    <span>Property Name : </span>
+                    @(Html.DevExtreme().DropDownBox().ID("Property_ID").Name("Property_ID").DisplayExpr("PROP_NAME")
+                              .ValueExpr("LB_ID").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                              .DataSource(d => d.Mvc().Controller("CoreLocation").LoadAction("LookUp_GetProList").Key("LB_ID")).Value(Model.Property_ID)
+                              .ReadOnly(false)
+                              .Placeholder("Select Property...")
+                              .Disabled(Model.IsDisabledProp)
+                              .OnValueChanged("LookUp_GetProList_ChangeEvent")
+                              .ContentTemplate(@<text>
+                                @Html.Partial("~/Areas/Profile/Views/Core/Frm_Core_Window_Propert_DDL_Partial.cshtml")
+                            </text>))
+                </div>
+                <div class="row">
+                    <span>Service Place : </span>
+                    @(Html.DevExtreme().DropDownBox().ID("ServicePlace_ID").Name("ServicePlace_ID").DisplayExpr("Service_Place_Name").ValueExpr("SP_ID").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                              .DataSource(d => d.Mvc().Controller("CoreLocation").LoadAction("LookUp_GetSerList").Key("SP_ID")).Value(Model.ServicePlace_ID)
+                              .ReadOnly(false).
+                              Placeholder("Select Service Place...")
+                              .Disabled(Model.IsDisabledServ)
+                              .OnValueChanged("LookUp_GetSerList_ChangeEvent")
+                              .ContentTemplate(@<text>
+                                @Html.Partial("~/Areas/Profile/Views/Core/Frm_Core_Window_New_Service_DDL_Partial.cshtml")
+                            </text>)
+                    )
+                </div>
+            </div>
+            <div class="row">
+                <span style="float: right; padding: 10px;">
+                    @(Html.DevExtreme().Button().ID("MatchedCoreLocationCancel").Text("Cancel").FocusStateEnabled(true).TabIndex(7).OnClick(@<text>
+                            function () {
+                            $("#popup_frm_CoreMatchedLocation_Window").dxPopup("hide");
+                            }
+                    </text>)
+                    )
+                </span>
+                <span style="float: right; padding: 10px;">
+                    @(Html.DevExtreme().Button().ID("MatchedCoreLocationSave").Text("Save").FocusStateEnabled(true).TabIndex(7).OnClick(@<text>
+                    function () {
+                    
+                    SaveOrUpdateMatchedCoreLocation("@Model.ID","@Model.ActionMethod","@Model.EditDate","@Model.ActionStatus", "@Model.Max_Capacity_core", "@Model.OldLocationName",
+                                                    "@Model.AC_or_NONAC", "@Model.Category", "@Model.floor")
+                    }
+                    </text>)
+                    )
+                </span>
+
+            </div>
+            <div class="row">
+
+            </div>
+        }
+    }
+</div>
+</div>

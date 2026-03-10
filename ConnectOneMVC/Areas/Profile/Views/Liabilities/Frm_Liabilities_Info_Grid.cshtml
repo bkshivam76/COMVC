@@ -1,0 +1,966 @@
+﻿@using System.Text.RegularExpressions;
+@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool Liabilities_AddRight = (bool)ViewData["Liabilities_AddRight"];
+    bool Liabilities_UpdateRight = (bool)ViewData["Liabilities_UpdateRight"];
+    bool Liabilities_ViewRight = (bool)ViewData["Liabilities_ViewRight"];
+    bool Liabilities_DeleteRight = (bool)ViewData["Liabilities_DeleteRight"];
+    bool Liabilities_ExportRight = (bool)ViewData["Liabilities_ExportRight"];
+    bool VouchingMode = ViewBag.VouchingMode == null ? false : (bool)ViewBag.VouchingMode;
+    string ViewMode = ViewBag.ViewMode == null ? "Default" : (string)ViewBag.ViewMode;
+    List<string> ColumnTobeHidden = new List<string>();
+    List<string> ColumnTobeShown = new List<string>();
+    string ColumnToBeShowIndex = ViewBag.ColumnToBeShownIndex == null ? "" : (string)ViewBag.ColumnToBeShownIndex;
+    string ColumnToBeHideIndex = ViewBag.ColumnToBeHidddenIndex == null ? "" : (string)ViewBag.ColumnToBeHidddenIndex;
+    if (ColumnToBeHideIndex.Length > 0)
+    {
+        ColumnTobeHidden = ColumnToBeHideIndex.Split(',').ToList();
+    }
+    if (ColumnToBeShowIndex.Length > 0)
+    {
+        ColumnTobeShown = ColumnToBeShowIndex.Split(',').ToList();
+    }
+
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "LiabilitiesListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "Liabilities",
+            Action = "Frm_Liabilities_Info_Grid",
+            FilterVisible = false,
+            SearchVisible = false,
+            ShowGroupedColumns = false,
+            SessionGUID = SessionGUID
+        };
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Auto;
+        //settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+        //settings.Settings.VerticalScrollableHeight = 500;
+        settings.Settings.ShowPreview = true;
+        settings.SetPreviewRowTemplateContent(c =>
+        {
+            if (VouchingMode == true)
+            {
+                Html.RenderAction("AuditButtons", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+            }
+        });
+        settings.HtmlDataCellPrepared = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            string colIdx = e.DataColumn.Index.ToString();
+            string rowIdx = e.VisibleIndex.ToString();
+            if (VouchingMode == true)
+            {
+                if (e.DataColumn.FieldName.Length > 0)
+                {
+                    e.Cell.Attributes.Add("ondblclick", "OnGridCellClick(event,this,'" + colIdx + "', '" + rowIdx + "','" + settings.Name + "','" + e.KeyValue + "','" + e.DataColumn.FieldName + "');");
+                }
+                if (e.DataColumn.Name == "iIcon")
+                {
+                    e.Cell.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                    e.Cell.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                }
+            }
+            e.Cell.CssClass += " col_" + e.DataColumn.FieldName + " row_" + e.KeyValue;
+            e.Cell.ID = "Cell_" + e.KeyValue + "|" + e.DataColumn.FieldName;
+            if (e.DataColumn.FieldName == "Out_Standing")
+            {
+                if (Convert.ToInt32(e.CellValue) > 0)
+                {
+                    e.Cell.BackColor = System.Drawing.Color.LightSalmon;
+                }
+                if (Convert.ToInt32(e.CellValue) < 0)
+                {
+                    e.Cell.BackColor = System.Drawing.Color.RosyBrown;
+                }
+            }//Redmine Bug #133305 fixed
+        };
+        settings.HtmlRowCreated = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            if (e.RowType == GridViewRowType.Data)
+            {
+                //e.Row.Attributes.Add("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                //e.Row.Attributes.Add("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                e.Row.CssClass += " " + settings.Name + "_DataRow_" + e.KeyValue;
+            }
+            else if (e.RowType == GridViewRowType.Preview)
+            {
+                e.Row.BackColor = System.Drawing.Color.White;
+                if (VouchingMode == true)
+                {
+                    e.Row.Attributes.Add("onmouseover", "OnGridPrevRowMouseHoverIn(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                    e.Row.Attributes.Add("onmouseout", "OnGridPrevRowMouseHoverOut(event,this,'" + settings.Name + "','" + e.VisibleIndex + "','" + e.KeyValue + "')");
+                }
+                e.Row.CssClass += " " + settings.Name + "_PreviewRow" + " " + settings.Name + "_PreviewRow_" + e.KeyValue;
+                //e.Row.ID = "PreviewRow_" + e.KeyValue;
+            }
+
+        };
+        //nested Grid
+
+        settings.SettingsDetail.ShowDetailRow = true;
+        if (VouchingMode == false)
+        {
+            settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;
+            settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+            settings.SetDetailRowTemplateContent(c =>
+            {
+                Html.RenderAction("Frm_Liabilities_Info_DetailGrid", new { RecID = DataBinder.Eval(c.DataItem, "ID"), MID = "", VouchingMode = VouchingMode, command = "REFRESH" });
+            });
+            settings.SettingsExport.GetExportDetailGridViews = (s, e) =>
+            {
+                string RecID = (string)DataBinder.Eval(e.DataItem, "ID");
+                GridViewExtension grid = new GridViewExtension(ConnectOneMVC.Areas.Profile.Controllers.LiabilitiesController.NestedGridExportSettings(RecID));
+                grid.Bind(ConnectOneMVC.Areas.Profile.Controllers.LiabilitiesController.NestedGridExportData(RecID));
+                e.DetailGridViews.Add(grid);
+            };
+        }
+        else
+        {
+            settings.DetailRowGetButtonVisibility = (s, e) =>
+            {
+                e.ButtonState = GridViewDetailRowButtonState.Hidden;
+            };
+        }
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        //settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        // settings.SettingsCookies.Enabled = true;
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+            settings.SettingsAdaptivity.AllowHideDataCellsByColumnMinWidth = true;
+        }
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.PageHeader.Center = "Liabilities Listing";
+        settings.SettingsExport.PageHeader.Left = ViewData["ExportGridHeaderLeft"].ToString();
+        settings.SettingsExport.PageHeader.Right = ViewData["ExportGridHeaderRight"].ToString();
+        settings.SettingsExport.PageFooter.Right = ViewData["ExportGridFooter"].ToString();
+        //settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+            e.Properties["cpClientLayout"] = gridView.SaveClientLayout();
+            string ColumnToBeShownIndex = "";
+            string ColumnToBeHidddenIndex = "";
+            if (ColumnTobeHidden.Count > 0)
+            {
+                ColumnToBeHidddenIndex = String.Join(",", ColumnTobeHidden.ToArray());
+            }
+            if (ColumnTobeShown.Count > 0)
+            {
+                ColumnToBeShownIndex = String.Join(",", ColumnTobeShown.ToArray());
+            }
+            e.Properties["cpColumnToBeShownIndex"] = ColumnToBeShownIndex;
+            e.Properties["cpColumnToBeHidddenIndex"] = ColumnToBeHidddenIndex;
+
+        };
+
+        settings.SettingsBehavior.AutoExpandAllGroups = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.Settings.UseFixedTableLayout = true;
+        //settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.Settings.ShowHeaderFilterButton = true;
+
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+
+        settings.SettingsSearchPanel.ShowClearButton = true;
+
+        settings.SettingsBehavior.AllowFocusedRow = true;
+
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+
+        settings.Init = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+
+            if (ViewMode == "Compact")
+            {
+                grid.DataColumns["Liabilities_Compact_Column"].Visible = true;
+                grid.DataColumns["ITEM_NAME"].Visible = false;
+                grid.DataColumns["PARTY_NAME"].Visible = false;
+                grid.DataColumns["LI_DATE"].Visible = false;
+                grid.DataColumns["LI_PAY_DATE"].Visible = false;
+                grid.DataColumns["Amount"].Visible = false;
+                grid.DataColumns["Addition"].Visible = false;
+                grid.DataColumns["Adjusted"].Visible = false;
+                grid.DataColumns["Paid"].Visible = false;
+                grid.DataColumns["Out_Standing"].Visible = false;
+                grid.DataColumns["Reason"].Visible = false;
+                grid.DataColumns["LI_OTHER_DETAIL"].Visible = false;
+                grid.DataColumns["Type"].Visible = false;
+                grid.DataColumns["Paid"].Visible = false;
+                grid.DataColumns["RemarkCount"].Visible = false;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["CrossedTimeLimit"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["OpenActions"].Visible = false;
+                grid.DataColumns["RemarkStatus"].Visible = false;
+                grid.DataColumns["Remarks"].Visible = false;
+                grid.DataColumns["TR_ID"].Visible = false;
+                grid.DataColumns["YEAR_ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["Special_Ref"].Visible = false;
+
+            }
+            else
+            {
+                grid.DataColumns["Liabilities_Compact_Column"].Visible = false;
+                grid.DataColumns["ITEM_NAME"].Visible = true;
+                grid.DataColumns["PARTY_NAME"].Visible = true;
+                grid.DataColumns["LI_DATE"].Visible = true;
+                grid.DataColumns["LI_PAY_DATE"].Visible = true;
+                grid.DataColumns["Amount"].Visible = true;
+                grid.DataColumns["Addition"].Visible = true;
+                grid.DataColumns["Adjusted"].Visible = true;
+                grid.DataColumns["Paid"].Visible = true;
+                grid.DataColumns["Out_Standing"].Visible = true;
+                grid.DataColumns["Reason"].Visible = true;
+                grid.DataColumns["LI_OTHER_DETAIL"].Visible = true;
+                grid.DataColumns["Type"].Visible = true;
+                grid.DataColumns["Paid"].Visible = true;
+                grid.DataColumns["RemarkCount"].Visible = true;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["CrossedTimeLimit"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["OpenActions"].Visible = false;
+                grid.DataColumns["RemarkStatus"].Visible = false;
+                grid.DataColumns["Remarks"].Visible = false;
+                grid.DataColumns["TR_ID"].Visible = false;
+                grid.DataColumns["YEAR_ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["Special_Ref"].Visible = true;
+            }
+        };
+        settings.AfterPerformCallback = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            gridView.ScrollToVisibleIndexOnClient = gridView.FocusedRowIndex;
+            if (e.CallbackName == "COLUMNMOVE")
+            {
+                if (e.Args[1] == "-1")
+                {
+                    if (ColumnTobeShown.Count > 0)
+                    {
+                        if (ColumnTobeShown.Contains(e.Args[0]))
+                        {
+                            ColumnTobeShown.Remove(e.Args[0]);
+                        }
+                    }
+                    ColumnTobeHidden.Add(e.Args[0]);
+                }
+                if (Convert.ToInt32(e.Args[1]) > -1)
+                {
+                    if (ColumnTobeHidden.Count > 0)
+                    {
+                        if (ColumnTobeHidden.Contains(e.Args[0]))
+                        {
+                            ColumnTobeHidden.Remove(e.Args[0]);
+                        }
+                    }
+                    ColumnTobeShown.Add(e.Args[0]);
+                }
+            }
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView grid = s as MVCxGridView;
+            if (ViewMode == "Compact")
+            {
+                grid.DataColumns["Liabilities_Compact_Column"].Visible = true;
+                grid.DataColumns["ITEM_NAME"].Visible = false;
+                grid.DataColumns["PARTY_NAME"].Visible = false;
+                grid.DataColumns["LI_DATE"].Visible = false;
+                grid.DataColumns["LI_PAY_DATE"].Visible = false;
+                grid.DataColumns["Amount"].Visible = false;
+                grid.DataColumns["Addition"].Visible = false;
+                grid.DataColumns["Adjusted"].Visible = false;
+                grid.DataColumns["Paid"].Visible = false;
+                grid.DataColumns["Out_Standing"].Visible = false;
+                grid.DataColumns["Reason"].Visible = false;
+                grid.DataColumns["LI_OTHER_DETAIL"].Visible = false;
+                grid.DataColumns["Type"].Visible = false;
+                grid.DataColumns["Paid"].Visible = false;
+                grid.DataColumns["RemarkCount"].Visible = false;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["CrossedTimeLimit"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["OpenActions"].Visible = false;
+                grid.DataColumns["RemarkStatus"].Visible = false;
+                grid.DataColumns["Remarks"].Visible = false;
+                grid.DataColumns["TR_ID"].Visible = false;
+                grid.DataColumns["YEAR_ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["Special_Ref"].Visible = false;
+
+            }
+            else
+            {
+                grid.DataColumns["Liabilities_Compact_Column"].Visible = false;
+                grid.DataColumns["ITEM_NAME"].Visible = true;
+                grid.DataColumns["PARTY_NAME"].Visible = true;
+                grid.DataColumns["LI_DATE"].Visible = true;
+                grid.DataColumns["LI_PAY_DATE"].Visible = true;
+                grid.DataColumns["Amount"].Visible = true;
+                grid.DataColumns["Addition"].Visible = true;
+                grid.DataColumns["Adjusted"].Visible = true;
+                grid.DataColumns["Paid"].Visible = true;
+                grid.DataColumns["Out_Standing"].Visible = true;
+                grid.DataColumns["Reason"].Visible = true;
+                grid.DataColumns["LI_OTHER_DETAIL"].Visible = true;
+                grid.DataColumns["Type"].Visible = true;
+                grid.DataColumns["Paid"].Visible = true;
+                grid.DataColumns["RemarkCount"].Visible = true;
+
+                grid.DataColumns["Action_By"].Visible = false;
+                grid.DataColumns["Action_Date"].Visible = false;
+                grid.DataColumns["Add_By"].Visible = false;
+                grid.DataColumns["Add_Date"].Visible = false;
+                grid.DataColumns["CrossedTimeLimit"].Visible = false;
+                grid.DataColumns["Edit_By"].Visible = false;
+                grid.DataColumns["Edit_Date"].Visible = false;
+                grid.DataColumns["ID"].Visible = false;
+                grid.DataColumns["OpenActions"].Visible = false;
+                grid.DataColumns["RemarkStatus"].Visible = false;
+                grid.DataColumns["Remarks"].Visible = false;
+                grid.DataColumns["TR_ID"].Visible = false;
+                grid.DataColumns["YEAR_ID"].Visible = false;
+                grid.DataColumns["REJECTED_COUNT"].Visible = false;
+                grid.DataColumns["RESPONDED_COUNT"].Visible = false;
+                grid.DataColumns["COMPLETE_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["REQ_ATTACH_COUNT"].Visible = false;
+                grid.DataColumns["OTHER_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["ALL_ATTACH_CNT"].Visible = false;
+                grid.DataColumns["Special_Ref"].Visible = true;
+            }
+            foreach (GridViewDataColumn column in grid.DataColumns)
+            {
+                if (ViewMode != "Compact")
+                {
+                    if (ColumnTobeHidden.Contains(column.Index.ToString()))
+                    {
+                        column.Visible = false;
+                    }
+                    if (ColumnTobeShown.Contains(column.Index.ToString()))
+                    {
+                        column.Visible = true;
+                    }
+                }
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;
+        settings.SettingsPager.PageSize = 25;
+        settings.SettingsPager.AllButton.Visible = true;
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                //var Additem = e.CreateItem("New", "New");
+                //if(Liabilities_AddRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Additem);
+
+                //var Edititem = e.CreateItem("Edit", "Edit");
+                //if(Liabilities_UpdateRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edititem);
+
+                //var Deleteitem = e.CreateItem("Delete", "Delete");
+                //if(Liabilities_DeleteRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                //var Viewitem = e.CreateItem("View", "View");
+                //if(Liabilities_ViewRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var PrintViewitem = e.CreateItem("Export", "ListPreview");
+                PrintViewitem.Image.IconID = "actions_hideproduct_16x16devav";
+                PrintViewitem.BeginGroup = true;
+                if (Liabilities_ExportRight) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                CloseItem.BeginGroup = true;
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+            }
+        };
+
+        // DXCOMMENT: Specify the grid's key field name and define grid columns in accordance with data model fields
+
+        //------------------------------------------------//------------------------------------------------//------------------------------------------------//------------------------------------------------
+        settings.KeyFieldName = "ID";
+        settings.PreRender = (sender, e) =>
+        {
+            MVCxGridView gridView = sender as MVCxGridView;
+            if (gridView != null)
+                gridView.FilterExpression = "[ITEM_NAME] Is Not Null";
+            if (ViewData["Layout"] != null)
+            {
+                gridView.LoadClientLayout(ViewData["Layout"].ToString());
+            }
+        };
+        //settings.HeaderFilterFillItems = (s, e) =>
+        //{
+        //    MVCxGridView grid = (MVCxGridView)s;
+        //    if (e.Column.FieldName != "iIcon")
+        //    {
+        //        return;
+        //    }
+        //    e.Values.Clear();
+        //    e.AddShowAll();
+        //    e.AddValue("<img src='../../../../Content/Images/attach_red_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RedShield')");//red
+        //    e.AddValue("<img src='../../../../Content/Images/attach_yellow_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'YellowShield')");//Yellow
+        //    e.AddValue("<img src='../../../../Content/Images/attach_green_2.png' width='20' height='20'</img>", "", "Contains([iIcon], 'GreenShield')");//green
+        //    e.AddValue("<img src='../../../../Content/Images/Completed_With_Remarks.png' width='20' height='20'</img>", "", "Contains([iIcon], 'BlueShield')");//blue
+        //    e.AddValue("<img src='../../../../Content/Images/Rejected_Attachment.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RedFlag')");//reject
+        //    e.AddValue("<img src='../../../../Content/Images/attach_normal.png' width='20' height='20'</img>", "", "Contains([iIcon], 'RequiredAttachment')");//other
+        //    e.AddValue("<img src='../../../../Content/Images/attach_other_plus.png' width='20' height='20'</img>", "", "Contains([iIcon], 'AdditionalAttachment')");//other plus
+        //    e.AddValue("<img src='../../../../Content/Images/vAccept.png' width='15' height='15'</img>", "", "Contains([iIcon], 'VouchingAccepted')");//v accept
+        //    e.AddValue("<img src='../../../../Content/Images/vReject.png' width='15' height='15'</img>", "", "Contains([iIcon], 'VouchingReject')");//v reject
+        //    e.AddValue("<img src='../../../../Content/Images/vAcceptRemark.png' width='15' height='15'</img>", "", "Contains([iIcon], 'VouchingAcceptWithRemarks')");//v remark
+        //    e.AddValue("<img src='../../../../Content/Images/aAccept.png' width='15' height='15'</img>", "", "Contains([iIcon], 'AuditAccepted')");//a accept
+        //    e.AddValue("<img src='../../../../Content/Images/aReject.png' width='15' height='15'</img>", "", "Contains([iIcon], 'AuditReject')");//a reject
+        //    e.AddValue("<img src='../../../../Content/Images/aAcceptRemark.png' width='15' height='15'</img>", "", "Contains([iIcon], 'AuditAcceptWithRemarks')");//a remark
+        //};
+        settings.Columns.Add(column =>
+        {
+            column.FieldName = "iIcon";
+            column.Name = "iIcon";
+            column.Caption = "";
+            column.MinWidth = 30;
+            column.MaxWidth = 30;
+            column.Width = 30;
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.HeaderStyle.CssClass = "hide-header_iIcon";
+
+            column.SetDataItemTemplateContent(c =>
+            {
+                Int32? iREQ_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REQ_ATTACH_COUNT");
+                Int32? iCOMPLETE_ATTACH_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "COMPLETE_ATTACH_COUNT");
+                Int32? iRESPONDED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "RESPONDED_COUNT");
+                Int32? iREJECTED_COUNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "REJECTED_COUNT");
+                Int32? iOTHER_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "OTHER_ATTACH_CNT");
+                Int32? iALL_ATTACH_CNT = (Int32?)c.Grid.GetRowValues(c.VisibleIndex, "ALL_ATTACH_CNT");
+                string iIcon = c.Grid.GetRowValues(c.VisibleIndex, "iIcon") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "iIcon").ToString();
+                string TempID = c.Grid.GetRowValues(c.VisibleIndex, "ID") == null ? "" : c.Grid.GetRowValues(c.VisibleIndex, "ID").ToString();
+                TempID = Regex.Replace(TempID, "[^0-9A-Za-z-]+", "_");
+                Html.RenderAction("AttachmentIcons", "AuditButton", new { Area = "", ReqAttachCount = iREQ_ATTACH_COUNT, CompleteAttachCount = iCOMPLETE_ATTACH_COUNT, RespondedCount = iRESPONDED_COUNT, RejectedCount = iREJECTED_COUNT, OtherCount = iOTHER_ATTACH_CNT, AllCount = iALL_ATTACH_CNT, SessionGUID = SessionGUID });
+                ViewContext.Writer.Write("<div class='Icon_" + c.Grid.UniqueID + TempID + "'>");
+                Html.RenderAction("VouchingAuditIcons", "AuditButton", new { Area = "", iIcon = iIcon, SessionGUID = SessionGUID });
+                ViewContext.Writer.Write("</div>");
+                Html.RenderAction("AuditIconAfterClick", "AuditButton", new { Area = "", Grid = settings.Name, KeyValue = c.KeyValue, VisibleIndex = c.VisibleIndex, SessionGUID = SessionGUID });
+                column.AdaptivePriority = 0;
+            });
+        });
+
+        settings.Columns.Add(column =>
+        {
+            column.Name = "Liabilities_Compact_Column";
+            column.Width = Unit.Percentage(100);
+            column.CellStyle.Wrap = DefaultBoolean.True;
+            column.SetDataItemTemplateContent(c =>
+            {
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Item Name:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|ITEM_NAME' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "ITEM_NAME") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Party Name:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|PARTY_NAME' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "PARTY_NAME") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Date:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|LI_DATE' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "LI_DATE") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Payable Date:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|LI_PAY_DATE' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "LI_PAY_DATE") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Amount:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Amount' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "Amount") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Addition:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Addition' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "Addition") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Adjusted:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Adjusted' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "Adjusted") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Paid:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Paid' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "Paid") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Out-Standing:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Out_Standing' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "Out_Standing") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Reason:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Reason' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "Reason") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Other Detail:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|LI_OTHER_DETAIL' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "LI_OTHER_DETAIL") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                        "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                        "<div class='form-field'>" +
+                        "<div class='container-fluid'>" +
+                        "<div class='row'>" +
+                        "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                        "<label class='control-label'>Type:</label></div>" +
+                        "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Type' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                        DataBinder.Eval(c.DataItem, "Type") + "</div></div></div></div></div></div></div>");
+
+                ViewContext.Writer.Write(
+                            "<div style='padding:0px 5px 0px 5px'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Remark Count:</label></div>" +
+                            "<div class='col-sm-8 col-md-8 col-lg-8 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|RemarkCount' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "RemarkCount") + "</div></div></div></div></div>");
+                ViewContext.Writer.Write(
+                            "<div class='col-sm-12 col-md-6 col-lg-6'>" +
+                            "<div class='form-field'>" +
+                            "<div class='container-fluid'>" +
+                            "<div class='row'>" +
+                            "<div class='col-sm-4 col-md-4 col-lg-4  compact_column_label'>" +
+                            "<label class='control-label'>Reference:</label></div>" +
+                            "<div class='col-sm-8 col-md-6 col-lg-6 compact_column_data wrapText' id='" + settings.Name + "_Cell_" + c.KeyValue + "|Special_Ref' ondblclick = OnGridCellClick(event,this,'','','" + settings.Name + "','" + c.KeyValue + "','','True','" + VouchingMode + "')>" +
+                            DataBinder.Eval(c.DataItem, "Special_Ref") + "</div></div></div></div></div></div></div>");
+            });
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "ITEM_NAME";
+                column.Caption = "Item Name";
+                column.MinWidth = 160;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "PARTY_NAME";
+                column.Caption = "Party Name";
+                column.MinWidth = 200;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "LI_DATE";
+                column.Caption = "Date";
+                column.MinWidth = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "LI_PAY_DATE";
+                column.Caption = "Payable Date";
+                column.MinWidth = 180;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Amount";
+                column.Caption = "Amount";
+                column.MinWidth = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Addition";
+                column.Caption = "Addition";
+                column.MinWidth = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Adjusted";
+                column.Caption = "Adjusted";
+                column.MinWidth = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Paid";
+                column.Caption = "Paid";
+                column.MinWidth = 150;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Out_Standing";
+                column.Caption = "Out-Standing";
+                column.MinWidth = 170;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Reason";
+                column.Caption = "Reason";
+                column.MinWidth = 200;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "LI_OTHER_DETAIL";
+                column.Caption = "Other Detail";
+                column.MinWidth = 200;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Special_Ref";
+                column.Caption = "Reference";
+                column.MinWidth = 200;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Type";
+                column.Caption = "Type";
+                column.MinWidth = 180;
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "RemarkCount";
+                column.Caption = "Remark Count";
+                column.MinWidth = 180;
+            }
+        });
+
+        //settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Custom, "ITEM_NAME").DisplayFormat = "Grand Total:";
+        settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Amount").DisplayFormat = "{0:#,0.00}";
+        settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Paid").DisplayFormat = "{0:#,0.00}";
+        settings.TotalSummary.Add(DevExpress.Data.SummaryItemType.Sum, "Out_Standing").DisplayFormat = "{0:#,0.00}";
+
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Action_By",
+            Caption = "Action By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Action_Date",
+            Caption = "Action Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Add_By",
+            Caption = "Add By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Add_Date",
+            Caption = "Add Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "CrossedTimeLimit",
+            Caption = "Crossed Time Limit",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edit_By",
+            Caption = "Edit By",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edit_Date",
+            Caption = "Edit Date",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ID",
+            Caption = "ID",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "OpenActions",
+            Caption = "Open Actions",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "RemarkStatus",
+            Caption = "Remark Status",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Remarks",
+            Caption = "Remarks",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "TR_ID",
+            Caption = "Tr. ID",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "YEAR_ID",
+            Caption = "Year ID",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REJECTED_COUNT",
+            Caption = "iREJECTED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "RESPONDED_COUNT",
+            Caption = "iRESPONDED_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "COMPLETE_ATTACH_COUNT",
+            Caption = "iCOMPLETE_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "REQ_ATTACH_COUNT",
+            Caption = "iREQ_ATTACH_COUNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "OTHER_ATTACH_CNT",
+            Caption = "OTHER_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ALL_ATTACH_CNT",
+            Caption = "ALL_ATTACH_CNT",
+            Visible = false,
+            MinWidth = 125
+        });
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+
+        settings.Settings.ShowGroupedColumns = false;
+        settings.Settings.ShowFooter = true;
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.ClientSideEvents.Init = "LiabilitiesOnInit";
+        //settings.ClientSideEvents.CustomizationWindowCloseUp = "Depositsgrid_CustomizationWindowCloseUp";
+        settings.ClientSideEvents.ContextMenuItemClick = "LiabilitiesContextMenuFunction";
+        if (VouchingMode == false)
+        {
+            settings.ClientSideEvents.RowDblClick = "Liabilities_dblclickEdit";
+        }
+        settings.ClientSideEvents.BeginCallback = "LiabilitiesGrid_BeginCallBack";
+        settings.ClientSideEvents.FocusedRowChanged = "OnLiabilitiesGridFocusedRowChanged";
+        settings.ClientSideEvents.EndCallback = "OnGridLiabilitiesListGrid_EndCallback";
+        settings.ClientSideEvents.DetailRowCollapsing = "LiabilitiesGrid_DetailRowCollapsing";
+        settings.ClientSideEvents.DetailRowExpanding = "LiabilitiesGrid_DetailRowExpanding";
+        MyExtensions.GridViewHelper.Custom_HeaderFilterFillItems_All(settings);
+        MyExtensions.GridViewHelper.CustomGridView(settings);
+
+    }).Bind(Model).GetHtml()

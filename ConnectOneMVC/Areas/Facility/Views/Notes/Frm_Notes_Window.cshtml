@@ -1,0 +1,213 @@
+﻿<div class="Notes_WindowFacility_ClearReferences">
+
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Facility.Models.NotesWindow
+
+    @{
+        ViewBag.Test = Model.ActionMethod;
+        bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+    }
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+    }
+    <style>
+        .control-label {
+            text-align: left !important;
+        }
+
+        textarea#Txt_Desc_Notes {
+            height: auto !important;
+            min-height: 150px !important;
+            padding: 0px 0px 0px 0px !important;
+        }
+    </style>
+    <div id="Frm_Notes_Window_Content">
+        @using (Ajax.BeginForm("Frm_Notes_Window", "Facility",
+                                        new AjaxOptions
+                                        {
+                                            HttpMethod = "POST",
+                                            UpdateTargetId = "Frm_Notes_Window_Content",
+                                            InsertionMode = InsertionMode.InsertAfter,
+                                            OnBegin = "AjaxBeginFormPost",
+                                            OnSuccess = "Notes_WindowAjaxSuccessForm"
+                                        },
+                                        new
+                                        {
+                                            id = "Notes_WindowValidationForm",
+                                            @class = "edit_form"
+                                        }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.ActionMethod)
+            @Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(x => x.xID)
+            @Html.HiddenFor(x => x.LastEditedOn)
+            var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+            using (Html.DevExtreme().ValidationGroup())
+            {
+
+                <div class="full-width-header-bg">
+                    <div class="row">
+
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i> Note</h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are Mandatory</h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                    </div>
+                </div><!--[Header]-->
+                <div class="row">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-sm-12 pll" style="text-align:center">
+                                <label class="control-label text-red">:: Note Text::</label>
+                            </div>
+                            <div class="col-md-12 prm ">
+                                @(Html.DevExtreme().TextArea().ID("Txt_Desc_Notes").Name("Txt_Desc_Notes").Value(Model.Txt_Desc_Notes) )
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="col-sm-2 pll">
+                                <label class="control-label">Status:</label>
+                            </div>
+                            <div class="col-md-4 prm">
+                                @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Txt_Status_Notes").Name("Txt_Status_Notes").Items(new[] { "COMPLETED", "INCOMPLETE" }).Value("INCOMPLETE").ReadOnly(IsVisible).ShowClearButton(false) )
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12">
+                        <div class="row">
+                            <div class="styleActionBtn">
+                                @(Html.DevExtreme().Button().ID("BUT_SAVE_Notes_AI").CustomSaveButton().Text("Save").UseSubmitBehavior(false).OnClick("NotesSaveClick"))
+                                @(Html.DevExtreme().Button().ID("BUT_CANCEL_Notes_AI").CustomCloseButton().Text("Cancel").FocusStateEnabled(true).OnClick(@<text> function () { $("#Dynamic_Content_popup").dxPopup("hide"); } </text>))
+                            </div>
+                        </div>
+                    </div>
+                </div><!--[Buttons]-->
+            }
+        }
+    </div>
+    <script>
+    var ActionMode_Notes = "@Model.ActionMethod";
+    $(document).ready(function()
+    {
+        ShowLoader();
+        if (ActionMode_Notes == "_New" || ActionMode_Notes == "_Edit")
+        {
+            dontaskpopupcloseconfirmation = false;
+        }
+        if (ActionMode_Notes == "_Delete")
+        {
+            $("#BUT_SAVE_Notes_AI").dxButton("instance").option("text", "Yes");
+            $("#BUT_CANCEL_Notes_AI").dxButton("instance").option("text", "No");
+            Set_Properties(false, true);
+        }
+        if (ActionMode_Notes == "_Delete" || ActionMode_Notes == "_Edit")
+        {
+            $("#Txt_Status_Notes").dxSelectBox("instance").option("disabled", false);
+        }
+        $("#Txt_Desc_Notes").dxTextArea("instance").focus();
+        HideLoader();
+    })
+    function Set_Properties(Clear, Set_ReadOnly)
+    {
+        if (Clear)
+        {
+            $("#Txt_Desc_Notes").dxTextArea("instance").option("value", null);
+        }
+        if (Set_ReadOnly) {
+            $("#Txt_Desc_Notes").dxTextArea("instance").option("readOnly", true);
+            $("#Txt_Status_Notes").dxSelectBox("instance").option("readOnly", true);
+        }
+        else
+        {
+            $("#Txt_Desc_Notes").dxTextArea("instance").option("readOnly", false);
+            $("#Txt_Status_Notes").dxSelectBox("instance").option("readOnly", false);
+        }
+    }
+
+    function NotesSaveClick(e)
+    {
+        if (ActionMode_Notes == "_Delete") {
+            var delConfirm = DevExpress.ui.dialog.confirm("Sure You Want To Delete This Entry...? ", "Notes");
+            delConfirm.done(function (result) {
+                if (result) {
+                    $("#Notes_WindowValidationForm").submit();
+                }
+            });
+        }
+        else
+        {
+            $("#Notes_WindowValidationForm").submit();
+        }
+    }
+    function Notes_WindowAjaxSuccessForm(data)
+    {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.jsonParam.result == false)
+        {
+            if (data.jsonParam.refreshgrid)
+            {
+                if (typeof Notes_InfoListGrid !== 'undefined')
+                {
+                    Notes_InfoListGrid.Refresh();
+                }
+            }
+            var alert = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            alert.done(function (dialogResult)
+            {
+                if (data.jsonParam.focusid != null)
+                {
+                    if (dialogResult)
+                    {
+                        $("#Txt_Desc_Notes").dxTextArea("instance").focus();
+                    }
+                }
+            });
+        }
+        else
+        {
+            if (typeof Notes_InfoListGrid !== 'undefined')
+            {
+                if (data.xid != null) {
+                    Select_xid_Notes = data.xid;
+                }
+                Notes_InfoListGrid.Refresh();
+            }
+            var check = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+            check.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    if (ActionMode_Notes == "_New")
+                    {
+                        var newConfirm = DevExpress.ui.dialog.confirm("Add More Entry...? ","Notes");
+                        newConfirm.done(function (result)
+                        {
+                            if (result)
+                            {
+                                OnNotesNewClick();
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        if (data.jsonParam.closeform == true)
+        {
+            HidePopup("Dynamic_Content_popup");
+        }
+    }
+    </script>
+</div>

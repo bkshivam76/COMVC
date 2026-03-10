@@ -1,0 +1,571 @@
+﻿<div class="SchedulerHelp_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string CurrentCenID = ViewBag.CurrentCenID;
+        string UserType = (string)ViewBag.UserType;
+        @*bool Scheduler_AddRight = (bool)ViewData["Scheduler_AddRight"];
+        bool Scheduler_UpdateRight = (bool)ViewData["Scheduler_UpdateRight"];
+        bool Scheduler_DeleteRight = (bool)ViewData["Scheduler_DeleteRight"];
+        bool Scheduler_ReportRight = (bool)ViewData["Scheduler_ReportRight"];
+        bool Scheduler_ListRight = (bool)ViewData["Scheduler_ListRight"];
+        bool Scheduler_ExportRight = (bool)ViewData["Scheduler_ExportRight"];
+        bool Help_Attachment_AddRight = ViewData["Help_Attachment_AddRight"] == null ? false : (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = ViewData["Help_Attachment_EditRight"] == null ? false : (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = ViewData["Help_Attachment_ViewRight"] == null ? false : (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = ViewData["Help_Attachment_DeleteRight"] == null ? false : (bool)ViewData["Help_Attachment_DeleteRight"];//attachment*@
+    }
+    <div id="Scheduler_ParentDiv">
+        <div id="Scheduler_content" class="report_header_div_main clearfix">
+            <div class="report_header_div">
+                <label class="report_header_label">Scheduler</label>
+            </div>
+            <div class="report_button_div">
+                @(Html.DevExtreme().Button().ID("SchedulerModelQueue").Text("Scheduled Jobs Queue").Icon("save").OnClick(@<text> function () { DataNavigation_Scheduler("QUEUE"); } </text>))
+                @(Html.DevExtreme().Button().ID("SchedulerModelLog").Text("Scheduled Job Log").Icon("save").OnClick(@<text> function () { DataNavigation_Scheduler("LOG"); } </text>))
+                @(Html.DevExtreme().Button().ID("SchedulerNew").Text("New") .Icon("add").OnClick(@<text> function () { DataNavigation_Scheduler("NEW"); } </text>))
+                @(Html.DevExtreme().Button().ID("SchedulerEdit").Text("Edit").Icon("edit").OnClick(@<text> function () { DataNavigation_Scheduler("EDIT"); } </text>))
+                @(Html.DevExtreme().Button().ID("SchedulerDelete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_Scheduler("DELETE"); } </text>))
+                @(Html.DevExtreme().Button().ID("SchedulerView").Text("View").Icon("save").OnClick(@<text> function () { DataNavigation_Scheduler("VIEW"); }</text>) )
+                @(Html.DevExtreme().Button().ID("SchedulerModelListPreview").Text("List Preview").Icon("save").OnClick("OnSchedulerListPreviewClick") )
+                @(Html.DevExtreme().Button().ID("SchedulerToggleScrollBar").Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90).Icon("toolbox").OnClick("SchedulerchangeMode") )
+                @(Html.DevExtreme().Button().ID("SchedulerModelCLOSE").Text("Close").Icon("clear").OnClick("closeScheduler") )
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="Scheduler_gridDiv">
+            <form>
+                <div id="SchedulerGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Scheduler_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="Scheduler_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="Scheduler_Create" class="right_footertext_top"></p>
+                            <p id="Scheduler_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var Scheduler_PageData = null;
+    var Scheduler_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var Scheduler_ID = null;
+    var Cen_ID = null;
+    var Scheduler_Edit_Date;
+    var Scheduler_Add_Date;
+    var Scheduler_Add_By;
+    var Scheduler_Edit_By;
+    var Scheduler_ViewMode = "Default";
+    var Scheduler_Select_xid = "";
+    var SchedulerFocusedRowIndexBeforeRefresh;
+    var Scheduler_ColumnToBeShownIndex = "";
+    var Scheduler_ColumnToBeHidddenIndex = "";
+    var SchedulerGridLayout = null;
+    var SchedulerInfo_IsDetailRowExpanded = false;
+    var SchedulerInfo_NestedRecord_FocusedRowIndex = -1;
+    var SchedulerInfo_NestedGrid_AccessID;
+    var SchedulerInfo_NestedGrid_RowID;
+    var SchedulerInfo_AtachmentID;
+    var SchedulerInfo_FileName;
+    var SchedulerInfo_ParamMandatory;
+    var SchedulerInfo_FromDateLabel;
+    var SchedulerInfo_ToDateLabel;
+    var SchedulerInfo_DescriptionLabel;
+    var SchedulerInfo_Doc_ID;
+    var SchedulerInfo_Doc_Category;
+    var SchedulerInfo_MasterRowRecID;
+    var SchedulerInfo_MasterRowMID;
+    var SchedulerInfo_NestedRowMapID;
+    var SchedulerInfo_reason;
+    var SchedulerInfo_Attachment_RecStatus;
+    var SchedulerInfo_Nested_Doc_Status;
+    var SchedulerInfo_NestedRowReasonID;
+    var SchedulerInfo_NestedRowKeyValue;
+    var Scheduler_MoreEntry = false;
+    var Screen_SchedulerInfo = '@ViewBag.Screen';
+</script>
+<script>
+    $(document).ready(function () {
+        if (Screen_SchedulerInfo == "Sparc_Delete_Schedule") {
+            $('#SchedulerNew').hide()
+            $('#SchedulerView').hide()
+            $('#SchedulerView').hide()
+            $('#SchedulerEdit').hide()
+            $('#SchedulerDelete').show()
+        }
+        else if (Screen_SchedulerInfo == "Sparc_Edit_Schedule") {
+            $('#SchedulerNew').hide()
+            $('#SchedulerView').hide()
+            $('#SchedulerView').hide()
+            $('#SchedulerDelete').hide()
+            $('#SchedulerEdit').show()
+        }
+    });
+
+    function DataNavigation_Scheduler(Action)
+    {
+        debugger;
+        if (Action == "NEW") {
+            @*if ("@Scheduler_AddRight" == "False") {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }*@
+            ShowLoader();
+            OpenDynamicPopup("New ~ Scheduler", "@Url.Action("Frm_Scheduler_Window", "Scheduler", new { @area = "Help" })?ActionMethod=_New&Screen=" + Screen_SchedulerInfo, "auto", 1040, false, null);
+            HideLoader();
+        }
+        else if (Action == "QUEUE") {
+            @*if (!"@Scheduler_UpdateRight" || !"@Scheduler_DeleteRight") {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }*@
+            if (Scheduler_ID == "" || Scheduler_ID == null || Scheduler_ID == 'undefined') {
+                DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Scheduler/Frm_Scheduler_Queue_Info",
+                cache: false,
+                data:
+                {
+                    ActionMethod: "_Queue"
+                },
+                success: function (data) {
+                    ShowLoader();
+                    OpenPopup("SchedulerQueue_modal", "Queuing ~ Scheduler", null, "auto", 1040, true, data);
+                    HideLoader();
+                }
+            });
+        }
+        else if (Action == "LOG") {
+            if (Scheduler_ID == "" || Scheduler_ID == null || Scheduler_ID == 'undefined') {
+                DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                return;
+            }
+            @*if (!"@Scheduler_UpdateRight" || !"@Scheduler_DeleteRight") {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }*@
+            if (SchedulerInfo_NestedGrid_RowID == "" || SchedulerInfo_NestedGrid_RowID == null || SchedulerInfo_NestedGrid_RowID == 'undefined' || SchedulerInfo_NestedGrid_RowID === NaN) {
+                DevExpress.ui.dialog.alert("Please select one nested row.", "Alert");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Scheduler/Frm_Scheduler_Log_Info",
+                cache: false,
+                data:
+                {
+                    nestedGridFocusedRowID: SchedulerInfo_NestedGrid_RowID
+                },
+                success: function (data) {
+                    ShowLoader();
+                    OpenPopup("SchedulerLog_modal", "Log ~ Scheduler", null, "auto", 1040, true, data);
+                    HideLoader();
+                }
+            });
+        }
+        else if (Action == "EDIT" || Action == "DELETE") {
+            @*if (!"@Scheduler_UpdateRight" || !"@Scheduler_DeleteRight") {
+                DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+            }*@
+            if (Scheduler_ID == "" || Scheduler_ID == null || Scheduler_ID == 'undefined') {
+                DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                return;
+            }
+            
+            if ("@CurrentCenID" != Cen_ID) {
+                DevExpress.ui.dialog.alert("Only creators of this Universal Schedule allowed to perform EDIT/DELETE!!", "Unauthorized!!!");
+                return;
+            }
+            if (Scheduler_ID == "" || Scheduler_ID == null || Scheduler_ID == 'undefined') {
+                DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Scheduler/Frm_Scheduler_Window",
+                cache: false,
+                data:
+                {
+                    ActionMethod: Action == "EDIT" ? "_Edit" : "_Delete",
+                    xID: Scheduler_ID,
+                    cenId: Cen_ID,
+                    Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(Scheduler_Edit_Date)
+                },
+                success: function (data)
+                {
+                    ShowLoader();
+                    OpenPopup("Dynamic_Content_popup", Action == "EDIT" ? "Edit ~ Scheduler" : "Delete ~ Scheduler", null, "auto", 1040, true, data);
+                    HideLoader();
+                }
+            });
+        }
+        else if (Action == "VIEW" || Action == "_View") {
+            if (Scheduler_ID == "" || Scheduler_ID == null || Scheduler_ID == 'undefined') {
+                DevExpress.ui.dialog.alert("Please select one row.", "Alert");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Scheduler/Frm_Scheduler_Window",
+                cache: false,
+                data:
+                {
+                    ActionMethod: Action == "VIEW" ? "_View" : "",
+                    xID: Scheduler_ID,
+                    Info_LastEditedOn: JS_Json_Date_To_ddMMyyyy(Scheduler_Edit_Date)
+                },
+                success: function (data) {
+                    ShowLoader();
+                    OpenPopup("Dynamic_Content_popup", Action == "VIEW" ? "View ~ Scheduler" : "View ~ Scheduler", null, "auto", 1040, true, data);
+                    HideLoader();
+                }
+            });
+        }
+    }
+    function OnSchedulerListPreviewClick()
+    {
+        @*if (!"@Scheduler_ExportRight")
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights'); return;
+        }*@
+        ShowLoader();
+        OpenPopup("Scheduler_modal", "Export Option", "@Url.Action("Frm_Export_Options", "Scheduler", new { @area = "Help" })", "auto", 130);
+    }
+    function OnSchedulerQueue() {
+
+    }
+    function OnSchedulerLog() {
+
+    }
+    function closeScheduler()
+    {
+        if (Screen_SchedulerInfo.includes("Sparc_")) {
+            $("#" + Screen_SchedulerInfo).dxPopup("hide");
+            $.ajax({
+                type: 'GET',
+                url: "/Help/Scheduler/SessionClear",
+                cache: false
+            });
+        }
+        else { 
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Scheduler/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_Scheduler();
+    });
+    $(function () {
+        debugger;
+        if (Screen_SchedulerInfo.length > 0) {
+            if (Screen_SchedulerInfo != "Dynamic_Content_popup") {
+                $('#' + Screen_SchedulerInfo).dxPopup({
+                    onHiding: function (e) {
+                        $.ajax({
+                            url: "/Help/Scheduler/SessionClear",
+                            type: "GET"
+                        });
+                        HideLoader();
+                    }
+                });
+            }
+            else {
+                sessionclearpath = "/Help/Scheduler/SessionClear";
+            }
+        }
+    });
+    function ClearAllReferences_Scheduler() {
+        IsSchedulerSucessPopup = null;
+        IsSchedulerViewPopup = null;
+        IsSchedulerNewPopup = null;
+        Scheduler_ShowHorizontalBar = null;
+        Scheduler_ID = null;
+        tP_NOField = null;
+        telMiscIdField = null;
+        categoryField = null;
+        Scheduler_typeField = null;
+        Scheduler_Edit_Date = null;
+        Scheduler_Add_Date = null;
+        Scheduler_Add_By = null;
+        Scheduler_Edit_By = null;
+        Scheduler_AddRight = null;
+        Scheduler_EditRight = null;
+        Scheduler_DeleteRight = null;
+        Scheduler_ExportRight = null;
+        Scheduler_ListRight = null;
+        UserType_SchedulerPrf = null;
+        _actionName = null;
+        _IsContextMenu = null;
+        Scheduler_ViewMode = null;
+        Scheduler_ColumnToBeShownIndex = null;
+        Scheduler_ColumnToBeHidddenIndex = null;
+        SchedulerGridLayout = null;
+        SchedulerInfo_IsDetailRowExpanded = null;
+        SchedulerInfo_NestedRecord_FocusedRowIndex = null;
+        SchedulerInfo_NestedGrid_AccessID = null;
+        SchedulerInfo_NestedGrid_RowID = null;
+        SchedulerInfo_AtachmentID = null;
+        SchedulerInfo_FileName = null;
+        SchedulerInfo_ParamMandatory = null;
+        SchedulerInfo_FromDateLabel = null;
+        SchedulerInfo_ToDateLabel = null;
+        SchedulerInfo_DescriptionLabel = null;
+        SchedulerInfo_Doc_ID = null;
+        SchedulerInfo_Doc_Category = null;
+        SchedulerInfo_MasterRowRecID = null;
+        SchedulerInfo_MasterRowMID = null;
+        SchedulerInfo_NestedRowMapID = null;
+        SchedulerInfo_reason = null;
+        SchedulerInfo_Attachment_RecStatus = null;
+        SchedulerInfo_Nested_Doc_Status = null;
+        SchedulerInfo_NestedRowReasonID = null;
+        SchedulerInfo_NestedRowKeyValue = null;
+        Scheduler_Select_xid = null;
+        SchedulerFocusedRowIndexBeforeRefresh = null;
+
+        ClearAllReferences("SchedulerHelp_ClearReferences")
+    }
+    function OnSchedulerGridFocusedRowChanged(s, e) {
+        var focusIndex = s.GetFocusedRowIndex();
+        if (focusIndex > -1) {
+            Scheduler_ID = s.GetRowKey(focusIndex);
+            Get_Scheduler_Row_Data(focusIndex);
+        }
+        else {
+            Scheduler_ID = null;
+        }
+        Scheduler_UpdateFooterDetail(Scheduler_ID, Scheduler_Add_Date, Scheduler_Add_By, Scheduler_Edit_Date, Scheduler_Edit_By);
+    }
+    function SchedulerGrid_DetailRowExpanding(s, e) {
+        SchedulerInfo_IsDetailRowExpanded = true;
+        s.SetFocusedRowIndex(e.visibleIndex);
+    }
+    function SchedulerGrid_DetailRowCollapsing(s, e) {
+
+        SchedulerInfo_IsDetailRowExpanded = false;
+        s.SetFocusedRowIndex(e.visibleIndex);
+    }
+    function SchedulerdblclickEdit(s, e) {
+        DataNavigation_Scheduler("EDIT");
+    }
+    function SchedulerOnInit(s, e) {
+        SchedulerAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            SchedulerAdjustSize();
+        });
+    }
+    function SchedulerAdjustSize() {
+
+        if (Screen_SchedulerInfo != "" && isDesktop) {
+            var height = (document.documentElement.clientHeight * 70) / 100;
+        }
+        else {
+            var height = (document.documentElement.clientHeight * 90) / 100;
+        }
+        try {
+            SchedulerListGrid.SetHeight(height);
+        }
+        catch (err) {
+        }
+    }
+    function SchedulerListGrid_BeginCallback(s, e) {
+        SchedulerFocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Scheduler_ShowHorizontalBar;
+        e.customArgs["ViewMode"] = Scheduler_ViewMode;
+        e.customArgs["ColumnToBeShownIndex"] = Scheduler_ColumnToBeShownIndex;
+        e.customArgs["ColumnToBeHidddenIndex"] = Scheduler_ColumnToBeHidddenIndex;
+        e.customArgs["RowKeyToFocus"] = Scheduler_Select_xid;
+    }
+    function OnGridSchedulerListGrid_EndCallback(s, e) {
+        Scheduler_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+        Scheduler_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+        SchedulerGridLayout = s.cpClientLayout;
+        $(".SchedulerListGrid_PreviewRow").hide();
+        GetSessionStorage("SchedulerListGrid");
+        SendCustomArgs_FilterControl(s, e);
+        if (e.command == "REFRESH") {
+            if (SchedulerFocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                s.SetFocusedRowIndex(-1);
+                s.SetFocusedRowIndex(SchedulerFocusedRowIndexBeforeRefresh);
+            }
+            Scheduler_Select_xid = "";
+            if (Scheduler_MoreEntry == true) {
+                Scheduler_MoreEntry = false;
+                var confirm = DevExpress.ui.dialog.confirm('Add More Entry...?', "Scheduler");
+                confirm.done(function (dialogResult) {
+                    if (dialogResult) {
+                        DataNavigation_Scheduler("NEW");
+                    }
+                });
+            }
+        }
+    }
+    function SchedulerContextMenuFunction(s, e) {
+        if (e.item.name == 'New') {
+            DataNavigation_Scheduler("NEW");
+        }
+        if (e.item.name == 'View') {
+            DataNavigation_Scheduler("VIEW");
+        }
+        else if (e.item.name == 'Edit') {
+            DataNavigation_Scheduler("EDIT");
+        }
+        else if (e.item.name == 'Delete') {
+            DataNavigation_Scheduler("DELETE");
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnSchedulerListPreviewClick();
+        }
+        else if (e.item.name == 'Close') {
+            closeScheduler();
+        }
+        else if (e.item.name == 'Import') {
+            DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+        }
+        else if (e.item.name == 'Export') {
+            DevExpress.ui.dialog.alert("Coming Soon, Under Construction", "Information");
+        }
+        else if (e.item.name == 'QUEUE') {
+            DataNavigation_Scheduler("QUEUE");
+        }
+        else if (e.item.name == 'LOG') {
+            DataNavigation_Scheduler("LOG");
+        }
+        else if (e.item.name == 'Refresh') {
+            SchedulerListGrid.Refresh();
+        }
+    }
+    function AfterWindowClose_Scheduler(ActionMethod = "", xID = "") {
+        if (ActionMethod == "_Delete" || ActionMethod == "Delete") {
+            RefreshGridView("SchedulerListGrid");
+            return;
+        }
+        if (ActionMethod.includes("New")) {
+            Scheduler_MoreEntry = true;
+        }
+        Scheduler_Select_xid = xID;
+        RefreshGridView("SchedulerListGrid");
+    }
+    function Scheduler_UpdateFooterDetail(Scheduler_ID, Scheduler_Add_Date, Scheduler_Add_By, Scheduler_Edit_Date, Scheduler_Edit_By) {
+        var Status = "";
+        var Lbl_Status = "";
+        var Lbl_StatusBy = "";
+        var Pic_Status = "";
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Lbl_Status_Color = "";
+        var Lbl_ActionOn = "";
+        var Lbl_ActionBy = "";
+        var StatusStr = "";
+        if (Scheduler_ID != null) {
+            Scheduler_Add_Date = (moment(Scheduler_Add_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+            Scheduler_Edit_Date = (moment(Scheduler_Edit_Date, "DD/MM/YYYY HH:mm:ss").format("DD/MM/YYYY HH:mm:ss"));
+            if (Scheduler_Add_Date) {
+                Lbl_Create = "Add On: " + Scheduler_Add_Date + ", By: " + Scheduler_Add_By;
+            }
+            else {
+                Lbl_Create = "";
+            }
+
+            if (Scheduler_Edit_Date) {
+                Lbl_Modify = "Edit On: " + Scheduler_Edit_Date + ", By: " + Scheduler_Edit_By;
+            }
+            else {
+                Lbl_Modify = "";
+            }
+        }
+        $('#Scheduler_Create').text(Lbl_Create);
+        $('#Scheduler_Modify').text(Lbl_Modify);
+    }
+    function SchedulerchangeMode() {
+        ShowLoader();
+        if (Scheduler_ShowHorizontalBar == 0) {
+            Scheduler_ShowHorizontalBar = 1;
+            $("#SchedulerToggleScrollBar").find("span").text("Default Data");
+            $("#SchedulerToggleScrollBar").width(110);
+        }
+        else {
+            Scheduler_ShowHorizontalBar = 0;
+            $("#SchedulerToggleScrollBar").find("span").text("Full Data");
+            $("#SchedulerToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: "/Help/Scheduler/Frm_Scheduler_Info_Grid",
+            type: "POST",
+            data: { ShowHorizontalBar: Scheduler_ShowHorizontalBar, ViewMode: Scheduler_ViewMode, Layout: SchedulerGridLayout, ColumnToBeHidddenIndex: Scheduler_ColumnToBeHidddenIndex, ColumnToBeShownIndex: Scheduler_ColumnToBeShownIndex, screen: Screen_SchedulerInfo},
+            success: function (res) {
+                $("#SchedulerGridPartialView").html(res);
+                ASPxClientControl.AdjustControls(document.getElementById("SchedulerGridPartialView"));
+                $(".SchedulerListGrid_PreviewRow").hide();
+                GetSessionStorage("SchedulerListGrid");
+                HideLoader();
+            }
+        });
+    }
+    function SchedulerGrid_Nested_BeginCallBack(s, e) {
+        e.customArgs["ShowHorizontalBar"] = Scheduler_ShowHorizontalBar;
+        e.customArgs["command"] = e.command;
+    }
+    function OnSchedulerListGridNestedFocusedRowChange(s, e) {
+        if (SchedulerInfo_IsDetailRowExpanded == true)
+        {
+            SchedulerInfo_NestedRecord_FocusedRowIndex = s.GetFocusedRowIndex();
+            SchedulerInfo_NestedGrid_AccessID = s.uniqueID;
+            if (SchedulerInfo_NestedRecord_FocusedRowIndex >= 0) {
+                ShowLoader();
+                s.GetRowValues(s.GetFocusedRowIndex(), 'Job Name;Job Type;Start Date;End Date;Job ID;Is Active;REC_ID', OnSchedulerInfo_GetGridRowValues);
+            }
+            else
+            {
+                SchedulerInfo_NestedGrid_RowID=null;
+            }
+        }
+    }
+    function OnSchedulerInfo_GetGridRowValues(values) {
+        HideLoader();
+        if (values[5] != null) {
+            SchedulerInfo_Nested_Job_Name = values[0];
+            SchedulerInfo_Job_Type = values[1];
+            SchedulerInfo_Start_Date = values[2];
+            SchedulerInfo_End_Date = values[3];
+            SchedulerInfo_Days_Of_Month = values[4];
+            SchedulerInfo_Job_ID = values[5];
+            SchedulerInfo_NestedGrid_RowID = values[6];
+        }
+    }
+    function Get_Scheduler_Row_Data(RowIndex = null) {
+
+        var focusedrow = RowIndex == null ? SchedulerListGrid.GetFocusedRowIndex() : RowIndex;
+        var topindex = SchedulerListGrid.GetTopVisibleIndex();
+        var Index = focusedrow - topindex;
+        Scheduler_PageData = SchedulerListGrid.cpPagedata;
+        if (Scheduler_PageData != null && Scheduler_PageData.length > 0 && Index < Scheduler_PageData.length) {
+            Scheduler_ID = Scheduler_PageData[Index][0];
+            Scheduler_Add_By = Scheduler_PageData[Index][1];
+            Scheduler_Add_Date = Scheduler_PageData[Index][2];
+            Scheduler_Edit_By = Scheduler_PageData[Index][3];
+            Scheduler_Edit_Date = Scheduler_PageData[Index][4];
+            Cen_ID = Scheduler_PageData[Index][5];
+            //Scheduler_Action_Status = Scheduler_PageData[Index][5];
+            //Scheduler_Action_By = Scheduler_PageData[Index][6];
+            //Scheduler_Action_Date = Scheduler_PageData[Index][7];
+        }
+    }
+</script>

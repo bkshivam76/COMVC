@@ -1,0 +1,475 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+}
+@{
+    Html.AntiForgeryToken();
+}
+<script>
+    var Row_Index;
+    var MODE_ID;
+    var MEM_ID;
+    var Issue_ID;
+    var Issue;
+    var Magazine;
+    var Member_ID;
+    var Total_Copies;
+    var Dis_Data="";
+    function Cmb_ListBy_Change_Value() {
+        debugger
+        if ($("#Cmb_ListBy").dxSelectBox("instance").option("value") == "ALL RECORDS") {
+            $("#Txt_Str").dxTextBox("instance").option("visible", false);
+            $("#Txt_Issue_Date").dxDateBox("instance").option("visible", false);
+            $("#Txt_Str").dxTextBox("instance").option("value", "");
+            $("#Txt_Issue_Date").dxDateBox("instance").option("value", "");
+        }
+        if ($("#Cmb_ListBy").dxSelectBox("instance").option("value") == "MEMBER ID." ||
+            $("#Cmb_ListBy").dxSelectBox("instance").option("value") == "MEMBER OLD NO.") {
+            $("#Txt_Str").dxTextBox("instance").option("visible", true);
+            $("#Txt_Issue_Date").dxDateBox("instance").option("visible", false);
+        }
+        if ($("#Cmb_ListBy").dxSelectBox("instance").option("value") == "MAGAZINE ISSUE DATE") {
+            $("#Txt_Issue_Date").dxDateBox("instance").option("visible", true);
+            $("#Txt_Str").dxTextBox("instance").option("visible", false);
+        }
+    }
+    function GLookUp_MagList_Value_Changed() {
+        var dropDownBox = $("#GLookUp_MagList").dxDropDownBox("instance");
+        dropDownBox.close();
+    }
+    function onInitialized_GLookUp_MagList(e) {
+        debugger
+        if (e.component.option("dataSource") != null) {
+            e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length == 1) {
+                    debugger
+                }
+            })
+        }
+    }
+    function toGetMagazineDispatch() {
+        debugger
+        ShowLoader();
+        var cmb_ListBy = $("#Cmb_ListBy").dxSelectBox("instance").option("value");
+        var txt_Str = "";
+        var txt_Issue_Date = "";
+        var dtCutOff = "";
+        if ($("#Txt_Str").dxTextBox("instance").option("visible") == true) {
+            txt_Str = Txt_Str = $("#Txt_Str").dxTextBox("instance").option("value");
+            if (txt_Str == "" || txt_Str == "undefined" || txt_Str==undefined || txt_Str == "null" || txt_Str == null) {
+                DevExpress.ui.dialog.alert("Please enter value");
+                return false;
+            }
+        }
+        else {
+            txt_Str = "";
+        }
+        if ($("#Txt_Issue_Date").dxDateBox("instance").option("visible") == true) {
+            txt_Issue_Date = $("#Txt_Issue_Date").dxDateBox("instance").option("value");
+            txt_Issue_Date = txt_Issue_Date.getFullYear() + "-" + txt_Issue_Date.getMonth() + "-" + dtCutOff.getDate();
+        }
+        else {
+            txt_Issue_Date = "";
+        }
+        var gLookUp_MagList = $("#GLookUp_MagList").dxDropDownBox("instance").option("value")[0];
+        dtCutOff = $("#DtCutOff").dxDateBox("instance").option("value");
+        var timeCutOff = $("#TimeCutOff").dxDateBox("instance").option("value");
+
+        dtCutOff = dtCutOff.getMonth() + "/" + dtCutOff.getDate() + "/" + dtCutOff.getFullYear();
+        $.ajax({
+            type: "GET",
+            url: "/Magazine/MagazineDispatchRegister/Frm_Magazine_Dispatch_Reg_Info",
+            data: {
+                Cmb_ListBy: cmb_ListBy,
+                Txt_Str: txt_Str,
+                Txt_Issue_Date: txt_Issue_Date,
+                GLookUp_MagList: gLookUp_MagList,
+                DtCutOff: dtCutOff,
+                TimeCutOff: timeCutOff
+            },
+            success: function (e) {
+                MagazineDispatchListGrid.Refresh()
+                HideLoader();
+            },
+            error: function (e) {
+                debugger
+                HideLoader();
+            }
+        });
+    }
+    function MagazineDispatchContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'Refresh') {
+            MagazineDispatchListGrid.Refresh();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnMagDispatchListPreviewClick();
+        }
+    }
+    function OnMagDispatchListPreviewClick() {
+        $("#MagDispatch_report_modal").dxPopup("show");
+        $("#MagDispatch_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#MagDispatch_report_modal").html('');
+        ShowLoader();
+        $("#MagDispatch_report_modal_result").load("@Url.Action("Frm_Export_Options", "MagazineDispatchRegister", new { @area = "Magazine" })", function () {
+            HideLoader();
+        });
+    }
+    function MagdispatchRegGrid_BeginCallBack(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        Row_Index = MagazineDispatchListGrid.GetFocusedRowIndex();
+    }
+    function OnMagDispatchRegGridFocusedRowChanged(s, e)
+    {
+        var key = s.GetRowKey(s.GetFocusedRowIndex());
+        MagazineDispatchListGrid.GetValuesOnCustomCallback({ key: key }, MagDispatchOnGetRowValues);
+        Row_Index = MagazineDispatchListGrid.GetFocusedRowIndex();
+    }
+    function MagDispatchOnGetRowValues(FDData)
+    {
+        debugger
+        var data = FDData.split("![");
+        Dis_Data = FDData;
+        Issue = data[1];
+        Magazine = data[2];
+        Member_ID = data[3];
+        Total_Copies = data[4];
+        Issue_ID = data[5];
+        MEM_ID = data[6];
+        MODE_ID = data[7];
+        MagDispatchEditData(Dis_Data);
+    }
+    function MagDispatchEditData(Dis_Data)
+    {
+        debugger
+        IsPropertyViewPopup = false;
+        if (Dis_Data == 'undefined' || Dis_Data == undefined) {
+            //DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            //return;
+        }
+        $("#PopUp_frm_MagazineDispatch_Window").dxPopup("show");
+        $("#PopUp_frm_MagazineDispatch_Window").dxPopup("instance").option("title", "Edit ~ Magazine Dispatch Register");
+        $("#Magazine_Dispatch_Reg_result").html('');
+        ShowLoader();
+        $("#Magazine_Dispatch_Reg_result").load("@Url.Action("Frm_Magazine_Dispatch_Reg_Window", "MagazineDispatchRegister", new { @area = "Magazine" })?ActionMethod=" + "Edit" + "&FDData=" + encodeURIComponent(Dis_Data), function () {
+            HideLoader();
+        });
+
+    }
+    function Frm_MagDispatch_Reg_Window_OnSuccess(result)
+    {
+        debugger
+        HideLoader();
+        if (result.result == false) {
+            DevExpress.ui.dialog.alert(result.Message, "Error");
+        }
+        else {
+            //IsMagazineRecRegSucessPopup = true;
+            var lbSubmitSuccess = DevExpress.ui.dialog.alert(result.Message, "Success");
+            $("#PopUp_frm_MagazineDispatch_Window").dxPopup("hide");
+        }
+    }
+    function toUpSetDispact() {
+        $.ajax({
+            type: "POST",
+            url: "/Magazine/MagazineDispatchRegister/toUpSetDispatch",
+            data: {
+                xMID: "",
+                IssueID: "",
+                MemberID:""
+            },
+            success: function (data) {
+                debugger
+            },
+            error: function (e) {
+                debugger
+            }
+        });
+    }
+    function ToDeleteAllOrByHand(actionMethod) {
+        debugger
+        var actionMethod = actionMethod;
+        var cmb_ListBy = $("#Cmb_ListBy").dxSelectBox("instance").option("value")
+        var gLookUp_MagList = $("#GLookUp_MagList").dxDropDownBox("instance").option("value");
+        var txt_Issue_Date
+        if ($("#Txt_Issue_Date").dxDateBox("instance").option("visible") == true) {
+            txt_Issue_Date = $("#Txt_Issue_Date").dxDateBox("instance").option("value");
+            txt_Issue_Date = txt_Issue_Date.getFullYear() + "-" + txt_Issue_Date.getMonth() + "-" + txt_Issue_Date.getDate();
+        }
+        else {
+            txt_Issue_Date = "";
+        }
+        if (cmb_ListBy == "DISPATCH MEMBER ID" || txt_Issue_Date.length==0) {
+            DevExpress.ui.dialog.alert("Please select Issue for which dispatches have to be deleted!!", "Alert!!");
+        }
+        else {
+            var result = DevExpress.ui.dialog.confirm("All Dispatches for Selected Issue shall be deleted, Continue...?", "Confirm changes");
+            result.done(function (dialogResult) {
+                if (dialogResult) {
+                    var resultConfirm = DevExpress.ui.dialog.confirm("Are you Sure...?", "Confirm changes");
+                    resultConfirm.done(function myfunction() {
+                        if (dialogResult) {
+                            $.ajax({
+                                type: "GET",
+                                url: "/Magazine/MagazineDispatchRegister/DataNavigation",
+                                data: {
+                                    selectedRows: RecArray,
+                                    ActionMethod: "DELETE-ALL",
+                                    Cmb_ListBy: cmb_ListBy,
+                                    Txt_Issue_Date: txt_Issue_Date,
+                                    GLookUp_MagList:gLookUp_MagList
+                                },
+                                success: function (data) {
+                                    debugger
+                                    if (data.result == true) {
+                                        MagazineDispatchListGrid.Refresh();
+                                        DevExpress.ui.dialog.alert(data.Message, "Success!!");
+                                    }
+                                    else {
+                                        DevExpress.ui.dialog.alert(data.Message, "Error!!");
+                                    }
+                                },
+                                error: function (e) {
+
+                                }
+                            });
+                        }
+                    });
+                }
+            })
+        }
+
+    };
+    function ByHandEvent() {
+        var cmb_ListBy = $("#Cmb_ListBy").dxSelectBox("instance").option("value")
+        var txt_Issue_Date = $("#Txt_Issue_Date").dxDateBox("instance").option("value");
+        var gLookUp_MagList = $("#GLookUp_MagList").dxDropDownBox("instance").option("value");
+        var result = DevExpress.ui.dialog.confirm("Do you want to mark these issues as dispatched by hand...?", "Confirm changes");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+                $.ajax({
+                    type: "GET",
+                    url: "/Magazine/MagazineDispatchRegister/DataNavigation",
+                    data: {
+                        selectedRows: RecArray,
+                        ActionMethod: "BY HAND",
+                        Cmb_ListBy: cmb_ListBy,
+                        Txt_Issue_Date: txt_Issue_Date,
+                        GLookUp_MagList: gLookUp_MagList
+                    },
+                    success: function (data) {
+                        if (data.result == true) {
+                            DevExpress.ui.dialog.alert(data.Message, "Success!!");
+                        }
+                        else {
+                            DevExpress.ui.dialog.alert(data.Message, "Error!!");
+                        }
+                    },
+                    error: function (e) {
+
+                    }
+                });
+            }
+        })
+    }
+    function labelOrReportOnClick(type) {
+        debugger
+        if (type=="Report") {
+            ActionMethod = "REPORT";
+        }
+        else {
+            ActionMethod = "LABEL";
+        }
+        $.ajax({
+            type: "GET",
+            url: "/Magazine/MagazineDispatchRegister/Frm_Magazine_Dispatch",
+            data: {
+                actionMethod: ActionMethod
+            },
+            success: function (data) {
+                debugger
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("show");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("title", "Magazine Dispatch");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxHeight", "33%");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxWidth", "25%");
+                $("#PopUp_Frm_Magazine_Dispatch_result").html(data);
+            },
+            error: function (e) {
+
+            }
+        });
+    };
+    function LableOrReportTypeDispatchClick(type) {
+        debugger
+        var actionMethod ="";
+        if (type =="Label") {
+            $("#LabelID").dxRadioGroup("instance").option("value");
+            actionMethod="LABEL"
+        }
+        if (type=="Report") {
+            $("#ReportID").dxRadioGroup("instance").option("value");
+            actionMethod="REPORT"
+        }
+        $.ajax({
+            type: "GET",
+            url: "/Magazine/MagazineDispatchRegister/Frm_Magazine_Dispatch_Sort",
+            data: {
+                ActionMethod: actionMethod
+            },
+            success: function (result) {
+                debugger
+                $("#PopUp_Frm_Magazine_Dispatch_result").html("");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("hide");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("show");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("title", "Magazine Dispatch");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxHeight", "25%");
+                $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxWidth", "30%");
+                $("#PopUp_Frm_Magazine_Dispatch_result").html(result);
+            },
+            error: function (e) {
+                debugger
+            }
+        });
+    };
+    //function LableOrReportTypeDispatchClick(Type) {
+
+    //    $.ajax({
+    //        type: "GET",
+    //        url: "/Magazine/MagazineDispatchRegister/Frm_Magazine_Dispatch_Sort",
+    //        data: {},
+    //        success: function (result) {
+    //            debugger
+    //            $("#PopUp_Frm_Magazine_Dispatch_result").html("");
+    //            $("#PopUp_Frm_Magazine_Dispatch").dxPopup("hide");
+    //            $("#PopUp_Frm_Magazine_Dispatch").dxPopup("show");
+    //            $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("title", "Magazine Dispatch");
+    //            $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxHeight", "25%");
+    //            $("#PopUp_Frm_Magazine_Dispatch").dxPopup("instance").option("maxWidth", "30%");
+    //            $("#PopUp_Frm_Magazine_Dispatch_result").html(result);
+    //        },
+    //        error: function (e) {
+    //            debugger
+    //        }
+    //    });
+    //};
+    function cancelClick() {
+        $("#PopUp_Frm_Magazine_Dispatch").dxPopup("hide");
+    }
+    function SortOrderTypeDispatchClick(actionMethod) {
+        debugger
+        $.ajax({
+            type: "GET",
+            url: "/Magazine/MagazineDispatchRegister/DataNavigation",
+            data: {
+                selectedRows: RecArray,
+                ActionMethod: actionMethod,
+                Cmb_ListBy: "",
+                Txt_Issue_Date: "",
+                GLookUp_MagList: ""
+            },
+            success: function (data) {
+                debugger
+            },
+            error: function (error) {
+
+            }
+        });
+
+    }
+    var RecArray = "";
+    function OnGetValues(selectedValues) {
+        debugger
+        console.log(selectedValues);
+        RecArray = "";
+        for (var i = 0; i < selectedValues.length; i++) {
+            RecArray = RecArray + selectedValues[i].toString() + "#"
+        }
+    }
+    function SelectionChanged(s, e) {
+        alert(s.GetSelectedRowCount());
+        s.GetSelectedFieldValues("MEM_ID;CONTACT_NO", OnGetValues);
+    }
+</script>
+<div id="content" class="">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <label class="">Magazine Dispatch Register</label>
+            <span>
+                <span>
+                    <span>@Html.DevExtreme().Button().ID("DELETE-ALL").Text("DELETE-ALL").OnClick(@<text> function() { ToDeleteAllOrByHand(); } </text>)</span>
+                    <span>@Html.DevExtreme().Button().ID("By hand").Text("By Hand").OnClick(@<text> function() { ByHandEvent("BY HAND"); } </text>)</span>
+                    <span>@Html.DevExtreme().Button().ID("Label").Text("Label").OnClick(@<text> function () {labelOrReportOnClick("Label"); } </text>)</span>
+                    <span>@Html.DevExtreme().Button().ID("Report").Text("Report").OnClick(@<text> function () {labelOrReportOnClick("Report"); } </text>)</span>
+                    @(Html.DevExtreme().Button().ID("MagazineDispatchlCLOSE").Text("Close").Icon("clear")
+                          .OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+                </span>
+            </span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6 col-md-4 col-lg-4">
+            <div class="col-sm-6 col-md-4 col-lg-4">   <label class="" for="user">Listing By:</label> </div>
+            <div class="col-sm-6 col-md-4 col-lg-4">
+                @(Html.DevExtreme().SelectBox().ID("Cmb_ListBy").Name("Cmb_ListBy").DataSource(new[] { "DISPATCH MEMBER ID", "MEMBER ID.", "MEMBER OLD NO.", "MAGAZINE ISSUE DATE", "ALL RECORDS" })
+                                                                                        .OnValueChanged("Cmb_ListBy_Change_Value"))
+            </div>
+            <div class="col-sm-6 col-md-4 col-lg-4">
+                @(Html.DevExtreme().TextBox().ID("Txt_Str").Name("Txt_Str").Visible(true))
+                @(Html.DevExtreme().DateBox().ID("Txt_Issue_Date").Name("Txt_Issue_Date").Visible(false).Value(DateTime.Now))
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-4">
+            <div class="col-sm-6 col-md-4 col-lg-4">  <label class="" for="user">Magazine:</label>  </div>
+            <div class="col-sm-6 col-md-8 col-lg-8">
+                @(Html.DevExtreme().DropDownBox().ID("GLookUp_MagList").Name("GLookUp_MagList").DisplayExpr("Name")
+                                                                                        .ValueExpr("ID").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                        //.Value("ID")
+                                                                                        .DataSource(d => d.Mvc().Controller("MagazineDispatchRegister").LoadAction("LookUp_GetMagazineList").Key("ID"))
+                                                                                        .OnValueChanged("GLookUp_MagList_Value_Changed").Placeholder("Select value...")
+                                                                                        .OnInitialized("onInitialized_GLookUp_MagList")
+                                                                                                .ContentTemplate(@<text> @Html.Partial("~/Areas/Magazine/Views/MagazineDispatchRegister/Frm_Magazine_LookUp_GetMagazineList.cshtml") </text>))
+            </div>
+
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-4">
+            <div class="col-sm-6 col-md-2 col-lg-2">   <label class="" for="user">at:</label>  </div>
+            <div class="col-sm-6 col-md-4 col-lg-4">   @(Html.DevExtreme().DateBox().ID("DtCutOff").Name("DtCutOff").Type(DateBoxType.Date).Value(DateTime.Now)) </div>
+            <div class="col-sm-6 col-md-4 col-lg-4">
+                @(Html.DevExtreme().DateBox().ID("TimeCutOff").Name("TimeCutOff").Type(DateBoxType.Time).Value(DateTime.Now))
+
+            </div>
+            <div class="col-sm-6 col-md-2 col-lg-2">
+                @(Html.DevExtreme().Button().ID("BUT_SHOW").Text("Show")
+                                                                                                                                   .OnClick(@<text> function() { toGetMagazineDispatch(); } </text>))
+
+            </div>
+        </div>
+        <div class="form-field">
+        </div>
+    </div>
+    <form>
+        <div id="MagazineDispatchGridData" class="row">
+            @Html.Partial("Frm_Magazine_Dispatch_Reg_Info_Grid", Model)
+        </div>
+    </form>
+</div>
+<div class="col-md-12">
+    @(Html.DevExtreme().Popup().CustomPopup().ID("MagDispatch_report_modal").OnShowing("PopupOnShowing").Title("Dispatch List Preview").FullScreen(false).MaxWidth(125).Height("auto")
+                          .ShowCloseButton(true)
+                          .ContentTemplate(@<text>
+                            <div id='MagDispatch_report_modal_result'>
+                            </div></text>))
+    @(Html.DevExtreme().Popup().CustomPopup().ID("PopUp_frm_MagazineDispatch_Window").Title("Magazine Receipt Register").OnShowing("PopupOnShowing").ShowCloseButton(true)
+                          .ContentTemplate(@<text>
+                            <div id="Magazine_Dispatch_Reg_result">
+                            </div></text>))
+    @Html.DevExtreme().Popup().CustomPopup().ID("PopUp_Frm_Magazine_Dispatch").FullScreen(false).MaxHeight(50).MaxWidth(50).ContentTemplate(@<text> <div id="PopUp_Frm_Magazine_Dispatch_result"></div> </text>)
+    @Html.DevExtreme().Popup().CustomPopup().ID("PopUp_Frm_Magazine_DispatchSort_Order").FullScreen(false).ContentTemplate(@<text> <div id="PopUp_Frm_Magazine_DispatchSort_Order_result"></div> </text>)
+
+</div>

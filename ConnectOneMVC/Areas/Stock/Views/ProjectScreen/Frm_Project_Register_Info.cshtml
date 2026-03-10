@@ -1,0 +1,746 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@*@model ConnectOneMVC.Areas.Stock.Models.Model_Project_Info*@
+@{ 
+    bool Project_AddRight = (bool)ViewData["Project_AddRight"];
+    bool Project_UpdateRight = (bool)ViewData["Project_UpdateRight"];
+    bool Project_ViewRight = (bool)ViewData["Project_ViewRight"];
+    bool Project_DeleteRight = (bool)ViewData["Project_DeleteRight"];
+    bool Project_ExportRight = (bool)ViewData["Project_ExportRight"];
+    bool Project_ApproveRight = (bool)ViewData["Project_ApproveRight"];
+    bool Project_AddDeptRight = (bool)ViewData["Project_AddDeptRight"];
+    bool Project_AddPersonnelRight = (bool)ViewData["Project_AddPersonnelRight"];
+    bool Project_ViewPersonnelRight = (bool)ViewData["Project_ViewPersonnelRight"];
+    bool Project_AddJobRight = (bool)ViewData["Project_AddJobRight"];
+}
+<style>
+    .dx-button-has-icon .dx-button-content {
+        padding-right: 8px !important;
+    }
+
+    .dx-toolbar-after .dx-button-content {
+        padding-right: 0px !important;
+    }
+
+    .dx-texteditor-container {
+        overflow: visible
+    }
+</style>
+<script>
+     function ChangePeriodinLayout()
+    {  
+         OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen", "ProjectScreen", new { @area = "Stock" })", "auto", "45%");
+    }
+
+    function LookUp_ViewType_ChangeEvent(e)
+    {
+        var SelectBox = $("#PeriodSelection_PS").dxSelectBox("instance").option("value");
+        $("#ChangePeriodPR").dxButton("instance").option("disabled", true);
+        if (SelectBox == "Specific Period")
+        {
+            $("#ChangePeriodPR").dxButton("instance").option("disabled", false);
+            $("#BE_View_PeriodPR").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/ProjectScreen/LookUp_ViewType_ChangeEvent",
+                data: { Chaval: $("#PeriodSelection_PS").dxSelectBox("instance").option("value")  },
+                cache: false,
+                success: function (data)
+                {
+                    if (data.result == true)
+                    {
+                        $("#BE_View_PeriodPR").dxTextBox("instance").option("value", data.Message.Pr_BE_View_Period);
+                                                ShowLoader();
+                        ProjectScreenListGrid.Refresh();
+
+                        HideLoader();
+                    }
+                }
+            });
+            HideLoader();
+        }
+    }//Period Selection
+</script>
+<div id="content" class="col-md-12 report_header_div_main">
+
+    <div class="col-md-4 report_header_div">
+        <label class="report_header_label">Project Register</label>
+    </div>
+    <div class="row margin0">
+        <div class="report_button_div">
+            @(Html.DevExtreme().Button().ID("ProjectNew").Text("New").Icon("add").Visible(true).Disabled(false).OnClick(@<text> function () { project_NEVD_NewClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("ProjectEdit").Text("EDIT").Icon("edit").Visible(true).Disabled(false).OnClick(@<text> function () { project_NEVD_EditClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("ProjectDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text> function () { project_NEVD_DeleteClick();; } </text>))
+            @(Html.DevExtreme().Button().ID("ProjectView").Text("View").Icon(IconID.ViewCustomers16x16devav).Icon("doc").Visible(true).Disabled(false).OnClick(@<text> function () { project_NEVD_ViewClick(); } </text>))
+            @(Html.DevExtreme().Button().ID("ProjectListPreview").Text("List Export").Icon("save").OnClick(@<text> function(){ProjectRegisterPreviewClick(); }</text>))
+            @(Html.DevExtreme().Button().ID("PR_MasterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {PR_MasterchangeMode(); } </text>))
+            @(Html.DevExtreme().Button().ID("StockItemCLOSE").Text("Close").Icon("clear").OnClick(@<text> function(){ $(".TabPanalMenu-tabs .active span").click(); } </text>))
+        </div>
+    </div>
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().ID("PeriodSelection_PS").Name("PeriodSelection_PS").Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value")
+                                                                                          .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                          .DataSource(d => d.Mvc().Controller("ProjectScreen").LoadAction("LookUp_Get_ViewType_List").Key("Value"))
+                                                                                          .DeferRendering(false).SearchEnabled(true).ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent") )
+        </div>
+        <div class="col-md-2 no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("ChangePeriodPR").Text("Change Period").Disabled(true).OnClick(@<text> function (){ ChangePeriodinLayout(); } </text>))
+        </div>
+        <div class="col-sm-4 col-md-3 subHead">
+            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                <div class="">
+                    @(Html.DevExtreme().TextBox().ID("BE_View_PeriodPR").Name("BE_View_PeriodPR").Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100) )
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="PR_PartialView" class="parent_table">
+                @Html.Partial("Frm_Job_Project_Register_Grid", Model)
+            </div>
+        </form>
+    </div>
+    <div class="footer-MainBoxdiv full-width-footer">
+        <div class="list_footer_left_margin">
+            <p id="PRLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="PRLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div><!--[Grid Footer]-->
+    <div class="pad-lft-20 mrgnBtm10">
+        <form>
+            @(Html.DevExtreme().Button().ID("ADD_QuickJob").Text("Add Quick Job").Visible(true).Disabled(false).OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("QuickJob"); } </text>))
+            @(Html.DevExtreme().Button().ID("Assigned_for_Estimation_Creation").Text("Assign for Estimation submission").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Estimate Creation") } </text>))
+            @(Html.DevExtreme().Button().ID("Submitted_for_Estimate_Approval").Text("Submit for Estimation Approval").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Estimate Approval"); } </text>))
+            @(Html.DevExtreme().Button().ID("Changes_Recommended").Text("Changes Recommended").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Changes Recommended"); } </text>))
+            @(Html.DevExtreme().Button().ID("Approved").Text("Approve").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Approve"); } </text>))
+            @(Html.DevExtreme().Button().ID("Rejected").Text("Reject").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Reject"); } </text>))
+            @(Html.DevExtreme().Button().ID("Cancelled").Text("Cancel Project").OnClick(@<text> function () { Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Cancel"); } </text>))
+            @(Html.DevExtreme().Button().ID("Completed").Text("Mark as Completed").OnClick(@<text> function(){ Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Complete");} </text>))
+            @(Html.DevExtreme().Button().ID("ReOpen").Text("Re-Open").Visible(true).OnClick(@<text>function(){Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Reopen");}</text>))@*//Mantis bug 0000224 fixed*@
+
+        </form>
+    </div>
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("ProjectRegister_report_modal").OnShowing("PopupOnShowing").Title("Project Register List Preview").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="ProjectRegister_report_modal_result" class="export_popup"> </div> </text>) )
+@(Html.DevExtreme().Popup().CustomPopup().ID("PRinnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").MaxHeight(600).MaxWidth(1400).ContentTemplate(@<text> <div id="result_PRinnergrid">  </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("PR_Content_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true))
+@(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_addJob").Title("Job Request Register").OnShowing("PopupOnShowing").OnHidden("popup_frm_addJob_Hidden").DragEnabled(true).Height(1000).Width(1200).ShowCloseButton(true).ContentTemplate(@<text> <div id="popup_frm_AddJob_result"> </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_quick_JRR_From_PRR").Title("Quick Job").OnShowing("PopupOnShowing").DragEnabled(true).OnHidden("quick_JRR_From_PRR_Hidden").Height(300).Width(820).ShowCloseButton(true).ContentTemplate(@<text> <div id="popup_frm_quick_result_JRR_From_PRR"> </div> </text>))
+<script>
+    var ProjectScreenNewright;
+    var ProjectScreen_NewJobright;//Mantis bug 0000380 fixed
+    var ProjectScreenEditright;
+    var ProjectScreenDeleteright;
+    var ProjectScreenViewright;
+    var ProjectScreenExportright;
+    var ProjectRequest_AddComplexright;
+    var Project_AddPersonnelRight;
+    var PR_AddOn;
+    var PR_AddBy;
+    var PR_EditOn;
+    var PR_EditBy;
+    var PR_CurrUserRole = [];
+    var PR_Master_ShowHorizontalBar = 0;
+    var PR_REC_ID = 0;
+    var PR_Approver;
+    var _IsApproverRight;
+    var Project_AddDeptRight;    
+    var Project_ViewPersonnelRight;  
+
+    $(document).ready(function ()
+    {       
+      
+        ProjectScreenNewright = ("@Project_AddRight" == "True") ? "True" : "False";
+        ProjectScreen_NewJobright = ("@Project_AddJobRight" == "True") ? "True" : "False";//Mantis bug 0000380 fixed
+        ProjectScreenEditright = ("@Project_UpdateRight" == "True")? "True" : "False";
+        ProjectScreenViewright = ("@Project_ViewRight" == "True") ?"True" : "False";
+        ProjectScreenDeleteright = ("@Project_DeleteRight" == "True")? "True" : "False";
+        ProjectScreenExportright = ("@Project_ExportRight" == "True")? "True" : "False";
+        _IsApproverRight = ("@Project_ApproveRight" == "True") ? true : false;
+        Project_AddPersonnelRight = ("@Project_AddPersonnelRight" == "True") ? true : false;
+        Project_AddDeptRight = ("@Project_AddDeptRight" == "True") ? true : false;        
+        Project_ViewPersonnelRight = ("@Project_ViewPersonnelRight" == "True") ? true : false;
+
+        if (ProjectScreenNewright != "True")
+        {
+            $("#ProjectNew").hide();
+        }
+        if (ProjectScreenEditright != "True")
+        {
+            $("#ProjectEdit").hide();
+        }
+        if (ProjectScreenViewright != "True")
+        {
+            $("#ProjectView").hide();
+        }
+        if (ProjectScreenDeleteright != "True")
+        {
+            $("#ProjectDelete").hide();
+        }
+        if (ProjectScreenExportright != "True")
+        {
+            $("#ProjectListPreview").hide();
+        }
+            var DefaultDateString = '@ViewBag.DefualtDateString';
+            $("#PeriodSelection_PS").dxSelectBox("instance").option("value", DefaultDateString);
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProjectScreen/SessionClear",
+            cache: false
+        });
+        DeleteCookie("ProjectGridCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProjectScreen/InfoSessionclear",
+            cache: false
+        });
+    });
+    $("#ProjectScreenListGrid").keydown(function (evt)
+    {
+        switch (evt.keyCode)
+        {
+            case 45: // insert key
+                project_NEVD_NewClick();
+                break;
+            case 13: //enter key
+                project_NEVD_EditClick();
+                break;
+            case 32: //space bar
+                //project_NEVD_ViewClick(); //mantis #1398
+                break;
+            case 46://delete key
+                project_NEVD_DeleteClick();
+                break;
+        }
+        if (evt.ctrlKey && evt.keyCode == 73)//ctrl+i
+        {
+            project_NEVD_NewClick();
+        }
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            project_NEVD_EditClick();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            //project_NEVD_ViewClick();//mantis #1398
+        }
+    });
+    function PR_AdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        ProjectScreenListGrid.SetHeight(height);
+    }
+    function PR_OnInit(s, e) {
+        PR_AdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            PR_AdjustSize();
+        });
+        s.SetFocusedRowIndex(-1);
+            }
+    function ProjectRegisterGrid_beginCallback(s, e)
+    {
+        e.customArgs["command"] = e.command;      
+        e.customArgs["ShowHorizontalBar"] = PR_Master_ShowHorizontalBar;
+    }
+    function ProjectRegisterGrid_endCallback(s, e) {
+        PR_AdjustSize();
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function ProjectRegisterGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() == -1)
+        {
+            PR_REC_ID = 0;
+        }
+        else
+        {
+            var key = s.GetRowKey(s.GetFocusedRowIndex());
+            ProjectScreenListGrid.GetValuesOnCustomCallback({ key: key }, ProjectREgisterGetRowValues);
+        }
+    }
+    function ProjectREgisterGetRowValues(ProjectRegisterData)
+    {
+        var values = ProjectRegisterData.split("![");
+        PR_REC_ID = values[0];
+        PR_AddOn = values[1];
+        PR_AddBy = values[2];
+        PR_EditOn = values[3];
+        PR_EditBy = values[4];
+        PR_CurrUserRole = (values[5].split(','));
+        for (var i = 0; i < PR_CurrUserRole.length; i++)
+        {
+            PR_CurrUserRole[i] = PR_CurrUserRole[i].trim();
+        }
+        PR_Approver = values[6];
+        Project_UpdateFooterDetail(PR_AddOn, PR_AddBy, PR_EditBy, PR_EditOn);
+    }
+    function Project_UpdateFooterDetail(Addon, Addby, Editby, Editon)
+    {
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        if (Addon)
+        {
+            Lbl_Create = "Add On: " + Addon + ", Add By: " + Addby;
+        }
+        else
+        {
+            Lbl_Create = "Add On: " + "?, Add By: " + Addby;
+        }
+        if (Editon)
+        {
+            Lbl_Modify = "Edit On: " + Editon + ", Edit By: " + Editby;
+        }
+        else
+        {
+            Lbl_Modify = "Edit On: " + "?, Edit By: " + Editby;
+        }
+        $('#PRLbl_Create').text(Lbl_Create);
+        $('#PRLbl_Modify').text(Lbl_Modify);
+    }
+            function PR_MasterchangeMode()
+            {
+         ShowLoader();
+                if (PR_Master_ShowHorizontalBar == 0)
+                {
+                PR_Master_ShowHorizontalBar = 1;
+                $("#PR_MasterToggleScrollBar").find("span").text("Default Data");
+
+          }
+            else {
+                PR_Master_ShowHorizontalBar = 0;
+                $("#PR_MasterToggleScrollBar").find("span").text("Full Data");
+
+         }
+          
+                     $.ajax({
+            url: '@Url.Action("Frm_Job_Project_Register_Grid", "ProjectScreen")',
+            type: "GET",
+             data: { ShowHorizontalBar: PR_Master_ShowHorizontalBar},
+            success: function (res) {
+                $("#PR_PartialView").html(res);
+            }
+                }); 
+        HideLoader();
+    }// full data button click
+    function ProjectRegisterContextMenuInit(s, e)
+    {
+        var isvisible = false;
+        if (PR_CurrUserRole.includes("Estimator") || PR_CurrUserRole.includes("Approver"))
+        {
+            isvisible = true;
+        }
+        if (e.objectType == "row")
+        {
+            debugger;
+            var menuItemSelected = e.menu.GetItemByName("PrintEstimationReport");
+            menuItemSelected.SetVisible(isvisible);
+        }
+    }
+    function ProjectRegisterContextMenuFunction(s, e) {
+
+        if (e.item.name == 'New') {
+            project_NEVD_NewClick();
+        }
+        else if (e.item.name == 'Edit') {
+            project_NEVD_EditClick();
+        }
+        else if (e.item.name == 'Delete') {
+            project_NEVD_DeleteClick();
+        }
+        else if (e.item.name == 'View') {
+            project_NEVD_ViewClick("View");
+        }
+        else if (e.item.name == 'ListPreview') {
+            ProjectRegisterPreviewClick();
+        }
+       else if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'MarkComplete') {
+            Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Complete");
+        }
+        else if (e.item.name == 'ReOpen') {
+            Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("Reopen");
+        }
+        else if (e.item.name == 'Adddocuments') {
+            ProjectAddDocuments();
+        }
+        else if (e.item.name == 'PrintEstimationReport') {
+           project_printEstimationReport();
+        }
+        else if (e.item.name == 'AddJob') {
+            Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("AddJob");
+        }
+        else if (e.item.name == 'QuickJob') {
+            Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc("QuickJob");
+        }
+        else if (e.item.name == 'Refresh') {
+            ProjectScreenListGrid.Refresh();
+        }
+
+
+    }
+</script>
+<script>
+    function Qad_Aes_Sea_Cr_Appr_Rej_Cp_Mc(statusType)
+    {     
+        if (!ProjectScreen_NewJobright && (statusType == "QuickJob" || statusType == "AddJob")) { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }//Mantis bug 0000380 fixed
+        if ((PR_REC_ID == "" || PR_REC_ID == "undefined" || PR_REC_ID == undefined)) {
+            DevExpress.ui.dialog.alert("Please select A Project...!", 'alert!'); return;
+        }
+        var statusFlowCheck = project_StatusFlowCheck(statusType);
+        if (statusFlowCheck[0] == false) { DevExpress.ui.dialog.alert(statusFlowCheck[1], 'Error!!'); return; }
+        var DataNavigationCheck = project_dataNavigation(statusType);
+        if (DataNavigationCheck[0] == false) { DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Error!!'); return; }
+        var msg = "";
+        switch (statusType)
+        {
+            case "Reject":
+                msg = "Do you want reject the Project ?";
+                break;
+            case "Changes Recommended":
+                msg = "Do you want to change Project ?";
+                break;
+            case "Estimate Creation":
+                msg = "Do you want to Assign for Estimation ?";
+                break;
+            case "Estimate Approval":
+                msg = "Do you want to Submit for Estimate Approval ?";
+                break;
+            case "Approve":
+                msg = "Do you want to approve the Project ?";
+                break;
+            case "Complete":
+                msg = "Do you want to Complete the Project ?";
+                break;
+            case "Cancel":
+                msg = "Do you want to Cancel the Project ?";
+                break;
+            case "Reopen":
+                msg = "Do you want to Re-Open the Project ?";
+                break;
+            default:
+                msg = "";
+                break;
+        }
+        if (msg.length > 0)
+        {
+            var result = DevExpress.ui.dialog.confirm(msg, "Confirm changes");
+            result.done(function (dialogResult)
+            {
+                if (dialogResult)
+                {
+                    switch (statusType)
+                    {
+                        case "Complete":
+                        case "Reject":
+                        case "Cancel":
+                        case "Changes Recommended":                    
+                            ShowLoader();
+                            $.ajax({
+                                type: "GET",
+                                async:false,
+                                url: "/Stock/ProjectScreen/PR_StatusChange_Window",
+                                data: {
+                                    ProjectId: PR_REC_ID,
+                                    StatusButton: statusType
+                                },
+                                success: function (data)
+                                {
+                                    OpenDynamicPopup("Project ~ " + statusType, null, "auto", "40%", true, data);                                
+                                    HideLoader();
+                                }
+                            });
+                            break;
+                        case "Estimate Creation":
+                        case "Estimate Approval":
+                        case "Approve":
+                        case "Reopen":
+                            $.ajax({
+                                type: "GET",
+                                url: "/Stock/ProjectScreen/PR_StatusChange",
+                                data: {
+                                    ProjectId: PR_REC_ID,
+                                    StatusButton: statusType
+                                },
+                                success: function (data) {
+                                    if (data.result == false) { DevExpress.ui.dialog.alert(data.message, 'Error..!!'); }
+                                    else {
+                                        DevExpress.ui.dialog.alert(data.message, 'Success..!!');
+                                        ProjectScreenListGrid.Refresh();
+                                    }
+                                }
+                            });
+                            break;
+                    }
+                }
+            });
+        }
+        else if (statusType == "QuickJob")
+        {     
+            ShowLoader();
+            $.ajax({
+                type: "GET",
+                url: "/Stock/JobRequestRegister/Job_Request_Requestor_Quick",
+                data:
+                {
+                    PostSuccessFunction: "project_QuickJob_Success", PopupID: "popup_frm_quick_JRR_From_PRR", CallingScreen: "Project", projectID: PR_REC_ID
+                },
+                success: function (data)
+                {
+                    OpenPopup("popup_frm_quick_JRR_From_PRR", "QuickJob ~ Quick Job Request", null, "auto", 1150, true, data);             
+                   
+                }
+            });
+        }
+        else if (statusType == "AddJob")
+        {
+
+            ShowLoader();
+            $.ajax({
+                type: "GET",
+                url: "/Stock/JobRequestRegister/Frm_NEVD_Job_Request",
+                data:
+                {
+                    ActionMethod: "New", PostSuccessFunction: "project_QuickJob_Success", PopupID: "popup_frm_addJob", CallingScreen: "Project", projectID: PR_REC_ID
+                },
+                success: function (data)
+                {
+                    OpenPopup("popup_frm_addJob", "New ~ Job Request Register", null, "auto", "90%", true, data);   
+                  
+                  
+                }
+            });
+
+        }
+    }//status Button
+    function popup_frm_addJob_Hidden(e)
+    {
+        $("#jobvalidationForm").remove();
+        $("#popup_frm_quick_result_JRR_From_PRR").html(null);
+        $("#popup_frm_AddJob_result").html(null);
+    }
+    function quick_JRR_From_PRR_Hidden(e)
+    {
+        $("#quickJobvalidationForm").remove();
+    }
+    function project_QuickJob_Success(data)
+    {
+        HideLoader();
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, 'Error..!!');
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Job Added Successfully", 'Success..!!');
+            $("#popup_frm_quick_JRR_From_PRR").dxPopup("hide");
+            $("#popup_frm_quick_result_JRR_From_PRR").html(null);
+            $("#popup_frm_addJob").dxPopup("hide");
+            $("#popup_frm_AddJob_result").html(null);
+            $("#jobvalidationForm").remove();
+            $("#quickJobvalidationForm").remove();
+        }
+    }
+</script>
+<script type="text/javascript">
+
+        function ProjectRegisterPreviewClick()
+         {
+        if (ProjectScreenExportright != "True") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+
+        $("#ProjectRegister_report_modal").dxPopup("show");
+        $("#ProjectRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#ProjectRegister_report_modal").html('');
+        ShowLoader();
+        $("#ProjectRegister_report_modal_result").load("@Url.Action("Frm_Export_Options", "ProjectScreen", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }//export click
+    function project_dataNavigation(_actionName)
+    {
+        if (!_actionName) { _actionName =null;}
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProjectScreen/DataNavigation",
+            data: { ActionMethod: _actionName, Rec_ID: PR_REC_ID},
+            cache: false,
+            async:false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+        return [result, msg];
+    }
+    function project_StatusFlowCheck(_actionName)
+    {
+        if (!_actionName) { _actionName = null; }
+        var msg;
+        var result;
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/ProjectScreen/StatusFlowCheck",
+            data: { ActionMethod: _actionName, Rec_ID: PR_REC_ID },
+            cache: false,
+            async: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+        return [result, msg];
+    }
+
+    function project_NEVD_NewClick()
+    {     
+        if (ProjectScreenNewright !="True")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+            return;
+        }       
+        OpenDynamicPopup("New ~ Project Request", "@Url.Action("Frm_Project_NEVD", "ProjectScreen", new {@area= "Stock" })?ActionMethod=New", "auto", "90%", false, null);
+        HideLoader();
+    }
+    function project_NEVD_EditClick()
+    {
+        if (ProjectScreenEditright !="True")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!PR_REC_ID)
+        {
+            DevExpress.ui.dialog.alert('Select A Row', 'Alert'); return;
+        }
+        var statusFlowCheck = project_StatusFlowCheck("Edit");
+        if (statusFlowCheck[0] == false) { DevExpress.ui.dialog.alert(statusFlowCheck[1], 'Error!!'); return; }
+        var DataNavigationCheck = project_dataNavigation("Edit");
+        if (DataNavigationCheck[0] == false) { DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Error!!'); return; }
+        if (DataNavigationCheck[0] == "NoEditRights") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); $("#ProjectEdit").hide(); return; }
+
+            ShowLoader();    
+        OpenDynamicPopup("Edit ~ Project Request", "@Url.Action("Frm_Project_NEVD", "ProjectScreen", new {@area= "Stock" })?ActionMethod=Edit&REC_ID=" + PR_REC_ID, "auto", "90%", false, null);
+        
+    }
+    function project_NEVD_ViewClick()
+    {
+        if (ProjectScreenViewright != "True")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!PR_REC_ID)
+        {
+            DevExpress.ui.dialog.alert('Select A Row', 'Alert'); return;
+        }
+        var statusFlowCheck = project_StatusFlowCheck("View");
+        if (statusFlowCheck[0] == false) { DevExpress.ui.dialog.alert(statusFlowCheck[1], 'Error!!'); return; }
+        var DataNavigationCheck = project_dataNavigation("View");
+        if (DataNavigationCheck[0] == false) { DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Error!!'); return; }
+        if (DataNavigationCheck[0] == "NoViewRights") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); $("#ProjectView").hide(); return; }
+
+              ShowLoader();    
+        OpenDynamicPopup("View ~ Project Request", "@Url.Action("Frm_Project_NEVD", "ProjectScreen", new {@area= "Stock" })?ActionMethod=View&REC_ID=" + PR_REC_ID, "auto", "90%", false, null);
+  
+    }
+    function project_NEVD_DeleteClick()
+    {
+        if (ProjectScreenDeleteright != "True")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return;
+        }
+        if (!PR_REC_ID)
+        {
+            DevExpress.ui.dialog.alert('Select A Row', 'Alert'); return;
+        }
+        var statusFlowCheck = project_StatusFlowCheck("Delete");
+        if (statusFlowCheck[0] == false) { DevExpress.ui.dialog.alert(statusFlowCheck[1], 'Error!!'); return; }
+        var DataNavigationCheck = project_dataNavigation("Delete");
+        if (DataNavigationCheck[0] == false) { DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Error!!'); return; }
+        if (DataNavigationCheck[0] == "NoDeleteRights") { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); $("#ProjectDelete").hide(); return; }
+
+              ShowLoader();    
+        OpenDynamicPopup("Delete ~ Project Request", "@Url.Action("Frm_Project_NEVD", "ProjectScreen", new {@area= "Stock" })?ActionMethod=Delete&REC_ID=" + PR_REC_ID, "auto", "90%", false, null);
+     
+    }
+    function ProjectAddDocuments()
+    {
+        if (!PR_REC_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }
+        var statusFlowCheck = project_StatusFlowCheck("Document");
+        if (statusFlowCheck[0] == false) { DevExpress.ui.dialog.alert(statusFlowCheck[1], 'Error!!'); return; }
+        var DataNavigationCheck = project_dataNavigation("Document");
+        if (DataNavigationCheck[0] == false) { DevExpress.ui.dialog.alert(DataNavigationCheck[1], 'Error!!'); return; }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            data: {
+                AM: "New",
+                PostSucessFunctionName: "Frm_InnerGrid_DirectAdd_OnSuccess_Prj",
+                Post_action_Name: "Frm_Project_Document",
+                Post_Controller_Name: "ProjectScreen",
+                Post_Area_Name: "Stock",
+                Document_Grid_PopupName: "PRinnergrid",
+                ByteSessionVariable: "PRDocument",
+                Refrecid: PR_REC_ID.toString()
+            },
+            cache: false,
+            success: function (data) {
+                ShowLoader();
+                OpenPopup("PRinnergrid", "New ~ Documents", null, "auto", 900, true, data);   
+             
+           
+            }
+        });
+        HideLoader();
+    }//Mantis 0000213 bug fixed
+    function Frm_InnerGrid_DirectAdd_OnSuccess_Prj(data)
+    {
+        if (data.result == true)
+        {
+            $("#PRinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            ProjectScreenListGrid.SetFocusedRowIndex(-1);
+            ProjectScreenListGrid.Refresh();
+            HideLoader();
+        }
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            HideLoader();
+        }
+    }
+    function project_printEstimationReport()
+    {
+        if (!PR_REC_ID) {
+            DevExpress.ui.dialog.alert('Select A Row', 'Alert'); return;
+        }
+        if (PR_CurrUserRole.includes("Estimator") || PR_CurrUserRole.includes("Approver"))
+        {
+            $("#ProjectRegister_report_modal").dxPopup("show");
+            $("#ProjectRegister_report_modal").dxPopup("instance").option("title", "Export Option");
+            $("#ProjectRegister_report_modal").html('');
+            ShowLoader();
+            $("#ProjectRegister_report_modal_result").load("@Url.Action("Frm_Export_Options_Estimation", "ProjectScreen", new { @area = "Stock" })", function () {
+                HideLoader();
+            });
+        }
+        else { DevExpress.ui.dialog.alert('Not Allowed', 'No Rights'); return; }
+    }
+
+</script>
+
+

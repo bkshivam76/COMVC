@@ -1,0 +1,227 @@
+﻿@using DevExtreme.AspNet.Mvc
+
+@model ConnectOneMVC.Areas.Facility.Models.CenterPurpose
+
+@{
+    bool IsVisible = Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete;
+}
+
+<div id="centerPurposePopup">
+    <form id="CenterPurposeFormId" class="edit_form form-horizontal">
+
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.REC_EDIT_ON)
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(model => model.ID, new { id = "CenterPurpose_ID" })
+
+
+        @{
+            var isDelete = (Model != null && Model.TempActionMethod == "Delete");
+
+        }
+
+
+        @using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg2">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2 class="popuphead"><i class="far fa-edit"></i> Center Purpose</h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="form-field">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4s pll">
+                                    @Html.LabelFor(model => model.Purpose, htmlAttributes: new { @class = "control-label text-red" })
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                .ID("CenterPurposeTxtName")
+                                .Name("Purpose")
+                                .Value(Model.Purpose)
+                                .ReadOnly(isDelete)
+                                .MaxLength(250)
+                                 )
+                                    @Html.ValidationMessageFor(model => model.Purpose, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6 col-lg-6">
+                            @Html.Partial("Drop_Request", String.Format("Send Your Request to Madhuban for ( {0} ~ Center Purpose)...", Model.TempActionMethod.ToString()))
+
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-6">
+                            <div class="styleActionBtn">
+
+                                @if (isDelete)
+                                {
+                                    @(Html.DevExtreme().Button().ID("BUT_DELETE_CenterPurpose").CustomSaveButton().Text("Yes").Type(ButtonType.Success).UseSubmitBehavior(false).OnClick(@<text> function () { deleteCenterPurpose(); } </text>))
+
+                                    @(Html.DevExtreme().Button().ID("BUT_CANCEL_CenterPurpose").CustomCloseButton().Text("No").FocusStateEnabled(true).OnClick(@<text> function () { closeCenterPurpose(); } </text>))
+                                }
+                                else
+                                {
+
+                                    @(Html.DevExtreme().Button().ID("BUT_SAVE_CenterPurpose").CustomSaveButton().Text("Save").UseSubmitBehavior(false).OnClick("saveCenterPurpose"))
+                                    @(Html.DevExtreme().Button().ID("BUT_CANCEL_CenterPurpose").CustomCloseButton().Text("Cancel").FocusStateEnabled(true).OnClick(@<text> function () { closeCenterPurpose(); }  </text>))
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+    </form>
+</div>
+
+<script>
+
+    $(document).ready(function () {
+        Focus_FirstEditable_Field("CenterPurposeFormId");
+        TransformTextForDB("CenterPurposeFormId");
+
+        dontaskpopupcloseconfirmation = false;
+    });
+
+    function saveCenterPurpose() {
+    var txt_Name = $('#CenterPurposeTxtName').dxTextBox('instance').option('value');
+    var tempActionMethod = $("#CenterPurposeFormId [name='TempActionMethod']").val();
+    const popupInstance = $("#Dynamic_Content_popup").dxPopup("instance");
+
+    if (!tempActionMethod) {
+        DevExpress.ui.dialog.alert("TempActionMethod is missing. Please try again.", "Validation Error");
+        return;
+    }
+
+    if (!txt_Name) {
+        DevExpress.ui.dialog.alert("Purpose is required.", "Validation Error");
+        return;
+    }
+
+    var requestData = {
+        TempActionMethod: tempActionMethod,
+        Purpose: txt_Name,
+        ID: '@Model.ID',
+        REC_EDIT_ON: $('#REC_EDIT_ON').val()
+    };
+
+    $.ajax({
+        type: "POST",
+        url: "/Facility/CenterPurpose/Frm_Center_Purpose_Window",
+        data: requestData,
+        cache: false,
+        success: function (data) {
+            if (data && typeof data.jsonParam.result !== "undefined") {
+                if (!data.jsonParam.result) {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, "Error").done(function () {
+                        if (data.jsonParam.refreshgrid && popupInstance) {
+                            dontaskpopupcloseconfirmation = true;
+                            popupInstance.hide();
+                        }
+                    });
+                }
+                else
+                {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, "New ~ Center Purpose").done(function ()
+                    {
+                        CenterPurposeListGrid.refresh();
+                        dontaskpopupcloseconfirmation = true;
+                        popupInstance.hide();
+                        if (tempActionMethod === "New") {
+                            DevExpress.ui.dialog.confirm("Add more entry?", "Confirm").done(function (result) {
+                                if (result) {
+                                    CenterPurpose_NewClick();
+                                }
+                            });
+                        }
+                    });
+                }
+            } else {
+                DevExpress.ui.dialog.alert("Unexpected response format.", "Error");
+            }
+        },
+        error: function () {
+            DevExpress.ui.dialog.alert("An error occurred while saving.", "Error");
+        }
+    });
+}
+
+    function deleteCenterPurpose() {
+        const purposeId = $("#CenterPurpose_ID").val();
+        const tempActionMethod = $('#CenterPurposeFormId [name="TempActionMethod"]').val();
+        const popupInstance = $("#Dynamic_Content_popup").dxPopup("instance");
+        
+
+        if (!purposeId) {
+            DevExpress.ui.dialog.alert("ID is missing. Cannot delete the record.", "Error");
+            return;
+        }
+
+        if (tempActionMethod !== "Delete") {
+            DevExpress.ui.dialog.alert("Invalid delete request.", "Error");
+            return;
+        }
+
+        DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm Delete").done(function (userConfirmed) {
+            if (!userConfirmed) return;
+
+            const requestData = {
+                TempActionMethod: tempActionMethod,
+                ID: purposeId,
+                REC_EDIT_ON: $('#REC_EDIT_ON').val()
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/Facility/CenterPurpose/Frm_Center_Purpose_Window",
+                data: requestData,
+                cache: false,
+                success: function (response) {
+                    if (response && response.jsonParam && typeof response.jsonParam.result !== "undefined") {
+                        DevExpress.ui.dialog.alert(response.jsonParam.message, "Center Purpose").done(function () {
+                            if (response.jsonParam.result) {
+                                CenterPurposeListGrid.refresh();
+                                if (popupInstance) {
+                                    dontaskpopupcloseconfirmation = true;
+                                    popupInstance.hide();
+                                }
+                            }
+                        });
+                    } else {
+                        DevExpress.ui.dialog.alert("Unexpected response format.", "Error");
+
+                    }
+                },
+                error: function () {
+                    DevExpress.ui.dialog.alert("Error deleting record.", "Error");
+
+                }
+            });
+        });
+    }
+
+    function closeCenterPurpose() {
+        DevExpress.ui.dialog.confirm("Sure you want to Cancel this Entry...?", "Center Purpose").done(function (dialogResult) {
+            if (dialogResult) {
+                dontaskpopupcloseconfirmation = true;
+                $("#Dynamic_Content_popup").dxPopup("instance").hide();
+            }
+        });
+    }
+</script>

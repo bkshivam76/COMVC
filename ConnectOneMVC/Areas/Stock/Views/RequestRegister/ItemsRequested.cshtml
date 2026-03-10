@@ -1,0 +1,266 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.Model_NEVD_Requisition
+@using DevExtreme.AspNet.Mvc;
+@{
+    bool IsVisible = Model != null && (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_View") || (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_Delete")) ? true : false);
+    bool IsDisabled = Model != null && (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_View") || (Model.ActionMethod == (Common_Lib.Common.Navigation_Mode)Enum.Parse(typeof(Common_Lib.Common.Navigation_Mode), "_Delete")) ? true : false);
+    var IsApprover = (bool)ViewData["RR_ApproveRight"];
+    var UO_ID = ViewData["UO_ID"];
+}
+<div class="row">
+    <div class="col-md-12">
+        @Html.Action("RequisitionItemRequestedGridData", "RequestRegister", new { ActionMethodName = ViewData["RRActionMethod"], RR_ID = ViewData["RR_ID"] , UO_ID = ViewData["UO_ID"], UO_SubItem_ID = ViewData["UO_SubItem_ID"] })
+    </div>
+</div>
+
+
+<div class="row btnsDiv marginAll8">
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedNew").Text("New").Icon("fas fa-file btn-icons newfile icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrm_RequisitionItemRequested_New_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedEdit").Text("Edit").Icon("fas fa-pencil-alt btn-icons editcolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Edit_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedDelete").Text("Delete").Icon("fas fa-trash btn-icons deletecolor icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Delete_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedView").Text("View").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(Model.ActionMethod.ToString() == "_Delete").OnClick(@<text>function () {OnFrm_RequisitionItemRequested_View_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedPriceHistory").Text("Price History").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Price_History_Click()}</text>))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedCheckAvailability").Text("Check Availability").Icon("fas fa-eye btn-icons eyeicon icon-rgt-space5").Disabled(IsDisabled).OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Check_Availability_Click()}</text>))
+
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedApprove").Text("Approve Selected").OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Approve_Click()}</text>).Visible(IsApprover).Disabled(IsDisabled))
+    @(Html.DevExtreme().Button().ID("BUT_RequisitionItemRequestedApproveAll").Text("Approve All").OnClick(@<text>function () {OnFrm_RequisitionItemRequested_Approve_All_Click()}</text>).Visible(IsApprover).Disabled(IsDisabled))
+
+</div>
+<script>
+    var ItemRequested_Sr;
+    var ItemRequested_ID;
+    var SelectedItemsSr = "";
+    var subitemid;
+
+    function OnFrm_RequisitionItemRequested_Begincallback_Click(s, e) {
+        e.customArgs["UO_ID"] = "@UO_ID";
+       
+    }
+    function OnRequisitionItemRequestedGridFocusedRowChanged(s, e)
+    {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'Sr;ID;SubItemID', RequisitionItemRequested_GridRowValues);
+    }
+    function RequisitionItemRequested_GridRowValues(values)
+    {
+        ItemRequested_Sr = values[0];
+        ItemRequested_ID = values[1];
+        subitemid = values[2];
+    }
+    function OnRequisitionItemRequestedGridSelectionChanged(s, e)
+    {
+        s.GetSelectedFieldValues("Sr", RequisitionItemRequested_GetSelectedFieldValues);
+    }
+    function RequisitionItemRequested_GetSelectedFieldValues(values)
+    {
+        SelectedItemsSr = values.join(',');
+    }
+    function OnFrm_RequisitionItemRequested_New_Click()
+    {
+        if (IsDisabled) { return; }
+        var check = CheckIfAllowed();
+        if (check.length > 0) { DevExpress.ui.dialog.alert(check, "Error"); return;}
+
+        var ReqType = $("#RequisitionType").dxSelectBox('instance').option('value');
+        if (ReqType == null)
+        {
+            DevExpress.ui.dialog.alert("Please Select Requisition Type First!!", "Error"); return;
+        }
+        var ReqStoreDept = $("#RequisitionRequestorStoreDeptID").dxDropDownBox('instance').option('value');
+        if (ReqStoreDept == null)
+        {
+            DevExpress.ui.dialog.alert("Please Select Requisition Store/Dept First!!", "Error"); return;
+        }
+        ShowLoader();
+        OpenPopup("FrmRequisition_Inner_Popup", "New ~ Item Requested", "@Url.Action("Frm_Stock_Requisition_Item_Requested", "RequestRegister", new {@area= "Stock" })?ActionMethod=_New", "auto", 1024, false, null);
+    }
+    function OnFrm_RequisitionItemRequested_Edit_Click()
+    {
+        if (IsDisabled) { return; }
+        var check = CheckIfAllowed();
+        if (check.length > 0) { DevExpress.ui.dialog.alert(check, "Error"); return; }
+
+        if (ItemRequested_Sr == null || ItemRequested_Sr == undefined || ItemRequested_Sr == "undefined")
+        {
+                DevExpress.ui.dialog.alert("Please Select Row", "Error");
+                return;
+        }
+        var ReqType = $("#RequisitionType").dxSelectBox('instance').option('value');
+        if (ReqType == null) { DevExpress.ui.dialog.alert("Please Select Requisition Type First!!", "Error"); return; }
+
+        var ReqStoreDept = $("#RequisitionRequestorStoreDeptID").dxDropDownBox('instance').option('value');
+        if (ReqStoreDept == null) { DevExpress.ui.dialog.alert("Please Select Requisition Store/Dept First!!", "Error"); return; }
+        ShowLoader();
+        OpenPopup("FrmRequisition_Inner_Popup", "Edit ~ Item Requested","@Url.Action("Frm_Stock_Requisition_Item_Requested", "RequestRegister", new {@area= "Stock" })?ActionMethod=_Edit&SR=" + encodeURIComponent(ItemRequested_Sr), "auto", 1024, false, null);
+    }
+
+    function OnFrm_RequisitionItemRequested_View_Click()
+    {
+        if (ItemRequested_Sr == null || ItemRequested_Sr == undefined || ItemRequested_Sr == "undefined")
+        {
+            DevExpress.ui.dialog.alert("Please Select Row", "Error");
+            return;
+        }
+        ShowLoader();
+        OpenPopup("FrmRequisition_Inner_Popup", "View ~ Item Requested","@Url.Action("Frm_Stock_Requisition_Item_Requested", "RequestRegister", new {@area= "Stock" })?ActionMethod=_View&SR=" + encodeURIComponent(ItemRequested_Sr), "auto", 1024, false, null);
+    }
+    function OnFrm_RequisitionItemRequested_Price_History_Click() {
+        if (IsDisabled) { return; }
+        if (ItemRequested_Sr == 'undefined' || ItemRequested_Sr == undefined || ItemRequested_Sr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+          ShowLoader();
+
+        OpenPopup("popup_frm_price_history", "Search ~ Price History", "@Url.Action("Frm_PO_Price_History", "PurchaseRegister", new { @area = "Stock" })?ItemID=" + encodeURIComponent(subitemid), "auto", 900, false, null);
+     
+   
+    }
+    function OnFrm_RequisitionItemRequested_Check_Availability_Click() {
+        if (ItemRequested_Sr == 'undefined' || ItemRequested_Sr == undefined || ItemRequested_Sr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        if (subitemid == null || subitemid == 0) {
+            DevExpress.ui.dialog.alert("Selected row not have item ID", "Error");
+            return;
+        }
+        
+        ShowLoader();
+        OpenPopup("Check_Avl_Popup", "Search ~ Stock Availability", "@Url.Action("Frm_User_Order_Check_Availability", "UserOrder", new { @area = "Stock" })?ItemID=" + encodeURIComponent(subitemid), "auto", 900, false, null);
+     
+
+    }
+    function OnFrm_RequisitionItemRequested_Delete_Click()
+    {
+        if (IsDisabled) { return; }
+        if (ItemRequested_Sr == 'undefined' || ItemRequested_Sr == undefined || ItemRequested_Sr == null) {
+            DevExpress.ui.dialog.alert('Please Select one row', 'Alert ');
+            return;
+        }
+        var check = CheckIfAllowed();
+        if (check.length > 0) { DevExpress.ui.dialog.alert(check, "Error"); return; }
+        var Actual_Manpower_Details = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+        Actual_Manpower_Details.done(function (dialogResult) {
+
+            if (dialogResult) {
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/RequestRegister/Frm_ItemRequested_Window_Delete_Grid_Record",
+                    data: { ActionMethod: "Delete", sr: ItemRequested_Sr, id: ItemRequested_ID },
+                    cache: false,
+                    success: function (result) {
+
+                        RequisitionItemRequestedGrid.SetFocusedRowIndex(-1);
+                        RequisitionItemRequestedGrid.Refresh();
+                      }
+                });
+            }
+        });
+    }
+    function OnFrm_RequisitionItemRequested_Approve_Click()
+    {
+        if (SelectedItemsSr.length == 0)
+        {
+            DevExpress.ui.dialog.alert("No Item Selected..", "Error...");
+            return;
+        }
+        var ApproveItem = DevExpress.ui.dialog.confirm("Are you sure you want to Approve selected Requisition(s) ?", "Confirm...");
+        ApproveItem.done(function (dialogResult)
+        {
+            if (dialogResult)
+            {
+                ShowLoader();
+                $.ajax({
+                    url: '@Url.Action("Requisition_Approve_Items_qty", "RequestRegister")',
+                    type: "GET",
+                    data: { ButtonClicked: "Approve", SelectedSrNo: SelectedItemsSr },
+                    success: function (res)
+                    {
+                        DevExpress.ui.dialog.alert(res.Message, 'Alert ');
+                    }
+                });
+                RequisitionItemRequestedGrid.SetFocusedRowIndex(-1);
+                RequisitionItemRequestedGrid.Refresh();
+                HideLoader();
+            }
+        });
+    }
+    function OnFrm_RequisitionItemRequested_Approve_All_Click()
+    {
+        if (RequisitionItemRequestedGrid.GetVisibleRowsOnPage() <= 0)
+        {
+            DevExpress.ui.dialog.alert("No items To Approve..", 'Alert ');
+            return;
+        }
+        var ApproveItem = DevExpress.ui.dialog.confirm("Are you sure you want to Approve All Requisition(s) ?", "Confirm...");
+        ApproveItem.done(function (dialogResult) {
+            if (dialogResult) {
+                ShowLoader();
+                $.ajax({
+                    url: '@Url.Action("Requisition_Approve_Items_qty", "RequestRegister")',
+                    type: "GET",
+                    data: { ButtonClicked: "Approve All", SelectedSrNo: "" },
+                    success: function (res)
+                    {
+                        RequisitionItemRequestedGrid.SetFocusedRowIndex(-1);
+                        RequisitionItemRequestedGrid.Refresh();
+                    }
+                });
+
+                HideLoader();
+            }
+        });
+    }
+    function Frm_RequisitionItemRequested_OnSuccess(data) {
+        HideLoader();
+        if (data.result == false)
+        {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else
+        {
+            $("#FrmRequisition_Inner_Popup").dxPopup("hide");
+            RequisitionItemRequestedGrid.SetFocusedRowIndex(-1);
+            RequisitionItemRequestedGrid.Refresh();
+        }
+    }
+    function CheckIfAllowed()
+    {
+        var msg = "";
+        if (is_Requestor == false && is_Store_Keeper == false && is_Approver == false && "@Model.ActionMethod" =="_Edit")
+        {
+            msg = "Only Requestor,Store Keeper,Approver can Add/Update/Delete Items ";
+            return msg;
+        }
+        if ("@Model.RequisitionStatus" == "Cancelled" || "@Model.RequisitionStatus" == "Rejected" || "@Model.RequisitionStatus" == "Completed")
+        {
+            msg = "Add/Update/Delete Items is not Allowed if RR status is " + "@Model.RequisitionStatus";
+            return msg;
+        }
+        if (is_Requestor || is_Store_Keeper)
+        {
+            if ("@Model.RequisitionStatus" == "Approved" || "@Model.RequisitionStatus" == "Submitted for Approval")
+            {
+                msg = "Requestor or Store Keeper Cannot Add/Update/Delete Items if RR status is " + "@Model.RequisitionStatus";
+            }
+            else
+            {
+                msg = "";
+                return msg;
+            }
+        }
+        if (is_Approver && "@Model.ActionMethod" =="_Edit")//mantis#1298
+        {
+            if ("@Model.RequisitionStatus" == "New" || "@Model.RequisitionStatus" == "Changes Recommended")
+            {
+                msg = "Approver Cannot Add/Update/Delete Items if RR status is " + "@Model.RequisitionStatus";
+            }
+            else
+            {
+                msg = "";
+                return msg;
+            }
+        }
+        return msg;
+    }
+
+</script>

@@ -1,0 +1,179 @@
+﻿@model ConnectOneMVC.Areas.Stock.Models.StockItemWindow
+@using DevExtreme.AspNet.Mvc;
+
+@{
+    bool IsVisible = Model != null &&  Model.ItemMaster_ActionMethod.ToString().Trim() == "_Delete" ? true : false;
+    bool IsDisabled = Model != null && (Model.ItemMaster_ActionMethod == "_View" || Model.ItemMaster_ActionMethod == "_Delete") ? true : false;
+}
+
+<div class="tab-content responsive">
+    <div id="ItemProperties" class="tab-pane fade in active">
+        <div class="row">
+            <div class="col-lg-12 col-xs-12 table-responsive overflow-scroll scrollbar">
+                <div class="tabtbl width1200px">
+                    @Html.Action("Item_Properties_grid_Data", "StockItemWindow", new { ActionMethodName = Model.ItemMaster_ActionMethod, SubItemID = Model.SubItemID })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-field">
+                    @(Html.DevExtreme().Button().ID("IDIPVDNew").Text("New").Disabled(IsDisabled).OnClick(@<text> function(){ to_Edit_New_Delete_ViewData("_New");} </text>))
+
+                    @(Html.DevExtreme().Button().ID("IDItemEdit").Text("Edit").Disabled(IsDisabled).OnClick(@<text> function(){to_Edit_New_Delete_ViewData("_Edit")} </text>))
+
+                    @(Html.DevExtreme().Button().ID("IDItemDelete").Text("Delete").Disabled(IsDisabled).OnClick(@<text> function(){to_Edit_New_Delete_ViewData("_Delete")} </text>))
+
+                    @(Html.DevExtreme().Button().ID("IDItemView").Text("View").Disabled(IsDisabled).OnClick(@<text> function(){to_Edit_New_Delete_ViewData("_View")} </text>))
+
+                    @(Html.DevExtreme().Button().ID("IDItemListExport").Text("List Export").Disabled(IsDisabled).OnClick(@<text> function(){StockItemPropertyListPreviewClick()} </text>))
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>@*//Mantis bug 0000347 fixed*@
+
+    <script>
+    var prop_SrNo;
+
+    var Item_Name = "@Model.Sub_Item_Name";
+
+    //function ItemPropertyRoWClickEvent(s, e) {
+    //    debugger
+    //    var key = s.GetRowKey(s.GetFocusedRowIndex());
+    //    Item_Properties_grid_Data.GetValuesOnCustomCallback({ key: key }, ItemPropertyOnGetRowValues);
+    //}
+
+    function ItemPropertyOnRowFocusing(s, e) {
+        if (s.GetFocusedRowIndex() > -1) {
+            var key = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: key }, ItemPropertyOnGetRowValues);
+        }
+        else { SrNo = 0; }
+    }
+
+    function ItemPropertyOnGetRowValues(data) {
+        debugger;
+        var values = data.split("![");
+        prop_SrNo = values[0];
+        //Item_Name = values[1];
+        //Item_Property = values[2];
+        //Value = values[3];
+        //Remarks = values[4];
+    }
+
+    //function toDeleteData() {
+    //    $.ajax({
+    //        type: "GET",
+    //        url: "/Stock/StockItemWindow/frm_Item_Window_Add_Property",
+    //        data: {
+    //            ActionMethod: "_Delete",
+    //            ItemName: Item_Name,
+    //            Property_Value: Value,
+    //            Property_Name: Item_Property,
+    //            Remarks: Remarks,
+    //            SrNo: SrNo
+    //        },
+    //        success: function (data) {
+    //            $("#Dynamic_Content_popup").dxPopup("show");
+    //            $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup'></div>")
+    //            $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Change ~ Vehicle Insurance Detail");
+    //            $("#Dynamic_Content_popup").dxPopup("instance").option("Height", "44%")
+    //            $("#Dynamic_Content_popup").dxPopup("instance").option("Width", "35%")
+    //            $("#result_Dynamic_Content_popup").html(data);
+    //        },
+    //        error: function (e) {
+    //        }
+    //    });
+    //}
+        function StockItemPropertyListPreviewClick() {
+         debugger
+         $("#StockPItem_report_modal").dxPopup("show");
+         $("#StockPItem_report_modal").dxPopup("instance").option("title", "Export Option");
+
+            $("#StockPItem_report_modal_Result").html(null);
+        ShowLoader();
+         $("#StockPItem_report_modal_Result").load("@Url.Action("Frm_Export_Options_Property", "StockItemWindow", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }
+    function to_Edit_New_Delete_ViewData(actionMethod) {
+        debugger;
+
+        if (actionMethod == "_New") {
+            if ("@IsDisabled" == "true") { return; }
+
+     
+            ShowLoader();            
+                 OpenPopup("StockIteminnergrid", "Add New Property", "@Url.Action("frm_Item_Window_Add_Property", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_New", "auto", 1000, false, null);
+            HideLoader();
+        }
+        if (actionMethod == "_Edit") {
+
+            if (!prop_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }//Mantis bug 0000349 fixed
+             ShowLoader();            
+            OpenPopup("StockIteminnergrid", " Property Screen", "@Url.Action("frm_Item_Window_Add_Property", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_Edit&SrNo=" + encodeURIComponent(prop_SrNo), "auto", 1000, false, null);
+            HideLoader();
+        }
+        if (actionMethod == "_View") {
+            if (!prop_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }//Mantis bug 0000349 fixed            
+                  ShowLoader();            
+            OpenPopup("StockIteminnergrid", " Property Screen", "@Url.Action("frm_Item_Window_Add_Property", "StockItemWindow", new {@area= "Stock" })?ActionMethod=_View&SrNo=" + encodeURIComponent(prop_SrNo), "auto", 1000, false, null);
+            HideLoader();
+        }
+
+        if (actionMethod == "_Delete") {
+            if ("@IsDisabled" == "True") { return; }
+            if (!prop_SrNo) {
+                DevExpress.ui.dialog.alert("Please select one row", "Error");
+                return;
+            }
+            var deleteResultPaymentDetail = DevExpress.ui.dialog.confirm("Sure you want to Delete this Entry...?", "Confirm changes");
+            deleteResultPaymentDetail.done(function (dialogResult) {
+
+                if (dialogResult) {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Stock/StockItemWindow/Frm_Property_Grid_Delete_Record",
+                        data: { ActionMethod: "_Delete", SrNo: prop_SrNo },
+                        cache: false,
+                        success: function (result) {
+                            if (result.result == true) {
+                                Item_Properties_grid_Data.SetFocusedRowIndex(-1);
+                                Item_Properties_grid_Data.Refresh();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        //$.ajax({
+        //    type: "GET",
+        //    url: "/Stock/StockItemWindow/frm_Item_Window_Add_Property",
+        //    data: {
+        //        ActionMethod: actionMethod,
+        //       ID: propID,
+        //        SrNo: SrNo
+        //    },
+        //    success: function (data) {
+        //        $("#Dynamic_Content_popup").dxPopup("show");
+        //        $("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popup'></div>")
+        //        $("#Dynamic_Content_popup").dxPopup("instance").option("title", "Stock ~ Item Properties");
+        //        $("#Dynamic_Content_popup").dxPopup("instance").option("height", "65%")
+        //        $("#Dynamic_Content_popup").dxPopup("instance").option("width", "40%")
+        //        $("#result_Dynamic_Content_popup").html(data);
+        //    },
+        //    error: function (e) {
+        //    }
+        //});
+        //Mantis bug 0000334 fixed
+    }
+
+    </script>

@@ -1,0 +1,161 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    int MTMainGridID = (int) ViewData["MTMainGridID"];
+}
+@Html.DevExpress().GridView(settings =>
+{
+    settings.Name = "MTAllocationRegisterItemProduce"+ MTMainGridID;
+    settings.SettingsDetail.MasterGridName = "MTAllocationRegisterListGrid";
+
+    settings.Width = Unit.Percentage(100);
+    settings.CommandColumn.Visible = true;
+    settings.CommandColumn.Width = 30;
+    settings.CommandColumn.ShowSelectCheckbox = true;
+
+    settings.CallbackRouteValues = new
+    {
+        Controller = "MTAllocationRegister",
+        Action = "Frm_MTAllocationRegister_IssueDetail_Grid",
+        MT_ID = MTMainGridID,
+        SessionGUID = SessionGUID
+    };
+
+    settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = true;// set false for simultaneous nested grid
+    settings.SettingsDetail.ShowDetailRow = true; //set true for nested grid
+    settings.SettingsDetail.ExportMode = GridViewDetailExportMode.All;
+
+    settings.SettingsExport.GetExportDetailGridViews = (s, e) => //export sub nested grid
+    {
+        int ITEM_ID = (int)DataBinder.Eval(e.DataItem, "IssueMainRecID");
+        GridViewExtension exportnestedgrid = new GridViewExtension(ConnectOneMVC.Areas.Stock.Controllers.MTAllocationRegisterController.MTAllocationRegister_ReturnDetail_Export(ITEM_ID));
+        exportnestedgrid.Bind(ConnectOneMVC.Areas.Stock.Controllers.MTAllocationRegisterController.GetReturnDetail(ITEM_ID));
+        e.DetailGridViews.Add(exportnestedgrid);
+    };
+    settings.SetDetailRowTemplateContent(c =>
+    {
+        Html.RenderAction("Frm_MTAllocationRegister_ReturnDetail_Grid", new { ITEM_ID = DataBinder.Eval(c.DataItem, "ID") });
+    });
+    settings.CustomJSProperties = (s, e) =>
+    {
+        MVCxGridView gridView = (MVCxGridView)s;
+        var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+        e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+        e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+    };
+    settings.BeforeGetCallbackResult = (s, e) =>
+    {
+        MVCxGridView gridView = s as MVCxGridView;
+        foreach (GridViewDataColumn column in gridView.DataColumns)
+        {
+            if (column.Visible)
+                column.Settings.AllowSort = DefaultBoolean.True;
+            else
+                column.Settings.AllowSort = DefaultBoolean.False;
+        }
+    };
+    settings.AfterPerformCallback = (s, e) =>
+    {
+        ASPxGridView gridView = s as ASPxGridView;
+        gridView.Selection.UnselectAll();
+    };
+
+    settings.KeyFieldName = "ID";
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Mach_Tool_Name";
+            column.Caption = "Machine/Tool Name";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Mach_Tool_Code";
+            column.Caption = "Machine/Tool Code";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Qty_Allocated";
+            column.Caption = "Qty Allocated";
+            column.PropertiesEdit.DisplayFormatString = "#.##";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "Qty_Returned";
+            column.Caption = "Qty Returned";
+            column.PropertiesEdit.DisplayFormatString = "#.##";
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "ID";
+            column.Caption = "ID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "MachineToolID";
+            column.Caption = "MachineToolID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "IssueMainRecID";
+            column.Caption = "IssueMainRecID";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "IssueDate";
+            column.Caption = "Issuedate";
+            column.Visible = false;
+        }
+    });
+    settings.Columns.Add(column =>
+    {
+        {
+            column.FieldName = "IssuingStore";
+            column.Caption = "IssuingStore";
+            column.Visible = false;
+        }
+    });
+
+    int MT_IssueDetail_ShowHorizontalBar = ViewData["MT_ShowHorizontalBar"] == null ? 0 : (int)ViewData["MT_ShowHorizontalBar"];
+    if (MT_IssueDetail_ShowHorizontalBar == 1)
+    {
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+        settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+    }
+    else
+    {
+        settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+        settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+        settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+    }
+
+    settings.CustomDataActionRouteValues = new { Controller = "MTAllocationRegister", Action = "MTItemProduceCustomDataAction" };
+
+    settings.SettingsBehavior.AllowFocusedRow = false;
+
+    settings.SettingsBehavior.AllowSelectSingleRowOnly = false;
+    settings.ClientSideEvents.Init = "MT_IssueDetailGrid_init";
+    settings.ClientSideEvents.DetailRowExpanding = "ExpandMT_IssueDetailGrid_Row";
+    settings.ClientSideEvents.DetailRowCollapsing = "CollapseMT_IssueDetailGrid_Row";
+    settings.ClientSideEvents.SelectionChanged = "MTAllocationIssueGridRowSelectionChanged";
+
+
+}).Bind(Model).GetHtml()
+

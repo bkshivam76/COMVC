@@ -1,0 +1,475 @@
+﻿<div class="CoreAddLocation_ClearReferences">
+@using DevExtreme.AspNet.Mvc;
+@using Common_Lib;
+@model ConnectOneMVC.Areas.Profile.Models.CoreProfile
+<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "_View" || Model.ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+
+}
+
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+}
+<script type="text/javascript">
+    var IsSucessPopup = false;
+    var IsViewPopup = false;
+
+
+</script>
+<div id="Frm_CoreMatchedLocation_window_Content">
+    @using (Ajax.BeginForm("frm_CoreMatchedLocation_window", "CoreLocation",
+               new AjaxOptions
+               {
+                   HttpMethod = "GET",
+                   UpdateTargetId = "frm_CoreMatchedLocation_window",
+                   InsertionMode = InsertionMode.InsertAfter,
+                   OnBegin = "AjaxBeginFormPost",
+                   OnSuccess = "CoreMatchedLocationAjaxSuccessForm"
+               },
+               new
+               {
+                   id = "CoreLocationValidationForm",
+                   @class = "edit_form"
+               }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(x => x.ActionMethod)
+        @Html.HiddenFor(x => x.TempActionMethod)
+        @Html.HiddenFor(x => x.OldLocationName)
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            if (Model.ActionMethod.ToString().Trim() == "_Edit" || Model.ActionMethod.ToString().Trim() == "_New" || Model.ActionMethod.ToString() == "_Delete")
+            {
+                <div class="full-width-header-bg">
+                    <div class="row">
+
+                        <div class="col-sm-8 pll">
+                            <h3 class="popuphead"><i class="far fa-edit"></i>Core Location Information </h3>
+                        </div>
+                        <div class="col-sm-4 prm">
+                            <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                        </div>
+                        @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                    </div>
+                </div><!--[row]-->
+
+                <div class="row">
+
+                    <div class="col-sm-12">
+                        <div class="form-field">
+                            <div class="container-fluid pll prm">
+                                <div class="row">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            @Html.LabelFor(m => m.LocationLabel, htmlAttributes: new { @class = "control-label" })
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @if (Model.ActionMethod.ToString() == "_Delete")
+                                            {
+                                                @(Html.DevExtreme().TextBoxFor(m => m.LocationName).CustomTextBox(true).ID("loc_locname").ReadOnly(true))@*Redmine Bug #133431 fixed*@
+                                            }
+                                            else
+                                            {
+                                                @(Html.DevExtreme().TextBoxFor(m => m.LocationName).CustomTextBox(true).ID("loc_locname").ReadOnly(false))@*Redmine Bug #133431 fixed*@
+                                                @Html.ValidationMessageFor(model => model.LocationName, "", new { @class = "" })
+                                            }
+
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            @Html.LabelFor(m => m.OtherDetailsLabel, htmlAttributes: new { @class = "control-label" })
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @if (Model.ActionMethod.ToString() == "_Delete")
+                                            {
+                                                @(Html.DevExtreme().TextBoxFor(m => m.otherDetails).CustomTextBox(true).ID("oth_otherDetails").ReadOnly(true))@*Redmine Bug #133431 fixed*@
+                                            }
+                                            else
+                                            {
+                                                @(Html.DevExtreme().TextBoxFor(m => m.otherDetails).CustomTextBox(true).ID("oth_otherDetails").ReadOnly(false))@*Redmine Bug #133431 fixed*@
+                                                @Html.ValidationMessageFor(model => model.otherDetails, "", new { @class = "" })
+                                            }
+
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label class="control-label">A/C or Non-A/C:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @(Html.DevExtreme().SelectBox().CustomSelectBox().DataSource(new object[] { new {text = "A/C", value = "ac"}, new {text = "Non-A/C", value = "nonac"} })
+                                                .ID("Ac_nonAc_CoreLocation")
+                                                .Name("Ac_nonAc_CoreLocation")
+                                                .Value(Model.AC_or_NONAC).DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                                                .Placeholder("A/c or Non A/c..").ReadOnly(Model.ActionMethod.ToString() == "_Delete" ? true : false)
+                                            )
+
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label class="control-label">Category:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                                                .DataSource(new object[] { new { text = "BK Brothers", value = "BKBrothers" }, new { text = "Non-BK Brothers", value = "NonBKBrothers" },
+                                                    new { text = "BK Sisters", value = "BKSisters" }, new { text = "Non-BK Sisters", value = "NonBKSisters" }, new { text = "Foreigners", value = "foreigners" },
+                                                    new { text = "VIP", value = "vip" }, new { text = "Teacher", value = "teacher" }, new { text = "Mata", value = "mata" }
+                                                })
+                                                .ID("Category_CoreLocation")
+                                                .Name("Category_CoreLocation")
+                                                .Value(Model.Category).DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                                                .Placeholder("Select Category..").ReadOnly(Model.ActionMethod.ToString() == "_Delete" ? true : false)
+
+                                                )
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label class="control-label">Max Capacity:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @(Html.DevExtreme().NumberBox().CustomNumberBox(true)
+                                                    .ID("MaxCapacity_CoreLocation")
+                                                    .Name("MaxCapacity_CoreLocation")
+                                                    .Value(Model.Max_Capacity_core)
+                                                    .Placeholder("Type Maximum Capacity..").ReadOnly(Model.ActionMethod.ToString() == "_Delete" ? true : false)
+                                                    .Min(0).Format("#0")
+                                                )
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <label class="control-label">Floor :</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            @(Html.DevExtreme().SelectBox().CustomSelectBox()
+                                                .DataSource(new object[] { new { text = "Ground Floor", value = "groundfloor" }, new { text = "1st Floor", value = "1stfloor" },
+                                                    new { text = "2nd Floor", value = "2ndfloor" }, new { text = "3rd Floor", value = "3rd floor" }, new { text = "4th Floor", value = "4thfloor" },
+                                                    new { text = "5th Floor", value = "5thfloor" }, new { text = "6th Floor", value = "6thfloor" }, new { text = "7th Floor", value = "7thfloor" }
+                                                })
+                                                .ID("floor_CoreLocation")
+                                                .Name("floor_CoreLocation")
+                                                .Value(Model.floor).DisplayExpr("text").ValueExpr("value").ShowClearButton(false)
+                                                .Placeholder("Select Floor..").ReadOnly(Model.ActionMethod.ToString() == "_Delete" ? true : false)
+
+                                                )
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!--[row]-->
+                <div class="row">
+                    <span style="float: right; padding: 5px;">
+                        @(Html.DevExtreme().Button().ID("LocationCancel").Text("Cancel").FocusStateEnabled(true).TabIndex(7).OnClick(@<text>
+                                function () {
+                                $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+                                }
+                        </text>)
+                        )
+                    </span>
+                    <span style="float: right; padding: 5px;">
+                        @if (Model.ActionMethod == (Common.Navigation_Mode)Enum.Parse(typeof(Common.Navigation_Mode), "_Delete"))
+                        {
+                            @(Html.DevExtreme().Button().ID("LocationDelete").Text("Delete").FocusStateEnabled(true).TabIndex(7)
+                                                                                                                        .OnClick(@<text>
+                                                                                                                            function()
+                                                                                                                            {
+                                                                                                                            CoreLocationDelete("@Model.ID","@Model.ActionMethod");
+                                                                                                                            }
+                                                                                                                        </text>)
+                            )
+                        }
+                        @if (Model.ActionMethod == (Common.Navigation_Mode)Enum.Parse(typeof(Common.Navigation_Mode), "_New") || Model.ActionMethod == (Common.Navigation_Mode)Enum.Parse(typeof(Common.Navigation_Mode), "_Edit"))
+                        {
+                            @(Html.DevExtreme().Button().ID("LocationSave").Text("Save").TabIndex(7).OnClick(@<text>
+                                    function () {
+                                    OpenMatchedCoreLocationPopUp("@Model.ActionMethod","@Model.ID","@Model.ActionStatus","@Model.EditDate","@Model.LocationName",
+                                        "@Model.otherDetails","@Model.AC_or_NONAC","@Model.Category","","EDIT1");
+                                    }
+                            </text>)
+                            )
+                        }
+
+                    </span>
+
+                </div>
+            }
+        }
+    }
+</div>
+
+<div>
+    @(Html.DevExtreme().Popup().CustomPopup().ID("popup_frm_CoreMatchedLocation_Window").Title("CoreMatchedLocation").DragEnabled(true)
+                                                           .MaxHeight(400)
+                                                           .MaxWidth(800)
+                                                           .ShowCloseButton(true)
+                                                           .ContentTemplate(@<text>
+                                                            <div id="CoreMatchedLocationresult">
+                                                            </div>
+                                                        </text>))
+    
+</div>@* Div Moved "From" Frm_Location_tab to Frm_CoreLocation_Window *@
+
+<script>
+    $(document).ready(function () {
+
+        TransformTextForDB("CoreLocationValidationForm");
+       
+    });//Redmine Bug #133431 fixed
+</script>
+
+<script>
+    var maxcapacity = 0;
+    function OpenMatchedCoreLocationPopUp(actionMethod, id, actionStatus, editDate) {        
+        var locationName = $("#loc_locname").dxTextBox("instance").option("value");
+        var old_locationName = "@Model.OldLocationName".toString();
+        var otherDetails = $("#oth_otherDetails").dxTextBox("instance").option("value");
+        var ac_nonac = $("#Ac_nonAc_CoreLocation").dxSelectBox("instance").option("value");
+        var category = $("#Category_CoreLocation").dxSelectBox("instance").option("value");
+        var floor = $("#floor_CoreLocation").dxSelectBox("instance").option("value");
+
+        if (locationName == null || locationName=="") {
+            DevExpress.ui.dialog.alert('Location Name is required..!', 'Alert ');
+            return
+            return false;
+        }
+        ShowLoader();
+        try {
+            $.ajax({
+                type: "GET",
+                url: "/Profile/CoreLocation/DataNavigationTLocationMatching",
+                data: {
+                    ActionMethod: actionMethod, Id: id, ActionStatus: actionStatus, EditDate: editDate, LocationName: locationName,
+                    OtherDetails: otherDetails, oldLocationName: old_locationName, ac_nonac: ac_nonac, category: category, Floor: floor
+                },
+                success: function (data) {                    
+                    if (data.LocationMache == "1") {
+                        HideLoader();
+                        DevExpress.ui.dialog.alert(data.Message, 'Alert ');
+                        return;
+                        return false;
+                    }
+                    var ACTM = "";
+                    if (data.LocationMache["actionMethodDTLM"]==1) {
+                        ACTM = "_New";
+                    }
+                    else if (data.LocationMache["actionMethodDTLM"]==2) {
+                        ACTM = "_Edit";
+                    }
+                    else {
+                        ACTM = "";
+                    }
+                    var locationName = data.LocationMache["locationNameDTLM"];
+                    var otherDetails = data.LocationMache["otherDetailsDTLM"];
+                    var oldLocationName = data.LocationMache["oldLocationNameDTLM"];
+                    var servicePlaceId = data.LocationMache["sp_IdDTLM"] == null ? "" : data.LocationMache["sp_IdDTLM"];
+                    var propertId = data.LocationMache["lb_IdDTLM"] == null ? "" : data.LocationMache["lb_IdDTLM"];
+                    var LName_ID = data.LocationMache["IDDTML"];
+                    var lastEditedOn = data.LocationMache["LastEditOnDDTML"] == null ?"":data.LocationMache["LastEditOnDDTML"];
+                    var Edited_RadioPropert = data.LocationMache["RAD_PropertyService"] == null ? "" : data.LocationMache["RAD_PropertyService"];
+                    var ID = data.LocationMache.IDDTML == null ? "" : data.LocationMache.IDDTML
+                    maxcapacity = $("#MaxCapacity_CoreLocation").dxNumberBox("instance").option("value");
+                    //ac_nonac = $("#Ac_nonAc_CoreLocation").dxSelectBox("instance").option("value");
+                    //category = $("#Category_CoreLocation").dxSelectBox("instance").option("value");
+                    var ac_nonacDTLM = data.LocationMache["ac_nonacDTLM"];
+                    var categoryDTLM = data.LocationMache["categoryDTLM"];
+                    var floorDTLM = data.LocationMache["FloorDTLM"];
+                    var parms = 'ID=' + encodeURIComponent(ID) + '&ActionMethod=' + encodeURIComponent(ACTM) + '&LastEditOn=' + encodeURIComponent(lastEditedOn) +
+                        '&LocationName=' + encodeURIComponent(locationName) + '&OtherDetails=' + encodeURIComponent(otherDetails) + '&maxCapacity=' + encodeURIComponent(maxcapacity) +
+                        '&old_LocationName=' + encodeURIComponent(oldLocationName) + '&AC_or_NONAC=' + encodeURIComponent(ac_nonacDTLM) +'&Category=' + encodeURIComponent(categoryDTLM)+
+                        '&Floor='+ encodeURIComponent(floorDTLM)
+                    OpenPopup("popup_frm_CoreMatchedLocation_Window", "Matched ~ CoreLocation", '@Url.Action("frm_CoreMatchedLocation_window", "CoreLocation", new { @area = "Profile" })?' + parms, "auto", 800);
+                },
+                error: function (e) {
+                    alert(e);
+                }
+            });
+        }
+        catch (e) {
+            alert(e);
+        }
+
+    }
+    /**             Start
+    Property and Service DropDowns OnChnage functions
+    **/
+
+    function LookUp_GetProList_ChangeEvent(e) {
+        var dropDownBox = $("#Property_ID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#From_Profile_Core_Property");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                //LB_ID=item["Propert_ID"]
+
+            }
+        }
+    }
+
+    function LookUp_GetSerList_ChangeEvent(e) {
+        var dropDownBox = $("#ServicePlace_ID").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#Frm_Profile_Core_New_Service_Grid");
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                //SP_ID = item["SP_ID"]
+
+            }
+        }
+    }
+
+    /**              End
+     Property and Service DropDowns OnChnage functions
+    **/
+
+    /**              Start
+     Property and Service RadioButtons OnChnage function
+    **/
+
+    function RAD_PropertyServiceChangeValue(e) {
+        if (e.value == "Property_ID" || e.value == "Property") {
+            $("#Property_ID").dxDropDownBox("instance").option('disabled', false);
+            $("#ServicePlace_ID").dxDropDownBox("instance").option('disabled', true);
+        }
+        else if (e.value == "ServicePlace_ID" || e.value == "Service Place") {
+            $("#ServicePlace_ID").dxDropDownBox("instance").option('disabled', false);
+            $("#Property_ID").dxDropDownBox("instance").option('disabled', true);
+        }
+
+    }
+    /**              End
+     Property and Service RadioButtons OnChnage function
+    **/
+
+    function SaveOrUpdateMatchedCoreLocation(ID, actionMethod, editedDate, actionStatus, max_Capacity, oldLocationName, ac_nonac, category, floor) {
+        
+        var ServiceDDLVal = "";
+        var PropertyDDLVal = "";
+        var RadiobuttonVal = "";
+        var LocationNameVal = $("#loc_locname").dxTextBox("instance").option("value");
+        var OtherDetailsVal = $("#oth_otherDetails").dxTextBox("instance").option("value");
+        if ($("#RAD_PropertyService").dxRadioGroup("instance").option('value') == "Service Place") {
+            if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') == "") {
+                DevExpress.ui.dialog.alert('Please select service place..', 'Alert ');
+                return;
+                return false;
+            }
+            else {
+                if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') != "") {
+                    if ($("#ServicePlace_ID").dxDropDownBox("instance").option('value') != null) {
+                        if (typeof ($("#ServicePlace_ID").dxDropDownBox("instance").option('value')) == "string") {
+                            ServiceDDLVal = $("#ServicePlace_ID").dxDropDownBox("instance").option('value');
+                        }
+                        else if (typeof ($("#ServicePlace_ID").dxDropDownBox("instance").option('value')) == "object") {
+                            ServiceDDLVal = $("#ServicePlace_ID").dxDropDownBox("instance").option('value')[0];
+                        }
+                    }
+                    else {
+                        DevExpress.ui.dialog.alert('Please select service place name ', 'Alert ');
+                        return;
+                        return false;
+                    }
+                }
+            }
+        }
+        if ($("#RAD_PropertyService").dxRadioGroup("instance").option('value') == "Property") {
+            if ($("#Property_ID").dxDropDownBox("instance").option('value') == "" || $("#Property_ID").dxDropDownBox("instance").option('value') == null || $("#Property_ID").dxDropDownBox("instance").option('value') == undefined) {
+                DevExpress.ui.dialog.alert('Please select property name..', 'Alert ');
+                return;
+                return false;
+            }
+            else {
+                if ($("#Property_ID").dxDropDownBox("instance").option('value') != "") {
+                    if (typeof ($("#Property_ID").dxDropDownBox("instance").option('value')) == "string") {
+                        PropertyDDLVal = $("#Property_ID").dxDropDownBox("instance").option('value');
+                    }
+                    else if (typeof ($("#Property_ID").dxDropDownBox("instance").option('value')) == "object") {
+                        PropertyDDLVal = $("#Property_ID").dxDropDownBox("instance").option('value')[0];
+                    }
+                }
+            }
+        }
+        RadiobuttonVal = $("#RAD_PropertyService").dxRadioGroup("instance").option('value');
+        ShowLoader();
+        $.ajax({
+            type: "POST",
+            url: "/Profile/CoreLocation/frm_CoreLocation_window",
+            data: {
+                // ActionMethod: actionMethod,//Redmine Bug #133431 fixed
+                Id: ID,
+                TempActionMethod: actionMethod,
+                LastEditedOn: editedDate,
+                ActionStatus: actionStatus,
+                Property_ID: PropertyDDLVal,
+                ServicePlace_ID: ServiceDDLVal,
+                RAD_PropertyService: RadiobuttonVal,
+                LocationName: LocationNameVal,
+                OldLocationName: oldLocationName,
+                otherDetails: OtherDetailsVal,
+                Max_Capacity_core: max_Capacity,
+                AC_or_NONAC : ac_nonac,
+                Category : category,
+                floor: floor,
+            },
+            success: function (data) {
+
+                DevExpress.ui.dialog.alert(data.Message, 'Alert ');
+
+                if ("@Model.locationDropdownRefreshFunction".length > 0) {
+                   var fn = window["@Model.locationDropdownRefreshFunction"];
+                       if (typeof fn == "function")
+                       {
+                         fn();
+                       }
+                }
+                RefreshGridView("CoreLocationListGrid");
+
+                if ($("#CoreLocationreloadPartialView").length > 0)
+                {
+                    CoreLocationChanged();
+                }
+                $("#popup_frm_CoreMatchedLocation_Window").dxPopup("hide");
+                $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+                HideLoader();
+            },
+            error: function (e) {
+                console.log(e);//Redmine Bug #133431 fixed
+                //alert("Got Error. " + e);
+            }
+
+        });
+    }
+
+    function CoreMatchedLocationAjaxSuccessForm(data) {
+        
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.Message, "Error");
+        }
+        else {
+            $("#popup_frm_CoreMatchedLocation_Window").dxPopup("show");
+            $("#CoreMatchedLocationresult").html(data);
+            console.log(data);
+            $("#popup_frm_CoreLocation_Window").dxPopup("hide");
+
+        }
+     }
+
+</script> @* Functions Moved "From" Frm_Location_tab to Frm_CoreLocation_Window *@
+
+    </div>

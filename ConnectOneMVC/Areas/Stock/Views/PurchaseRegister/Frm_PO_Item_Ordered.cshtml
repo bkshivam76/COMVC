@@ -1,0 +1,827 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model ConnectOneMVC.Areas.Stock.Models.PurchaseItemOrderedDetail
+@{
+    ViewBag.Test = Model.ActionMethod;
+    bool IsVisible = Model != null && (Model.ActionMethod.ToString().Trim() == "View") ? true : false;
+    bool IsEditable = Model != null && (Model.ActionMethod.ToString().Trim() == "View" || Model.ActionMethod.ToString().Trim() == "Edit") ? true : false;
+}
+@{
+    Html.EnableClientValidation();
+    Html.EnableUnobtrusiveJavaScript();
+    Html.AntiForgeryToken();
+}
+
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+<div id="Frm_ItemOrd_Window_popup">
+    @using (Ajax.BeginForm("Frm_PO_Item_Ordered_Save", "PurchaseRegister",
+                       new AjaxOptions
+                       {
+                           HttpMethod = "POST",
+                           UpdateTargetId = "Frm_ItemOrd_popup",
+                           InsertionMode = InsertionMode.InsertAfter,
+                           OnBegin = "AjaxBeginFormPost",
+                           OnSuccess = "Frm_Purchase_ItemOrdered_OnSuccess"
+                       },
+                       new
+                       {
+                           id = "ID_Frm_ItemOrd_Window",
+                           @class = "edit_form"
+                       }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(y => y.ActionMethod)
+        @Html.HiddenFor(y => y.Sr)
+        @Html.HiddenFor(y => y.Purchase_IO_ItemName)
+        @Html.HiddenFor(y => y.Purchase_IO_AddedOn)
+        @Html.HiddenFor(y => y.Purchase_IO_AddedBy)
+        @Html.HiddenFor(y => y.Purchase_IO_Unit)
+        @Html.HiddenFor(y => y.Purchase_IO_DestLocation)
+        @Html.HiddenFor(y => y.Purchase_IO_RR_Item_Sr_No)
+        @Html.HiddenFor(y => y.Purchase_IO_RR)
+        @Html.HiddenFor(y => y.Purchase_IO_RequestID)
+        @Html.HiddenFor(y => y.ID)
+        @Html.HiddenFor(y => y.POid)
+
+
+
+        //@Html.HiddenFor(y => y.Purchase_IO_RequestID)
+
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="container-fluid">
+                <div class="row form-field">
+                    <div class="col-sm-2 col-md-2 col-lg-2 pll">
+                        <label class="control-label text-red" for="user">Requested Item</label>
+                    </div>
+                    <div class="col-sm-4 col-md-4 col-lg-4 prm pll1">
+                        <div class="dx-texteditor  dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Purchase_IO_ItemID")
+                                                                                                        .Name("Purchase_IO_ItemID")
+                                                                                                        .ValueExpr("ItemID")
+                                                                                                        .DisplayExpr("Name")
+                                                                                                        .DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("Get_PurchaseStockitems").Key("ItemID"))
+                                                                                                    .Placeholder("Select Stock Item")
+                                                                                                        .ReadOnly(IsEditable)
+                                                                                                        .Disabled(IsVisible)
+                                                                                                        .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                    .OnInitialized("OnInitialized_OnStockItemChanged")
+                                                                                                    .OnValueChanged("Get_StockItem_ChangeEvent")
+                                                                                                   .ContentTemplate(@<text> @Html.Partial("Get_PurchaseStockitems") </text>) )
+                                @Html.ValidationMessageFor(model => model.Purchase_IO_ItemID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        @(Html.DevExtreme().Button()
+                                                                            .ID("POIOCheckAvailability")
+                                                                            .Text("Check Availability")
+                                                                            .Disabled(IsVisible)
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                CheckAvailability_Click()
+                                                                                }
+                                                                            </text>))
+                        @(Html.DevExtreme().Button()
+                                                                            .ID("PriceHistory")
+                                                                            .Text("Price History")
+                                                                            .Disabled(IsVisible)
+                                                                            .OnClick(@<text>
+                                                                                function () {
+                                                                                PriceHistory_Click()
+                                                                                }
+                                                                            </text>))
+                    </div>
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Item Code:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-state-disabled  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_ItemCode").Name("Purchase_IO_ItemCode").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Item Category</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-state-disabled  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_Item_Category").Name("Purchase_IO_Item_Category").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Head:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                            <div class="dx-texteditor dx-state-disabled  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_Head").Name("Purchase_IO_Head").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Item Type:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-state-disabled  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_ItemType").Name("Purchase_IO_ItemType").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label text-red" for="user">Dest.Location</label></div>
+                    <div class="col-sm-4 col-md-4 col-lg-4 prm">
+                        <div class="dx-texteditor  dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Purchase_IO_LocationID").Name("Purchase_IO_LocationID").ValueExpr("Loc_Id").DisplayExpr("Location_Name").DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("Get_Purchase_IO_DestLocation").Key("Loc_Id")).Placeholder("Select Location").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                                                                        .OnInitialized("OnInitialized_OnIOLocationChanged")
+                                                                                                                                                        .OnValueChanged("Get_IOLocation_ChangeEvent")
+                                                                                                                                                      .ContentTemplate(@<text> @Html.Partial("Get_Purchase_IO_DestLocation") </text>) )
+                                @Html.ValidationMessageFor(model => model.Purchase_IO_LocationID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll">
+                        @(Html.DevExtreme().Button()
+                                                        .ID("AddLocation")
+                                                        .Text("Add Location")
+                                                        .Disabled(IsVisible)
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            AddLocation_Click()
+                                                            }
+                                                        </text>))
+                    </div>
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Make:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_Make").Name("Purchase_IO_Make").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Model.Purchase_IO_Make)
+                                                                                                                                                                                    .Placeholder("Enter Make...").MaxLength(250).ReadOnly(IsVisible).Disabled(IsVisible)
+                                    )
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Model:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_Model").Name("Purchase_IO_Model").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Model.Purchase_IO_Model)
+                                                                                                                                                                                            .Placeholder("Enter Model...").MaxLength(250).ReadOnly(IsVisible).Disabled(IsVisible)
+                                    )
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Requested Qty:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @*<input class="dx-texteditor-input" type="text" placeholder="">*@
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_RequestedQty").Name("Purchase_IO_RequestedQty").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_RequestedQty)).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Ordered Qty</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pll1">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_OrderedQty").Name("Purchase_IO_OrderedQty").Value(Convert.ToDouble(Model.Purchase_IO_OrderedQty)).ShowSpinButtons(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Format("#0.00").Placeholder("Enter Ordered Quantity").OnValueChanged("OrderedQty_ChangeEvent").ReadOnly(IsVisible).Disabled(IsVisible))
+                                    @Html.ValidationMessageFor(model => model.Purchase_IO_OrderedQty, "", new { @class = "text-danger" })
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Unit:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @*<select name="" class="dx-texteditor-input appear">
+                                            <option value="0">Select Unit</option>
+                                        </select>*@
+                                    @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Purchase_IO_UnitID").Name("Purchase_IO_UnitID").ValueExpr("Unit_ID").DisplayExpr("Unit").DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("Lookup_IO_Unit").Key("Unit_ID")).Placeholder("Select..").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                                                                                                    .OnInitialized("OnInitialized_OnIOUnitChanged")
+                                                                                                                                                                                    .OnValueChanged("Get_IOUnit_ChangeEvent")
+                                                                                                                                                                                    .ContentTemplate(@<text> @Html.Partial("Lookup_IO_Unit") </text>) )
+                                    @Html.ValidationMessageFor(model => model.Purchase_IO_UnitID, "", new { @class = "text-danger" })
+
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label " for="user">Rate</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pt5">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_Rate").Name("Purchase_IO_Rate").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_Rate)).Format("#0.00").OnValueChanged("Rate_ChangeEvent").Placeholder("Enter Rate").ReadOnly(IsVisible).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label " for="user">Rate After Discount</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm pt5">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_Rate_After_Discount").Name("Purchase_IO_Rate_After_Discount").Value(Model.Purchase_IO_Rate_After_Discount).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_Rate)).Format("#0.00").OnValueChanged("RateOnDiscount_RequestedItem_OnValueChanged").Placeholder("Enter Rate").ReadOnly(IsVisible).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[3]-->
+                </div>
+                <div class="row form-field">
+                    <div class="col-sm-2 col-md-2 col-lg-2 pll pt14"><label class="control-label" for="user">Taxes:</label></div>
+                    <div class="col-sm-4 col-md-4 col-lg-4 prm">
+                        <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_Taxes").Name("Purchase_IO_Taxes").Value(Convert.ToDouble(Model.Purchase_IO_Taxes)).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_Taxes)).Format("#0.00").OnValueChanged("Taxes_ChangeEvent").ReadOnly(true).Disabled(IsVisible))
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-6 pll">
+                        @(Html.DevExtreme().Button()
+                                                                    .ID("AddTaxes")
+                                                                    .Text("Add Taxes")
+                                                                    .Disabled(IsVisible)
+                                                                    .OnClick(@<text>
+                                                                        function () {
+                                                                        AddTaxes_Click()
+                                                                        }
+                                                                    </text>))
+
+                        @(Html.DevExtreme().Button()
+                                                                    .ID("ManageTaxes")
+                                                                    .Text("Manage Taxes")
+                                                                    .Disabled(IsVisible)
+                                                                    .OnClick(@<text>
+                                                                        function () {
+                                                                        ManageTaxes_Click()
+                                                                        }
+                                                                    </text>))
+                    </div>
+                </div><!--[3]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Discount Promised(%)</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_Discount").Name("Purchase_IO_Discount").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_Discount)).Format("#0.00").Placeholder("Enter Discount..").ReadOnly(IsVisible).OnValueChanged("Discount_ChangeEvent").Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Priority:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Purchase_IO_POI_Priority").Name("Purchase_IO_POI_Priority").DataSource(new[] { "High", "Normal", "Low" }).Value(Model.Purchase_IO_POI_Priority).SearchEnabled(true).Placeholder("Select ..").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).OnValueChanged("onprioritychanged"))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Required Delivery Date:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().DateBox().CustomDateBox().ID("Purchase_IO_Reqd_Del_Date").Name("Purchase_IO_Reqd_Del_Date").Value(Model.Purchase_IO_Reqd_Del_Date).ShowClearButton(true).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }))@*0000109 bug Fixed*@
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Amount:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-state-disabled  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().NumberBox().CustomNumberBox().ID("Purchase_IO_Amount").Name("Purchase_IO_Amount").ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).Value(Convert.ToDouble(Model.Purchase_IO_Amount)).Format("#0.00").Placeholder("Enter Discount..").ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div><!--[row]-->
+                <div class="row form-field">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label text-red" for="user">Reason of Add/ Update:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor  dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Purchase_IO_AddUpdateReason").Name("Purchase_IO_AddUpdateReason").DataSource(new[] { "Item Not Available", "Qty Change", "Similar Item Available", "Location Change", "Unit of Purchase Different", "Change in Rates or Taxes", "Others" }).Value(Model.Purchase_IO_AddUpdateReason).SearchEnabled(true).Placeholder("Select ..").ReadOnly(IsVisible).Disabled(IsVisible).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).OnValueChanged("onprioritychanged"))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[1]-->
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="col-sm-4 col-md-4 col-lg-4 pll"><label class="control-label" for="user">Posted By:</label></div>
+                        <div class="col-sm-8 col-md-8 col-lg-8 prm">
+                            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                                <div class="dx-texteditor-container">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_PostedBy").Name("Purchase_IO_PostedBy").Value(Model.Purchase_IO_PostedBy).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(true).Disabled(IsVisible))
+                                </div>
+                            </div>
+                        </div>
+                    </div><!--[2]-->
+                </div>
+
+                <div class="row form-field">
+                    <div class="col-sm-2 col-md-2 col-lg-2 pll"><label class="control-label" for="user">Remarks:</label></div>
+                    <div class="col-sm-10 col-md-10 col-lg-10 prm">
+                        <div class="dx-texteditor dx-widget dx-textbox">
+                            <div class="dx-texteditor-container">
+                                @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_IO_Remarks").Name("Purchase_IO_Remarks").Value(Model.Purchase_IO_Remarks).ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } }).ReadOnly(IsVisible).Disabled(IsVisible))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="marginAll8 styleActionBtn">
+                    @if (Model.ActionMethod.ToString().Trim() == "View")
+                    {
+                        @(Html.DevExtreme().Button().CustomCloseButton().Text("Close").ID("purchaseIO_Cancle").FocusStateEnabled(true).OnClick(@<text> function () { $("#Purchaseinnergrid").dxPopup("hide"); } </text>))
+                    }
+                    @if (Model.ActionMethod.ToString().Trim() == "New" || Model.ActionMethod.ToString().Trim() == "Edit")
+                    {
+                        @(Html.DevExtreme().Button().CustomSaveButton().Text("OK").ID("purchaseIO_Save").FocusStateEnabled(true).UseSubmitBehavior(true))
+                        @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("purchaseIO_Cancled").FocusStateEnabled(true).OnClick(@<text> function () { $("#Purchaseinnergrid").dxPopup("hide"); } </text>))
+                    }
+                </div>
+            </div><!--[Center]-->
+        }
+    }
+</div>
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("PORecdPaymentAddLocation").CloseOnOutsideClick(false).ShowTitle(true).Height("auto").Width("auto").DragEnabled(true).Title("New ~ Location").ContentTemplate(@<text> <div id="result_PORecdPaymentAddLocation"> </div> </text>) )
+
+<script>
+    $(document).ready(async function ()
+    {
+        var form = "ID_Frm_ItemOrd_Window";
+        ShowLoader();
+        AssignIDtoLabel(form, "PO_itemOrd");
+           if ("@Model.Purchase_IO_ItemID".length > 0)
+        {
+               var StockPurchaseItemDG = $("#StockPurchaseItemDG").dxDataGrid("instance");
+               await StockPurchaseItemDG.selectRows(parseInt("@Model.Purchase_IO_ItemID"), false);
+            }
+        setTimeout(function ()
+        {
+            Set_Form_View_Delete_Mode(null, form, "@Model.ActionMethod");
+            Focus_FirstEditable_Field(form, "@Model.ActionMethod");
+            HideLoader();
+
+        }, Timeout500);
+
+    });
+
+</script>
+<script>
+
+
+    var IOname;
+    var IOcode;
+    var IOhead;
+    var IOtype;
+    var IOcat;
+    var IOunit;
+    var subitem;
+
+      function OnInitialized_OnStockItemChanged(e) {
+
+        if ("@Model.ActionMethod" != "New") {
+            @*$("#Purchase_IO_ItemID").dxDropDownBox("instance").option("value", "@Model.Purchase_IO_ItemID");*@
+            e.component.option("dataSource").store.load().done(function (d) {
+                //if (d.length > 0) {
+                //    var $dataGrid = $("#StockPurchaseItemDG");
+                //    if ($dataGrid.length) {
+                //        var dataGrid = $dataGrid.dxDataGrid("instance");
+                //        dataGrid.selectRows($("#Purchase_IO_ItemID").dxDropDownBox("instance").option("value"), false);
+                //    }
+                //}
+                Get_StockItem_ChangeEvent(@Model.Purchase_IO_ItemID);
+            });
+        }
+    }
+
+    function Get_StockItem_ChangeEvent(e) {
+        recid = "@Model.ID";
+        ItemID = e.value;
+        subitem = ItemID;
+        var dropdown = $("#Purchase_IO_ItemID").dxDropDownBox("instance");
+        dropdown.close();
+        var $dataGrid = $("#StockPurchaseItemDG");
+        if ($dataGrid.length) {
+            //StockPurchaseItemDG
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+        }
+        if (e.value == null && e.previousValue != null) {
+            dataGrid.clearSelection();
+            return;
+        }
+        if ("@Model.ActionMethod" == "New") {
+
+
+            // dataGrid.selectRows(dropdown.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+
+                IOname = item.Name;
+                IOcode = item.Item_Code;
+                IOhead = item.Head;
+                IOtype = item.Item_Type;
+                IOcat = item.Item_Category;
+                IOunit = item.UnitID;
+
+                $("#Purchase_IO_ItemName").val(IOname);
+                $("#Purchase_IO_ItemType").dxTextBox("instance").option("value", IOtype);
+                $("#Purchase_IO_Head").dxTextBox("instance").option("value", IOhead);
+                $("#Purchase_IO_ItemCode").dxTextBox("instance").option("value", IOcode);
+                $("#Purchase_IO_Item_Category").dxTextBox("instance").option("value", IOcat);
+                $("#Purchase_IO_UnitID").dxDropDownBox("instance").option("value", IOunit);
+
+            }
+
+        }
+        else {
+
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                IOname = item.Name;
+                IOcode = item.Item_Code;
+                IOhead = item.Head;
+                IOtype = item.Item_Type;
+                IOcat = item.Item_Category;
+                IOunit = item.UnitID;
+
+                $.ajax({
+                    type: 'GET',
+                    url: "/Stock/PurchaseRegister/Check_Unsaved_Item_Entry_in_Received_Grid",
+                    data: { ID_Item: recid },
+                    cache: false,
+                    success: function (res) {
+                        if (res.result == true)// no added row exists in delivery
+                        {
+                            $("#Purchase_IO_ItemName").val(IOname);
+                            $("#Purchase_IO_ItemType").dxTextBox("instance").option("value", IOtype);
+                            $("#Purchase_IO_Head").dxTextBox("instance").option("value", IOhead);
+                            $("#Purchase_IO_ItemCode").dxTextBox("instance").option("value", IOcode);
+                            $("#Purchase_IO_Item_Category").dxTextBox("instance").option("value", IOcat);
+                            $("#Purchase_IO_UnitID").dxDropDownBox("instance").option("value", IOunit);
+                        }
+                        else if (res.result == false) {
+                            DevExpress.ui.dialog.alert(res.message, 'Alert');
+                            $("#Purchase_IO_ItemType").dxTextBox("instance").reset();
+                            $("#Purchase_IO_Head").dxTextBox("instance").reset();
+                            $("#Purchase_IO_ItemCode").dxTextBox("instance").reset();
+                            $("#Purchase_IO_Item_Category").dxTextBox("instance").reset();
+                            $("#Purchase_IO_RequestedQty").dxNumberBox("instance").reset();
+                            $("#Purchase_IO_UnitID").dxDropDownBox("instance").reset();
+
+
+
+                        }
+
+                    }
+                });
+            }
+        }
+
+
+    }
+
+
+
+
+
+
+       function Get_IOLocation_ChangeEvent(e) {
+
+
+            var dropdown = $("#Purchase_IO_LocationID").dxDropDownBox("instance");
+        dropdown.close();
+           var $dataGrid = $("#PurchaseDestLocDG");
+        if ($dataGrid.length) {
+            PurchaseDestLocDG
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropdown.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                IOlocation = item.Location_Name;
+                $("#Purchase_IO_DestLocation").val(IOlocation);
+            }
+        }
+    }
+
+
+       function OnInitialized_OnIOLocationChanged(e) {
+        if ("@Model.ActionMethod" != "New") {
+            $("#Purchase_IO_LocationID").dxDropDownBox("instance").option("value","@Model.Purchase_IO_LocationID");
+            e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length > 0) {
+                    var $dataGrid = $("#PurchaseDestLocDG");
+                    if ($dataGrid.length) {
+                        var dataGrid = $dataGrid.dxDataGrid("instance");
+                        dataGrid.selectRows($("#Purchase_IO_LocationID").dxDropDownBox("instance").option("value"), false);
+                    }
+                }
+            });
+        }
+    }
+
+
+       function Get_IOUnit_ChangeEvent(e) {
+           var dropdown = $("#Purchase_IO_UnitID").dxDropDownBox("instance");
+        dropdown.close();
+            var $dataGrid = $("#PurIOUnittDG");
+        if ($dataGrid.length) {
+            PurIOUnittDG
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(dropdown.option("value"), false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                IOunit = item.Unit;
+                $("#Purchase_IO_Unit").val(IOunit);
+
+            }
+        }
+    }
+
+       function OnInitialized_OnIOUnitChanged(e) {
+        if ("@Model.ActionMethod" != "New") {
+            $("#Purchase_IO_UnitID").dxDropDownBox("instance").option("value","@Model.Purchase_IO_UnitID");
+            e.component.option("dataSource").store.load().done(function (d) {
+                if (d.length > 0) {
+                    var $dataGrid = $("#PurIOUnittDG");
+                    if ($dataGrid.length) {
+                        var dataGrid = $dataGrid.dxDataGrid("instance");
+                        dataGrid.selectRows($("#Purchase_IO_UnitID").dxDropDownBox("instance").option("value"), false);
+                    }
+                }
+            });
+        }
+        }
+
+
+       function onprioritychanged(e) {
+           var priority = $("#Purchase_IO_POI_Priority").dxSelectBox('instance').option('value');
+    }
+
+    function PriceHistory_Click() {
+
+        if (subitem == null || subitem == 0 || subitem == "undefined") {
+            DevExpress.ui.dialog.alert("Please Select Item", "Error");
+            return;
+        }
+        ShowLoader();
+         OpenPopup("popup_frm_price_history", "Search ~ Price History", "@Url.Action("Frm_PO_Price_History", "PurchaseRegister", new { @area = "Stock" })?ItemID=" + encodeURIComponent(subitem), "auto", 900, false, null);
+
+       }
+
+    function CheckAvailability_Click() {
+          if (subitem == null || subitem == 0 || subitem == "undefined") {
+            DevExpress.ui.dialog.alert("Please Select Item", "Error");
+            return;
+        }
+        ShowLoader();
+           OpenPopup("Check_Avl_Popup", "Search ~ Stock Availability", "@Url.Action("Frm_User_Order_Check_Availability", "UserOrder", new { @area = "Stock" })?ItemID=" + encodeURIComponent(subitem), "auto", 900, false, null);
+
+       }
+
+       function AddLocation_Click() {
+
+           $.ajax({
+               type: 'GET',
+               url: "/Account/ProfilePaymentVoucher/AddLocations_Check",
+               data: { ActionMethod: "New" },
+               cache: false,
+               async: false,
+               success: function (data) {
+                   if (data.result) {
+                       $.ajax({
+                           type: 'GET',
+                           url: "/Account/ProfilePaymentVoucher/Frm_Location_Window",
+                           data: {
+                               ActionMethod: "New",
+                               PopupID: "PORecdPaymentAddLocation",
+                               CallingScreen: "UO",
+                               Dropdown_DataGrid: "PurchaseDestLocDG"
+                           },//Mantis bug 0000505 fixed
+                           cache: false,
+                           async: false,
+                           success: function (data) {
+                               ShowLoader();
+                               $("#PORecdPaymentAddLocation").dxPopup('show');
+                               $("#PORecdPaymentAddLocation").dxPopup("instance").option("title", "New~Location");
+                               $("#result_PORecdPaymentAddLocation").html(null);
+                               $("#result_PORecdPaymentAddLocation").html(data);
+                               HideLoader();
+                           }
+                       });
+                   }
+                   else {
+                       DevExpress.ui.dialog.alert(data.message, "Error");
+                   }
+               }
+           });
+       }
+
+    function AddTaxes_Click() {
+        if ("@IsVisible" == "True") { return; }
+        if ("@IsVisible" == "True") { return; }
+        var itemID = $("#Purchase_IO_ItemID").dxDropDownBox("instance").option("value");
+        if (itemID == null || itemID.length == 0) {
+            DevExpress.ui.dialog.alert('Select An Item..', 'Error..');
+            return;
+        }
+        var Qty = $("#Purchase_IO_OrderedQty").dxNumberBox("instance").option("value");
+        if (Qty == null || Qty == 0) {
+            DevExpress.ui.dialog.alert('Select  Qty..', 'Error..');
+            return;
+        }
+        var Rate = $("#Purchase_IO_Rate").dxNumberBox("instance").option("value");
+        var Rate_After_Discount = $("#Purchase_IO_Rate_After_Discount").dxNumberBox("instance").option("value");
+
+        //if (Rate == null || Rate == 0) {
+        //    DevExpress.ui.dialog.alert('Select Rate..', 'Error..');
+        //    return;
+        //}
+        ShowLoader();
+
+        OpenPopup("PO_Button_popup", "Add Taxes", "@Url.Action("Frm_PO_Request_Add_Taxes", "PurchaseRegister", new {@area= "Stock" })?ActionMethod=_NewAddTax", "auto", 1024, false, null);
+
+
+    }
+
+
+       function ManageTaxes_Click() {
+
+        if ("@IsVisible" == "True") { return; }
+           var itemID = $("#Purchase_IO_ItemID").dxDropDownBox("instance").option("value");
+        if (itemID == null || itemID.length == 0)
+        {
+            DevExpress.ui.dialog.alert('Select An Item..', 'Error..');
+            return;
+        }
+           var Qty = $("#Purchase_IO_OrderedQty").dxNumberBox("instance").option("value");
+        if (Qty == null || Qty.length == 0) {
+            DevExpress.ui.dialog.alert('Select Req. Qty..', 'Error..');
+            return;
+        }
+           var Rate = $("#Purchase_IO_Rate").dxNumberBox("instance").option("value");
+           var Rate_After_Discount = $("#Purchase_IO_Rate_After_Discount").dxNumberBox("instance").option("value");
+        //if (Rate == null || Rate.length == 0) {
+        //    DevExpress.ui.dialog.alert('Select Rate..', 'Error..');
+        //    return;
+        //}
+        ShowLoader();
+        $.ajax({
+            type: "POST",
+            url: "/Stock/PurchaseRegister/Frm_PO_Request_Manage_Taxes",
+             data:
+            {
+
+                 SubitemID:itemID,
+
+            },
+            success: function (data)
+            {
+                OpenPopup("PO_ManageTaxButton_popup", "ManageTaxes", null, "auto", "1000", true, data);
+            }
+        });
+    }
+
+    function Frm_PO_Request_Add_Taxes_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else {
+            $("#PO_Button_popup").dxPopup("hide");
+
+            if (data.action != "_NewAddTax") {
+                PO_IO_TaxGrid.SetFocusedRowIndex(-1);
+                PO_IO_TaxGrid.Refresh();
+            }
+        }
+    }
+    function CalculateAmount() {
+
+        stockorderedqty = $("#Purchase_IO_OrderedQty").dxNumberBox("instance").option("value");
+        IORate = $("#Purchase_IO_Rate").dxNumberBox("instance").option("value");
+        IODiscount = $("#Purchase_IO_Discount").dxNumberBox("instance").option("value");
+        IOTaxes = $("#Purchase_IO_Taxes").dxNumberBox("instance").option("value");
+        var RateAfterDiscount = $("#Purchase_IO_Rate_After_Discount").dxNumberBox("instance").option("value");
+
+
+        var Discount = ((stockorderedqty * IORate) * IODiscount) / 100;
+      //  var TaxAmt = (((stockorderedqty * IORate) - Discount) * IOTaxes) / 100;
+        $("#Purchase_IO_Amount").dxNumberBox("instance").option("value", (stockorderedqty * RateAfterDiscount) + IOTaxes);
+    }
+
+       function OrderedQty_ChangeEvent(e) {
+           CalculateTaxes();
+           CalculateAmount();
+       }
+
+    function Rate_ChangeEvent(e) {
+        CalculateRateAfterDiscount();
+
+    }
+
+    function RateOnDiscount_RequestedItem_OnValueChanged(e) {
+        CalculateTaxes();
+        CalculateAmount();
+    }
+    function Discount_ChangeEvent(e) {
+        CalculateRateAfterDiscount();
+    }
+    function Taxes_ChangeEvent(e) {
+        CalculateAmount();
+    }
+
+    function CalculateTaxes() {
+        var Rate = $("#Purchase_IO_Rate").dxNumberBox("instance").option("value");
+        var RateAfterDiscount = $("#Purchase_IO_Rate_After_Discount").dxNumberBox("instance").option("value");
+
+        stockorderedqty = $("#Purchase_IO_OrderedQty").dxNumberBox("instance").option("value");
+
+        if (stockorderedqty == null || stockorderedqty == 0) {
+            DevExpress.ui.dialog.alert('Please enter Quantity in Item screen', 'Error..');
+            return;
+        }
+        // var Discount = ((Qty * Rate) * Discount_percent) / 100;
+        //var TaxAmt = (((Qty * Rate) -Discount) * Tax) / 100;
+
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/CalculateTaxes",
+            data: {
+                Quantity: stockorderedqty,
+                Rate: Rate,
+                RateAfterDiscount: RateAfterDiscount
+            },
+            success: function (data) {
+                $("#Purchase_IO_Taxes").dxNumberBox("instance").option("value", data.Amount);
+
+
+
+
+            },
+
+        });
+        //    $("#Requisition_RequestedItem_Taxes").dxNumberBox("instance").option("value", (Qty * Rate) - Discount + Tax);
+    }
+
+    function CalculateRateAfterDiscount() {
+        var Rate = $("#Purchase_IO_Rate").dxNumberBox("instance").option("value");
+        var Discount_percent = $("#Purchase_IO_Discount").dxNumberBox("instance").option("value");
+        var Amount = $("#Purchase_IO_Amount").dxNumberBox("instance").option("value");
+        var OrderedQty = $("#Purchase_IO_OrderedQty").dxNumberBox("instance").option("value");
+
+
+        if (Rate == null) {
+
+            Rate = Amount / OrderedQty;
+        }
+
+        DiscountAmount = (Rate * Discount_percent) / 100;
+
+        $("#Purchase_IO_Rate_After_Discount").dxNumberBox("instance").option("value", Rate - DiscountAmount);
+
+
+
+
+    }
+
+</script>
+
+

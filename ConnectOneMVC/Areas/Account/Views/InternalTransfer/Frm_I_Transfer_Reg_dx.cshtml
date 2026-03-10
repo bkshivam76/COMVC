@@ -1,0 +1,1491 @@
+﻿<div class="InternalTransferRegister_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @{
+        Layout = null;
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+        string UserType = (string)ViewBag.UserType;
+        bool Help_Attachment_AddRight = (bool)ViewData["Help_Attachment_AddRight"];//attachment
+        bool Help_Attachment_EditRight = (bool)ViewData["Help_Attachment_EditRight"];//attachment
+        bool Help_Attachment_ViewRight = (bool)ViewData["Help_Attachment_ViewRight"];//attachment
+        bool Help_Attachment_DeleteRight = (bool)ViewData["Help_Attachment_DeleteRight"];//attachment
+        bool IntrnlTranfrReg_Auto_Vouching_Mode = (bool)ViewData["IntrnlTranfrReg_Auto_Vouching_Mode"];
+        bool IsVolumeCentre = (bool)ViewBag.IsVolumeCentre;
+    }
+    <div class="ITR_Reg_ParentDiv_dx">
+        <div class="report_header_div_main">
+            <div id="ITR_Reg_content" class="col-md-12 report_header_div_main">
+                <div class="col-md-4 padd report_header_div" id="ITR_Reg_content_label">
+                    <label class="report_header_label">Internal Transfers Register</label>
+                </div>
+                <div class="report_button_div">
+                    @(Html.DevExtreme().Switch().ID("IntrnlTranfrRegVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("IntrnlTranfrReg_VouchingSwitch_ValueChange_dx").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                    @(Html.DevExtreme().Switch().ID("IntrnlTranfrRegViewModeSwitch").SwitchedOnText("Compact").SwitchedOffText("Default").OnValueChanged("IntrnlTranfrReg_ViewSwitch_ValueChange_dx").Width(70).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+                    @(Html.DevExtreme().Button().ID("ITR_Edit").Text("Edit").Icon("edit").OnClick(@<text> function () { DataNavigation_ITR("EDIT"); } </text>) )
+                    @(Html.DevExtreme().Button().ID("ITR_Delete").Text("Delete").Icon("trash").OnClick(@<text> function () { DataNavigation_ITR("DELETE"); } </text>) )
+                    @(Html.DevExtreme().Button().ID("ITR_View").Text("View").Icon("doc").OnClick(@<text> function () { DataNavigation_ITR("VIEW"); } </text>) )
+                    @(Html.DevExtreme().Button().ID("ITR_Accept").Text("Accept Transfer").Icon("fas fa-check-circle btn-icons checkgreen icon-rgt-space5").OnClick(@<text> function () {DataNavigation_ITR("ACCEPT"); } </text>) )
+                    @(Html.DevExtreme().Button().ID("ITR_listPreview").Text("Export").Icon("print").OnClick(@<text> function () { OnITRListPreviewClick(); } </text>) )
+                    @(Html.DevExtreme().Button().ID("ITR_Close").Text("Close").Icon("close").OnClick(@<text> function (){$(".TabPanalMenu-tabs .active span").click()} </text>) )
+
+                </div>
+            </div>
+        </div>
+    </div>@*Header*@
+<div>
+    @(Html.DevExtreme().TabPanel().ID("ITR_Gridpanel").Items(items =>
+                                                                                {
+                                                                                    items.Add().Title("Currently Posted Entries").Template(@<text> @CurrentlyPostedView() </text>);
+                                                                                            items.Add().Title("Pending Entries To Be Accepted By Us").Template(@<text> @PendingEntriesView() </text>);
+                                                                                                }).DeferRendering(false).OnSelectionChanged("ITR_Gridpanel_selectionChanged"))
+    @helper CurrentlyPostedView()
+    {
+        @*@Html.Partial("ITR_CurrentlyPosted_dx");*@
+        <div id="ITR_Posted_reloadPartialView" class="parent_table">
+            <form>
+                @Html.Partial("Frm_I_Transfer_Reg_Posted_Grid_dx")
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ITR_Posted_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        <div class="footer-locktext">
+                            <div id="ITR_Posted_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="ITR_Posted_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="ITR_Posted_Lbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="ITR_Posted_Lbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    @helper PendingEntriesView()
+    {
+        @*@Html.Partial("ITR_PendingEntries_dx");*@
+        <div id="ITR_Pending_reloadPartialView" class="parent_table">
+            <form>
+                @Html.Partial("Frm_I_Transfer_Reg_Pending_Grid_dx")
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ITR_Pending_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        <div class="footer-locktext">
+                            <div id="ITR_Pending_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="ITR_Pending_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="ITR_Pending_Lbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                            <p id="ITR_Pending_Lbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>@*Grid Tabs*@
+    @Html.Partial("AttachmentFAB", "ITR_PostedPrf_FAB,ITR_Reg_ParentDiv_dx,Type1,ITR_Posted," + UserType)@*fab buttons*@
+
+    <script>
+        var Help_Attachment_AddRight = "@Help_Attachment_AddRight";
+        var Help_Attachment_EditRight = "@Help_Attachment_EditRight";
+        var Help_Attachment_ViewRight = "@Help_Attachment_ViewRight";
+        var Help_Attachment_DeleteRight = "@Help_Attachment_DeleteRight";
+        var IntrnlTranfrReg_SetVouchingModeOn = "@IntrnlTranfrReg_Auto_Vouching_Mode" == "True" ? true : false;
+        var UserType_IntTransPrf = "@UserType".toUpperCase();
+        var IntrnlTranfrReg_IsVouchingMode = false;
+        var IntrnlTranfrReg_ViewMode = "Default";
+        var ITR_Posted_IsDetailRowExpanded = false;
+        var ITR_Posted_NestedGrid_AccessID;
+        var ITR_Posted_AtachmentID;
+        var ITR_Posted_FileName;
+        var ITR_Posted_ParamMandatory;
+        var ITR_Posted_FromDateLabel;
+        var ITR_Posted_ToDateLabel;
+        var ITR_Posted_DescriptionLabel;
+        var ITR_Posted_Doc_ID;
+        var ITR_Posted_Doc_Category;
+        var ITR_Posted_MasterRowRecID;
+        var ITR_Posted_MasterRowMID;
+        var ITR_Posted_NestedRowMapID;
+        var ITR_Posted_reason;
+        var ITR_Posted_Attachment_RecStatus;
+        var ITR_Posted_RecID_ForAttachment;
+        var ITR_Posted_NestedRowReasonID;
+        var ITR_Posted_NestedRowKeyValue;
+
+        var ITR_Posted_ActionBy;
+        var ITR_Posted_ActionDate;
+        var ITR_Posted_ActionStatus;
+        var ITR_Posted_AddBy;
+        var ITR_Posted_AddDate;
+        var ITR_Posted_EditBy;
+        var ITR_Posted_EditDate;
+        var ITR_Posted_ID;
+        var ITR_Posted_MID;
+        var ITR_Posted_Date;
+        var ITR_Posted_ITEM_ID;
+        var ITR_Posted_Srno;
+        var ITR_Posted_Type;
+        var ITR_Posted_XID = null;
+
+        var ITR_Tab_Selected = "Posted";
+
+        var ITR_Pending_xDate;
+        var ITR_Pending_ITEM_ID;
+        var ITR_Pending_Mode;
+        var ITR_Pending_CEN_ID;
+        var ITR_Pending_BI_ID;
+        var ITR_Pending_Branch_Name;
+        var ITR_Pending_Bank_AC_No;
+        var ITR_Pending_REF_BI_ID;
+        var ITR_Pending_Ref_Branch;
+        var ITR_Pending_Ref_Others;
+        var ITR_Pending_RefNo;
+        var ITR_Pending_RefDate;
+        var ITR_Pending_Amount;
+        var ITR_Pending_PUR_ID;
+        var ITR_Pending_MID;
+        var ITR_Pending_Ref_Bank_AccNo;
+        var ITR_Pending_ActionBy;
+        var ITR_Pending_ActionDate;
+        var ITR_Pending_ActionStatus;
+        var ITR_Pending_AddBy;
+        var ITR_Pending_AddDate;
+        var ITR_Pending_EditBy;
+        var ITR_Pending_EditDate;
+        var ITR_Pending_ID;
+
+        var ITR_PostedGrid = null;
+        var ITR_PendingGrid = null;
+        var VisibleColumns_ITR_PostedGrid = [];
+        var Expanded_Row_Key_ITR_PostedGrid = null;     
+    </script>
+    @* ITR_Global_Variables*@
+
+<script>
+    $(document).ready(function () {
+        if (IntrnlTranfrReg_SetVouchingModeOn == true) {
+            $("#IntrnlTranfrRegViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        $(".ITR_PostedGrid_PreviewRow").hide();
+        GetSessionStorage("ITR_PostedGrid");
+        $(".ITR_PendingGrid_PreviewRow").hide();
+        GetSessionStorage("ITR_PendingGrid");
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            DxGrid_AdjustSize([ITR_PostedGrid, ITR_PendingGrid], $("#ITR_Reg_ParentDiv_dx .report_button_div"), "", evt)
+        });
+    });
+    function IntrnlTranfrReg_VouchingSwitch_ValueChange_dx(e)
+    {
+        IntrnlTranfrReg_IsVouchingMode = e.value;
+        if (IntrnlTranfrReg_SetVouchingModeOn == true) {
+            IntrnlTranfrReg_SetVouchingModeOn = false;
+        }
+        else {
+            ITR_PostedPrf_FAB.SetVisible(false);
+        }
+        if (IntrnlTranfrReg_IsVouchingMode == true) {
+            OpenRightPane();
+            ClearLeftPane();
+            OpenLeftPane();
+            $("#ITR_Reg_content_label").addClass("col-md-12").removeClass("col-md-4")
+        }
+        else {
+            CloseRightPane();
+            ClearLeftPane();
+            CloseLeftPane();
+            $("#ITR_Reg_content_label").addClass("col-md-4").removeClass("col-md-12")
+        }
+        ITR_PostedGrid.clearSelection();
+        ITR_PostedGrid.option("masterDetail.enabled", !IntrnlTranfrReg_IsVouchingMode)
+        ITR_PostedGrid.repaint();      
+    }
+    async function IntrnlTranfrReg_ViewSwitch_ValueChange_dx(e) {
+        IntrnlTranfrReg_ViewMode = e.value == false ? "Default" : "Compact";
+        if (IntrnlTranfrReg_SetVouchingModeOn == true) {
+            $("#IntrnlTranfrRegVouchingModeSwitch").dxSwitch("instance").option("value", true);
+        }
+        ITR_PostedPrf_FAB.SetActionContext("AddAttachmentContext", false);
+        if (Expanded_Row_Key_ITR_PostedGrid != null && Expanded_Row_Key_ITR_PostedGrid.length > 0) {
+            await ITR_PostedGrid.collapseRow(Expanded_Row_Key_ITR_PostedGrid)
+        }
+        ITR_PostedGrid.beginUpdate();
+        var columns = ITR_PostedGrid.option("columns");
+        if (IntrnlTranfrReg_ViewMode == "Compact") {
+            VisibleColumns_ITR_PostedGrid = [];
+            for (var i = 0; i < columns.length; i++) {
+                var name = columns[i].dataField;
+                var ColumnVisible = ITR_PostedGrid.columnOption(name, "visible");
+                if (name == "ITR_PostedGrid_Compact_Column") {
+                    ITR_PostedGrid.columnOption(name, "visible", true);
+                }
+                else if (ColumnVisible == true && name != "iIcon") {
+                    VisibleColumns_ITR_PostedGrid.push(name);
+                    ITR_PostedGrid.columnOption(name, "visible", false);
+                }
+            }
+        }
+        else {
+            ITR_PostedGrid.columnOption("ITR_PostedGrid_Compact_Column", "visible", false);
+            for (var i = 0; i < VisibleColumns_ITR_PostedGrid.length; i++) {
+                ITR_PostedGrid.columnOption(VisibleColumns_ITR_PostedGrid[i], "visible", true);
+            }
+        }
+        ITR_PostedGrid.repaint();
+        ITR_PostedGrid.endUpdate();
+    }
+    function DataNavigation_ITR(Action)
+    {
+        if (ITR_Tab_Selected == "Pending" && Action!="ACCEPT") { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+        if (ITR_Tab_Selected == "Posted" && ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+        switch (Action)
+        {
+            case "EDIT":
+                Vouchers_Edit_AllEntryData(ITR_Posted_ID, ITR_Posted_MID, ITR_Posted_EditDate, ITR_Posted_AddDate, "Internal Transfer Register", ITR_Posted_Date,
+                    ITR_Posted_ActionStatus, "8", ITR_Posted_ITEM_ID, ITR_Posted_Srno, ITR_Posted_Type, "ITR_PostedGrid", ITR_Posted_ID, false);
+                break;
+            case "DELETE":
+                Vouchers_Delete_AllEntryData(ITR_Posted_ID, ITR_Posted_MID, ITR_Posted_EditDate, ITR_Posted_AddDate, "Internal Transfer Register", ITR_Posted_Date,
+                    ITR_Posted_ActionStatus, "8", ITR_Posted_ITEM_ID, ITR_Posted_Srno, ITR_Posted_Type,"ITR_PostedGrid", ITR_Posted_ID, false, false);
+                break;
+            case "VIEW":
+                Vouchers_View_AllEntryData(ITR_Posted_ID, ITR_Posted_MID, ITR_Posted_EditDate, "Internal Transfer Register", ITR_Posted_Date, "8", "ITR_PostedGrid", ITR_Posted_ID);
+                break;
+            case "EDIT-COMMON":
+                Edit_Common(ITR_Posted_ID, ITR_Posted_MID, "ITR_PostedGrid","8");
+                break;
+            case "ACCEPT":
+                OnITR_AcceptTransferClick();
+                break;
+        }
+    }
+    function DataNavigation_Volume_ITR(Action)
+    {
+        if ("@IsVolumeCentre" == "True")
+        {
+            switch (Action)
+            {
+                case "NEW":
+                    OnITRNewClick();
+                    break;
+                case "EDIT":
+                    DataNavigation_ITR("EDIT")
+                    break;
+                case "DELETE":
+                    DataNavigation_ITR("DELETE")
+                    break;
+                case "UNMATCH":
+                    OnITRUnmatchTransferClick();
+                    break;
+            }
+        }
+    }
+    function OnITRNewClick()
+    {
+        ShowLoader();
+        OpenDynamicPopup("New ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_New" + "&_New_From_Register" + true, "auto", 1000, false, null);
+    }
+    function OnITR_AcceptTransferClick()
+    {
+        if (ITR_Tab_Selected == "Pending" )
+        {
+            if (ITR_Pending_ID != null)
+            {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Account/InternalTransfer/Frm_Voucher_Win_I_Transfer",
+                    cache: false,
+                    data: {
+                        RegisterGridRowID: ITR_Pending_ID,
+                        _Accepted_From_Register: true,
+                        Tag: "_New",
+                        _Date: ITR_Pending_xDate,
+                        _a_Item_ID: ITR_Pending_ITEM_ID,
+                        _Mode: ITR_Pending_Mode,
+                        _CEN_ID: ITR_Pending_CEN_ID,
+                        _BI_ID: ITR_Pending_BI_ID,
+                        _BI_BRANCH: ITR_Pending_Branch_Name,
+                        _BI_ACC_NO: ITR_Pending_Bank_AC_No,
+                        _REF_BI_ID: ITR_Pending_REF_BI_ID,
+                        _REF_BRANCH: ITR_Pending_Ref_Branch,
+                        _REF_OTHERS: ITR_Pending_Ref_Others,
+                        _BI_REF_NO: ITR_Pending_RefNo,
+                        _BI_REF_DT: ITR_Pending_RefDate,
+                        _Amount: ITR_Pending_Amount,
+                        _a_PUR_ID: ITR_Pending_PUR_ID,
+                        CROSS_REF_ID: ITR_Pending_ID,
+                        CROSS_M_ID: ITR_Pending_MID,
+                        FR_REC_EDIT_ON: JS_Date_toIsoString(DateStringToJsDate(ITR_Pending_EditDate,"DD-MM-YYYY HH:mm:ss")),
+                        _REF_BANK_ACC_NO: ITR_Pending_Ref_Bank_AccNo,
+                    },
+                    success: function (data)
+                    {
+                       OpenDynamicPopup("Match ~ Internal Transfer", null, "auto", 1000, true, data);
+                    }
+                });
+            }
+            else
+            {
+                DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            }
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Internal Transfer Entry Not Selected...!", 'Inform!');
+        }
+    }//accept transfer
+    function OnITRUnmatchTransferClick()
+    {
+        if (ITR_Tab_Selected == "Pending" || ITR_Posted_ID == null)
+        {
+            DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return;
+        }     
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/UnmatchTransferClick",
+            cache: false,
+            data:
+            {
+                Posted_Id: ITR_Posted_ID,
+                Tr_Date: ITR_Posted_Date,
+                EditDate: ITR_Posted_EditDate,
+                MID: ITR_Posted_MID
+            },
+            success: function (data)
+            {
+                if (data.message.length > 0)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                }
+                if (data.refreshGrid == true)
+                {
+                    RefreshGridView("ITR_PostedGrid")
+                }
+            }
+        });
+    }//unmatch transfer
+    function OnITREditClick()
+    {
+        if (ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Please Select Posted Transfer Entry To Be Edited...!", 'Error'); return; }
+        var multiuser_confirm = false;
+        var Edit_Check_Passed = false;
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/MultiUser_ITR_Confirm",
+            async:false,
+            cache: false,
+            data: { Posted_Id: ITR_Posted_ID },
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Error!');
+                }
+                else if (data.result == true)
+                {
+                    multiuser_confirm = true;
+                }
+                else if (data.result == "MultiUser_Confirm")
+                {
+                    var confirm = DevExpress.ui.dialog.confirm(data.message, 'Confirm!');
+                    confirm.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            multiuser_confirm = true;
+                        }
+                        else
+                        {
+                            multiuser_confirm = false;
+                        }
+                    });
+                }
+            }
+        });
+        if (multiuser_confirm)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/InternalTransfer/Checks_Edit_DeleteClick_ITR",
+                async:false,
+                cache: false,
+                data: { Posted_Id: ITR_Posted_ID },
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, 'Inform !');
+                        if (data.refreshGrid)
+                        {
+                            ITR_PostedGrid.refresh();
+                        }
+                    }
+                    else if (data.result == true)
+                    {
+                        Edit_Check_Passed = true;
+                    }
+                }
+            });
+        }
+        if (Edit_Check_Passed)
+        {
+            ShowLoader();
+            OpenDynamicPopup("Edit ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_Edit&RegisterGridRowID=" + ITR_Posted_ID + "&_Edit_From_Register=" + true, "auto", 1000, false, null);
+        }
+    }// edit click
+    function OnITRDeleteClick ()
+    {
+        if (ITR_Posted_ID == null) { DevExpress.ui.dialog.alert("Posted Internal Transfer Entry Not Selected...!", 'Error'); return; }
+        var multiuser_confirm = false;
+        var Delete_Check_Passed = false;
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/MultiUser_ITR_Confirm",
+            async:false,
+            cache: false,
+            data: { Posted_Id: ITR_Posted_ID },
+            success: function (data)
+            {
+                if (data.result == false)
+                {
+                    DevExpress.ui.dialog.alert(data.message, 'Error!');
+                }
+                else if (data.result == true)
+                {
+                    multiuser_confirm = true;
+                }
+                else if (data.result == "MultiUser_Confirm")
+                {
+                    var confirm = DevExpress.ui.dialog.confirm(data.message, 'Confirm!');
+                    confirm.done(function (dialogResult)
+                    {
+                        if (dialogResult)
+                        {
+                            multiuser_confirm = true;
+                        }
+                        else
+                        {
+                            multiuser_confirm = false;
+                        }
+                    });
+                }
+            }
+        });
+        if (multiuser_confirm)
+        {
+            $.ajax({
+                type: 'GET',
+                url: "/Account/InternalTransfer/Checks_Edit_DeleteClick_ITR",
+                async:false,
+                cache: false,
+                data: { Posted_Id: ITR_Posted_ID },
+                success: function (data)
+                {
+                    if (data.result == false)
+                    {
+                        DevExpress.ui.dialog.alert(data.message, 'Inform !');
+                        if (data.refreshGrid)
+                        {
+                            ITR_PostedGrid.refresh();
+                        }
+                    }
+                    else if (data.result == true)
+                    {
+                        Delete_Check_Passed = true;
+                    }
+                }
+            });
+        }
+        if (Delete_Check_Passed)
+        {
+            ShowLoader();
+            OpenDynamicPopup("Delete ~ Internal Transfer", "@Url.Action("Frm_Voucher_Win_I_Transfer", "InternalTransfer", new { @area = "Account" })?Tag=_Delete&RegisterGridRowID=" + ITR_Posted_ID + "&_Delete_From_Register=" + true, "auto", 1000, false, null);
+        }
+    }// delete clicked
+    function OnITRListPreviewClick()
+    {
+        ShowLoader();
+        OpenPopup("report_export_modal", "Export Option", "/Account/InternalTransfer/Frm_Export_Options_dx?SelectedTab=" + ITR_Tab_Selected, "auto", 125, false, false);
+    }
+    function OnITRAddAttachment(ID)
+    {
+        if (ID == null)
+        {
+            DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            return;
+        }
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+        OpenDynamicPopup("Internal Transfer Register", "@Url.Action("Frm_Attachment_Window", "Attachment", new { @area = "Help" })?AM=New&Refrecid=" + ID + "&RefScreen=" + "Internal_Transfer", "auto", 900, false, null);
+    }
+    function OnITRManageAttachment(ID)
+    {
+        if (ID == null) {
+            DevExpress.ui.dialog.alert("Select A Row..!!", 'Inform!');
+            return;
+        }
+        ShowLoader();
+        OpenPopup("ITR_manage_Attachment", "Internal Transfer Register", "@Url.Action("Frm_Attachment_Info", "Attachment", new { @area = "Help" })?RefRecID=" + ID + "&PopUpId=ITR_manage_Attachment", "auto", 1150, false, null);
+    }
+    function ITR_Gridpanel_selectionChanged(e)
+    {
+        var selectedindex = e.component.option("selectedIndex");
+        if (selectedindex == 0)
+        {
+            ITR_Tab_Selected = "Posted";
+            ITR_PendingGrid.hideColumnChooser();
+            if (UserType_IntTransPrf == "SUPERUSER" || UserType_IntTransPrf == "AUDITOR")
+            {
+                $("#IntrnlTranfrRegViewModeSwitch").dxSwitch("option", "visible", true)
+            }
+        }
+        else
+        {
+            ITR_Tab_Selected = "Pending";
+            ITR_PostedGrid.hideColumnChooser();
+            $("#IntrnlTranfrRegViewModeSwitch").dxSwitch("option", "visible", false)
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function ()
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Account/InternalTransfer/SessionClear_REG",
+            cache: false
+        });
+        CloseRightPane();
+        ClearLeftPane();
+        CloseLeftPane();
+        DxGrid_EventsOnScreenClose(ITR_PendingGrid);
+        DxGrid_EventsOnScreenClose(ITR_PostedGrid);
+        ClearAllReferences_InternalTransferRegister()
+    });
+    function ClearAllReferences_InternalTransferRegister() {
+
+        ITR_Posted_ActionBy = null;
+        ITR_Posted_ActionDate = null;
+        ITR_Posted_ActionStatus = null;
+        ITR_Posted_AddBy = null;
+        ITR_Posted_AddDate = null;
+        ITR_Posted_EditBy = null;
+        ITR_Posted_EditDate = null;
+        ITR_Posted_ID = null;
+        ITR_Posted_MID = null;
+  
+   
+        ITR_Pending_ActionBy = null;
+        ITR_Pending_ActionDate = null;
+        ITR_Pending_ActionStatus = null;
+        ITR_Pending_AddBy = null;
+        ITR_Pending_AddDate = null;
+        ITR_Pending_EditBy = null;
+        ITR_Pending_EditDate = null;
+        ITR_Pending_ID = null;
+   
+ 
+        Help_Attachment_AddRight = null;
+        Help_Attachment_EditRight = null;
+        Help_Attachment_ViewRight = null;
+        Help_Attachment_DeleteRight = null;
+        IntrnlTranfrReg_SetVouchingModeOn = null;
+        UserType_IntTransPrf = null;
+        IntrnlTranfrReg_IsVouchingMode = null;
+        IntrnlTranfrReg_FocusedRowBeforeRefresh = null;
+        IntrnlTranfrReg_ViewMode = null;
+        ITR_Posted_IsDetailRowExpanded = null;
+        ITR_Posted_NestedRecord_FocusedRowIndex = null;
+        ITR_Posted_NestedGrid_AccessID = null;
+        ITR_Posted_AtachmentID = null;
+        ITR_Posted_FileName = null;
+        ITR_Posted_ParamMandatory = null;
+        ITR_Posted_FromDateLabel = null;
+        ITR_Posted_ToDateLabel = null;
+        ITR_Posted_DescriptionLabel = null;
+        ITR_Posted_Doc_ID = null;
+        ITR_Posted_Doc_Category = null;
+        ITR_Posted_MasterRowRecID = null;
+        ITR_Posted_MasterRowMID = null;
+        ITR_Posted_NestedRowMapID = null;
+        ITR_Posted_reason = null;
+        ITR_Posted_Attachment_RecStatus = null;
+        ITR_Posted_RecID_ForAttachment = null;
+        ITR_Posted_NestedRowReasonID = null;
+        ITR_Posted_NestedRowKeyValue = null;
+        ITR_Pending_FocusedRowBeforeRefresh = null;
+        ITR_Posted_XID = null;
+        ITR_Posted_Date = null;
+        ITR_Posted_ITEM_ID = null;
+        ITR_Posted_Srno = null;
+        ITR_Posted_Type = null;
+
+        ClearAllReferences("InternalTransferRegister_ClearReferences")
+
+        try {
+            ITR_PostedGrid.hideColumnChooser();
+            ITR_PendingGrid.hideColumnChooser();
+        }
+        catch (e) { };
+        ITR_PostedGrid = null;
+        ITR_PendingGrid = null;
+        VisibleColumns_ITR_PostedGrid = null;
+        Expanded_Row_Key_ITR_PostedGrid = null; 
+        ITR_Tab_Selected=null
+    }      
+</script>
+    <script>
+        function On_ITR_Posted_FABActionItemClick(s, e) {
+            var img = document.getElementById('RightPane_Img');
+            s.ExpandActionGroupItems();
+            if (e.actionName === "add_attach") {
+                if (Help_Attachment_AddRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ITR_Posted_ParamMandatory == 1) {
+                    AddAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_Doc_ID, ITR_Posted_Doc_Category, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, "ITR_PostedProfileAttachment", null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+                else {
+                    Attachment_DirectBrowse(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_Doc_ID, "ITR_PostedProfileAttachment", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "edit_attach") {
+                if (Help_Attachment_EditRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                if (ITR_Posted_Attachment_RecStatus.toUpperCase() == "LOCKED") {
+                    DevExpress.ui.dialog.alert("Locked Attachment Cannot Be Edited", "Error");
+                    return;
+                }
+                EditAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_AtachmentID, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, "ITR_PostedProfileAttachment", null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "delete_attach") {
+                if (Help_Attachment_DeleteRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                DeleteAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", ITR_Posted_AtachmentID, ITR_Posted_ParamMandatory, ITR_Posted_FromDateLabel, ITR_Posted_ToDateLabel, ITR_Posted_DescriptionLabel, null, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID, ITR_Posted_Attachment_RecStatus);
+            }
+            else if (e.actionName === "view_attach") {
+                if (Help_Attachment_ViewRight == "False") {
+                    DevExpress.ui.dialog.alert("Not Allowed", "No Rights");
+                    return;
+                }
+                ViewDocument(ITR_Posted_AtachmentID, ITR_Posted_FileName, s.uniqueID, "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+            }
+            else if (e.actionName == "Link_Attach") {
+                LinkAttachment(ITR_Posted_RecID_ForAttachment, "Accounts_CashBook", "Internal Transfers Register", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Add_Reason") {
+                if (ITR_Posted_Doc_Category.toLowerCase() == "others") {
+                    DevExpress.ui.dialog.alert("Reason can not be mentioned for 'Other' document...!!", 'Information!');
+                }
+                else {
+                    AttachmentAddReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+                }
+            }
+            else if (e.actionName === "Edit_Reason") {
+                AttachmentEditReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID, ITR_Posted_reason);
+            }
+            else if (e.actionName === "Delete_Reason") {
+                AttachmentDeleteReason(ITR_Posted_RecID_ForAttachment, ITR_Posted_NestedRowMapID, "ITR_PostedGrid", ITR_Posted_NestedGrid_AccessID);
+            }
+            else if (e.actionName === "Rotate") {
+                ImageRotate(img);
+            }
+            else if (e.actionName === "ZoomOut") {
+                ImageZoomOut(img);
+            }
+            else if (e.actionName === "ZoomIn") {
+                ImageZoomIn(img);
+            }
+            else if (e.actionName == "Fit") {
+                ImageFit(img);
+            }
+            else if (e.actionName == "Back") {
+                ImageBack(s.uniqueID, "actionItemContext");
+            }
+            else if (e.actionName == "AuditAction") {
+                ITR_PostedPrf_FAB.SetActionContext("AuditActionContext", true);
+            }
+            else if (e.actionName == "BackAudit") {
+                if (ITR_Posted_Nested_Doc_Status == "") {
+                    ITR_PostedPrf_FAB.SetActionContext("AutoItemContext", true);
+                }
+                if (ITR_Posted_Nested_Doc_Status == "NO") {
+                    ITR_PostedPrf_FAB.SetActionContext("EditItemContext", true);
+                }
+                if (ITR_Posted_Nested_Doc_Status == "YES") {
+                    ITR_PostedPrf_FAB.SetActionContext("actionItemContext", true);
+                }
+            }
+            else if (e.actionName == "Accept") {
+                ITR_Posted_AcceptwithoutRemarks();
+            }
+            else if (e.actionName == "Reject") {
+                ITR_Posted_AcceptRejectVoucher("Reject");
+            }
+            else if (e.actionName == "AcceptWithRemarks") {
+                ITR_Posted_AcceptRejectVoucher("Accept");
+            }
+        }
+        function ITR_Posted_AcceptwithoutRemarks() {          
+            var Recid;
+            if (ITR_Posted_IsDetailRowExpanded == true || IntrnlTranfrReg_IsVouchingMode == true) {
+                if (ITR_Posted_MasterRowRecID == null || ITR_Posted_MasterRowRecID == "") {
+                    Recid = ITR_Posted_MasterRowMID;
+                }
+                else {
+                    Recid = ITR_Posted_MasterRowRecID;
+                }
+            }
+            else {
+                Recid = ITR_Posted_ID;
+            }
+            Entry_AcceptwithoutRemarks(Recid, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_AtachmentID, ITR_Posted_NestedRowReasonID, ITR_Posted_NestedRowKeyValue);
+        }
+        function ITR_Posted_AcceptRejectVoucher(_actionMethod) {
+            var Recid;
+
+            if (ITR_Posted_IsDetailRowExpanded == true || IntrnlTranfrReg_IsVouchingMode == true) {
+                if (ITR_Posted_MasterRowRecID == null || ITR_Posted_MasterRowRecID == "") {
+                    Recid = ITR_Posted_MasterRowMID;
+                }
+                else {
+                    Recid = ITR_Posted_MasterRowRecID;
+                }
+            }
+            else {
+                Recid = ITR_Posted_ID;
+            }
+            Entry_AcceptReject(_actionMethod, Recid, "Accounts_CashBook", "ITR_PostedGrid", ITR_Posted_AtachmentID, ITR_Posted_NestedRowReasonID, ITR_Posted_NestedRowKeyValue);
+        }
+    </script>
+    <script>   
+        function ITR_PostedGrid_dx_OnInitialized(e)
+        {
+            ITR_PostedGrid = e.component;
+            DxGrid_AdjustSize(e.component, $("#ITR_Reg_ParentDiv_dx .report_button_div"))                  
+        }
+        function ITR_PostedGrid_dx_OnCellPrepared(e) {
+            if (e.rowType == "data") {
+                if (IntrnlTranfrReg_IsVouchingMode == true) {
+                    if (e.column.dataField === "iIcon") {
+                        $(e.cellElement).attr("onmouseover", "OnGridRowMouseHoverIn(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.data.ID + "')");
+                        $(e.cellElement).attr("onmouseout", "OnGridRowMouseHoverOut(event,this,'" + e.element[0].id + "','" + e.rowIndex + "','" + e.data.ID + "')");
+                    }
+                }
+                $(e.cellElement).attr("id", e.element[0].id + "_Cell_" + e.data.ID + "|" + e.column.dataField);
+            }
+        }
+        function ITR_PostedGrid_dx_OnRowPrepared(e) {
+            if (e.rowType == "data") {
+                var GridName = e.element[0].id;
+                $(e.rowElement).addClass(GridName + "_DataRow_" + e.data.ID);
+                DxGrid_CreatePreviewRow(e, IntrnlTranfrReg_IsVouchingMode, "Master")
+            }
+            else if (e.rowType == "detailAdaptive") {
+                DxGrid_MovePreviewRowAfterAdaptiveRow(e)
+            }
+        }
+        async function ITR_PostedGrid_dx_OnContentReady(e)
+        {    
+            await DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, Expanded_Row_Key_ITR_PostedGrid, ITR_Posted_XID)
+            ITR_Posted_XID = null;        
+            DxGrid_OnContentReady(e);
+        }
+        function ITR_PostedGrid_dx_OnCellDblClick(e) {
+            if (e.rowType == "data") {
+                if (IntrnlTranfrReg_IsVouchingMode == true && IntrnlTranfrReg_ViewMode == "Default") {
+                    OnGridCellClick(e.event, e.cellElement[0], e.columnIndex, e.rowIndex, e.element[0].id, e.key, e.column.dataField)
+                }
+                else if (IntrnlTranfrReg_IsVouchingMode == false) {
+                    if (e.rowType == "data") {
+                        DataNavigation_ITR("EDIT");
+                    }
+                }
+            }
+        }
+        function ITR_PostedGrid_dx_OnSelectionChanged(e) {          
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                if (IntrnlTranfrReg_IsVouchingMode) {
+                    ITR_PostedPrf_FAB.SetVisible(true);
+                    ITR_PostedPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+                ITR_PostedGridOnGetRowValues_dx(e.selectedRowsData);
+            }
+            else {
+                ITR_Posted_ID = null;
+                ITR_Posted_updateFooterDetail(ITR_Posted_ID, ITR_Posted_ActionStatus, ITR_Posted_AddDate, ITR_Posted_AddBy, ITR_Posted_ActionDate, ITR_Posted_ActionBy, ITR_Posted_EditDate, ITR_Posted_EditBy);
+            }
+        }
+        function ITR_PostedGridOnGetRowValues_dx(data) {
+            var value = data[0];
+            ITR_Posted_ActionBy = value["ActionBy"];
+            ITR_Posted_ActionDate = (JS_Json_Date_To_ddMMyyyy((value["ActionDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Posted_ActionStatus = value["ActionStatus"];
+            ITR_Posted_AddBy = value["AddBy"];
+            ITR_Posted_AddDate = (JS_Json_Date_To_ddMMyyyy((value["AddDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Posted_EditBy = value["EditBy"];
+            ITR_Posted_EditDate = (JS_Json_Date_To_ddMMyyyy((value["EditDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Posted_ID = value["ID"];
+            ITR_Posted_MID = value["MID"];
+            ITR_Posted_Date = (JS_Json_Date_To_ddMMyyyy((value["xDate"] ?? ""), "DD-MM-YYYY") ?? "");
+            ITR_Posted_ITEM_ID = value["TR_ITEM_ID"];
+            ITR_Posted_Srno = value["TR_SR_NO"];
+            ITR_Posted_Type = value["TR_TYPE"];
+            ITR_Posted_updateFooterDetail(ITR_Posted_ID, ITR_Posted_ActionStatus, ITR_Posted_AddDate, ITR_Posted_AddBy, ITR_Posted_ActionDate, ITR_Posted_ActionBy, ITR_Posted_EditDate, ITR_Posted_EditBy);
+
+            if (IntrnlTranfrReg_IsVouchingMode) {
+                OpenLeftPane();
+                LeftPaneContent_ITR_Posted_dx("ITR_PostedGrid", ITR_Posted_ID, ITR_Posted_MID, IntrnlTranfrReg_IsVouchingMode)
+            }
+        }
+        function ITR_Posted_updateFooterDetail(ITR_Posted_ID, ITR_ActionStatus, ITR_AddDate, ITR_AddBy, ITR_ActionDate, ITR_ActionBy, ITR_EditDate, ITR_EditBy) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (ITR_Posted_ID) {
+                Status = ITR_ActionStatus;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+
+                if (ITR_AddDate) {
+                    Lbl_Create = "Add On: " + ITR_AddDate + ", By: " + ITR_AddBy;
+                }
+                if (ITR_EditDate) {
+                    Lbl_Modify = "Edit On: " + ITR_EditDate + ", By: " + ITR_EditBy;
+                }
+                if (ITR_ActionDate) {
+                    Lbl_ActionOn = StatusStr + " On: " + ITR_ActionDate;
+                }
+                if (ITR_ActionBy) {
+                    Lbl_ActionBy = StatusStr + " By: " + ITR_ActionBy;
+                }
+            }
+            $('#ITR_Posted_Lbl_Status').text(Lbl_Status);
+            $('#ITR_Posted_Lbl_Create').text(Lbl_Create);
+            $('#ITR_Posted_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#ITR_Posted_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#ITR_Posted_Lbl_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#ITR_Posted_Lbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ITR_Posted_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ITR_Posted_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ITR_Posted_LockICON').removeClass("fa").removeClass("fa-lock").removeClass("fa-unlock");
+            }
+        }
+        function ITR_PostedGrid_dx_OnContextMenuPreparing(e) {         
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                if (IntrnlTranfrReg_ViewMode == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [{
+                    text: "Expand Detail",
+                    icon: "fa-solid fa-arrow-down-wide-short " + (expanded ? "text-muted" : "text-info"),
+                    disabled: expanded,
+                    visible: !IntrnlTranfrReg_IsVouchingMode,
+                    onItemClick: function () {
+                        if (expanded) {
+                        }
+                        else {
+                            e.component.expandRow(key);
+                        }
+                    }
+                },
+                {
+                    text: "Collapse Detail",
+                    icon: "fa-solid fa-arrow-up-wide-short " + (!expanded ? "text-muted" : "text-info"),
+                    disabled: !expanded,
+                    visible: !IntrnlTranfrReg_IsVouchingMode,
+                    onItemClick: function () {
+                        if (expanded) {
+                            e.component.collapseRow(key);
+                        }
+                        else {
+                        }
+                    }
+                },
+                {
+                    text: "Accept Transfer",
+                    icon: "../../../../Icons/Accept-icon.png",
+                    beginGroup: true,
+                    onItemClick: function () {
+                        DataNavigation_ITR("ACCEPT");
+                    }
+                },
+                {
+                    text: "Edit Common Info",
+                    icon: "fa-solid fa-file-pen",
+                    onItemClick: function () {
+                        DataNavigation_ITR("EDIT-COMMON");
+                    }
+                },
+                {
+                    text: "Export",
+                    icon: "fa-solid fa-plus text-success",
+                    onItemClick: function () {
+                        OnITRListPreviewClick();
+                    }
+                },
+                {
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    onItemClick: function () {
+                        $(".TabPanalMenu-tabs .active span").click();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    beginGroup: true,
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    onItemClick: function () {
+                        RefreshGridView("ITR_PostedGrid")
+                    }
+                }
+
+                ]
+            }
+            else if (e.target == "content" && e.row == void 0) {
+                e.items = [{
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    onItemClick: function () {
+                        $(".TabPanalMenu-tabs .active span").click();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    beginGroup: true,
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    onItemClick: function () {
+                        RefreshGridView("ITR_PostedGrid")
+                    }
+                }
+
+                ]
+            }
+        }
+        function ITR_PostedGrid_dx_OnRowExpanding(e) {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                e.component.collapseRow(Expanded_Row_Key_ITR_PostedGrid)
+                e.component.selectRows(e.key);
+                Expanded_Row_Key_ITR_PostedGrid = e.key;
+                ITR_Posted_IsDetailRowExpanded = true;
+                var DetailGridID = e.element[0].id + e.key;
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.state(null) // grid maintains its state after collapsing so resetting the state when expands again as per old grid
+                }
+                //e.component.collapseAll(-1);
+            }
+            else {
+                e.component.option("CustomProp.groupRowExpanded", true);
+            }
+        }
+        function ITR_PostedGrid_dx_OnRowCollapsing(e) {
+            if (Array.isArray(e.key) == false) //not group row
+            {
+                var DetailGridID = e.element[0].id + e.key;
+                sessionStorage.removeItem(DetailGridID + "_DetailGridState") //removing grid state from session storage on collapse
+                ITR_Posted_IsDetailRowExpanded = false;
+                e.component.selectRows(e.key);
+                if (IntrnlTranfrReg_IsVouchingMode == false) {
+                    ITR_PostedPrf_FAB.SetVisible(false);
+                }
+                var instance = $("div[id='" + DetailGridID + "']").dxDataGrid("instance")
+                if (instance != void 0) {
+                    instance.clearSelection();
+                }
+            }
+            else {
+                e.component.option("CustomProp.groupRowCollapsed", true);
+            }
+        }
+
+        function ITR_PostedGrid_dx_iIconTemplate(container, templateData) {
+
+            var iREQ_ATTACH_COUNT = templateData.data.iREQ_ATTACH_COUNT
+            var iCOMPLETE_ATTACH_COUNT = templateData.data.iCOMPLETE_ATTACH_COUNT
+            var iRESPONDED_COUNT = templateData.data.iRESPONDED_COUNT
+            var iREJECTED_COUNT = templateData.data.iREJECTED_COUNT
+            var iOTHER_ATTACH_CNT = templateData.data.iOTHER_ATTACH_CNT
+            var iALL_ATTACH_CNT = templateData.data.iALL_ATTACH_CNT
+            var iIcon = templateData.data.iIcon
+            var UniqueID = templateData.component.element()[0].id
+            var key = templateData.data.ID
+            var VisibleIndex = templateData.rowIndex
+            var htmlString = "";
+            htmlString = DxGrid_AttachmentIcons(iREQ_ATTACH_COUNT, iCOMPLETE_ATTACH_COUNT, iRESPONDED_COUNT, iREJECTED_COUNT, iOTHER_ATTACH_CNT, iALL_ATTACH_CNT);
+            htmlString += DxGrid_VouchingAuditIcons(iIcon)
+            htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+            $(container).html(htmlString)
+        }
+        function ITR_PostedGrid_dx_Compact_Column(container, templateData) {
+            var Name = templateData.component.element()[0].id;
+            var KeyValue = templateData.data.ID;
+            var VouchingMode = IntrnlTranfrReg_IsVouchingMode == true ? "True" : "False";
+            var htmlString = "";
+            htmlString += "<div class='container-fluid'>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Status:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Status' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Status ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Centre Name:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText' id='" + Name + "_Cell_" + KeyValue + "|Centre_Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Centre_Name ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Center UID:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Center_UID' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Center_UID ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>No.:</label> </div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.No ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Zone:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Zone' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Zone ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Sub_Zone:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Sub_Zone' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Sub_Zone ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Description:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Description' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Description ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|xDate' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.xDate ?? ""), "DD-MM-YYYY") ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Mode:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Mode' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Mode ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Amount:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Amount' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                DxGrid_FormatNumber(templateData.data.Amount ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Bank Name:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Bank_Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Bank_Name ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Branch Name:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Branch_Name' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Branch_Name ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3  compact_column_label'>" +
+                "<label class='control-label'>Bank A/C. No.:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Bank_AC_No' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Bank_AC_No ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Bank 2:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Bank_2' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Bank_2 ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Ref. No.:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|RefNo' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.RefNo ?? "") + "</div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Ref. Date:</label></div>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|RefDate' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (JS_Json_Date_To_ddMMyyyy((templateData.data.RefDate ?? ""), "DD-MM-YYYY") ?? "") + "</div></div>" +
+                "<div class='row'>" +
+                "<div class='col-sm-12 col-md-3 col-lg-3 compact_column_label'>" +
+                "<label class='control-label'>Purpose:</label></div>" +
+                "<div class='col-sm-12 col-md-9 col-lg-9 compact_column_data wrapText'id='" + Name + "_Cell_" + KeyValue + "|Purpose' ondblclick = OnGridCellClick(event,this,'','','" + Name + "','" + KeyValue + "','','True','" + VouchingMode + "')>" +
+                (templateData.data.Purpose ?? "") + "</div></div></div>";
+
+            $(container).html(htmlString)
+        }
+        function ITR_PostedGrid_dx_Compact_Column_CellValue(rowData) {
+            var data = [];
+            data = [
+                rowData.Status, rowData.Centre_Name, rowData.Center_UID, rowData.No,
+                rowData.Zone, rowData.Sub_Zone, rowData.Description, rowData.xDate,
+                rowData.Mode, rowData.Amount, rowData.Bank_Name, rowData.Branch_Name,
+                rowData.Bank_AC_No, rowData.Bank_2, rowData.RefNo, , rowData.RefDate, rowData.Purpose
+            ]
+            return data.join(" ")
+        }
+
+        //detail grid for posted
+        function ITR_PostedGrid_dx_DetailTemplate(container, templateData) {
+            var GridName = templateData.component.element()[0].id
+            var RecID = templateData.data.ID;
+            var MID = templateData.data.MID;
+            ITR_PostedGrid_dx_Detail(container, GridName, RecID, MID, IntrnlTranfrReg_IsVouchingMode, 1);
+        }
+        function ITR_PostedGrid_dx_Detail(container, GridName, RecID, MID, vouchingMode, AllColumns) {
+            var url = "/Account/InternalTransfer/Itr_Posted_DetailGrid_Data?VouchingMode=" + vouchingMode + "&RecID=" + RecID + "&MID=" + MID
+            var instance = DxGrid_AttachmentGrid_Create(container, GridName, RecID, vouchingMode, AllColumns, url)
+            instance.option("onSelectionChanged", ITR_PostedGrid_dx_Detail_onSelectionChanged);
+        }
+        function ITR_PostedGrid_dx_Detail_onSelectionChanged(e) {
+            if (ITR_Posted_IsDetailRowExpanded || IntrnlTranfrReg_IsVouchingMode) {
+                if (e.selectedRowsData != null && e.selectedRowsData.length > 0) {
+                    ITR_Posted_NestedGrid_AccessID = e.element[0].id;
+                    ITR_PostedGrid_dx_Detail_SelectedRowData(e.selectedRowsData)
+                }
+                else {
+                    ITR_PostedPrf_FAB.SetActionContext("AddAttachmentContext", false);
+                }
+            }
+        }
+        function ITR_PostedGrid_dx_Detail_SelectedRowData(selectedData = null) {
+            if (selectedData == null) {
+                selectedData = $("#" + ITR_Posted_NestedGrid_AccessID).dxDataGrid("getSeletedRowsData");
+            }
+            var values = selectedData[0];
+            ITR_Posted_NestedRowKeyValue = values["UniqueID"];
+            if (values["UniqueID"] != null) {
+                ITR_PostedPrf_FAB.SetVisible(true);
+                ITR_Posted_Nested_Doc_Status = values["Doc_Status"];
+
+                if (IntrnlTranfrReg_IsVouchingMode == true) {
+
+                    ITR_PostedPrf_FAB.SetActionContext("AuditActionContext", true);
+                }
+                else {
+                    if (ITR_Posted_Nested_Doc_Status == "") {
+                        ITR_PostedPrf_FAB.SetActionContext("AutoItemContext", true);
+                    }
+                    else if (ITR_Posted_Nested_Doc_Status == "NO") {
+                        ITR_PostedPrf_FAB.SetActionContext("EditItemContext", true);
+                    }
+                    else if (ITR_Posted_Nested_Doc_Status == "YES") {
+                        ITR_PostedPrf_FAB.SetActionContext("actionItemContext", true);
+                    }
+                }
+                ITR_Posted_ParamMandatory = values["Params_Mandatory"];
+                ITR_Posted_FromDateLabel = values["LABEL_FROM_DATE"];
+                ITR_Posted_ToDateLabel = values["LABEL_TO_DATE"];
+                ITR_Posted_DescriptionLabel = values["LABEL_DESCRIPTION"];
+                ITR_Posted_Doc_Category = values["Document_Category"];
+                ITR_Posted_Doc_ID = values["Document_ID"];
+                ITR_Posted_AtachmentID = values["ATTACH_ID"];
+                IndexAttachmentID = ITR_Posted_AtachmentID;
+                ITR_Posted_MasterRowRecID = values["TxnID"];
+                ITR_Posted_MasterRowMID = values["TxnMID"];
+                ITR_Posted_NestedRowMapID = values["MAP_ID"];
+                ITR_Posted_reason = values["Reason"];
+                ITR_Posted_FileName = values["ATTACH_FILE_NAME"];
+                ITR_Posted_Attachment_RecStatus = values["Attachment_Action_Status"];
+
+
+                if (ITR_Posted_MasterRowMID != null && ITR_Posted_MasterRowMID != "") {
+                    ITR_Posted_RecID_ForAttachment = ITR_Posted_MasterRowMID;
+                }
+                else if (ITR_Posted_MasterRowRecID != null && ITR_Posted_MasterRowRecID != "") {
+                    ITR_Posted_RecID_ForAttachment = ITR_Posted_MasterRowRecID;
+                }
+                if (IntrnlTranfrReg_IsVouchingMode == true) {
+                    if (ITR_Posted_FileName != null && ITR_Posted_FileName.length > 0) {
+                        ViewDocument(ITR_Posted_AtachmentID, ITR_Posted_FileName, "ITR_PostedPrf_FAB", "ImageToolBarContext", document.getElementById('RightPane_Iframe'), document.getElementById('RightPane_Img'), document.getElementById('RightPane_div_Iframe'), document.getElementById('RightPane_div_Img'), Mainspliter.GetPaneByName('RightPane'));
+                    }
+                    else {
+                        CloseRightPane();
+                        ClearRightPane();
+                    }
+                }
+            }
+            ITR_Posted_NestedRowReasonID = values["ReasonID"];
+            IndexAttachmentReasonID = ITR_Posted_NestedRowReasonID;
+        }
+
+        function LeftPaneContent_ITR_Posted_dx(GridName, RecID, MID, vouchingMode, AllColumns = 0) {
+            $("#LeftPane_Div_Content").html(null);
+            $("#LeftPane_Div_Content").append("<div class='col-xs-12'><label>Documents Attached:</label><div class='AttachmentGrid'><form></form></div></div><div class='col-xs-12'><label>Additional Info:</label><div class='AdditionalInfoGrid'><form></form></div></div>")
+            ITR_PostedGrid_dx_Detail($("#LeftPane_Div_Content .AttachmentGrid>form"), GridName, RecID, MID, vouchingMode, AllColumns)
+            setTimeout(function () {
+                AdditionalInfoGrid_ITR_PostedGrid_dx($("#LeftPane_Div_Content .AdditionalInfoGrid>form"), GridName, RecID, MID, vouchingMode, AllColumns)
+            })
+        }
+        function AdditionalInfoGrid_ITR_PostedGrid_dx(container, GridName, RecID, MID, vouchingMode, AllColumns) {
+            var url = "/Account/InternalTransfer/Itr_Posted_AdditionalGridData_dx?VouchingMode=" + vouchingMode + "&RecID=" + RecID + "&MID=" + MID
+            DxGrid_CreateAdditionalInfoGrid(container, GridName, RecID, vouchingMode, AllColumns, url)
+        }
+    </script>
+    @* ITR_PostedGrid *@
+    <script>
+        function ITR_PendingGrid_dx_OnInitialized(e)
+        {
+            ITR_PendingGrid = e.component;
+            DxGrid_AdjustSize(e.component, $("#ITR_Reg_ParentDiv_dx .report_button_div"))                  
+        }
+        async function ITR_PendingGrid_dx_OnContentReady(e) {
+            await DxGrid_RowSelectionTobeCheckedAfterAnyAction(e, null)
+            DxGrid_OnContentReady(e);            
+        }
+        function ITR_PendingGrid_dx_OnSelectionChanged(e) {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                ITR_PendingGridOnGetRowValues_dx(e.selectedRowsData);
+            }
+            else {
+                ITR_Pending_ID = null;
+                ITR_Pending_updateFooterDetail(ITR_Pending_ID, ITR_Pending_ActionStatus, ITR_Pending_AddDate, ITR_Pending_AddBy, ITR_Pending_ActionDate, ITR_Pending_ActionBy, ITR_Pending_EditDate, ITR_Pending_EditBy);
+            }
+        }
+        function ITR_PendingGridOnGetRowValues_dx(data) {
+            var value = data[0];
+            ITR_Pending_ActionBy = value["ActionBy"];
+            ITR_Pending_ActionDate = (JS_Json_Date_To_ddMMyyyy((value["ActionDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Pending_ActionStatus = value["ActionStatus"];
+            ITR_Pending_AddBy = value["AddBy"];
+            ITR_Pending_AddDate = (JS_Json_Date_To_ddMMyyyy((value["AddDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Pending_EditBy = value["EditBy"];
+            ITR_Pending_EditDate = (JS_Json_Date_To_ddMMyyyy((value["EditDate"] ?? ""), "DD-MM-YYYY HH:mm:ss") ?? "");
+            ITR_Pending_ID = value["ID"];
+            ITR_Pending_xDate = (JS_Json_Date_To_ddMMyyyy((value["xDate"] ?? ""), "DD-MM-YYYY") ?? "");
+            ITR_Pending_ITEM_ID = value["ITEM_ID"];
+            ITR_Pending_Mode = value["Mode"];
+            ITR_Pending_CEN_ID = value["CEN_ID"];
+            ITR_Pending_BI_ID = value["BI_ID"];
+            ITR_Pending_Branch_Name = value["Branch_Name"];
+            ITR_Pending_Bank_AC_No = value["Bank_AC_No"];
+            ITR_Pending_REF_BI_ID = value["REF_BI_ID"];
+            ITR_Pending_Ref_Branch = value["Ref_Branch"];
+            ITR_Pending_Ref_Others = value["Ref_Others"];
+            ITR_Pending_RefNo = value["RefNo"];
+            ITR_Pending_RefDate = (JS_Json_Date_To_ddMMyyyy((value["RefDate"] ?? ""), "DD-MM-YYYY") ?? "");
+            ITR_Pending_Amount = value["Amount"];
+            ITR_Pending_PUR_ID = value["PUR_ID"];
+            ITR_Pending_MID = value["MID"];
+            ITR_Pending_Ref_Bank_AccNo = value["Ref_Bank_AccNo"];
+            ITR_Pending_updateFooterDetail(ITR_Pending_ID, ITR_Pending_ActionStatus, ITR_Pending_AddDate, ITR_Pending_AddBy, ITR_Pending_ActionDate, ITR_Pending_ActionBy, ITR_Pending_EditDate, ITR_Pending_EditBy);
+        }
+        function ITR_Pending_updateFooterDetail(ID, ITR_ActionStatus, ITR_AddDate, ITR_AddBy, ITR_ActionDate, ITR_ActionBy, ITR_EditDate, ITR_EditBy) {
+            var Status = "";
+            var Lbl_Status = "";
+            var Lbl_StatusBy = "";
+            var Pic_Status = "";
+            var Lbl_Create = "";
+            var Lbl_Modify = "";
+            var Lbl_Status_Color = "";
+            var Lbl_ActionOn = "";
+            var Lbl_ActionBy = "";
+            var StatusStr = "";
+            if (ID != null) {
+                Status = ITR_ActionStatus;
+                StatusStr = Status == "Locked" ? "Locked" : Status == null ? null : "UnLocked";
+
+                if (Status && Status.toUpperCase() == "LOCKED") {
+                    Lbl_Status = "Completed";
+                    Lbl_Status_Color = "blue";
+                    Pic_Status = "fa fa-lock";
+                }
+                else {
+                    Pic_Status = "fa fa-unlock";
+                    Lbl_Status = Status;
+                    if (Status && Status.toUpperCase() == "COMPLETED") {
+                        Lbl_Status_Color = "green";
+                    }
+                    else {
+                        Lbl_Status_Color = "red";
+                    }
+                }
+
+                if (ITR_AddDate) {
+                    Lbl_Create = "Add On: " + ITR_AddDate + ", By: " + ITR_AddBy;
+                }
+                if (ITR_EditDate) {
+                    Lbl_Modify = "Edit On: " + ITR_EditDate + ", By: " + ITR_EditBy;
+                }
+                if (ITR_ActionDate) {
+                    Lbl_ActionOn = StatusStr + " On: " + ITR_ActionDate;
+                }
+                if (ITR_ActionBy) {
+                    Lbl_ActionBy = StatusStr + " By: " + ITR_ActionBy;
+                }
+            }
+
+            $('#ITR_Pending_Lbl_Status').text(Lbl_Status);
+            $('#ITR_Pending_Lbl_Create').text(Lbl_Create);
+            $('#ITR_Pending_Lbl_ActionOn').text(Lbl_ActionOn);
+            $('#ITR_Pending_Lbl_ActionBy').text(Lbl_ActionBy);
+            $('#ITR_Pending_Lbl_Modify').text(Lbl_Modify);
+            if (Lbl_Status_Color != "") {
+                $('#ITR_Pending_Lbl_Status').css('color', Lbl_Status_Color);
+            }
+            if (Pic_Status == "fa fa-lock") {
+                $('#ITR_Pending_LockICON').addClass(Pic_Status).removeClass("fa-unlock");
+            }
+            else if (Pic_Status == "fa fa-unlock") {
+                $('#ITR_Pending_LockICON').addClass(Pic_Status).removeClass("fa-lock");
+            }
+            else {
+                $('#ITR_Pending_LockICON').removeClass("fa").removeClass("fa-unlock").removeClass("fa-lock");
+            }
+        }
+        function ITR_PendingGrid_dx_OnContextMenuPreparing(e)
+        {            
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                DxGrid_FooterContextMenu(e)
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+                var key = e.component.getKeyByRowIndex(e.row.rowIndex);
+                e.component.selectRows(key);
+                var expanded = e.component.isRowExpanded(key);
+                e.items = [
+
+                    {
+                        text: "Accept Transfer",
+                        icon: "../../../../Icons/Accept-icon.png",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            DataNavigation_ITR("ACCEPT");
+                        }
+                    },
+                    {
+                        text: "Edit Common Info",
+                        icon: "fa-solid fa-file-pen",
+                        onItemClick: function () {
+                            DataNavigation_ITR("EDIT-COMMON");
+                        }
+                    },
+                    {
+                        text: "Export",
+                        icon: "fa-solid fa-plus text-success",
+                        onItemClick: function () {
+                            OnITRListPreviewClick();
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        onItemClick: function () {
+                            $(".TabPanalMenu-tabs .active span").click();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        beginGroup: true,
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        onItemClick: function () {
+                            RefreshGridView("ITR_PendingGrid")
+                            /* ITR_PendingGrid.refresh()*/
+                        }
+                    }
+
+                ]
+            }
+            else if (e.target == "content" && e.row==void 0)
+            {
+                e.items = [{
+                    text: "Close",
+                    icon: "fa-solid fa-rectangle-xmark text-danger",
+                    onItemClick: function () {
+                        $(".TabPanalMenu-tabs .active span").click();
+                    }
+                },
+                {
+                    text: "Refresh",
+                    beginGroup: true,
+                    icon: "fa-solid fa-arrow-rotate-right text-success",
+                    onItemClick: function () {
+                        RefreshGridView("ITR_PendingGrid")                       
+                    }
+                }
+
+                ]
+            }
+        }
+        function ITR_PendingGrid_dx_OnCellDblClick(e) {
+            if (IntrnlTranfrReg_IsVouchingMode == false) {
+                if (e.rowType == "data") {
+                    DataNavigation_ITR("EDIT");
+                }
+            }
+        }
+
+        function ITR_PendingGrid_dx_iIconTemplate(container, templateData) {
+            if (templateData.rowType == "data") {
+                var UniqueID = templateData.component.element()[0].id
+                var key = templateData.data.ID
+                var VisibleIndex = templateData.rowIndex
+                var htmlString = "";
+                htmlString += DxGrid_AuditIconAfterClick(UniqueID, key, VisibleIndex)
+                $(container).html(htmlString)
+            }
+        }
+        function ITR_PendingGrid_dx_HeaderiIconTemplate(container, templateData) {
+            htmlString = '<img src="../../../../Content/FloatingActionButton/Images/pin.png" alt="pin.png" style="width:80%;"/>';
+            $(container).html(htmlString)
+        }
+    </script>
+    @* ITR_PendingGrid*@
+
+
+</div>

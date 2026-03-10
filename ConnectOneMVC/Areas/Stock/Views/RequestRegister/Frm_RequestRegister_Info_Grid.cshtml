@@ -1,0 +1,305 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    bool RR_Add_Rights = (bool)ViewData["RR_AddRight"];
+    bool RR_Update_Rights = (bool)ViewData["RR_UpdateRight"];
+    bool RR_View_Rights = (bool)ViewData["RR_ViewRight"];
+    bool RR_Delete_Rights = (bool)ViewData["RR_DeleteRight"];
+    bool RR_Export_Rights = (bool)ViewData["RR_ExportRight"];
+    bool RR_Report_Rights = (bool)ViewData["RR_ReportRight"];
+    bool RR_Approve_Rights = (bool)ViewData["RR_ApproveRight"];
+
+    string ExportGridHeaderLeft = (string)ViewData["ExportGridHeaderLeft"] != null ? ViewData["ExportGridHeaderLeft"].ToString() : "";
+    string ExportGridHeaderRight = (string)ViewData["ExportGridHeaderRight"] != null ? ViewData["ExportGridHeaderRight"].ToString() : "";
+    string ExportGridFooter = (string)ViewData["ExportGridFooter"] != null ? ViewData["ExportGridFooter"].ToString() : "";
+}
+@Html.DevExpress().GridView(
+    settings =>
+    {
+        settings.Name = "RequestRegisterListGrid";
+        settings.CallbackRouteValues = new
+        {
+            Controller = "RequestRegister",
+            Action = "Frm_RequestRegister_Info_Grid",
+            SessionGUID = SessionGUID
+        };
+        settings.SettingsDetail.AllowOnlyOneMasterRowExpanded = false;// set false for simultaneous nested grid
+        settings.SettingsDetail.ShowDetailRow = true; //set true gor nested grid
+        settings.SettingsResizing.Visualization = ResizingMode.Live;
+
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsExport.EnableClientSideExportAPI = true;
+        settings.SettingsExport.ExcelExportMode = DevExpress.Export.ExportType.DataAware;
+        settings.SettingsDetail.ExportMode = GridViewDetailExportMode.Expanded; //mantis #749
+        settings.SettingsExport.PageHeader.Center = "Requisition Register";
+        settings.SettingsExport.PageHeader.Left = ExportGridHeaderLeft;
+        settings.SettingsExport.PageHeader.Right = ExportGridHeaderRight;
+        settings.SettingsExport.PageFooter.Right = ExportGridFooter;
+        // settings.SettingsExport.PageFooter.Left = "#";
+        settings.SettingsExport.PageFooter.Font.Size = 7;
+        settings.SettingsExport.PaperKind = System.Drawing.Printing.PaperKind.A4Rotated;
+        settings.SettingsExport.TopMargin = 10;
+        settings.SettingsExport.LeftMargin = 10;
+        settings.SettingsExport.RightMargin = 10;
+        settings.SettingsExport.BottomMargin = 10;
+
+        settings.SettingsExport.GetExportDetailGridViews = (s, e) => //bind nested grid
+        {
+            int Request_ID = (int)DataBinder.Eval(e.DataItem, "ID");
+            GridViewExtension griditemrequest = new GridViewExtension(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.RequestRegisterNestedGridSettings(Request_ID));
+            griditemrequest.Bind(ConnectOneMVC.Areas.Stock.Controllers.RequestRegisterController.GetItemRequest(Request_ID));
+            e.DetailGridViews.Add(griditemrequest);
+        };
+        settings.SetDetailRowTemplateContent(c =>
+        {
+            Html.RenderAction("Frm_RequestRegister_ItemRequest_Grid", new { RequestID = DataBinder.Eval(c.DataItem, "ID") });
+        });
+
+        settings.CustomDataActionRouteValues = new { Controller = "RequestRegister", Action = "RequestRegisterCustomDataAction" };
+
+        settings.CustomJSProperties = (s, e) =>
+        {
+            MVCxGridView gridView = (MVCxGridView)s;
+            var lastVisibleColumn = gridView.VisibleColumns.LastOrDefault();
+            e.Properties["cpLastVisibleColumnIndex"] = lastVisibleColumn != null ? lastVisibleColumn.Index : 0;
+            e.Properties["cpHiddenColumnCaptions"] = gridView.AllColumns.Where(c => !c.Visible).ToDictionary(c => c.ToString(), c => c.Index);
+        };
+        settings.BeforeGetCallbackResult = (s, e) =>
+        {
+            MVCxGridView gridView = s as MVCxGridView;
+            foreach (GridViewDataColumn column in gridView.DataColumns)
+            {
+                if (column.Visible)
+                    column.Settings.AllowSort = DefaultBoolean.True;
+                else
+                    column.Settings.AllowSort = DefaultBoolean.False;
+            }
+        };
+        settings.FillContextMenuItems = (sender, e) =>
+        {
+            if (e.MenuType == GridViewContextMenuType.Rows)
+            {
+                var New = e.CreateItem("New", "NewRRMenu");
+                New.Image.IconID = "actions_new_16x16gray";
+                New.BeginGroup = true;
+                if (RR_Add_Rights == true) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), New);
+
+                var Edit = e.CreateItem("Edit", "EditRRMenu");
+                Edit.Image.IconID = "actions_edit_16x16devav";
+                if (RR_Update_Rights == true ) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Edit);
+
+                var Deleteitem = e.CreateItem("Delete", "DeleteRRMenu");
+                Deleteitem.Image.IconID = "actions_delete_16x16devav";
+                if (RR_Delete_Rights == true) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Deleteitem);
+
+                var Viewitem = e.CreateItem("View", "ViewRRMenu");
+                Viewitem.Image.IconID = "actions_show_16x16gray";
+                if (RR_View_Rights == true) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), Viewitem);
+
+                var PrintViewitem = e.CreateItem("Export", "ExportRRMenu");
+                PrintViewitem.Image.IconID = "actions_export_16x16devav";
+                if (RR_Export_Rights == true) e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), PrintViewitem);
+
+                var CloseItem = e.CreateItem("Close", "Close");
+                CloseItem.Image.IconID = "actions_close_16x16devav";
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), CloseItem);
+
+                var DeliverUO = e.CreateItem("Deliver To Linked UO","DeliverUO");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), DeliverUO);
+                DeliverUO.BeginGroup = true;
+
+                var OpenUO = e.CreateItem("Open Linked UO", "OpenUO");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), OpenUO);
+
+                var OpenTO = e.CreateItem("Open Linked Transfer Order", "OpenTO");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), OpenTO);
+
+                var OpenPO = e.CreateItem("Open Linked Purchase Order(s)", "OpenPO");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), OpenPO);
+
+                var AcceptTO = e.CreateItem("Accept Linked Transfer Order", "AcceptTO");
+                e.Items.Insert(e.Items.IndexOfCommand(GridViewContextMenuCommand.Refresh), AcceptTO);
+            }
+        };
+        //settings.ClientSideEvents.ContextMenuItemClick = "ContextMenuFunction";
+        settings.KeyFieldName = "ID";
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requisition_ID";
+                column.Caption = "Requisition ID";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requisition_Raised";
+                column.Caption = "Requisition Raised";
+                column.PropertiesEdit.DisplayFormatString = "dd/MM/yyyy";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requisition_Status";
+                column.Caption = "Requisition Status";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requisition_Type";
+                column.Caption = "Requisition Type";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Tot_Req_Amount";
+                column.Caption = "Tot Req. Amount";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Purchased_by";
+                column.Caption = "Purchased by";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Requestor";
+                column.Caption = "Requestor";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Req_Dept";
+                column.Caption = "Requestor Department";
+            }
+        });
+        settings.Columns.Add(column =>
+        {
+            {
+                column.FieldName = "Remarks";
+                column.Caption = "Remarks";
+            }
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Added_On",
+            Caption = " Add On",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Added_By",
+            Caption = "Add By",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edited_By",
+            Caption = "Edit By",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Edited_On",
+            Caption = "Edit date",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "ID",
+            Caption = "ID",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "CurrUserRole",
+            Caption = "CurrUserRole",
+            Visible = false
+        });
+        settings.Columns.Add(new MVCxGridViewColumn()
+        {
+            FieldName = "Latest_UOID",
+            Caption = "Latest_UOID",
+            Visible = false
+        });
+        settings.PreRender = (s, e) =>
+        {
+            MVCxGridView grid = (MVCxGridView)s;
+            grid.FilterExpression = "";
+        };
+
+        //settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+        settings.Settings.ShowHeaderFilterBlankItems = false;
+        settings.SettingsContextMenu.Enabled = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsContextMenu.EnableGroupFooterMenu = DefaultBoolean.True;
+        settings.SettingsContextMenu.RowMenuItemVisibility.DeleteRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.EditRow = false;
+        settings.SettingsContextMenu.RowMenuItemVisibility.NewRow = false;
+
+        settings.Settings.VerticalScrollBarMode = ScrollBarMode.Hidden;//Mantis bug 0000914 fixed
+        var ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        settings.SettingsCookies.Enabled = true;
+        settings.SettingsCookies.CookiesID = "RRCookie";
+        if (ShowHorizontalBar == 1)
+        {
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Visible;
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.Off;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Control;
+            settings.SettingsResizing.Visualization = ResizingMode.Postponed;
+        }
+        else
+        {
+            settings.SettingsAdaptivity.AdaptivityMode = GridViewAdaptivityMode.HideDataCells;
+            settings.Settings.HorizontalScrollBarMode = ScrollBarMode.Hidden;
+            settings.SettingsResizing.ColumnResizeMode = ColumnResizeMode.Disabled;
+            //settings.SettingsAdaptivity.HideDataCellsAtWindowInnerWidth = 500;
+        }
+        settings.Settings.ShowHeaderFilterButton = true;
+        settings.KeyboardSupport = true;
+        //settings.AccessKey = "G";
+        settings.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        settings.SettingsBehavior.ProcessColumnMoveOnClient = true;
+        settings.SettingsBehavior.ColumnMoveMode = GridColumnMoveMode.AmongSiblings;
+        settings.Settings.ShowGroupFooter = GridViewGroupFooterMode.VisibleAlways;
+        settings.Settings.UseFixedTableLayout = true;
+        settings.SettingsBehavior.AllowSelectSingleRowOnly = true;
+        settings.SettingsBehavior.AllowSort = true;
+        settings.SettingsBehavior.EnableCustomizationWindow = true;
+        settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;//Mantis bug 0000914 fixed
+        settings.SettingsPager.PageSize = 25;//Mantis bug 0000914 fixed
+        settings.SettingsPager.PageSizeItemSettings.Visible = true;//Mantis bug 0000914 fixed
+        settings.SettingsBehavior.AllowSelectByRowClick = true;
+        settings.SettingsSearchPanel.ShowApplyButton = true;
+        settings.SettingsSearchPanel.ShowClearButton = true;
+        settings.SettingsBehavior.AllowFocusedRow = true;
+        // show filter control
+        settings.Settings.ShowFilterBar = GridViewStatusBarMode.Visible;
+        settings.Settings.ShowFilterRow = false;
+        settings.Settings.AutoFilterCondition = AutoFilterCondition.Contains;
+        settings.SettingsFilterControl.ViewMode = true ? FilterControlViewMode.VisualAndText : FilterControlViewMode.Visual;
+        settings.SettingsFilterControl.AllowHierarchicalColumns = true;// AllowHierarchicalColumns;
+        settings.SettingsFilterControl.ShowAllDataSourceColumns = true;//FilterBuilderDemoHelper.Options.ShowAllDataSourceColumns;
+        settings.SettingsFilterControl.MaxHierarchyDepth = 1;
+        //settings.Settings.ShowGroupedColumns = ShowGroupedColumns;
+        settings.Settings.ShowFooter = false;
+
+        settings.SettingsCustomizationDialog.ShowSortingPage = true;
+        settings.SettingsCustomizationDialog.ShowGroupingPage = true;
+        settings.SettingsCustomizationDialog.ShowFilteringPage = true;
+        settings.SettingsCustomizationDialog.ShowColumnChooserPage = true;
+
+        settings.ClientSideEvents.Init = "RequestRegisterOnInit";
+        settings.ClientSideEvents.ContextMenuItemClick = "RequestRegisterContextMenuFunction";
+        settings.ClientSideEvents.FocusedRowChanged = "RequisitionRegisterGridFocusedRowChanged";
+        settings.ClientSideEvents.DetailRowExpanding = "ExpandRequisitionRow";
+        settings.ClientSideEvents.DetailRowCollapsing = "CollapseRequisitionRow";
+        settings.ClientSideEvents.BeginCallback = "RequestRegisterGrid_BeginCallBack";
+
+    }).Bind(Model).GetHtml()

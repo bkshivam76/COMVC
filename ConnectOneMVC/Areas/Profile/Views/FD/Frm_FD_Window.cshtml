@@ -1,0 +1,563 @@
+﻿<div class="FDProfile_Win_Clearreference">
+    @using DevExtreme.AspNet.Mvc;
+    @model ConnectOneMVC.Areas.Profile.Models.FD
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        bool FD_ListBankRight = (bool)ViewData["FD_ListBankRight"];
+    }
+
+
+    <script>
+        function FDAjaxSuccessForm(result) {
+            HideLoader();
+            if (result.result == false) {
+                DevExpress.ui.dialog.alert(result.message, "Fixed Deposit");
+                FDListGrid.Refresh();
+
+            }
+            else {
+                IsSucessPopup = true;
+                var FDSubmitSuccess = DevExpress.ui.dialog.alert(result.message, "Fixed Deposit (F.D.)");
+                HideLoader();
+                $("#popup_Frm_FD_Window").dxPopup("hide");
+                FDListGrid.Refresh();
+                IsSucessPopup = false;
+                FDSubmitSuccess.done(function (alertResult) {
+                    if (alertResult) {
+                        if (IsFDNewPopup == true) {
+                            var addmoreFDresult = DevExpress.ui.dialog.confirm("Add More Entry...?", "Fixed Deposit");
+                            addmoreFDresult.done(function (dialogResult) {
+                                if (dialogResult) {
+                                    OnNewClick();
+                                }
+                            });
+                        }
+                    }
+                });
+
+            }
+        }
+        //$("#Dynamic_Content_popup").dxPopup({
+        //    onHiding: function (e) {
+        //        if (IsFDViewPopup == false) {
+        //            var result = DevExpress.ui.dialog.confirm("Are you sure to cancel this entry...?", "Confirm changes");
+        //            result.done(function (dialogResult) {
+        //                if (dialogResult) {
+        //                    $("#Dynamic_Content_popup").dxPopup("hide");
+        //                } else {
+        //                    $("#Dynamic_Content_popup").dxPopup("show");
+        //                }
+        //            });
+        //        }
+
+        //    }
+        //});
+    </script>
+    <div id="FDWindow">
+        @using (Ajax.BeginForm("Frm_FD_Window", "FD",
+                                new AjaxOptions
+                                {
+                                    HttpMethod = "POST",
+                                    UpdateTargetId = "FDWindow",
+                                    InsertionMode = InsertionMode.InsertAfter,
+                                    OnBegin = "AjaxBeginFormPost",
+                                    OnSuccess = "FDAjaxSuccessForm"
+                                },
+                                    new
+                                    {
+                                        id = "validationForm",
+                                        @class = "edit_form"
+                                    }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.TempActionMethod)
+            @Html.HiddenFor(x => x.EditDate)
+            @Html.HiddenFor(x => x.AddDate)
+            @Html.HiddenFor(x => x.AddBy)
+            @Html.HiddenFor(x => x.ActionMethod)
+            @Html.HiddenFor(x => x.ID)
+            @Html.HiddenFor(x => x.xID)
+            @Html.HiddenFor(x => x.Lbl_Branches)
+            @Html.HiddenFor(x => x.Lbl_AccountNumber)
+            @Html.HiddenFor(x => x.Info_LastEditedOn)
+            @Html.HiddenFor(x => x.LastEditedOn)
+            @Html.HiddenFor(x => x.REC_EDIT_ON_Bank)
+            using (Html.DevExtreme().ValidationGroup())
+            {
+                <div class="row">
+                    <div class="col-sm-9">
+                        <h3 style="text-align: left;margin: 0;">
+                            Fixed Deposit(F.D.) @(Model.SubTitleX)
+                        </h3>
+                    </div>
+                    <div class="col-sm-3">
+                        <h5 style="text-align: right;color: red;margin: 5px 0 0 0;"> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+
+                <div class="row">
+                    <div class="col-md-9 pll">
+                        @Html.Label("Bank Name", htmlAttributes: new { @class = "control-label text-red lbl_bankname" })
+
+                        <div class="col-sm-12  col-md-12 prm">
+                            @(Html.DevExtreme().DropDownBoxFor(x => x.BankList)
+                        .ID("BankList")
+                        .Name("BankList")
+                        .Value(Model.BankList)
+                        .ValueExpr("ID")
+                        .DisplayExpr("Name")
+                        .DataSource(d => d.Mvc().Controller("FD").LoadAction("LookUp_GetBankList_FD").Key("ID"))
+                        .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod ==Common_Lib.Common.Navigation_Mode._Delete)
+                        .ValueChangeEvent("change")
+                        .OnValueChanged("LookUp_BankDetails_Win_FD_ChangeEvent")
+                        .Placeholder("Select Bank...")
+                        .ContentTemplate(@<text>
+                         @Html.Partial("LookUp_GetBankList_FD")
+                        </text>)
+                        )
+                            @Html.ValidationMessageFor(model => model.BankList, "", new { @class = "text-red" })
+                        </div>
+                        <div class="col-sm-12  col-md-12 prm">
+                            @if (Model.ActionMethod.ToString().Trim() == "_Edit" || Model.ActionMethod.ToString().Trim() == "_Delete" || Model.ActionMethod.ToString().Trim() == "_View")
+                            {
+                                <label class="control-label" for="Name" id="Lbl_Branch">Branch: @Model.Lbl_Branches</label>
+                            }
+                            else
+                            {
+                                <label class="control-label" for="Name" id="Lbl_Branch"></label>
+                            }
+                        </div>
+                        <div class="col-md-12 prm">
+                            @if (Model.ActionMethod.ToString().Trim() == "_Edit" || Model.ActionMethod.ToString().Trim() == "_Delete" || Model.ActionMethod.ToString().Trim() == "_View")
+                            {
+                                <label class="control-label" for="Name" id="Lbl_AccountNo">Customer No.: @Model.Lbl_AccountNumber</label>
+                            }
+                            else
+                            {
+                                <label class="control-label" for="Name" id="Lbl_AccountNo"></label>
+                            }
+                        </div>
+
+                    </div>
+                    <div class="col-md-3 pll">
+                        <div class="col-sm-12  col-md-12 prm">
+                            @(Html.DevExtreme().Button()
+            .ID("BtnManageBank")
+            .Text("Manage Bank")
+            .Height(80)
+                    .OnClick(@<text>
+                    function () {
+                    OnManageBankClick();
+                    }
+                    </text>)
+                        )
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 pll">
+                        @Html.Label("FD Account No:", htmlAttributes: new { @class = "control-label text-red lbl_AccNo" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().TextBoxFor(x => x.Txt_No)
+                                    .ID("Txt_No")
+                                    .Name("Txt_No")
+                                    .Value(Model.Txt_No)
+                                    .ShowClearButton(true)
+                                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                    .ValidationError(true)
+                                    .Placeholder("Type F.D. Account No...")
+                                    .MaxLength(20)
+                        )
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("FD Date:", htmlAttributes: new { @class = "control-label text-red lbl_FD_Date" })
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().DateBoxFor(x => x.Txt_Date).DisplayFormat(ViewBag.Base_Date_Format_Current)
+                                .ID("Txt_Date")
+                                .Name("Txt_Date")
+                                .Value(Model.Txt_Date)
+                                .Type(DateBoxType.Date)
+                                .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                .Placeholder("dd-MM-yyyy")
+                        )
+
+                            @Html.ValidationMessageFor(model => model.Txt_Date, "", new { @class = "text-red" })
+
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("As of Date:", htmlAttributes: new { @class = "control-label text-red lbl_As_Of_Date" })
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().DateBoxFor(x => x.Txt_As_Date).DisplayFormat(ViewBag.Base_Date_Format_Current)
+                                .ID("Txt_As_Date")
+                                .Name("Txt_As_Date")
+                                .Value(Model.Txt_As_Date)
+                                .Type(DateBoxType.Date)
+                                .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                .Placeholder("dd-MM-yyyy")
+                        )
+
+                            @Html.ValidationMessageFor(model => model.Txt_As_Date, "", new { @class = "text-red" })
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 pll">
+                        @Html.Label("FD Amount:", htmlAttributes: new { @class = "control-label text-red lbl_FD_Amt" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().TextBoxFor(x => x.Txt_Amount)
+                                    .ID("Txt_Amount")
+                                    .Name("Txt_Amount")
+                                    .Value(Model.Txt_Amount)
+                                    .ShowClearButton(true)
+                                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                    .ValidationError(true)
+                                    .Placeholder("Type F.D. Amount...")
+                                    .MaxLength(30)
+                        )
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("Rate of Interest (%pa):", htmlAttributes: new { @class = "control-label text-red lbl_ROI" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().TextBox()
+                                    .ID("txt_Rate")
+                                    .Name("txt_Rate")
+                                    .Value(Model.txt_Rate)
+                                    .ShowClearButton(true)
+                                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                    .ValidationError(true)
+                                    .Placeholder("Type F.D. Interest...")
+                                    .MaxLength(30)
+                        )
+
+                            @Html.ValidationMessageFor(model => model.Txt_Date, "", new { @class = "text-red text-red" })
+
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("Interest Payment Condition:", htmlAttributes: new { @class = "control-label lbl_paymt_cond" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().SelectBoxFor(x => x.Cmd_Type)
+                        .ID("Cmd_Type")
+                        .Name("Cmd_Type")
+                        .Value(Model.Cmd_Type)
+                        .DataSource(new[] { "ON MATURITY", "MONTHLY", "QUATERLY", "HALFYEARLY", "YEARLY" })
+                        .Placeholder("Select Type...")
+                        .SearchEnabled(true)
+                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                        )
+
+                            @Html.ValidationMessageFor(model => model.Txt_As_Date, "", new { @class = "text-red" })
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 pll lbl_">
+                        @Html.Label("Maturity Amount:", htmlAttributes: new { @class = "control-label text-red lbl_mat_amt" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().TextBoxFor(x => x.Txt_Mat_Amount)
+                                    .ID("Txt_Mat_Amount")
+                                    .Name("Txt_Mat_Amount")
+                                    .Value(Model.Txt_Mat_Amount.ToString()
+                                    )
+                                    .ShowClearButton(true)
+                                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                    .ValidationError(true)
+                                    .Placeholder("Type Maturity Amount...")
+                                    .MaxLength(30)
+                        )
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("Maturity Date:", htmlAttributes: new { @class = "control-label text-red lbl_mat_date" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            @(Html.DevExtreme().DateBoxFor(x => x.Txt_Mat_Date).DisplayFormat(ViewBag.Base_Date_Format_Current)
+                                .ID("Txt_Mat_Date")
+                                .Name("Txt_Mat_Date")
+                                .Value(Model.Txt_Mat_Date)
+                                .Type(DateBoxType.Date)
+                                .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                .Placeholder("dd-MM-yyyy")
+
+                        )
+
+                            @Html.ValidationMessageFor(model => model.Txt_Mat_Date, "", new { @class = "text-red" })
+
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 pll">
+                        @Html.Label("Fd Period:", htmlAttributes: new { @class = "control-label" })
+
+                        <div class="col-sm-10  col-md-10 prm">
+                            <label id="fdtimeperiod">@Model.Lbl_timePeriod</label>
+                            @Html.ValidationMessageFor(model => model.Txt_As_Date, "", new { @class = "text-red", @id = "Lbl_Period" })
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 pll">
+                        @Html.Label("Other Detail:", htmlAttributes: new { @class = "control-label" })
+
+                        <div class="col-sm-12  col-md-12 prm">
+                            @(Html.DevExtreme().TextBoxFor(x => x.Txt_Remarks)
+                                    .ID("Txt_Remarks")
+                                    .Name("Txt_Remarks")
+                                    .Value(Model.Txt_Remarks)
+                                    .ShowClearButton(true)
+                                    .ReadOnly(Model.ActionMethod == Common_Lib.Common.Navigation_Mode._View || Model.ActionMethod == Common_Lib.Common.Navigation_Mode._Delete)
+                                    .ValidationError(true)
+                                    .Placeholder("Type Any Other Details/Remarks...")
+                                    .MaxLength(250)
+                        )
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    @if (Model.ActionMethod.ToString().Trim() == "_New")
+                    {
+
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;">
+                            @(Html.DevExtreme().Button()
+                            .ID("FDCancel")
+                            .Text("Close")
+                            .Icon("fa fa-times")
+                            .OnClick(@<text>
+                                        function () {
+                                        $("#popup_Frm_FD_Window").dxPopup("hide");
+                                        }
+                                    </text>)
+                        )
+                        </div>
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;margin-right:-10px;">
+
+                            @(Html.DevExtreme().Button()
+            .ID("BUT_SAVE_COM")
+            .Icon("fa fa-check")
+            .Text("Save")
+            .UseSubmitBehavior(true)
+                    )
+
+                        </div>
+                    }
+                    @if (Model.ActionMethod.ToString().Trim() == "_Edit")
+                    {
+
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;">
+                            @(Html.DevExtreme().Button()
+                    .ID("FDCancel")
+                    .Text("Close")
+                    .Icon("fa fa-times")
+                    .OnClick(@<text>
+                        function () {
+                        $("#popup_Frm_FD_Window").dxPopup("hide");
+                        }
+                    </text>)
+        )
+                        </div>
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;margin-right:-10px;">
+
+                            @(Html.DevExtreme().Button()
+            .ID("BUT_SAVE_COM")
+            .Icon("fa fa-check")
+            .Text("Save")
+            .UseSubmitBehavior(true)
+                    )
+
+                        </div>
+                    }
+                    @if (Model.ActionMethod.ToString().Trim() == "_View")
+                    {
+
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;">
+                            @(Html.DevExtreme().Button()
+                    .ID("FDCancel")
+                    .Text("Close")
+                    .Icon("fa fa-times")
+                    .OnClick(@<text>
+                        function () {
+                        $("#popup_Frm_FD_Window").dxPopup("hide");
+                        }
+                    </text>)
+        )
+                        </div>
+
+                    }
+
+                    @if (Model.ActionMethod.ToString().Trim() == "_Delete")
+                    {
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;">
+                            @(Html.DevExtreme().Button()
+                                    .ID("FDCancel")
+                                    .Text("Close")
+                                    .Icon("fa fa-times")
+                                    .OnClick(@<text>
+                                        function () {
+                                        $("#popup_Frm_FD_Window").dxPopup("hide");
+                                        }
+                                    </text>)
+        )
+                        </div>
+                        <div class="" style="float: right;padding: 10px 5px;margin-top:5px;margin-right:-10px;">
+
+                            @(Html.DevExtreme().Button()
+                        .ID("BUT_SAVE_COM")
+                        .Text("Delete")
+                        .UseSubmitBehavior(true)
+                    )
+
+                        </div>
+                    }
+                </div>
+
+            }
+        }
+    </div>
+    <script>
+    $(document).ready(async function () {
+        if ("@FD_ListBankRight" == "False")
+        {
+            $("#BtnManageBank").hide();
+        }
+    });
+    if ("@Model.ActionMethod.ToString().Trim()" == "_View" || "@Model.ActionMethod.ToString().Trim()" == "_Delete") {
+        $(".lbl_bankname").removeClass("text-red");
+        $(".lbl_As_Of_Date").removeClass("text-red");
+        $(".lbl_AccNo").removeClass("text-red");
+        $(".lbl_FD_Date").removeClass("text-red");
+        $(".lbl_FD_Amt").removeClass("text-red");
+        $(".lbl_paymt_cond").removeClass("text-red");
+        $(".lbl_mat_amt").removeClass("text-red");
+        $(".lbl_mat_date").removeClass("text-red");
+        $(".lbl_ROI").removeClass("text-red");
+    }
+    $("#Txt_Amount").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9.]/;
+        if (reg.test(txt))
+            return true;
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Txt_Mat_Amount").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9.]/;
+        if (reg.test(txt))
+            return true;
+        e.preventDefault();
+        return false;
+
+    });
+    $("#txt_Rate").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9.]/;
+        if (reg.test(txt))
+            return true;
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Txt_As_Date").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9-/]/;
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+    $("#Txt_Mat_Date").keypress(function (e) {
+        e = e || window.event;
+        key = e.keyCode || e.which;
+        //For Firefox
+        if (key == 8 || key == 127 || key == 9)
+            return true
+        var txt = String.fromCharCode(key);
+        var reg = /[0-9-/]/;
+        if (reg.test(txt))
+            return true;
+
+        e.preventDefault();
+        return false;
+
+    });
+    valueChangedHandler1=function(e)
+    {
+        var Mat_Date = $("#Txt_Mat_Date").dxDateBox('instance').option('value');
+        var Txt_As_Date = $("#Txt_As_Date").dxDateBox('instance').option('value');
+
+        days = (Mat_Date - Txt_As_Date) / (1000 * 60 * 60 * 24);
+        $('#fdtimeperiod').text(Math.round(days))
+    }
+    $("#Txt_Mat_Date").dxDateBox("instance")
+    .on('valueChanged', valueChangedHandler1);
+    valueChangedHandler2 = function (e) {
+        var Mat_Date = $("#Txt_Mat_Date").dxDateBox('instance').option('value');
+        var Txt_As_Date = $("#Txt_As_Date").dxDateBox('instance').option('value');
+
+        days = (Mat_Date - Txt_As_Date) / (1000 * 60 * 60 * 24);
+        $('#fdtimeperiod').text(Math.round(days))
+    }
+    $("#Txt_As_Date").dxDateBox("instance")
+        .on('valueChanged', valueChangedHandler2);
+
+    function OnManageBankClick() {
+            if ("@FD_ListBankRight" == "False")
+            {
+                DevExpress.ui.dialog.alert("Not Allowed!!", "No Rights");
+                return;
+            }
+
+        OpenDynamicPopup("", "@Url.Action("Frm_Bank_Info_dx", "Bank", new { @area = "Profile" })", "auto", 700);
+    }
+    </script>
+</div>

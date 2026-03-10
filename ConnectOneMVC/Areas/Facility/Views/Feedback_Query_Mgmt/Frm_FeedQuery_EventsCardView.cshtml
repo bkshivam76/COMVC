@@ -1,0 +1,154 @@
+﻿@{
+    var SessionGUID = Request.QueryString["SessionGUID"];
+    //var gridname = ViewBag.GridName;
+    //var viewmode = ViewBag.viewmode;
+    //var LoginUser = ViewBag.LoginUser;
+    //var mr = ViewBag.mainEvntsRowCnt;
+    //var organizer = ViewBag.Organizer;
+    var firsteventrecid = ViewBag.firsteventrecid;
+}
+@Html.DevExpress().CardView(
+settings =>
+{
+    settings.Name = "Frm_FeedQuery_EventsSection";
+    settings.CallbackRouteValues = new
+    {
+        Controller = "Feedback_Query_Mgmt",
+        Action = "Frm_FeedQuery_EventsCardView",
+        Area = "Facility",
+        //gridname = gridname,
+        SessionGUID = SessionGUID
+    };
+    settings.SettingsSearchPanel.Visible = true;
+    settings.SettingsPager.EnableAdaptivity = false;
+    settings.KeyFieldName = "FeedbackId";
+    //settings.Theme = "MaterialCompact";
+    //settings.CardLayoutProperties.ColumnCount = 3;
+    //settings.SettingsSearchPanel.ColumnNames = "SR_PROG_NAME";
+    settings.CustomJSProperties = (s, e) =>
+    {
+        MVCxCardView cardView = (MVCxCardView)s;
+        cardView.JSProperties["cpfirstEventRecid"] = ViewBag.firsteventrecid;
+        cardView.JSProperties["cpreferenceName"] = ViewBag.referenceName;
+        cardView.JSProperties["cpreferenceRecid"] = ViewBag.referenceRecid;
+    };
+
+
+    string card_view_img_url = "";
+    //settings.Columns.Add("SR_PROG_NAME");
+    //settings.Columns.Add(column =>
+    //{
+    //    column.FieldName = "SR_PROG_NAME";        
+    //    column.Visible = true;        
+    //});
+    settings.CardLayoutProperties.Items.Add(item => {
+        item.ColumnName = "SR_PROG_NAME";
+        item.ClientVisible = false;
+    });
+    settings.CardLayoutProperties.Items.Add(item =>
+    {
+        item.ColumnName = "Feed_Query_Events_Column";
+        //item.Column.Width = System.Web.UI.WebControls.Unit.Percentage(100);
+        //item.Column.ExportCellStyle.Wrap = DefaultBoolean.True;
+        item.SetTemplateContent(c =>
+        {
+            var center = DataBinder.Eval(c.DataItem, "FQI_CENTERID").ToString();
+            //center = center.Replace(" ", "_");
+            var eventrecid = DataBinder.Eval(c.DataItem, "REC_ID").ToString();
+            var totalFQcount = DataBinder.Eval(c.DataItem, "TotalFeed_QUERY").ToString();
+            var userscount = DataBinder.Eval(c.DataItem, "USERS_COUNT").ToString();
+            var unreadcount = DataBinder.Eval(c.DataItem, "UNREADCOUNT").ToString();
+            if (unreadcount == Convert.ToString(0))
+            {
+                unreadcount = Convert.ToString("");
+            }
+            //var pnon = "";
+            var prgNameO = DataBinder.Eval(c.DataItem, "SR_PROG_NAME").ToString();
+            var prgName = prgNameO.Replace(" ", "_");
+            var File_Name_data = DataBinder.Eval(c.DataItem, "File_Name");
+            string str = File_Name_data.ToString();
+            if (File_Name_data.ToString() == "")
+            {
+                card_view_img_url = "/Content/ServiceModule/FeedbackQueryMgmt/Images/no_image.jpg";
+            }
+            // to check valid image file extension.
+            else if (str.ToUpper().Contains("JPG") || str.ToUpper().Contains("PNG") || str.ToUpper().Contains("JPE") || str.ToUpper().Contains("JPEG") ||
+                str.ToUpper().Contains("BMP") || str.ToUpper().Contains("TIFF") || str.ToUpper().Contains("GIF"))
+            {
+                card_view_img_url = File_Name_data.ToString();
+            }
+
+            else
+            {
+                card_view_img_url = "/Content/Events/images/no_image.jpg";
+            }
+
+            string datetext = "";
+            if(DataBinder.Eval(c.DataItem, "FQI_REFERENCE").ToString().ToUpper() == "EVENT")
+            {
+                datetext = Convert.ToDateTime(DataBinder.Eval(c.DataItem, "SR_PROG_FR_DATE")).ToString("dd-MMM-yyyy");
+                if (Convert.ToDateTime(DataBinder.Eval(c.DataItem, "SR_PROG_FR_DATE")).ToString("dd-MMM-yyyy") != Convert.ToDateTime(DataBinder.Eval(c.DataItem, "SR_PROG_TO_DATE")).ToString("dd-MMM-yyyy"))
+                {
+                    datetext = Convert.ToDateTime(DataBinder.Eval(c.DataItem, "SR_PROG_FR_DATE")).ToString("dd-MMM-yyyy") + " To " +
+                        Convert.ToDateTime(DataBinder.Eval(c.DataItem, "SR_PROG_TO_DATE")).ToString("dd-MMM-yyyy");
+                }
+            }
+            else { datetext = ""; }
+
+            var referenceName = DataBinder.Eval(c.DataItem, "FQI_REFERENCE").ToString();
+            var referenceRecid = DataBinder.Eval(c.DataItem, "FQI_REFERENCE_REC_ID").ToString();
+
+            //var paramtr = "'" + LoginUser + "'";
+            ViewContext.Writer.Write(
+                "<div class='evt-details'>" + //active class will be applied here on selection
+                    "<a class='clearfix' onclick = getfeedQueryList('" + eventrecid + "','" + referenceName + "','" + referenceRecid +"')>" +
+                        "<div class='col-xs-3 p-r-5 p-l-0'>" +
+                            "<img src=" + card_view_img_url + " class='event-img img-rounded' alt='event-img'> " +
+                        "</div>" +
+                        "<div class='col-xs-9 p-l-5 p-r-0' >" +
+                            "<p class='ev-title'>" + prgNameO + "</p>" +
+                            "<p class='red'>" + datetext + "</p>" + //time should come here.
+                            "<b><span>" + userscount + "</span> Users | <span>" + totalFQcount + "</span> Responses  <span class='badge badge-danger'>" + unreadcount + "</span></b>" +
+                        "</div>" +
+                    "</a>" +
+                "</div>");
+        });
+    });
+
+
+    //Dynamically set total columns depending on the total rows
+    settings.SettingsPager.SettingsTableLayout.ColumnCount = 1; // Convert.ToInt32(totalRows);
+                                                                //settings.SettingsPager.SettingsTableLayout.RowsPerPage = 1;
+                                                                //settings.CardLayoutProperties.ColumnCount = 2;
+                                                                //settings.SettingsPager.Position = PagerPosition.Bottom;
+                                                                //settings.SettingsPager.ShowNumericButtons = false;
+                                                                //settings.SettingsPager.ShowDisabledButtons = false;
+    settings.SettingsPager.Summary.Visible = true;
+    settings.SettingsPager.Mode = GridViewPagerMode.ShowAllRecords;
+
+    settings.PreRender = (sender, e) =>
+    {
+        var cardView = (MVCxCardView)sender;
+        cardView.SearchPanelFilter = "";
+    };
+    //settings.SettingsPager.EndlessPagingMode = CardViewEndlessPagingMode.OnScroll;
+    //settings.SettingsPager.Mode = GridViewPagerMode.ShowPager;
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.Styles.BreakpointsCard.Height = 320;
+
+    //settings.Settings.LayoutMode = DevExpress.Web.Layout.Breakpoints;
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.CardsPerRow = 3;
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.XLarge, 5);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Large, 4);
+    ////settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Medium, 2);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(BreakpointsLayoutDeviceSizes.Small, 1);
+    //settings.SettingsAdaptivity.BreakpointsLayoutSettings.Breakpoints.Add(450, 1);
+
+    settings.ClientSideEvents.BeginCallback = "FeedQueryEventSec_BeginCallback";
+    settings.ClientSideEvents.EndCallback = "FeedQueryEventSec_EndCallback";
+    settings.ClientSideEvents.Init = "FeedQueryEventSec_Init";
+}).Bind(Model).GetHtml()
+
+
+
+

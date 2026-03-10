@@ -1,0 +1,201 @@
+﻿<div class="AsetMovLogReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+
+    @model IEnumerable<dynamic>
+    @{
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool AsetMovLog_ExportRight = (bool)ViewData["AsetMovLog_ExportRight"];
+    }
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Asset Movement Logs</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @*@(Html.DevExtreme().Switch().ID("AssetMovVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("AssetMov_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))*@
+            @(Html.DevExtreme().Button()
+                                                        .ID("Asset_Location_LogsToggleScrollBar")
+                                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                                                        .Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                        .Icon("toolbox")
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            Asset_Location_LogschangeMode();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("Asset_Location_LogsModelListPreview")
+                                                        .Text("Export")
+                                                        .Icon("save")
+                                                         .Width(80)
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            OnAsset_Location_LogsListPreviewClick();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("Asset_Location_LogsModelCLOSE")
+                                                        .Text("Close")
+                                                        .Icon("clear")
+                                                        .OnClick(@<text>
+                                                            function (){
+                                                            $(".TabPanalMenu-tabs .active span").click()
+                                                            }
+                                                        </text>)
+
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="Asset_Location_LogsreloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Asset_Location_Logs_Grid", Model)
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("Asset_Location_Logs_report_modal")
+                         .OnShowing("PopupOnShowing")
+                        .Title("Asset Location Logs Preview")
+                        .FullScreen(false)
+                        .MaxWidth(125)
+                        .Height("auto")
+                        .ShowCloseButton(true)
+                        .ContentTemplate(@<text>
+                            <div id='Asset_Location_Logs_report_modal_result'>
+                            </div>
+                        </text>)
+    )
+
+    </div>
+    @*Javascript Events*@
+<script type="text/javascript">
+        var AssetMov_IsVouchingMode = false;
+        var IsAsset_Location_LogsSucessPopup = false;
+        var IsAsset_Location_LogsViewPopup = false;
+        var Asset_Location_Logs_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+        var AssetLocationLog_ExportRight;
+        var UserType_AssetMovPrf = "@UserType".toUpperCase();
+    function AssetMov_VouchingSwitch_ValueChange(e) {
+      AssetMov_IsVouchingMode = e.value;
+        Asset_Location_LogsListGrid.PerformCallback();
+    }
+
+    $(document).ready(function () {
+        IsAsset_Location_LogsSucessPopup = false;
+        IsAsset_Location_LogsViewPopup = false;
+        //SetAsset_Location_LogsGroupPanelFooterVisible();
+        $("#Asset_Location_LogsListGrid").hover(function () {
+            Asset_Location_LogsListGrid.Focus()
+        })
+
+        //$(".Asset_Location_LogsListGrid_PreviewRow").hide();
+        //GetSessionStorage("Asset_Location_LogsListGrid");
+        //debugger;
+
+        AssetLocationLog_ExportRight = ("@AsetMovLog_ExportRight" == "True") ? true : false;
+
+        if (AssetLocationLog_ExportRight != true)
+        {
+            $("#Asset_Location_LogsModelListPreview").hide();
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/AssetMovementLogs/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_AsetMovLogReport()
+    });
+        function ClearAllReferences_AsetMovLogReport()
+        {
+            AssetMov_IsVouchingMode = null;
+            IsAsset_Location_LogsSucessPopup = null;
+            IsAsset_Location_LogsViewPopup = null;
+            Asset_Location_Logs_ShowHorizontalBar = null;
+            AssetLocationLog_ExportRight = null;
+            UserType_AssetMovPrf = null;
+
+            ClearAllReferences("AsetMovLogReport_ClearReferences");
+        }
+
+    function Asset_Location_LogsOnInit(s, e) {
+        Asset_Location_LogsAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Asset_Location_LogsAdjustSize();
+        });
+    }
+    function OnGridAsset_Location_LogsListGrid_EndCallback()
+    {
+        //$(".Asset_Location_LogsListGrid_PreviewRow").hide();
+        //GetSessionStorage("Asset_Location_LogsListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+    function OnGridAsset_Location_LogsListGrid_BeginCallback(s, e)
+    {
+        e.customArgs["VouchingMode"] = AssetMov_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Asset_Location_Logs_ShowHorizontalBar;
+    }
+
+    function Asset_Location_LogsAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{Asset_Location_LogsListGrid.SetHeight(height);} catch (err) { }
+    }
+    function Asset_Location_LogschangeMode() {
+        ShowLoader();
+        if (Asset_Location_Logs_ShowHorizontalBar == 0) {
+            Asset_Location_Logs_ShowHorizontalBar = 1;
+            $("#Asset_Location_LogsToggleScrollBar").find("span").text("Default Data");
+            $("#Asset_Location_LogsToggleScrollBar").width(110);
+        }
+        else {
+            Asset_Location_Logs_ShowHorizontalBar = 0;
+            $("#Asset_Location_LogsToggleScrollBar").find("span").text("Full Data");
+            $("#Asset_Location_LogsToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Asset_Location_Logs_Grid", "AssetMovementLogs")',
+            type: "GET",
+            data: { ShowHorizontalBar: Asset_Location_Logs_ShowHorizontalBar, VouchingMode: AssetMov_IsVouchingMode },
+            success: function (res) {
+                $("#Asset_Location_LogsreloadPartialView").html(res);
+                //$(".Asset_Location_LogsListGrid_PreviewRow").hide();
+                //GetSessionStorage("Asset_Location_LogsListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function OnAsset_Location_LogsListPreviewClick() {
+        if (!AssetLocationLog_ExportRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+
+        OpenPopup("Asset_Location_Logs_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "AssetMovementLogs", new { @area = "Reports" })", "auto", "auto", false, null)
+    }
+
+    function Asset_Location_LogsContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnAsset_Location_LogsListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Asset_Location_LogsListGrid.Refresh();
+        }
+    }
+</script>
+</div>

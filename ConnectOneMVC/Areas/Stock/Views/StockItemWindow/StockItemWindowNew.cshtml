@@ -1,0 +1,687 @@
+﻿@using DevExtreme.AspNet.Mvc
+@using Common_Lib;
+@model ConnectOneMVC.Areas.Stock.Models.StockItemWindow
+
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+    var SessionGUID = Request.QueryString["SessionGUID"];
+}
+
+@{
+    bool IsVisible = Model != null && (Model.ItemMaster_ActionMethod.ToString().Trim() == "_View" || Model.ItemMaster_ActionMethod.ToString().Trim() == "_Delete") ? true : false;
+    bool IsDisabled = Model != null && (Model.ItemMaster_ActionMethod == "_View" || Model.ItemMaster_ActionMethod == "_Delete") ? true : false;
+}
+<script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+<style>
+    .pll2 {
+        padding-left: 2px !important;
+    }
+
+    .margR4 {
+        margin-right: 4px;
+    }
+
+    .nav-tabs > li > a.active, .nav-tabs > li > a.active:hover, .nav-tabs > li > a.active:focus {
+        color: #555;
+        cursor: default;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-bottom-color: transparent;
+    }
+    /*mantis #1387 fixed*/
+    .dx-searchbox .dx-icon-search {
+        display: none !important;
+    }
+    /*mantis #1387 fixed*/
+    #List {
+        overflow-y: scroll;
+        height: 125px;
+    }
+</style>
+
+<div id="ContentOfItemWindow" class="edit_form">
+    @using (Ajax.BeginForm("SaveItemWindow", "StockItemWindow", new AjaxOptions
+    {
+        HttpMethod = "POST",
+        UpdateTargetId = "ContentOfItemWindow",
+        InsertionMode = InsertionMode.InsertAfter,
+        OnBegin = "AjaxBeginFormPost",
+        OnSuccess = String.Format("{0}", Model.PostSuccessFunction)
+    },
+    new { id = "stockitemvalidatationForm", @class = "edit_form" }
+    ))
+    {
+        @Html.HiddenFor(x => x.ItemMaster_ActionMethod)
+        @Html.HiddenFor(x => x.select_mapped_store_list)
+        @Html.HiddenFor(x => x.SubItemID)
+        @Html.HiddenFor(x => x.Sub_Item_Unit_Name)
+
+        var errors = ViewData.ModelState.Where(n => n.Value.Errors.Count > 0).Select(c => c.Value.Errors).ToList();
+        using (Html.DevExtreme().ValidationGroup())
+        {
+            <div class="full-width-header-bg">
+                <div class="row">
+
+                    <div class="col-sm-8">
+                        <h3 class="popuphead"><i class="far fa-edit"></i> Create New Stock Item</h3>
+                    </div>
+                    <div class="col-sm-4 prm">
+                        <h5 class="mand-txt-align"><i class="fas fa-info-circle"></i> Red Fields are mandatory</h5>
+                    </div>
+                    @Html.ValidationSummary(true, "", new { @class = "text-red" })
+                </div>
+            </div> <!--[Title and Heading]-->
+
+            <div class="row">
+                <div class="col-sm-6">
+                    <div id="itemwindow-left">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="col-sm-4 pll">
+                                    <label class="control-label text-red margB0" for="user">Item Name:</label>
+                                </div>
+                                <div class="col-sm-8 prm pll1">
+                                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Sub_Item_Name").Name("Sub_Item_Name").Placeholder("Enter Item Name Here").Disabled(IsDisabled).Value(Model.Sub_Item_Name))
+                                    @Html.ValidationMessageFor(model => model.Sub_Item_Name, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label text-red margB0" for="iten">Consumption Type:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Sub_Item_Consumption_Type").Name("Sub_Item_Consumption_Type").HoverStateEnabled(true).Disabled(IsDisabled).DataSource(new[] { "Consumable", "Non-Consumable" }).ReadOnly(IsVisible).Value(Model.Sub_Item_Consumption_Type))
+                                        @Html.ValidationMessageFor(model => model.Sub_Item_Consumption_Type, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label text-red Accountingwidth margB0" for="iten">Accounting Item:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Sub_Item_Accounting_Item").Name("Sub_Item_Accounting_Item").HoverStateEnabled(true)
+                                                                                                                        .Value(Model.Sub_Item_Accounting_Item).ValueExpr("ID").DisplayExpr("Head").Placeholder("Please select...")
+                                                                                                                        .DataSource(new object[] { new { Head = "Miscellaneous Construction Expenses (C)", ID = "c75de479-bdb6-48ba-9ebc-c3d495ae68f3" } }).ReadOnly(IsVisible).Disabled(IsDisabled))
+                                        @Html.ValidationMessageFor(model => model.Sub_Item_Accounting_Item, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid paddTB2">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label text-red margB0" for="iten">Main Category:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Sub_Item_Main_Category").Name("Sub_Item_Main_Category").DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetMainCategories").Key("Main_Category"))
+                                                                                                                                                                                       .DisplayExpr("Main_Category")
+                                                                                                                                                                                      .Value(Model.Sub_Item_Main_Category)
+                                                                                                                                                                                       .OnValueChanged("Sub_Item_MainCategoryValueChange").Disabled(IsDisabled)
+                                                                                                                                                                                       .OnInitialized("OnInitializedMainCategory")
+                                                                                                                                                                                        .OnKeyPress("SI_DropDown_KeyPress")
+                                                                                                                                                                                        .ElementAttr("OnClick", "SI_DropDown_Click()")
+                                                                                                                                                                                        .AcceptCustomValue(true)
+                                                                                                                                                                                       // .OnCustomItemCreating("UserAddedMainCategory")
+
+                                                                                                                                                                                       .ContentTemplate(@<text> @Html.Partial("GetMainCategories") </text>))
+                                        @Html.ValidationMessageFor(model => model.Sub_Item_Main_Category, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid paddTB2">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label margB0" for="iten">Sub-Category:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Sub_Item_Sub_Category").Name("Sub_Item_Sub_Category")
+                                                                                                                                                                                 .Placeholder("Please Select...")
+                                                                                                                                                                                 .DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetsubCategoriesMaster").Key("Sub_Category").LoadParams(new { MainCategoryId = new JS("function(){ return MainCategoryValue;}") }))
+                                                                                                                                                                                 .ReadOnly(false)
+                                                                                                                                                                                 .OnValueChanged("SubCategoryValueChanged")
+                                                                                                                                                                                 .DisplayExpr("Sub_Category")
+                                                                                                                                                                                 .Value(Model.Sub_Item_Sub_Category).Disabled(IsDisabled)
+                                                                                                                                                                                 .OnInitialized("onInitialized_SubCategory")
+                                                                                                                                                                                 .AcceptCustomValue(true)
+                                                                                                                                                                                   .OnKeyPress("SI_DropDown_KeyPress")
+                                                                                                                                                                                   .ElementAttr("OnClick", "SI_DropDown_Click()")
+                                                                                                                                                                                 .ContentTemplate(@<text> @Html.Partial("GetsubCategoriesMaster") </text>))
+                                        @Html.ValidationMessageFor(model => model.Sub_Item_Sub_Category, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid paddTB2">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label" for="iten">Item Code:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().TextBox().CustomTextBox().ID("Sub_Item_Code").Name("Sub_Item_Code").ReadOnly(true).Value(Model.Sub_Item_Code).Disabled(IsDisabled))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <div class="container-fluid paddTB2">
+                                <div class="row">
+                                    <div class="col-sm-4 pll">
+                                        <label class="control-label text-red margB0" for="iten">Primary Unit:</label>
+                                    </div>
+                                    <div class="col-sm-8 prm pll2">
+                                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("Sub_Item_Unit_Id").Name("Sub_Item_Unit_Id").DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetStockUnits").Key("Unit_ID"))
+                                                                                                                                                                                          .OnInitialized("Initialized_Sub_Item_Unit_Id")
+                                                                                                                                                                                          .OnValueChanged("OnValueChanged_Sub_Item_Unit_Id")
+                                                                                                                                                                                          .Placeholder("Select Unit Here")
+                                                                                                                                                                                          .Value(Model.Sub_Item_Unit_Id)
+                                                                                                                                                                                          .DisplayExpr("Unit")
+                                                                                                                                                                                          .ValueExpr("Unit_ID")
+                                                                                                                                                                                          .Disabled(IsDisabled)
+                                                                                                                                                                                          .ContentTemplate(@<text> @Html.Partial("GetStockUnits")</text>))
+                                        @Html.ValidationMessageFor(model => model.Sub_Item_Unit_Id, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div id="itemwindow-right">
+                        <div class="form-field">
+                            <div class="container-fluid">
+                                <fieldset class="default-fieldset">
+                                    <legend>Image</legend>
+                                    <div id="si_fileview">
+                                      
+                                            @Html.Partial("SI_PreviewImageControl")
+                                        
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-sm-3 col-md-3 col-lg-3 ">
+                                        </div>
+                                        <div class="col-sm-3 col-md-3 col-lg-3 ">
+                                            <div id="si_browseFile" align="right">
+                                                @(Html.DevExtreme().FileUploader().ID("SI_file-uploader").SelectButtonText("Browse").Name("SI_myFile").Multiple(false).Accept("image/*").ShowFileList(false).UploadMode(FileUploadMode.Instantly).OnUploaded("SI_FileUploaded")
+                                                      .UploadUrl(@Url.Action("Upload", "StockItemWindow", new { SessionGUID = SessionGUID })).ReadOnly(IsVisible).Disabled(IsVisible).OnValueChanged("SI_FileUpload_Value_Change"))
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 col-md-3 col-lg-3 ">
+                                            <div id="si_fileRemove" align="left">
+                                                @(Html.DevExtreme().Button().ID("SI_image_CANCEL").Text("Delete Image").OnClick("SIImageDelete").Visible(!IsVisible))
+                                            </div>
+                                        </div>
+                                            <div class="col-sm-3 col-md-3 col-lg-3 ">
+                                            </div>
+                                        </div>
+
+</fieldset>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="form-field">
+                        <div class="container-fluid multipleSelection">
+                            <div class="row">
+                                <div class="col-sm-2 pll">
+                                    <label class="control-label RegistLabel" for="iten">Mapped Store(s)</label>
+                                </div>
+                                <div class="col-sm-10 pll">
+                                    <div class="form-field">
+                                        @(Html.DevExtreme().List().CustomList().ID("Mapped_Store_List").DataSource(d => d.Mvc().Controller("StockItemWindow").LoadAction("GetMappedStoreList").Key("StoreID")).Height(400).SelectionMode(DevExtreme.AspNet.Mvc.ListSelectionMode.All).ShowSelectionControls(true)
+                                              .ItemTemplate(@<div><%- Store_Name %></div>).OnSelectionChanged("ListSelection").Disabled(IsDisabled).OnInitialized("Mapped_Store_List_Initialise").SearchEnabled(true).SearchExpr(new[] { "Store_Name" }))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>              
+            </div>
+        </div><!--[Row]-->
+            <div class="row">
+                <div class="form-field">
+                    <div class="container-fluid">
+                        <div class="col-sm-2 pll">
+                            <label class="control-label margB0" for="user">Item Remarks:</label>
+                        </div>
+                        <div class="col-sm-10 pll">
+                            @(Html.DevExtreme().TextBox().CustomTextBox().ID("Sub_Item_Remarks").Name("Sub_Item_Remarks").Value(Model.Sub_Item_Remarks).Disabled(IsDisabled))
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row stockItemWindow">
+                <div class="form-field">
+                    @(Html.DevExtreme().TabPanel().ID("tabpanel").ShowNavButtons(true).ScrollingEnabled(true).SwipeEnabled(false).Items(items =>
+                                                                    {
+                                                                        items.Add().Title("Item Properties").Template(@<text> @ItemPropertyView() </text>);
+                                                                        items.Add().Title("Unit Conversions").Template(@<text> @UnitConversionView() </text>);
+                                                                    }).DeferRendering(false))
+                    @helper ItemPropertyView()
+                    {
+                        @Html.Partial("Item_Properties_grid", Model);//Mantis bug 0000347 fixed
+                    }
+                    @helper UnitConversionView()
+                    {
+                        @Html.Partial("UnitConversionList_SubItem_Grid", Model);
+                    }
+                </div><!--[1]-->
+            </div>
+
+
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="styleActionBtn">
+                        @if (Model.ItemMaster_ActionMethod == "_Delete")
+                        {
+                            @(Html.DevExtreme().Button().CustomSaveButton().ID("IDSaveItemWindowNew").Text("Delete").FocusStateEnabled(true).OnClick("SI_NEVD_Delete_CLICK"))
+                        }
+                        else
+                        {
+                            @(Html.DevExtreme().Button().CustomSaveButton().ID("IDSaveItemWindowNew").Text("Save").FocusStateEnabled(true).Visible(Model.ItemMaster_ActionMethod == "_View" ? false : true).OnClick("SI_NEVD_SAVE_CLICK"))
+                        }
+                        @(Html.DevExtreme().Button().CustomCloseButton().ID("StockItemWindow_Cancel").Text(Model.ItemMaster_ActionMethod == "_View" ? "Close" : "Cancel").FocusStateEnabled(true).OnClick("close_StockItemWindow"))
+                    </div>
+                </div>
+            </div><!--[Buttons]-->
+
+
+    
+        }
+    }
+</div>
+
+
+<script>
+    var MainCategoryValue;
+    var Mapped_Store_Listselectkey = [];
+    var StockUseCheck;
+    var form = "stockitemvalidatationForm";
+    $(document).ready(function ()
+    {
+      
+        sessionclearpath = "/Stock/StockItemWindow/ItemMasterSessionclear";
+        dontaskpopupcloseconfirmation = false;
+          if ("@ViewData["SI_Image"]".length <= 0)
+            {
+             // $("#si_fileRemove").hide();
+              $("#SI_image_CANCEL").dxButton("instance").option("visible", false);
+        }
+        SI_binaryImage_show.SetHeight(($("#itemwindow-left").height())*0.6);
+        $("#Mapped_Store_List").dxList("instance").option("height",$("#itemwindow-left").height()*0.6);
+        ShowLoader();
+        AssignIDtoLabel(form, "ItemWindow");
+             setTimeout(function ()
+            {
+            if ("@Model.ItemMaster_ActionMethod" == "_View")
+            {
+                Set_Form_View_Delete_Mode("#000080", form);
+            }
+            else if ("@Model.ItemMaster_ActionMethod" == "_Delete")
+            {
+                Set_Form_View_Delete_Mode("#696969", form);
+            }
+            else
+            {
+                Focus_FirstEditable_Field(form);
+            }
+            HideLoader();
+             }, Timeout500);
+        $("#itemwindow-right").height($("#itemwindow-left").height());
+
+    });//Mantis bug 0000347 fixed
+
+    function SIImageDelete(e)
+    {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/StockItemWindow/RemoveSIImage",
+            async: false,
+            cache: false,
+        });
+        $("#si_fileview").load("@Url.Action("SI_PreviewImageControl", "StockItemWindow", new { @area = "Stock" })", function () { });
+        //$("#si_fileRemove").hide();
+        $("#SI_image_CANCEL").dxButton("instance").option("visible", false);
+    }
+
+    function SI_DropDown_Click(e)
+    {
+        
+    }
+
+    function SI_DropDown_KeyPress(e) {
+
+    }
+    function SI_FileUpload_Value_Change(e)
+    {
+        var filename = e.value[0].name;
+        var fileExt = (filename.split('.'))[1];
+        if (fileExt.Length <= 1)
+        {
+            DevExpress.ui.dialog.alert('<div class="SIErrorIconInformation">File Without Extension Is Not Allowed...</div>', 'Error!!');
+            return;
+        }
+        var AllowedExtension = ["jpg", "jpeg", "png"];
+        if (AllowedExtension.indexOf(fileExt) == -1)
+        {
+            DevExpress.ui.dialog.alert('<div class="SIErrorIconInformation">Only Files With jpg,jpeg,png Extension Is Allowed..</div>', 'Error!!');
+            return;
+        }
+    }
+
+    function SI_FileUploaded(e)
+    {
+        $("#si_fileview").load("@Url.Action("SI_PreviewImageControl", "StockItemWindow", new { @area = "Stock" })", function () { });
+       // $("#si_fileRemove").show();
+        $("#SI_image_CANCEL").dxButton("instance").option("visible", true);
+    }
+
+    function OnInitializedMainCategory(e) {
+        MainCategoryValue = e.value;
+        e.component.option("dataSource").store.load().done(function (d) {
+            if (d.length == 1) {
+                //e.component.option("value", d[0].R_CO_NAME);
+            }
+        });
+        var key = e.component.option("value");
+        if(key!=null)
+        {
+            if (e.component.getDataSource()!=null) {
+                e.component.getDataSource().store().byKey(key).done(function (result) {
+                    if (result != null && result != undefined && result != "undefined") {
+
+                        //MainCategoryValue = result.R_CO_CODE;
+                        //resCountryId = result.R_CO_REC_ID;
+                        MainCategoryValue = e.value;
+                        //$("#Res_DisttID").dxDropDownBox("instance").repaint();
+                        //$("#Res_cityID").dxDropDownBox("instance").repaint();
+                    }
+                })
+            }
+        }
+    }
+    function onInitialized_SubCategory(e)
+    {
+        e.component.option("dataSource").store.load().done(function (d)
+        {
+            if (d.length == 1)
+            {
+                //e.component.option("value", d[0].R_ST_NAME);
+            }
+        });
+    }
+
+
+    function OnValueChanged_Sub_Item_Unit_Id(e)
+    {
+       
+        var dropDownBox = $("#Sub_Item_Unit_Id").dxDropDownBox("instance");
+        dropDownBox.close();
+        var $dataGrid = $("#Frm_GetStockUnits");//Mantis bug 0000347 fixed
+        if ($dataGrid.length) {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (dataGrid.getSelectedRowsData().length > 0) {
+                var item = dataGrid.getSelectedRowsData()[0];
+                var unitName = item.Unit;
+                $("#Sub_Item_Unit_Name").val(unitName);
+                //SP_ID = item["SP_ID"]
+            }
+        }
+    }
+
+    function Sub_Item_MainCategoryValueChange(e) {
+     
+        MainCategoryValue = e.value;
+        var dropdown = $("#Sub_Item_Main_Category").dxDropDownBox("instance");
+        dropdown.close();
+
+        $("#Sub_Item_Sub_Category").dxDropDownBox("instance").reset();
+        var $dataGrid1 = $("#Frm_Sub_Category_GridDDL");
+        if ($dataGrid1.length) {
+            var dataGrid1 = $dataGrid1.dxDataGrid("instance");
+            dataGrid1.clearSelection();
+            dataGrid1.refresh();
+        }//Mantis bug 0000334 fixed
+
+        var $dataGrid = $("#Frm_GetMainCategories");
+        if ($dataGrid.length)
+        {
+            var dataGrid = $dataGrid.dxDataGrid("instance");
+            dataGrid.selectRows(e.value, false);
+            if (e.value == null) {
+                dataGrid.clearSelection();
+            }
+            if (dataGrid.getSelectedRowsData().length > 0)
+            {
+                var item = dataGrid.getSelectedRowsData()[0];
+                //MainCategoryValue = Main_Category;
+                //resCountryId = item.R_CO_REC_ID;
+                $("#Frm_Sub_Category_GridDDL").dxDataGrid("instance");
+            }
+        }
+    };
+
+    function SubCategoryValueChanged(e) {
+        var dropDownBoxSubCategory = $("#Sub_Item_Sub_Category").dxDropDownBox("instance");
+        dropDownBoxSubCategory.close();
+    }
+
+    @*function ToClosePopUp() {
+     //   $("#popup_frm_StockItem_Window").dxPopup("hide");
+        if ("@Model.PopupName" == "Dynamic_Content_popup")
+        {
+            dontaskpopupcloseconfirmation = false;
+            sessionclearpath = "/Stock/StockItemWindow/Sessionclear";
+        }
+        var popupnameid = "#" + "@Model.PopupName";
+        $(popupnameid).dxPopup("hide");
+    }*@
+    function getFileUploaderInstance()
+    {
+        return $("#file-uploader").dxFileUploader("instance");
+    }
+
+    function AjaxSuccessForItemWindow(data)
+    {
+        dontaskpopupcloseconfirmation = true;
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, 'Error');
+        }
+        else {
+           
+        
+            DevExpress.ui.dialog.alert(data.message, 'Success');
+            $("#popup_frm_StockItem_Window").dxPopup("hide");
+            StockItemListGrid.SetFocusedRowIndex(-1);
+            StockItemListGrid.Refresh();
+        
+        }
+
+    }
+
+    //function fileUploader_valueChanged(e)
+    //{
+    //    var files = e.value;
+    //    if (files.length > 0)
+    //    {
+    //        $("#selected-files .selected-item").remove();
+
+    //        $.each(files, function (i, file)
+    //        {
+    //            var $selectedItem = $("<div />").addClass("selected-item");
+    //            $selectedItem.append(
+    //                $("<span />").html("Name: " + file.name + "<br/>"),
+    //                $("<span />").html("Size " + file.size + " bytes" + "<br/>"),
+    //                $("<span />").html("Type " + file.type + "<br/>"),
+    //                $("<span />").html("Last Modified Date: " + file.lastModifiedDate)
+    //            );
+    //            $selectedItem.appendTo($("#selected-files"));
+    //        });
+    //        $("#selected-files").show();
+    //    }
+    //    else
+    //        $("#selected-files").hide();
+    //}
+
+    function Initialized_Sub_Item_Unit_Id(e) {
+        if ("@Model.ItemMaster_ActionMethod" != "_New") {
+            e.component.option("dataSource").store.load().done(function (d) {
+                e.component.option("value", "@Model.Sub_Item_Unit_Id");
+            });
+        }
+    }//mantis #1571 fixed
+
+    function close_StockItemWindow()
+    {
+        $("#popup_frm_StockItem_Window").dxPopup("hide");
+    }//Mantis bug 0000334 fixed
+
+    function ListSelection(e)
+    {
+      
+        //var selectedItems = e.component.option("selectedItems");
+        //var selectedTexts = $.map(selectedItems, function (item) {
+        //    return item.Text;
+        //    this.console.log(item.text)
+        //});
+        //console.log($("#selectedItems").text(selectedTexts.join(", ")));
+
+        var listBox = $("#Mapped_Store_List").dxList("instance");
+
+           if ("@Model.ItemMaster_ActionMethod" == "_Edit")
+           {
+            
+            var currentselectedkeys = listBox.option("selectedItemKeys");
+               for (var i = 0; i < Mapped_Store_Listselectkey.length; i++)
+                {
+                   var index = currentselectedkeys.indexOf(Mapped_Store_Listselectkey[i]);
+                    if (index == -1) {
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Stock/StockItemWindow/CheckMappedStoreUsageCount",
+                            data: { ID: "@Model.SubItemID", storeid: Mapped_Store_Listselectkey[i]  },
+                            cache: false,
+                            async: false,
+                            success: function (data) {
+                                if (data.result == false) {
+                                    StockUseCheck = false;
+                                } 
+                                else { StockUseCheck = true; }
+                            }
+
+                        });
+                        if (StockUseCheck == false) {
+                            DevExpress.ui.dialog.alert('An Already Selected Store against which any UO/Stock/RR/Job has been created in selected store, can not be de-allocated ', 'Information');
+                            currentselectedkeys.push(storelistselectkey[i]);
+                            listBox.option("selectedItemKeys", currentselectedkeys);
+                            break;
+                        }
+                    }
+                }
+        }
+        $("#select_mapped_store_list").val(listBox.option("selectedItemKeys").join(","));
+        console.log($("#select_mapped_store_list").val());
+        //alert(listBox.option("selectedItemKeys"));
+    }
+    function Mapped_Store_List_Initialise(e)
+    {
+    
+        var listBox = $("#Mapped_Store_List").dxList("instance");
+        if ("@Model.ItemMaster_ActionMethod" == "_Edit" || "@Model.ItemMaster_ActionMethod" == "_View" || "@Model.ItemMaster_ActionMethod" == "_Delete")
+        {
+            Mapped_Store_Listselectkey = "@Model.select_mapped_store_list".split(',');
+            listBox.option("selectedItemKeys", Mapped_Store_Listselectkey);
+        }
+    }
+    function SI_NEVD_SAVE_CLICK(e) {
+   
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Save", "Stock Item");
+        result.done(function (dialogResult) {
+            var form = $("#stockitemvalidatationForm");
+            if (dialogResult) {
+                var result = e.validationGroup.validate();
+                if (result.isValid) {
+                    form.submit();
+                }
+            }
+        });
+    }
+    function SI_NEVD_Delete_CLICK(e) {
+        var form = $("#stockitemvalidatationForm");
+        var result = DevExpress.ui.dialog.confirm("Sure You Want To Delete..?", "Delete~Stock ");
+        result.done(function (dialogResult) {
+            if (dialogResult) {
+
+                form.submit();
+            }
+            
+        });
+    }
+    function ItemImageEndcallback(s, e)
+    {      
+        s.SetHeight(($("#itemwindow-left").height())*0.6);
+        $("#itemwindow-right").height($("#itemwindow-left").height());
+    }
+
+    function Frm_SI_Properties_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+
+            $("#StockIteminnergrid").dxPopup("hide");
+            Item_Properties_grid_Data.SetFocusedRowIndex(-1);
+            Item_Properties_grid_Data.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+        else {
+            $("#StockIteminnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            StockItemListGrid.SetFocusedRowIndex(-1);
+            StockItemListGrid.Refresh();
+
+            HideLoader();
+        }
+    }
+
+
+    function Frm_SI_Unit_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+
+            $("#StockIteminnergrid").dxPopup("hide");
+            UnitConversionList_SubItem_Grid_Data.SetFocusedRowIndex(-1);
+            UnitConversionList_SubItem_Grid_Data.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+        else {
+            $("#StockIteminnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            StockItemListGrid.SetFocusedRowIndex(-1);
+            StockItemListGrid.Refresh();
+
+        }
+    }
+</script>

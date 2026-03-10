@@ -1,0 +1,1092 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model IEnumerable<dynamic>
+@{
+    var popupID = ViewBag.PO_PopupID;
+    var RequisitionID = (string)ViewData["PO_RequisitionID"];
+
+    bool PO_UpdateRight = (bool)ViewData["PO_UpdateRight"];
+    bool PO_ViewRight = (bool)ViewData["PO_ViewRight"];
+    bool PO_ExportRight = (bool)ViewData["PO_ExportRight"];
+    bool PO_AccResponsibleRight = (bool)ViewData["PO_AccResponsibleRight"];
+}
+
+<style>
+    #Frm_PurchaseRegister_Info .footer-MainBoxdiv {
+        margin: 0 25px !important;
+    }
+
+    .padding8-40 {
+        padding: 8px 40px !important;
+    }
+</style>
+<script>
+    function LookUp_ViewType_ChangeEvent_Purchase(e) {
+        var SelectBox = $("#PurchasePeriodSelection").dxSelectBox("instance").option("value");
+        $("#PurchaseChangePeriodMain").dxButton("instance").option("disabled", true);
+
+        if (SelectBox == "Specific Period") {
+            $("#PurchaseChangePeriodMain").dxButton("instance").option("disabled", false);
+            $("#Purchase_View_Period").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/PurchaseRegister/LookUp_ViewType_ChangeEvent_Purchase",
+                data: { Chaval: $("#PurchasePeriodSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true) {
+                        $("#Purchase_View_Period").dxTextBox("instance").option("value", data.Message.PO_BE_View_Period);
+                        ShowLoader();
+                        PurchaseRegisterGrid.Refresh();
+                        HideLoader();
+                    }
+                }
+            });
+        }
+    }//Period Selection
+
+    function ChangePeriodinLayout()
+    {
+        ShowLoader();
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_Purchase", "PurchaseRegister", new { @area = "Stock" })", "auto", "45%", false, null);
+    } //Change Period Button Click
+
+</script>
+
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 padd report_header_div">
+        <label class="report_header_label">Purchase Register</label>
+    </div>
+    @*Buttons*@
+    <div class="report_button_div">
+
+        @(Html.DevExtreme().Button().ID("PurchaseRegisterEdit").Text("Edit").Icon("edit").OnClick(@<text>function () {PurchaseRegister_EditClick();}</text>))
+        @(Html.DevExtreme().Button().ID("PurchaseRegisterView").Text("View").Icon("doc").OnClick(@<text>function () { PurchaseRegister_ViewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("PurchaseRegisterToggleScrollBar").Text("Full Data")/*.Width(90)*/.Icon("toolbox").OnClick(@<text>function () {OnPurchaseRegisterChangeMode();}</text>))
+        @(Html.DevExtreme().Button().ID("PurchaseRegisterListExport").Text("List Export").Icon("save")/*.Width(100)*/.OnClick(@<text>function () {OnPurchaseRegisterListPreviewClick();}</text>))
+        @(Html.DevExtreme().Button().ID("btnPurchaseExpandAll").Icon("preferences").Text("Expand All").OnClick(@<text> function () { PurchaseMasterExpandAll(); } </text>) )
+        @(Html.DevExtreme().Button().ID("PurchaseRegisterCLOSE").Text("Close").Icon("clear").OnClick("Close_PO"))
+    </div><!--[Buttons]-->
+</div>
+<div id="dateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("PurchasePeriodSelection").Name("PurchasePeriodSelection")
+                                                                                                                                                                .Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value").ShowClearButton(false)
+                                                                                                                                                                .ElementAttr(new Dictionary<string, object>() { { "class", "dx-texteditor-input appear" } })
+                                                                                                                                                                .DataSource(d => d.Mvc().Controller("PurchaseRegister").LoadAction("LookUp_Get_ViewType_List_Purchase")
+                                                                                                                                                                .Key("Value")).SearchEnabled(true).ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent_Purchase")
+                                                                                                                                                                .Visible(true))
+        </div><!--[Select Date]-->
+        <div class="col-md-2  no-padding margin8-16">
+            @(Html.DevExtreme().Button().ID("PurchaseChangePeriodMain").Text("Change Period")
+                                                                                                                            .Disabled(true).OnClick(@<text>function (){ ChangePeriodinLayout(); } </text>))
+        </div>
+        <div class="col-sm-4 col-md-3subHead">
+            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                <div class="">
+                    @(Html.DevExtreme().TextBox().CustomTextBox().ID("Purchase_View_Period").Name("Purchase_View_Period").Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100))
+                </div>
+            </div>
+        </div><!--[View Period TextBox]-->
+    </div>
+    <div class="row">
+        <div class="col-md-12 padd ">
+            <div id="PurchaseRegisterPartialView" class="parent_table">
+                <form>
+                    @Html.Partial("Frm_PurchaseRegister_Info_Grid", Model)
+                </form>
+            </div>
+        </div>
+        <div class="footer-MainBoxdiv full-width-footer">
+
+            <div class="list_footer_left_margin">
+                <p id="PurchaseRegisterLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                <p id="PurchaseRegisterLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+            </div>
+
+        </div><!--[Grid Footer]-->
+
+    </div>
+
+    <div class="row">
+        <div class="row padding8-40">
+            <form>
+                @(Html.DevExtreme().Button().ID("POPriceHistory").Text("Show Item Price History").OnClick(@<text> function () {  PO_PriceHistory()} </text>))
+                @(Html.DevExtreme().Button().ID("POIDMrkAsCmpltd").Text("Mark as Complete").OnClick(@<text> function () { UpDatePurchaseOrderStatus("Complete") } </text>))
+                @(Html.DevExtreme().Button().ID("POIDRej").Text("Reject").OnClick(@<text> function () { UpDatePurchaseOrderStatus("Reject") } </text>))
+                @(Html.DevExtreme().Button().ID("POIDCancelPO").Text("Cancel PO").OnClick(@<text> function () { UpDatePurchaseOrderStatus("Cancel") } </text>) )
+                @(Html.DevExtreme().Button().ID("POIDApprove").Text("Approve").OnClick(@<text> function () { UpDatePurchaseOrderStatus("Approve") } </text>))
+                @(Html.DevExtreme().Button().ID("POIDReOpen").Text("Re-open PO").OnClick(@<text> function () { UpDatePurchaseOrderStatus("Reopen") } </text>))
+                @(Html.DevExtreme().Button().ID("POIDReReq").Text("Re-Requisition").OnClick(@<text> function () { @*UpDatePurchaseOrderStatus("Re_Requisition")*@ Requisition_click() } </text>))
+            </form>
+        </div>
+    </div>
+
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("PurchaseRegister_report_modal").Title("Purchase Register").FullScreen(false).MaxWidth(250).Height("auto").ShowCloseButton(true).ContentTemplate(@<text><div id="PurchaseRegister_report_modal_Result" class="export_popup"></div></text>))
+
+@(Html.DevExtreme().Popup().CustomPopup().ID("PurchaseRegister_Button_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true))
+@(Html.DevExtreme().Popup().CustomPopup().ID("Purchaseinnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").ContentTemplate(@<text> <div id="result_Purchaseinnergrid">  </div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("NPR_POAddDoc_Content_popup").CloseOnOutsideClick(false).ShowCloseButton(true).ShowTitle(true).ContentTemplate(@<text><div id="NPR_POAddDoc_Content_popup_Result"></div></text>))@*Mantis bug 0000896 fixed*@
+
+<script type="text/javascript">
+
+    var PO_ID;
+    var POIsAllDetailExpanded = false;
+    var PO_Master_ShowHorizontalBar = 0;
+    var POStatus;    
+    var POCurrUserRole = [];
+    var Purchasegrid;
+    var PODate;
+    var POSupplier;
+    var posupplierid;
+    var POIsEditPopup = false;
+    var POItemID;
+    var ItemName;
+    var subitemid;
+    var isPOGridRefresh = false;
+     $(document).ready(function () {
+         var DefaultDateString = '@ViewBag.DefualtDateString';
+         $("#PurchasePeriodSelection").dxSelectBox("instance").option("value", DefaultDateString);                    
+
+        if ("@PO_UpdateRight" == "False")
+        {                    
+            $("#PurchaseRegisterEdit").hide();
+        }
+        if ("@PO_ViewRight" == "False")
+        {                    
+            $("#PurchaseRegisterView").hide();
+        }
+        if ("@PO_ExportRight" == "False")
+        {                 
+            $("#PurchaseRegisterListExport").hide();
+        }            
+         //var SelectBox = $("#PurchasePeriodSelection").dxSelectBox("instance").option("value");
+         //if (SelectBox == "Specific Period") {
+         //    $("#PurchaseChangePeriodMain").dxButton("instance").option("disabled", false);
+
+    });//document ready function(setting default date & check rights)
+
+    $("#PurchaseRegisterGrid").keydown(function (evt) {
+        switch (evt.keyCode) {
+
+            case 13: //enter key
+                PurchaseRegister_EditClick();
+                break;
+            case 32: //space bar
+                //PurchaseRegister_ViewClick();//mantis #1398
+                break;
+
+        }
+
+        if (evt.ctrlKey && evt.keyCode == 69)//ctrl+e
+        {
+            PurchaseRegister_EditClick();
+        }
+        if (evt.ctrlKey && evt.keyCode == 86)//ctrl+v
+        {
+            //PurchaseRegister_ViewClick();//mantis #1398
+        }
+    });
+    function Purchase_RegisterAdjustSize(s,e) {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        PurchaseRegisterGrid.SetHeight(height);
+        }
+
+    function PurchaseRegisterOnInit(s, e) {
+        Purchase_RegisterAdjustSize(s,e);
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Purchase_RegisterAdjustSize(s,e);
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+        function PurchaseRegisterGrid_BeginCallBack(s, e) {
+            e.customArgs["command"] = e.command;
+            if (e.command == "REFRESH") {
+                isPOGridRefresh = true;
+            }
+            e.customArgs["ShowHorizontalBar"] = PO_Master_ShowHorizontalBar;
+    }
+
+        function PurchaseRegisterGrid_EndCallBack(s, e) {
+            Purchase_RegisterAdjustSize();
+            SendCustomArgs_FilterControl(s, e);
+    }
+    function ItemPurchaseGrid_BeginCallBack(s, e) {
+       e.customArgs["Command"] = e.command;
+        if (e.command == "REFRESH") {
+            isPONestedRefresh = true;
+        }
+    }
+
+    function OnItemPurchaseInit(s, e) {
+        s.SetFocusedRowIndex(-1);
+    }
+
+    function PurchaseRegisterGridFocusedRowChanged(s, e)
+    {
+        if (s.GetFocusedRowIndex() == -1)
+        {
+            PO_ID = 0;
+        }
+        else
+        {
+            Purchasegrid = "Purchase";
+            PO_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: PO_ID }, PurchaseRegisterGetRowValues);
+            s.CollapseAllDetailRows();
+        }
+    }
+
+    function PurchaseRegisterGetRowValues(Data) {
+        var values = Data.split("![");
+            PO_ID = values[1];
+
+            var POEditedBy = values[2];
+            var POEditedOn = values[3];
+            var POAddedBy = values[4];
+            var POAddedOn = values[5];
+             PODate = values[9];
+            var Req_ID = values[10];
+            posupplierid = values[11];
+        var PORequestor = values[6];
+              POSupplier = values[8];
+            POCurrUserRole = (values[7].split(','));
+            for (var i = 0; i < POCurrUserRole.length; i++) {
+                POCurrUserRole[i] = POCurrUserRole[i].trim();
+            }
+
+        PurchaseRegister_UpdateFooterDetail(PO_ID, POAddedOn, POAddedBy, POEditedBy, POEditedOn);
+    }
+    function PurchaseRegister_UpdateFooterDetail(ID, POAddedOn, POAddedBy, POEditedBy, POEditedOn)
+    {
+
+        var Lbl_Create = "";
+        var Lbl_Modify = "";
+        var Add_Date = "";
+        var Add_By = "";
+        var Edit_Date = "";
+        var Edit_By = "";
+
+        Add_Date = POAddedOn;
+        Add_By = POAddedBy;
+
+        if (Add_Date) {
+            Lbl_Create = "Add On: " + Add_Date + ", By: " + Add_By;
+        }
+        else {
+            Lbl_Create = "Add On: " + "?, By: " + Add_By;
+        }
+
+
+        Edit_Date = POEditedOn;
+        Edit_By = POEditedBy;
+
+        if (Edit_Date) {
+            Lbl_Modify = "Edit On: " + Edit_Date + ", By: " + Edit_By;
+        }
+        else {
+            Lbl_Modify = "Edit On: " + "?, By: " + Edit_By;
+        }
+
+        $('#PurchaseRegisterLbl_Create').text(Lbl_Create);
+        $('#PurchaseRegisterLbl_Modify').text(Lbl_Modify);
+
+
+    }
+    function OnItemPurchaseFocusedRowChange(s, e) {
+        if (s.GetFocusedRowIndex() == -1) {
+            PO_Item_ID = 0;
+        }
+        else {
+            PurchaseRegisterGrid.SetFocusedRowIndex(-1);
+            Purchasegrid = "Item";
+            PO_Item_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: PO_Item_ID }, ItemPurchaseGetData);
+        }
+    }
+    function ItemPurchaseGetData(Data) {
+        var value = Data.split("![");
+        PO_ID = value[0];
+        //alert(PO_ID);
+        ItemName = value[1];
+        //alert(ItemName);
+        var POItemEditedOn = value[11];
+        var POItemEditedBy = value[12];
+        var POItemAddedBy = value[10];
+        var POItemAddedOn = value[9];
+        POItemID = value[13];
+        subitemid = value[14];
+        PurchaseRegister_UpdateFooterDetail(PO_Item_ID, POItemAddedOn, POItemAddedBy, POItemEditedBy, POItemEditedOn);
+    }
+    function CollapsePurchaseRow(s, e) {
+        s.SetFocusedRowIndex(index);
+    }
+    function ExpandPurchaseRow(s, e) {
+        index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+    }
+    function PurchaseMasterExpandAll() {
+        if (!POIsAllDetailExpanded) {
+            PurchaseRegisterGrid.ExpandAllDetailRows(); POIsAllDetailExpanded = true;
+            $("#btnPurchaseExpandAll").find("span").text("Collapse All");
+        }
+        else {
+            PurchaseRegisterGrid.CollapseAllDetailRows(); POIsAllDetailExpanded = false;
+            $("#btnPurchaseExpandAll").find("span").text("Expand All");
+        }
+    }
+
+
+    function OnPurchaseRegisterChangeMode()
+    {
+        ShowLoader();
+        if (PO_Master_ShowHorizontalBar == 0) {
+            PO_Master_ShowHorizontalBar = 1;
+            $("#PurchaseRegisterToggleScrollBar").find("span").text("Default Data");
+           // $("#POToggleScrollBar").width(110);
+        }
+        else {
+            PO_Master_ShowHorizontalBar = 0;
+            $("#PurchaseRegisterToggleScrollBar").find("span").text("Full Data");
+           // $("#POToggleScrollBar").width(90);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_PurchaseRegister_Info_Grid", "PurchaseRegister")',
+            type: "GET",
+            data: { ShowHorizontalBar: PO_Master_ShowHorizontalBar },
+            success: function (res) {
+                $("#PurchaseRegisterPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }//full data button click
+</script>
+
+<script>
+    function Close_PO(e)
+    {
+        if ("@popupID".length > 0)
+        {
+            HidePopup("@popupID");        
+        }
+        else
+        {
+            btnCloseActiveTab();
+        }
+    }
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/SessionClear",
+            cache: false
+        });
+        DeleteCookie("POCookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/InfoSessionclear",
+            cache: false
+        });
+    });
+    function PurchaseRegister_EditClick() {
+        if ("@PO_UpdateRight" != "True") {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+            return;
+        }
+        if (Purchasegrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        if (POStatus == "Completed") {
+            DevExpress.ui.dialog.alert("Completed PO Cannot Be Edited..!!", "Error");
+            return;
+        }
+        var check = PO_datanavigation("Edit");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        var statusflowcheck = PO_StatusFlowCheck("Edit");
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+        POIsEditPopup = true;
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Frm_NEVD_Purchase",
+            data:
+            {
+                ActionMethod: "Edit",
+                ID: PO_ID,
+            },
+            success: function (data) {
+                OpenDynamicPopup("Edit ~ Purchase Order", null, "auto", 1150, true, data);
+            }
+        });
+    }
+
+
+    function PurchaseRegister_ViewClick() {
+
+
+        if (Purchasegrid == "Item") {
+            DevExpress.ui.dialog.alert('Please Select A Master Grid Row..!!', 'Alert');
+            return;
+        }
+      
+        if ("@PO_ViewRight" != "True") {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Frm_NEVD_Purchase",
+            data: {
+                ActionMethod: "View",
+                ID: PO_ID
+            },
+            success: function (data) {
+                OpenDynamicPopup("View ~ Purchase Order", null, "auto", 1150, true, data);
+            }
+        });
+
+    }
+
+    function OnPurchaseRegisterListPreviewClick()
+    {
+        if ("@PO_ExportRight" == "False")
+        {
+            DevExpress.ui.dialog.alert('Not Allowed..!!', 'No Rights');
+            return;
+        }
+        ShowLoader();
+        OpenPopup("PurchaseRegister_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "PurchaseRegister", new { @area = "Stock" })", "auto", "30%",false, null);
+    }//list preview
+
+
+    function PurchaseRegisterContextMenuFunction(s, e) {
+
+
+        if (e.item.name == 'Close') {
+            Close_PO();
+        }
+        else if (e.item.name == 'Edit') {
+            PurchaseRegister_EditClick();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnPurchaseRegisterListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            PurchaseRegisterGrid.Refresh();
+        }
+        else if (e.item.name == 'View') {
+            PurchaseRegister_ViewClick();
+        }
+        else if (e.item.name == 'PriceHistory') {
+            PO_PriceHistory()
+        }
+        else if (e.item.name == 'MarkComplete') {
+            UpDatePurchaseOrderStatus("Complete");
+        }
+        else if (e.item.name == 'ViewLinkedLatestRR') {
+            POViewLinkedLatestRR();
+        }
+        else if (e.item.name == 'AddItemReceived') {
+            POAddItemReceived();
+        }
+        else if (e.item.name == 'AddItemReturned') {
+            POAddItemReturned();
+        }
+        else if (e.item.name == 'Adddocuments') {
+            POAddDocuments();
+        }//Mantis bug 0000896 fixed
+        else if (e.item.name == 'AddDeliverytoLinkedUO') {
+            POAddDeliverytoLinkedUO();
+        }
+        else if (e.item.name == 'ViewLinkedUO') {
+            POViewLinkedUO();
+        }
+        else if (e.item.name == 'mappayment') {
+            POmappayment();
+        }
+
+    }
+
+    function POAddDocuments() {
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = PO_StatusFlowCheck("Documents");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = PO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        $("#ID_Frm_Help_Document_Attach").remove();
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Help/Attachment/Frm_Attachment_Window",
+            data: {
+                AM: "New",
+                PostSucessFunctionName: "Frm_ContextMenu_DirectAddDoc_OnSuccess",
+                Post_action_Name: "Purchase_Documents_Attachment",
+                Post_Controller_Name: "PurchaseRegister",
+                Post_Area_Name: "Stock",
+                Document_Grid_PopupName: "NPR_POAddDoc_Content_popup",
+                ByteSessionVariable: "PODocument",
+                Refrecid: PO_ID.toString()
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("NPR_POAddDoc_Content_popup", "New ~ Documents", null, "auto", 900, true, data);
+            }
+        });
+    }//Mantis bug 0000896 fixed
+
+    function Frm_ContextMenu_DirectAddDoc_OnSuccess(data) {
+        if (data.result == true) {
+            $("#NPR_POAddDoc_Content_popup").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            PurchaseRegisterGrid.Refresh();//Mantis bug 0000896 fixed
+            HideLoader();
+        }
+        if (data.result == false) {
+            $("#NPR_POAddDoc_Content_popup").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            HideLoader();
+        }
+    }//Mantis bug 0000896 fixed
+
+    function PO_PriceHistory() {
+        
+        if (Purchasegrid == "Purchase") {
+            DevExpress.ui.dialog.alert('Please Select A Nested Grid Row..!!', 'Alert');
+            return;
+        }
+        if (!POItemID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        ShowLoader();
+
+        OpenPopup("popup_frm_price_history", "Search ~ Price History", "@Url.Action("Frm_PO_Price_History", "PurchaseRegister", new { @area = "Stock" })?ItemID=" + encodeURIComponent(subitemid), "auto", 900, false, null);
+        ////StockItemListGrid.SetFocusedRowIndex(-1);
+        ////StockItemListGrid.Refresh();
+        //HideLoader();
+
+    }
+
+
+    function Requisition_click() {
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+    function POViewLinkedLatestRR() {
+      
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Get_PO_Latest_RR_ID",
+            data:
+            {
+                PO_ID: PO_ID,
+            },
+            cache: false,
+            success: function (data) {
+                debugger
+                if (data.result == false) {
+                    DevExpress.ui.dialog.alert("Error", "Inform");
+                    HideLoader();
+                }
+                if (data.result == true) {
+
+                    if (data.rrid != null) {
+                     
+                        $.ajax({
+                            type: 'GET',
+                            url: "/Stock/RequestRegister/Frm_NEVD_Requisition",
+                            data: {
+                                ActionMethod: "View",                                
+                                ID: data.rrid,
+                                PopupName: "Purchasecontextmenu",
+
+                            },
+                            cache: false,
+                            success: function (data) {
+                                OpenPopup("Purchasecontextmenu", "View ~ Linked RR Detail", null, "auto", 1150, true, data);
+
+                            }
+                        });
+                      
+
+                    }
+                    HideLoader();
+                }
+               
+            
+
+            }
+        });
+
+   
+    }
+
+    function POAddItemReceived() {
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = PO_StatusFlowCheck("POSTING DELIVERY RECEIVED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = PO_datanavigation("NewItemRec");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Frm_PO_Goods_Received",
+            data: {
+                ActionMethod: "New",
+                POid: PO_ID,
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Purchaseinnergrid", "New ~ Items Received", null, "auto", 900, true, data);
+            }
+        });
+    }
+
+    function Frm_Purchase_GoodsRecd_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+
+            $("#Purchaseinnergrid").dxPopup("hide");
+            PO_GoodsReceivedGrid.SetFocusedRowIndex(-1);
+            PO_GoodsReceivedGrid.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+        else {
+            $("#Purchaseinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            PurchaseRegisterGrid.Refresh();
+            HideLoader();
+        }
+    }
+    function POAddItemReturned() {
+
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        var menucheck = PO_StatusFlowCheck("POSTING DELIVERY RETURNED");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = PO_datanavigation();
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Frm_PO_Goods_Returned",
+            data: {
+                ActionMethod: "New",
+                POid: PO_ID,
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Purchaseinnergrid", "New ~ Items Returned", null, "auto", 900, true, data);
+            }
+        });
+    }
+    function Frm_Purchase_GoodsRet_OnSuccess(data) {
+
+        HideLoader();
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, "Error");
+        }
+        else if (data.result == true) {
+
+            $("#Purchaseinnergrid").dxPopup("hide");
+            PO_GoodsReturnedGrid.SetFocusedRowIndex(-1);
+            PO_GoodsReturnedGrid.Refresh();
+            //$("#ProductionStoreID").dxDropDownBox("instance").option("readOnly", true);
+        }
+        else {
+            $("#Purchaseinnergrid").dxPopup("hide");
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            PurchaseRegisterGrid.Refresh();
+            HideLoader();
+        }
+    }
+    function POAddDeliverytoLinkedUO() {
+
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        var menucheck = PO_StatusFlowCheck("LINKED UO - POST DELIVERY");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = PO_datanavigation("DeliveryLinkUO");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+
+
+        DevExpress.ui.dialog.alert("Coming soon...!", 'Inform!');
+    }
+
+    function POViewLinkedUO() {
+        var uosr_info;//Mantis bug 0000114 fixed
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+        var check = PO_datanavigation("DeliveryLinkUO");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        if (check[1] == true) {
+            uosr_info = check[2];
+        }//Mantis bug 0000114 fixed
+
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/UserOrder/Frm_NEVD_User_Order",
+            data: {
+                ActionMethod: "View",
+                PostSuccessFunction: "Frm_Purchase_UO_OnSuccess",
+                Post_action_Name: "Purchase_UO_Save",
+                Post_Controller_Name: "PurchaseRegister",
+                Post_Area_Name: "Stock",
+                CallingScreen: "PurchaseRegister",
+                UO_Grid_Data_SessionName: "Purchase_LinkUserOrderMainData",
+                ID: uosr_info,
+                PopUpID: "Purchaseinnergrid",
+                ByteSessionVariable: "PurchaseUO"
+            },//Mantis bug 0000114 fixed
+            cache: false,
+            success: function (data) {
+                OpenPopup("Purchaseinnergrid", "View ~ Linked UO Detail", null, "auto", 900, true, data);
+            }
+        });
+    }
+
+    function POmappayment() {       
+        if ("@PO_AccResponsibleRight" != "True") {
+            DevExpress.ui.dialog.alert('Not Allowed', 'No Rights');
+            return;
+        }
+
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert('Please Select One Row', 'Alert');
+            return;
+        }
+
+        var menucheck = PO_StatusFlowCheck("Posting-Payments");
+        if (menucheck[1] == false) {
+            DevExpress.ui.dialog.alert(menucheck[0], "Error");
+            return;
+        }
+
+        var check = PO_datanavigation("NewPay");
+        if (check[1] == false) {
+            DevExpress.ui.dialog.alert(check[0], "Error");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/PurchaseRegister/Frm_PO_Payment",
+            data: {
+                PO_ID: PO_ID,
+                CallingPage: "Info",
+                SupplierID: posupplierid,
+                PopupID: "Purchaseinnergrid"
+            },
+            cache: false,
+            success: function (data) {
+                OpenPopup("Purchaseinnergrid", "New ~ Payment", null, "auto", 900, true, data);
+            }
+        });
+    }
+
+    function PurchaseRegisterAjaxSuccessForm(data) {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == true) {
+            DevExpress.ui.dialog.alert(data.message, "Inform");
+            if (POIsEditPopup == true) {
+                POIsEditPopup = false;
+                if (POStatus == "Re_Requisition") {
+                    if (data.isRequestor == true) {
+                        var result = DevExpress.ui.dialog.confirm("Do You Want To Reopen The PO", "Change Status");
+                        result.done(function (dialogResult) {
+                            if (dialogResult) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Stock/PurchaseRegister/POStatusToNew",
+                                    cache: false,
+                                    async: false,
+                                    data: {
+                                        ID: PO_ID
+                                    },
+                                    success: function (check) {
+                                        if (check.result == false) {
+                                            DevExpress.ui.dialog.alert(check.message, "Error")
+                                        }
+                                        else {
+                                            DevExpress.ui.dialog.alert(check.message, "Inform")
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        );
+                    }
+                }
+            }
+
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            //PurchaseRegisterGrid.SetFocusedRowIndex(-1);
+            PurchaseRegisterGrid.Refresh();
+
+        }
+
+
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, 'Inform!');
+
+        }
+    }
+
+
+
+    function PO_datanavigation(_actionmethod) {
+        if (!_actionmethod) { _actionmethod = null; }
+        var msg;
+        var result;
+        var uosr_info;
+        $.ajax({
+            type: 'GET',
+            async: false,
+            url: "/Stock/PurchaseRegister/DataNavigation",
+            data: {
+                ActionMethod: _actionmethod,
+                ID: PO_ID,
+                PODate: PODate
+            },
+            cache: false,
+            success: function (data) {
+                msg = data.Message;
+                result = data.result;
+                if (data.UOSR != 0) {
+                    uosr_info = data.UOSR;
+                }
+           
+            }
+        });
+
+        return [msg, result, uosr_info];
+    }
+    function PO_StatusFlowCheck(Status) {
+        var msg;
+        var result;
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/PurchaseRegister/PurchaseOrderStatusFlow",
+            data: {
+                ID: PO_ID,
+                StatusButton: Status,
+                CurrUserRole: POCurrUserRole
+            },
+            async: false,
+            cache: false,
+            success: function (data) {
+                msg = data.message;
+                result = data.result;
+            }
+        });
+        return [msg, result];
+    }
+</script>
+
+<script>
+
+    function UpDatePurchaseOrderStatus(Status_Button) {
+
+        if (!PO_ID) {
+            DevExpress.ui.dialog.alert("Please Select A Row...!", 'alert!');
+            return;
+        }
+
+        var statusflowcheck = PO_StatusFlowCheck(Status_Button);
+        if (statusflowcheck[1] == false) {
+            DevExpress.ui.dialog.alert(statusflowcheck[0], "Error");
+            return;
+        }
+
+        var Status_Msg = "";
+
+        switch (Status_Button) {
+
+            case "Complete":
+                Status_Msg = "Do You Want To Mark selected Purchase Order As Completed ?";
+                break;
+            case "Cancel":
+                Status_Msg = "Do You Want To Cancel the selected Purchase Order ?";
+                break;
+            case "Approve":
+                Status_Msg = "Do You Want To Approve the Purchase Order?";
+                break;
+            case "Re_Requisition":
+                Status_Msg = "Do You Want To Submit Purchase Order for Re-Requisition?";
+                break;
+            case "Reject":
+                Status_Msg = "Do You Want To Reject the Purchase Order ?";
+                break;
+            case "Reopen":
+                Status_Msg = "Do You Want To Re-open selected PO?";
+                break;
+            default:
+                Status_Msg = "";
+                break;
+        }
+        if (Status_Msg != "") {
+            var result = DevExpress.ui.dialog.confirm(Status_Msg, "Confirm Changes");
+            result.done(function (dialogResult) {
+                if (dialogResult) {
+                    if (Status_Button == "Complete" || Status_Button == "Reopen") {
+                        $.ajax({
+                            type: "POST",
+                            url: "/Stock/PurchaseRegister/PO_StatusChange_Check",
+                            data: {
+                                ID: PO_ID,
+                                StatusButton: Status_Button
+                            },
+                            success: function (data) {
+                                if (data.result == true) {
+                                    @*$("#Dynamic_Content_popup").dxPopup("instance").option("contentTemplate", "<div id='result_Dynamic_Content_popupPO'></div>");
+                                    $("#Dynamic_Content_popup").dxPopup("show");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("title", "PO ~ " + Status_Button);
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("width", "40%");
+                                    $("#Dynamic_Content_popup").dxPopup("instance").option("height", "30%");
+                                    ShowLoader();
+                                    $("#result_Dynamic_Content_popupPO").load("@Url.Action("PO_StatusChange_Window", "PurchaseRegister", new { @area = "Stock" })?ID=" + PO_ID + "&StatusButton=" + Status_Button, function () {
+                                        HideLoader();
+                                    });*@
+                                    HideLoader();
+
+                                }
+                                else {
+                                    DevExpress.ui.dialog.alert(data.message, 'Error');
+                                }
+                            }
+                        });
+                    }
+
+                    ShowLoader();
+                    $.ajax({
+                        type: "POST",
+                        url: "/Stock/PurchaseRegister/PO_StatusChange",
+                        data: {
+                            ID: PO_ID,
+                            StatusButton: Status_Button,
+                            userRole: POCurrUserRole
+                        },
+                        success: function (data) {
+                            if (data.result == true) {
+                                HideLoader();
+                                DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                                PurchaseRegisterGrid.Refresh();
+                            }
+                            else if (data.result == false) {
+                                HideLoader();
+                                DevExpress.ui.dialog.alert(data.message, 'Inform!');
+                            }
+                        }
+                    });
+                }
+
+            });
+        }
+    }
+
+
+    function PO_StatusChangeAjaxSuccessForm(data) {
+        HideLoader();
+        dontaskpopupcloseconfirmation = true;
+        if (data.result == true) {
+            DevExpress.ui.dialog.alert(data.message, 'Inform!');
+            $("#Dynamic_Content_popup").dxPopup("hide");
+            PurchaseRegisterGrid.Refresh();
+        }
+        if (data.result == false) {
+            DevExpress.ui.dialog.alert(data.message, 'Inform!');
+            $("#Dynamic_Content_popup").dxPopup("hide");
+        }
+    }
+
+</script>

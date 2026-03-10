@@ -1,0 +1,723 @@
+﻿@using DevExtreme.AspNet.Mvc;
+
+@model ConnectOneMVC.Areas.Facility.Models.ResponseMiscDetails
+
+<div class="ResponseAccomodation_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+
+        var responseID = (string)Model.resp_ids;
+        var instanceID = (string)ViewBag.ChartInstanceID;
+        var gridToRefresh = (string)ViewBag.gridToRefresh;
+    }
+    <style>
+        .dx-datagrid-headers.dx-datagrid-nowrap td {background-color: white !important; color: #85859f; font-size: smaller;}
+        .dx-datagrid-nodata{display:none;}
+        .dx-master-detail-cell {padding: 0 !Important;}
+        .master-detail-caption {padding: 0 0 5px 10px;font-size: 14px; font-weight: bold; }
+        .dx-empty {display:none  !important;}
+        #LookUp_Get_AccommodationList_datagrid .dx-toolbar-item-auto-hide { display:none;}
+        #Frm_ChartResponse_Accomodation .styleActionBtn { margin: 4px 0 4px 4px}
+
+        @@media (max-width:768px) { #Frm_ChartResponse_Accomodation{padding: 10px 10px 0 25px;}
+        }
+    </style>
+    <script>
+
+        var todate_str = "@Model.todate";
+        var fromdate_str = "@Model.fromdate";
+        var fromtime_str = "@Model.fromtime";
+        var totime_str = "@Model.totime";
+        function onOptionsValueChanged(data) {
+            let dataGrid = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            dataGrid.option("editing.selectTextOnEditStart", data.value);
+        }
+
+        function onStartEditActionValueChanged(data) {
+            let dataGrid = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            dataGrid.option("editing.startEditAction", data.value);
+        }
+    </script>
+    @helper Render_DetailDG()
+    {
+        @(Html.DevExtreme().DataGrid().CustomDataGrid()
+            .ID("LookUp_Get_AccommodationList_datagrid")
+            .Paging(paging => paging.Enabled(false))
+            .Editing(editing =>
+            {
+                editing.Mode(GridEditMode.Batch);
+                editing.AllowUpdating(true);
+                editing.AllowAdding(false);
+                editing.AllowDeleting(false);
+                editing.SelectTextOnEditStart(true);
+                editing.StartEditAction(GridStartEditAction.Click);
+            })
+            .Columns(columns =>
+            {
+                columns.Add().DataField("REC_ID").Caption("REC_ID").Visible(false).AllowEditing(false);
+                columns.Add().DataField("Building").Caption("Building").AllowEditing(false);
+                columns.Add().DataField("Room").Caption("Room").AllowEditing(false);
+                columns.Add().DataField("Allowed").Caption("Capacity").AllowEditing(false).Alignment(HorizontalAlignment.Center).Width(67);
+                columns.Add().DataField("Allotted").Caption("Already Allotted").Visible(true).AllowEditing(false).Width(65).Alignment(HorizontalAlignment.Center);
+                columns.Add().DataField("CurrentAllottment").Caption("Current Allottment").Visible(true).AllowEditing(true).SetCellValue("LookUp_Get_AccommodationList_datagrid_SetCellValue")
+                .Width(80).Alignment(HorizontalAlignment.Center)
+                    .ValidationRules(x =>
+                    {
+                        x.AddCustom().IgnoreEmptyValue(true).Message("Room Capacity Exceeded").Reevaluate(true).ValidationCallback("function(e){{ return validate_RoomCapacity(e);}}");
+                    });
+                columns.Add().Visible(true).AllowEditing(false).Caption("Available").CalculateCellValue("calculatedAvailableBeds").Width(70).Alignment(HorizontalAlignment.Center);
+            }).Selection(s => s.Mode(SelectionMode.Multiple).AllowSelectAll(false).ShowCheckBoxesMode(GridSelectionShowCheckBoxesMode.Always))
+             .OnSelectionChanged("function(selectedItems){ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys);};}")
+             .OnRowClick("Accomodation_DG_RowClick").OnRowDblClick("LookUp_Get_AccommodationList_datagrid_onCellDblclick")//.OnRowPrepared("LookUp_Get_AccommodationList_datagrid_OnRowPrepared")
+             //.SelectedRowKeys(string.IsNullOrWhiteSpace(Model.AccommodationMiscID_Multi) ? null:Model.AccommodationMiscID_Multi.spilt(','))
+                    .MasterDetail(md =>
+                     {
+                     md.Enabled(true);
+                     md.AutoExpandAll(false);
+                     md.Template(@<text><div class="master-detail-caption">
+                                            @(Html.DevExtreme().DataGrid()//.ID("LookUp_Get_AccommodationDetailList_datagrid")
+                                                .ColumnAutoWidth(true)
+                                                .ShowBorders(true)
+                                                .Columns(columns =>
+                                                {
+                                                    columns.Add().DataField("CNAME").Caption("Name").Visible(true);
+                                                    columns.Add().DataField("GENDER").Caption("Gender");
+                                                    //columns.Add().DataField("CITY").Caption("City");
+                                                    //columns.Add().DataField("CenterName");
+                                                    //columns.Add().DataField("Arr_Date").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy hh:mm").Visible(true);
+                                                    columns.Add().DataField("Dep_Date").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy hh:mm").Visible(true);
+                                                    columns.Add().DataField("Dep_Time").DataType(GridColumnDataType.DateTime).Format("hh:mm").Visible(true);
+                                                    columns.Add().DataField("ROOMID").Visible(false);
+                                                }).ElementAttr("data-masterid", new JS("data.REC_ID"))
+                                                .DataSource(d => d.Mvc().Controller("Chart").LoadAction("LookUp_Get_AccomodationDetailsList").LoadMode(DataSourceLoadMode.Raw)
+                                                .LoadParams(
+                                                    new
+                                                    {
+                                                        DDRefresh = new JS("function (){ return Look_Accommodation_DDrefresh;}"),
+                                                        end_date = new JS("function() { return todate_str;}"),
+                                                        fromdate = new JS("function() { return fromdate_str;}"),
+                                                        fromtime = new JS("function() { return fromtime_str;}"),
+                                                        end_time = new JS("function() { return totime_str;}"),
+                                                        roomid = new JS("data.REC_ID")
+                                                    }).LoadMode(DataSourceLoadMode.Raw)
+                                                )
+                                            )
+                                    </div>
+                                </text>);
+                    })               
+        )
+
+    }
+    <script>
+        
+        function Accomodation_DG_RowClick(e) { } //This function is important. Eventhough it is empty.
+        function LookUp_Get_AccommodationList_datagrid_onCellDblclick(data)
+        {
+            
+           // data.data['CurrentAllottment'] = data.data['Available']
+            //data.displayValue = data.data['Available']
+            //data.component.editCell(data.rowIndex, "CurrentAllottment");
+            var balanceBedsCount = parseInt(document.getElementById("required_Beds_p").innerHTML) - parseInt(document.getElementById("Allocating_Beds_p").innerHTML)
+            if (balanceBedsCount > 0) {
+                data.component.cellValue(data.rowIndex, "CurrentAllottment", Math.min(data.data['Available'], balanceBedsCount) + data.data['CurrentAllottment']);
+            }
+            //return data;
+        }
+        function LookUp_Get_AccommodationList_datagrid_OnRowPrepared(e) {
+            
+            //if (e.rowType === "data" && e.column.command === "expand") {
+            //    if (e.rowIndex % 2 == 0) {
+            //        e.cellElement.removeClass("dx-datagrid-expand");
+            //        e.cellElement.empty();
+            //    }
+            //}
+
+
+            //if (e.rowType == "data" && e.data.Position == "CEO") {
+            //    e.rowElement.querySelector(".dx-command-expand").firstChild.classList.remove("dx-datagrid-group-closed");
+            //}
+            //var detailDS = e.component.getDataSource();
+            //if (e.rowType === "data") {
+            //    //detailDS.filter([["masterId", "=", e.key]]);
+            //    var detailGriddata = detailDS.filter([["masterid", "=", e.key]]);
+            //    //detailDS.load().done(function (items) {
+            //    //    if (!items.length) {
+            //    //        info.rowElement.find('.dx-datagrid-group-closed').hide().
+            //    //            parent().on("dxclick", function (e) {
+            //    //                e.stopPropagation();
+            //    //            });
+            //    //    }
+            //    //});
+            //}
+
+            if (e.key == '2dade9eb-2601-4404-8bb3-4a7a8575daef') {
+                
+            }
+            if (e.rowType === "data") {
+                
+                var detailGrid = $(e.element).find(".master-detail-caption")
+                //masterid="2dade9eb-2601-4404-8bb3-4a7a8575daef"
+                //var detailGrid = e.element.find('[masterid="' + e.key + '"]');
+                if ($(detailGrid).length > 0) {
+                    var dg = $(detailGrid).dxDataGrid("instance");
+                    if (dg.totalCount() <= 0) {
+                        e.rowElement.querySelector(".dx-command-expand").firstChild.classList.remove("dx-datagrid-group-closed");
+                        //info.rowElement.find('.dx-datagrid-group-closed').removeClass("dx-datagrid-group-closed dx-datagrid-expand");
+                    }
+                }
+            }
+        }
+        function validate_RoomCapacity(e) {
+            return e.value<=(e.data["Allowed"]-e.data["Allotted"]);
+        }
+        function LookUp_Get_AccommodationList_datagrid_SetCellValue(newData, value, rowData) {
+            newData.CurrentAllottment = value;            
+            var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            if (value > 0) {
+                gridInstance.selectRows(rowData.REC_ID, true);
+            }
+            else
+            {
+                gridInstance.deselectRows(rowData.REC_ID);
+            }
+            //return e;
+        }
+        async function AccommodationMiscID_Multi_ValueChange(e, FirstCall = false)
+        {
+            var value;
+            var DG = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            if (e) {
+                value = e.value;
+                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                    DG.clearSelection();                   
+                    return;
+                }
+            }
+            else
+            {
+                value = $("#AccommodationMiscID_Multi").dxDropDownBox("option", "value");
+            }
+            await DG.selectRows(value);           
+        }
+        function OnInitialized_SelectDropdownValues_AccomMulti(e)
+        {
+            var value = [];
+            var ds = e.component.option("dataSource");
+            ds.store.load().done(function (original_Data)
+            {
+                for (var originalDataIndex = 0; originalDataIndex < original_Data.length; originalDataIndex++)
+                {
+                    if (original_Data[originalDataIndex].CurrentAllottment > 0)
+                    {
+                        value.push(original_Data[originalDataIndex].REC_ID);                       
+                    }
+                }
+                if (value != null && value.length > 0) {
+                    e.component.option("value", value);
+                }
+                
+            });
+       
+        }
+               
+        function calculatedAvailableBeds(rowData) {
+            //var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");            
+            var returnedCount = rowData.Allowed - (rowData.Allotted + rowData.CurrentAllottment);
+            var allocatingbedsCount = parseInt(document.getElementById("Allocating_Beds_p").innerHTML);
+            var requirementBedsCount = parseInt(document.getElementById("required_Beds_p").innerHTML);
+            allocatingbedsCount = 0;
+            var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            //gridInstance.clearSelection();
+            var editData = gridInstance.getController('editing')._editData
+            //var original_Data = gridInstance.getDataSource();
+            var original_Data = gridInstance.getDataSource().store().__rawData;
+            for (var originalDataIndex = 0; originalDataIndex < original_Data.length; originalDataIndex++) {
+                var allottmentvalueInLoop = undefined;
+                for (var updatedDataIndex = 0; updatedDataIndex < editData.length; updatedDataIndex++) {
+                    if (editData[updatedDataIndex].key == original_Data[originalDataIndex].REC_ID && editData[updatedDataIndex].type == 'update') {
+                        allottmentvalueInLoop = editData[updatedDataIndex].data.CurrentAllottment
+                        if (allottmentvalueInLoop > 0) {
+                            //gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                        }                        
+                    }
+                }
+                if (allottmentvalueInLoop == undefined) {
+                    allocatingbedsCount = allocatingbedsCount + original_Data[originalDataIndex].CurrentAllottment
+                    if (original_Data[originalDataIndex].CurrentAllottment > 0) {
+                        //gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                    }
+                }
+                else {
+                    allocatingbedsCount = allocatingbedsCount + allottmentvalueInLoop
+                }
+            }
+            
+            document.getElementById("Allocating_Beds_p").innerHTML = allocatingbedsCount;
+            return returnedCount;
+        }
+        
+        function allUpdatedData() {
+            //
+            var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            var editData = gridInstance.getController('editing')._editData,
+                rowCount = 0;
+            for (var i = 0; i < editData.length; i++) {
+                if (editData[i].type === 'update') {
+                    rowCount++;
+                }
+            }
+        }
+        function expandDetailedGrid() {
+            var mainDDGrid = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            mainDDGrid.expandAll(-1);
+        }
+    </script>
+    <div id="Frm_ChartResponse_Accomodation" class="container-fluid">
+        <form>
+            <div class="row">
+                <div class="col-sm-6 md-6 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">From Date:</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().ID("fromdate_AccomRegstr").Name("fromdate_AccomRegstr").ShowClearButton(true).Value(Model.fromdate)
+                            .Type(DateBoxType.Date).Placeholder("From Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31)).OnValueChanged("fromdate_Valuechanged_AccomRegstr")
+                        )
+                    </div>
+                </div>
+                <div class="col-sm-6 md-6 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">From Time:</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("fromtime_AccomRegstr").ID("fromtime_AccomRegstr").Min(DateTime.MinValue).Type(DateBoxType.Time).Value(Model.fromtime)
+                            .DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15).OnValueChanged("fromtime_ValueChange_AccomRegstr")
+                        )
+                    </div>
+                </div>
+            </div>
+            <script>
+                function fromdate_Valuechanged_AccomRegstr() {
+                    pageUpdatedorNot = true;
+                    if ($("#fromdate_AccomRegstr").dxDateBox("instance").option("value") == null) { fromdate_str = null; }
+                    else {
+                        fromdate_str = JS_Json_Date_To_ddMMyyyy($("#fromdate_AccomRegstr").dxDateBox("instance").option("value"));
+                    }
+                    var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");
+                    AccomodationDDinstance.getDataSource().reload();
+                    $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").getDataSource().reload().done(function (originalData) {
+                        allocatingbedsCount = 0;
+                        var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                        var original_Data = gridInstance.getDataSource();
+                        for (var originalDataIndex = 0; originalDataIndex < original_Data._store.__rawData.length; originalDataIndex++) {
+                            if (original_Data._store.__rawData[originalDataIndex].CurrentAllottment > 0) {
+                                gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(original_Data._store.__rawData[originalDataIndex].REC_ID);
+                            }
+                        }
+                        var editData = gridInstance.getController('editing')._editData
+                        for (i = 0; i < editData.length; i++) {
+                            if (parseInt(editData[i].data['CurrentAllottment']) > 0) {
+                                gridInstance.selectRows(editData[i].key, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(editData[i].key);
+                            }
+                        }
+                    });
+                }
+                function fromtime_ValueChange_AccomRegstr() {
+                    pageUpdatedorNot = true;
+                    if ($("#fromtime_AccomRegstr").dxDateBox("instance").option("value") == null) { fromtime_str = null; }
+                    else {
+                        fromtime_str = JS_Json_Date_To_ddMMyyyy($("#fromtime_AccomRegstr").dxDateBox("instance").option("value"));
+                    }
+                    var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");
+                    AccomodationDDinstance.getDataSource().reload();
+                    $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").getDataSource().reload().done(function (originalData) {
+                        allocatingbedsCount = 0;
+                        var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                        var original_Data = gridInstance.getDataSource();
+                        for (var originalDataIndex = 0; originalDataIndex < original_Data._store.__rawData.length; originalDataIndex++) {
+                            if (original_Data._store.__rawData[originalDataIndex].CurrentAllottment > 0) {
+                                gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(original_Data._store.__rawData[originalDataIndex].REC_ID);
+                            }
+                        }
+                        var editData = gridInstance.getController('editing')._editData
+                        for (i = 0; i < editData.length; i++) {
+                            if (parseInt(editData[i].data['CurrentAllottment']) > 0) {
+                                gridInstance.selectRows(editData[i].key, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(editData[i].key);
+                            }
+                        }
+                    });
+                }
+            </script>
+            <div class="row">
+                <div class="col-sm-6 md-6 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">To Date:</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().ID("todate_AccomRegstr").Name("todate_AccomRegstr").ShowClearButton(true).Value(Model.todate)
+                                    .Type(DateBoxType.Date).Placeholder("To Date").Min(new DateTime(1990, 01, 01)).Max(new DateTime(2038, 12, 31)).OnValueChanged("todate_Valuechanged_AccomRegstr")
+                                )
+                    </div>
+                </div>
+                <div class="col-sm-6 md-6 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">To Time:</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("totime_AccomRegstr").ID("totime_AccomRegstr").Type(DateBoxType.Time).Min(DateTime.MinValue).Value(Model.totime)
+                                    .DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15).OnValueChanged("totime_ValueChange_AccomRegstr")
+                                )
+                    </div>
+                </div>
+            </div>
+            <script>
+                function todate_Valuechanged_AccomRegstr() {
+                    pageUpdatedorNot = true;
+                    if ($("#todate_AccomRegstr").dxDateBox("instance").option("value") == null) { todate_str = null; }
+                    else {
+                        todate_str = JS_Json_Date_To_ddMMyyyy($("#todate_AccomRegstr").dxDateBox("instance").option("value"));
+                    }
+                    var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");
+                    AccomodationDDinstance.getDataSource().reload();
+                    $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").getDataSource().reload().done(function (originalData) {
+                        allocatingbedsCount = 0;
+                        var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                        var original_Data = gridInstance.getDataSource();
+                        for (var originalDataIndex = 0; originalDataIndex < original_Data._store.__rawData.length; originalDataIndex++) {
+                            if (original_Data._store.__rawData[originalDataIndex].CurrentAllottment > 0) {
+                                gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(original_Data._store.__rawData[originalDataIndex].REC_ID);
+                            }
+                        }
+                        var editData = gridInstance.getController('editing')._editData
+                        for (i = 0; i < editData.length; i++) {
+                            if (parseInt(editData[i].data['CurrentAllottment']) > 0) {
+                                gridInstance.selectRows(editData[i].key, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(editData[i].key);
+                            }
+                        }
+                    });
+
+                    //$("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").cancelEditData()
+
+                }
+                function totime_ValueChange_AccomRegstr() {
+                    pageUpdatedorNot = true;
+                    if ($("#totime_AccomRegstr").dxDateBox("instance").option("value") == null) { totime_str = null; }
+                    else {
+                        totime_str = JS_Json_Date_To_ddMMyyyy($("#totime_AccomRegstr").dxDateBox("instance").option("value"));
+                    }
+                    var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");
+                    AccomodationDDinstance.getDataSource().reload();
+                    $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").getDataSource().reload().done(function (originalData) {
+                        allocatingbedsCount = 0;
+                        var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                        var original_Data = gridInstance.getDataSource();
+                        for (var originalDataIndex = 0; originalDataIndex < original_Data._store.__rawData.length; originalDataIndex++) {
+                            if (original_Data._store.__rawData[originalDataIndex].CurrentAllottment > 0) {
+                                gridInstance.selectRows(original_Data._store.__rawData[originalDataIndex].REC_ID, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(original_Data._store.__rawData[originalDataIndex].REC_ID);
+                            }
+                        }
+                        var editData = gridInstance.getController('editing')._editData
+                        for (i = 0; i < editData.length; i++) {
+                            if (parseInt(editData[i].data['CurrentAllottment']) > 0) {
+                                gridInstance.selectRows(editData[i].key, true);
+                            }
+                            else {
+                                gridInstance.deselectRows(editData[i].key);
+                            }
+                        }
+                    });
+                }
+                var Look_BulkAllotment_RECMND_DDrefresh = false;
+            </script>
+            <br />
+            @{ if (Model.recommendationSummaryTbl.Rows.Count > 0)
+                {
+                    <div class="row" style="padding:15px;">
+                        <div class="row" style="padding-left:20px;">
+                            <p style="font-size: medium;">Recommendation Summary for the Selected People</p>
+                        </div>
+
+                        @(Html.DevExtreme().DataGrid().ID("LookUp_Get_BulkAllotmentRecommendation_datagrid")
+                            .ColumnAutoWidth(true)
+                            .ShowBorders(true).Width("100%").Height("50%")
+                            .Columns(columns =>
+                            {
+                                columns.Add().DataField("BUILDINGID_RECMND").Visible(false);
+                                columns.Add().DataField("SP_SERVICE_PLACE_NAME").Caption("Building Name").Visible(true).Alignment(HorizontalAlignment.Center).Width(150);
+                                columns.Add().DataField("CATEGORY_RECMND").Caption("Category").Visible(true).Alignment(HorizontalAlignment.Center).Width(100);
+                                columns.Add().DataField("AC_R_NONAC_RECMND").Caption("AC/Non-AC").Visible(true).Alignment(HorizontalAlignment.Center).Width(65);
+                                columns.Add().DataField("ROOMCAPACITY_RECMND").Caption("Room Capacity").Visible(true).Alignment(HorizontalAlignment.Center).Width(90);
+                                columns.Add().DataField("RECOMMENDED_BEDCOUNT").Caption("Recommended Beds Count").Visible(true).Alignment(HorizontalAlignment.Center).Width(130);
+                                columns.Add().DataField("AL_LOC_NAME").Caption("Room Number").Visible(true).Alignment(HorizontalAlignment.Center).Width(130);
+                                columns.Add().DataField("REMARKS_RECMND").Caption("Remarks").Visible(true).Alignment(HorizontalAlignment.Center).Width(130);
+
+                            }).FocusedRowEnabled(false)//.OnSelectionChanged("onSelectionChanged_BlkAlltoment")
+                            .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_RecommendationSummaryOfRespIds")//.Key("RECID_BLK")
+                            .LoadParams(
+                                new
+                                {
+                                    DDRefresh = new JS("function (){ return Look_BulkAllotment_RECMND_DDrefresh;}"),
+                                    responseids = Model.resp_ids,
+                                }).LoadMode(DataSourceLoadMode.Raw)
+                                ).Selection(s => s.Mode(SelectionMode.Single))
+                        )
+                    </div><br /><br />
+                }
+            }
+
+            <div class="row">
+                <div class="col-sm-6 md-6 px-10">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">No of Beds to be Allocated : </label>
+                        <p id="required_Beds_p">@Model.TotalRegistrations</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 md-6 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">Total Allocated Bed Count:</label>
+                        <p id="Allocating_Beds_p" style="padding-left: 20px;">@Model.BedCount</p>
+                    </div>
+                </div>
+
+                <div class="col-sm-12 md-12 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">Choose Accommodation:</label>
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().ID("AccommodationMiscID_Multi").Name("AccommodationMiscID_Multi").Placeholder("Choose Accomodation")
+                            .Value(Model.AccommodationMiscID_Multi).ValueExpr("REC_ID")
+                            .DisplayExpr(new JS("function (item){{return Look_AccommodationRooms_Multi_DisplayExpr(item)}}"))
+                            .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_AccomodationList").LoadMode(DataSourceLoadMode.Raw)
+                            .Key("REC_ID").LoadParams(new { DDRefresh = new JS("function (){ return Look_Accommodation_DDrefresh;}"),
+                                end_date = new JS("function() { return todate_str;}"),
+                                fromdate = new JS("function() { return fromdate_str;}"),
+                                fromtime = new JS("function() { return fromtime_str;}" ),
+                                end_time = new JS("function() { return totime_str;}" ),
+                                ChartResponseID = new JS("function() { return chartresponseid;}")
+                            }))
+                            .OnValueChanged("AccommodationMiscID_Multi_ValueChange").ShowClearButton(false)
+                            .OnInitialized("OnInitialized_SelectDropdownValues_AccomMulti")
+                            .ContentTemplate(@<text> @Render_DetailDG() </text>)
+                        )
+                    </div>
+                </div>
+            </div>
+            <script>
+
+                    var Look_Accommodation_DDrefresh, Look_AccommodationDetail_DDrefresh; var chartresponseid = "@Model.resp_ids";
+                    var Look_AccommodationList_DataGrid = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                    function clearAccommodationDropdown() {
+                        Look_AccommodationList_DataGrid = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+                        Look_AccommodationList_DataGrid.clearSelection();
+                        $("#AccommodationMiscID_Multi").dxDropDownBox("instance").reset();
+                    }
+                    function Look_AccommodationRooms_Multi_DisplayExpr(item) {
+
+                        var displayExpr = "";
+                        if (item != null)
+                        {
+                            //displayExpr = item.Building;
+                            //if (item.CurrentAllottment != null && item.CurrentAllottment > 0) {
+                                displayExpr = item.Building + " (" + item.Room + ")";
+                            //}
+                        }
+                        return displayExpr;
+                    }
+            </script>
+
+            <div class="row">
+                <div class="col-sm-12 md-12 pll">
+                    <div class="form-field">
+                        <label class="control-label text-red" for="user">Remarks:</label>
+                        @(Html.DevExtreme().TextArea().ID("Remarks_AccomRegstr").Name("Remarks_AccomRegstr").Value(Model.Remarks).ReadOnly(false).FocusStateEnabled(true))
+                    </div>
+                </div>
+                <div class="col-sm-12 styleActionBtn">
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("Update & Print").ID("Response_Accomodation_Add_Print").FocusStateEnabled(true)
+                                .UseSubmitBehavior(false).OnClick("updateAndPrint"))
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("Update").ID("Response_Accomodation_Add").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("update"))
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("Response_Accomodation_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { CloseAddAccomodation();} </Text>))
+                </div>
+            </div>
+
+        </form>
+    </div><!--[Form Div]-->
+
+    <script>
+        var pageUpdatedorNot = false;
+
+        function updateAndPrint() {
+            updatewithprint = true;
+            printFromButton = false;
+            addResponseAccomodation('UpdateAndPrint')
+        }
+        function update() {
+            addResponseAccomodation('Update');
+        }
+        $(document).ready(function () {
+            pageUpdatedorNot = false;
+            $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").columnOption("command:select", "visible", false); //This code is to hide selection boxes in the datagrid.
+        });
+
+        $(function () {
+            $("#Response_Accomodation_popup").dxPopup({
+                onHiding: function (e) {
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/Chart/SessionClearChartAccommodation",
+                        cache: false
+                    });
+                }
+            });
+        });
+        function CloseAddAccomodation(){
+            HidePopup('Response_Accomodation_popup');
+        }
+
+        function addResponseAccomodation(updateOrWithPrint)
+        {
+
+            var countdata = 0; var totalAllottedBedCount = 0;
+            //allUpdatedData();
+            var gridInstance = $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance");
+            //var originalgridData = gridInstance.getDataSource()._store.__rawData
+            var originalgridData = gridInstance.getDataSource().store().__rawData
+            var editData = gridInstance.getController('editing')._editData
+            //if (editData.length <= 0 && pageUpdatedorNot == false) {
+            //    DevExpress.ui.dialog.alert('You have not allotted any beds. Please allott.', "Alert");
+            //    return;
+            //}
+            if (parseInt(document.getElementById("Allocating_Beds_p").innerHTML) > parseInt("@Model.TotalRegistrations")) {
+                DevExpress.ui.dialog.alert('You have allotted the beds more than the required beds. Please recheck and correct the count.', "error");
+                return;
+            }
+            for (i = 0; i < editData.length; i++) {
+                totalAllottedBedCount = totalAllottedBedCount + parseInt(editData[i].data['CurrentAllottment'])
+                editData[i].validationResults = [];
+                editData[i].brokenRules = [];
+            }
+
+            //for(var i = 0; i < editData.length; i++) {
+                //if (editData[i].type === 'update') {
+            if (editData.length > 0) {
+                var AccomodationMiscID = editData[0].key //$("#AccommodationMiscID_Multi").dxDropDownBox("instance").option("value"); //key of the editdata needs to be taken
+                var Txt_BedCount = parseInt(editData[0].data['CurrentAllottment']) //$("#BedCount_AccomRegMlt").dxNumberBox("instance").option("value"); //needs to be taken edited data from the editData variable.
+            } else {
+                AccomodationMiscID = "";
+            }
+            var Txt_Remarks = $("#Remarks_AccomRegstr").dxTextArea("instance").option("value");
+            var _fromdate = $("#fromdate_AccomRegstr").dxDateBox("instance").option("value");
+            var _todate = $("#todate_AccomRegstr").dxDateBox("instance").option("value");
+            var _fromtime = $("#fromtime_AccomRegstr").dxDateBox("instance").option("value");
+            var _totime = $("#totime_AccomRegstr").dxDateBox("instance").option("value");
+            if (_fromdate > _todate) {
+                DevExpress.ui.dialog.alert('From Date should not be greater than to date.', "error");
+                return;
+            }
+            ShowLoader();
+
+            $.ajax({
+                type: 'Post',
+                url: "/Facility/AccommodationRegister/UpdateChartResponseAccomodation",
+                cache: false,
+                data: {
+                    ChartResponseID: "@Model.resp_ids",
+                    Accommodation: AccomodationMiscID,
+                    BedCount: "@Model.bedcounts",
+                    remarksText: Txt_Remarks,
+                    fromdate: _fromdate == null ? null : JS_Json_Date_To_ddMMyyyy(_fromdate),
+                    todate: _todate == null ? null : JS_Json_Date_To_ddMMyyyy(_todate),
+                    fromtime: _fromtime == null ? null : JS_Json_Date_To_ddMMyyyy(_fromtime),
+                    totime: _totime == null ? null : JS_Json_Date_To_ddMMyyyy(_totime),
+                    editedData: JSON.stringify(editData),
+                    gridToRefresh: "@gridToRefresh",
+                    Registrations: "@Model.registrations",
+                    Reg_Names: "@Model.namesOfRegisteredPersons",
+                    originalData: JSON.stringify(originalgridData),
+                    performAction: updateOrWithPrint
+                },
+                success: function (data)
+                {
+                    debugger;
+                    HideLoader();
+                    if (typeof data.jsonParam === "undefined")
+                    {
+                        if (data.length > 0)
+                        {
+                            HidePopup('Response_Accomodation_popup');
+                            GoAccomRegister()
+                            if ("@Model.resp_ids".length > 36)
+                            {
+                                OpenPopup("PrintSlipPopup_AccomRegstr", "Print Slip Options", null, "auto", 360, true, data, "maxheightPrintSlip");
+                            }
+                            else
+                            {
+                                OpenPopup("PrintSlipPopup_AccomRegstr", "PrintSlip(s)", null, "auto", 380, true, data, "maxheightPrintSlip");
+                            }
+                        }
+                    }
+                    else if (data.jsonParam.result) {
+                        HideLoader();
+                        HidePopup('Response_Accomodation_popup');
+                        if (data.jsonParam.message == "Accomodation Has Been Allotted/Updated Successfully" && updateOrWithPrint == "UpdateAndPrint") {
+                            GoAccomRegister()
+
+                        }
+                        else {
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    if (data.jsonParam.flag == 'AccommodationRegister_InfoGrid') {
+                                        GoAccomRegister()
+                                        AccommodationRegister_InfoGrid.UnselectRows();
+                                    }
+                                    else if (data.jsonParam.flag.toLocaleLowerCase().includes("dx"))
+                                    {
+                                        var GridInstance = $('#' + data.jsonParam.flag.trim()).data("dxDataGrid")//BK SOUMY
+                                        if (GridInstance !== void 0) {
+
+                                            window[data.jsonParam.flag + "_Refresh"]();
+                                        }
+                                    }
+
+                                    else {
+                                        ASPxClientControl.GetControlCollection().GetByName(data.jsonParam.flag).Refresh();
+                                    }
+                                }
+                            });
+                        }
+
+
+
+
+                    }
+                    else if (data.jsonParam.result == false) {
+                        HideLoader();
+                        if (data.jsonParam.flag != undefined && data.jsonParam.flag == "refeshDropdown") {
+                            //var AccomodationDDinstance = $("#AccommodationMiscID_Multi").dxDropDownBox("instance");
+                            //$("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").cancelEditData();
+                            $("#LookUp_Get_AccommodationList_datagrid").dxDataGrid("instance").refresh();
+                        }
+                        DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                    }
+                }
+            });
+        }
+    </script>
+
+</div>

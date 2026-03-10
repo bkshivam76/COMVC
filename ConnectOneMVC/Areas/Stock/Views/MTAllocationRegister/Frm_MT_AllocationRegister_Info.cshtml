@@ -1,0 +1,638 @@
+﻿@using DevExtreme.AspNet.Mvc;
+@model IEnumerable<dynamic>
+@{
+    bool MT_Add_Rights = (bool)ViewData["MT_AddRight"];
+    bool MT_Update_Rights = (bool)ViewData["MT_UpdateRight"];
+    bool MT_View_Rights = (bool)ViewData["MT_ViewRight"];
+    bool MT_Delete_Rights = (bool)ViewData["MT_DeleteRight"];
+    bool MT_Export_Rights = (bool)ViewData["MT_ExportRight"];
+    bool MT_Report_Rights = (bool)ViewData["MT_ReportRight"];
+    bool MT_Approve_Rights = (bool)ViewData["MT_ApproveRight"];
+    bool MT_AddJob_Rights = (bool)ViewData["MT_AddJobRight"];
+}
+<style>
+    .dx-toolbar-after .dx-button-content {
+        padding-right: 0px !important;
+    }
+
+    .padd {
+        padding-left: 10px !important;
+    }
+
+    .dx-texteditor-container {
+        overflow: visible
+    }
+
+    .dx-state-disabled .dx-texteditor-input {
+        color: darkgoldenrod;
+    }
+
+    .padd70 {
+        padding-left: 70px !important;
+    }
+
+    /*.dx-icon {
+        line-height: 14px !important;
+        font-size: 18px !important;
+    }*/
+</style>
+<div id="content" class="col-md-12 report_header_div_main">
+    <div class="col-md-4 padd report_header_div">
+        <label class="report_header_label">Machines and Tools Allocation Register</label>
+    </div>
+    <div class="report_button_div">
+        @(Html.DevExtreme().Button().ID("MTAllocationReturn").Text("Mark as Returned").Visible(true).Icon(Url.Content("~/Icons/return40.png")).Disabled(false).OnClick(@<text>function(){MTAllocationPartialReturnClick();}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationFullReturn").Text("Mark Fully Returned").Visible(true).Icon(Url.Content("~/Icons/return_purchase-40.png")).Disabled(false).OnClick(@<text>function(){MTAllocationFullReturnClick();}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationItemLost").Text("Item Lost").Icon(Url.Content("~/Icons/lost-and-found-40.png")).Visible(true).Disabled(false).OnClick(@<text>function(){MTAllocationItemLostClick();}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationNew").Text("IssueTools").Icon("add").Visible(true).Disabled(false).OnClick(@<text>function(){MTAllocationIssueToolClick();}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationEdit").Text("Edit").Icon("edit").Visible(true).Disabled(false).OnClick(@<text>function(){MTAllocationButton_Click("Edit");}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationDelete").Text("Delete").Icon("trash").Visible(true).Disabled(false).OnClick(@<text>function(){MTAllocationButton_Click("Delete");}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationView").Text("View").Icon("doc").Disabled(false).OnClick(@<text>function (){MTAllocationButton_Click("View");}</text>))
+        @(Html.DevExtreme().Button().ID("MTAllocationListPreview").Text("List Export").Icon("save").OnClick(@<text>function(){ MToolAllocationPreviewClick();} </text>))
+        @(Html.DevExtreme().Button().ID("MT_MasterToggleScrollBar").Text("Full Data").Icon("toolbox").OnClick(@<text>function () {OnMTChangeMode(); } </text>))
+        @(Html.DevExtreme().Button().ID("btnMTExpandAll").Icon("preferences").Text("Expand All").OnClick(@<text> function () { MTMasterExpandAll(); } </text>) )
+        @(Html.DevExtreme().Button().ID("MTAllocationCLOSE").Text("Close").Icon("clear").OnClick(@<text>function (){$(".TabPanalMenu-tabs .active span").click()} </text>))
+    </div><!--[Buttons]-->
+</div>
+<div id="dateselection" class="col-md-12 report_header_div_main">
+    <div class="row margin8">
+        <div class="col-md-2 pad-bot-20">
+            @(Html.DevExtreme().SelectBox().ID("MTAllocationPeriodSelection").Name("MTAllocationPeriodSelection").Placeholder("Specific Period").DisplayExpr("Text").ValueExpr("Value")
+                                  .DataSource(d => d.Mvc().Controller("MTAllocationRegister").LoadAction("LookUp_Get_ViewType_List_MTAllocation")
+                                  .Key("Value")).SearchEnabled(true).ReadOnly(false).Disabled(false).OnValueChanged("LookUp_ViewType_ChangeEvent_MTAllocation").Visible(true))
+        </div><!--[Select Date]-->
+
+        <div class="col-md-2  no-padding  margin8-16">
+            @(Html.DevExtreme().Button().ID("MTAllocationChangePeriodMain").Text("Change Period").Disabled(true).OnClick(@<text>function (){ ChangePeriodinLayout(); } </text>))
+        </div><!--[Change Period]-->
+
+        <div class="col-sm-4 col-md-3subHead">
+            <div class="dx-texteditor dx-state-readonly dx-widget dx-textbox">
+                <div class="">
+                    @(Html.DevExtreme().TextBox().ID("MTAllocation_View_Period").Name("MTAllocation_View_Period").Placeholder("View Period").ShowClearButton(true).ReadOnly(true).ValidationError(true).MaxLength(100) )
+                </div>
+            </div>
+        </div><!--[View Period TextBox]-->
+
+    </div>
+    <div class="row">
+        <div class="col-md-12 padd ">
+            <form>
+                <div id="MTAllocationRegisterPartialView" class="parent_table">
+                    @Html.Partial("Frm_MT_AllocationRegister_Grid", Model)
+                </div>
+            </form>
+        </div>
+    </div><!--[Grid]-->
+    <div class="footer-MainBoxdiv full-width-footer margin8-0">
+        <div class="col-md-9">
+            <p id="MTLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+            <p id="MTLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+        </div>
+    </div><!--[Grid Footer]-->
+</div>
+@(Html.DevExtreme().Popup().CustomPopup().ID("MTAllocation_report_modal").Title("Machine Tool Allocation").FullScreen(false).MaxWidth(125).Height("auto").ShowCloseButton(true).ContentTemplate(@<text> <div id="id_MachineToolAllocation_Result"></div> </text>))
+@(Html.DevExtreme().Popup().CustomPopup().ID("mtainnergrid").CloseOnOutsideClick(false).ShowTitle(true).Title("New ~ ").MaxHeight(600).MaxWidth(1400).ContentTemplate(@<text> <div id="result_mtainnergrid">  </div> </text>))
+<script>
+    var MT_ID;
+    var MT_ISSUE_ID = 0;
+    var MT_RETURN_ID = 0;
+    var MT_IssueGrid_SelectedRowID = new Array();
+    var MT_ReturnGrid_SelectedRowID = new Array();
+    var index;
+    var issueGrid_index;
+    var MT_Master_ShowHorizontalBar = 0;
+    var MTIsAllDetailExpanded = false;
+    var MT_CurrUserRole = new Array();  
+    var MT_DetailRowExpandedCount = 0;
+    var isMTGridRefresh = false;
+          
+
+</script>
+<script>
+    function LookUp_ViewType_ChangeEvent_MTAllocation(e)
+    {
+        var SelectBox = $("#MTAllocationPeriodSelection").dxSelectBox("instance").option("value");
+        $("#MTAllocationChangePeriodMain").dxButton("instance").option("disabled", true);
+        if (SelectBox == "Specific Period")
+        {
+            $("#MTAllocationChangePeriodMain").dxButton("instance").option("disabled", false);
+            $("#MTAllocation_View_Period").dxTextBox("instance").option("value", "");
+            ChangePeriodinLayout();
+        }
+        else
+        {
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Stock/MTAllocationRegister/LookUp_ViewType_ChangeEvent_MTAllocation",
+                data: { Chaval: $("#MTAllocationPeriodSelection").dxSelectBox("instance").option("value") },
+                cache: false,
+                success: function (data) {
+                    if (data.result == "true" || data.result == true)
+                    {
+                        $("#MTAllocation_View_Period").dxTextBox("instance").option("value", data.Message.MTAllocation_BE_View_Period);
+                        ShowLoader();
+                        MTAllocationRegisterListGrid.Refresh();
+                        HideLoader();
+                    }
+                }
+            });
+            HideLoader();
+        }
+    } //Period Selection
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/SessionClear",
+            cache: false
+        });
+        DeleteCookie("MTACookie");
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/InfoSessionclear",
+            cache: false
+        });
+    });
+
+    function ChangePeriodinLayout()
+    {
+        ShowLoader();
+        OpenDynamicPopup("Change Period", "@Url.Action("Frm_Change_Period_Screen_MTAllocation", "MTAllocationRegister", new { @area = "Stock" })", "auto", "45%", false, null);
+    }// Change Period Button Click
+
+</script>@* Period Selection *@
+<script>
+$(document).ready(function ()
+    {
+        var DefaultDateString = '@ViewBag.DefualtDateString';
+        $("#MTAllocationPeriodSelection").dxSelectBox("instance").option("value", DefaultDateString);
+        if ("@MT_Add_Rights" == "False")
+        {      
+            $("#MTAllocationNew").hide(); 
+            $("#MTAllocationReturn").hide();
+            $("#MTAllocationFullReturn").hide();
+            $("#MTAllocationItemLost").hide();
+        }
+        if ("@MT_Update_Rights" == "False")
+        {            
+            $("#MTAllocationEdit").hide();
+        }
+        if ("@MT_Delete_Rights" == "False")
+        {      
+            $("#MTAllocationDelete").hide();              
+        }
+        if ("@MT_View_Rights" == "False")
+        {           
+            $("#MTAllocationView").hide();             
+        }
+        if ("@MT_Export_Rights" == "False")
+        {      
+            $("#MTAllocationListPreview").hide();
+        }
+    });  //document ready function(setting default date & check rights)
+</script>@* Document.ready *@
+<script>
+    function MTAdjustSize()
+    {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        MTAllocationRegisterListGrid.SetHeight(height);
+    }
+    function MTOnInit(s, e)
+    {
+        MTAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt)
+        {
+            MTAdjustSize();
+        });
+        s.SetFocusedRowIndex(-1);
+    }
+    function MTAllocationRegisterGrid_BeginCallBack(s, e)
+    {
+        e.customArgs["command"] = e.command;
+        
+        if (e.command == "REFRESH") {
+            isMTGridRefresh = true;
+        }
+        e.customArgs["ShowHorizontalBar"] = MT_Master_ShowHorizontalBar;
+    }
+    function MTAllocationRegisterGrid_EndCallBack(s, e)
+    {
+        MTAdjustSize();
+        MT_DetailRowExpandedCount = s.cpDetailRowCount;
+        SendCustomArgs_FilterControl(s, e);
+    }  
+
+    function MTAllocationGridFocusedRowChanged(s, e)
+    {     
+     
+        if (s.GetFocusedRowIndex() == -1)
+        {
+            MT_ID = 0;
+            $('#MTLbl_Create').text("");
+            $('#MTLbl_Modify').text("");
+        }
+        else
+        {
+            MT_ID = s.GetRowKey(s.GetFocusedRowIndex());
+            s.GetValuesOnCustomCallback({ key: MT_ID },MTgetRowValues);
+            s.CollapseAllDetailRows();
+        }
+    }
+    function MTgetRowValues(Data)
+    {
+        var values = Data.split("![");
+        MT_CurrUserRole = (values[5] != null && values[5].length > 0) ? values[5].split(',').map(item => item.trim()) : null;//Mantis bug 0001150 fixed      
+        var Lbl_Create = "Add On: " + values[3] + ", By: " + values[2];   
+        var Lbl_Modify = "Edit On: " + values[1] + ", By: " + values[0];
+        $('#MTLbl_Create').text(Lbl_Create);
+        $('#MTLbl_Modify').text(Lbl_Modify);
+    }
+    function CollapseMTRow(s, e)
+    {
+        s.SetFocusedRowIndex(index);
+    }
+    function ExpandMTRow(s, e)
+    {
+        if (MT_IssueGrid_SelectedRowID != null && MT_IssueGrid_SelectedRowID.length > 0)
+        {
+            if (MT_DetailRowExpandedCount > 0)
+            {
+                e.cancel = true;
+            }
+        }
+        index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+    }
+    function MT_IssueDetailGrid_init(s, e)
+    {
+        s.SetFocusedRowIndex(-1);
+    }
+    function ExpandMT_IssueDetailGrid_Row(s, e)
+    {
+        issueGrid_index = e.visibleIndex;
+        s.SetFocusedRowIndex(-1);
+    }
+    function CollapseMT_IssueDetailGrid_Row(s, e)
+    {
+        s.SetFocusedRowIndex(issueGrid_index);
+    }
+    function MTAllocationIssueGridRowSelectionChanged(s, e)
+    {
+        s.GetSelectedFieldValues("ID", GetIssueGridSelectedFieldValuesCallback);
+    }
+    function GetIssueGridSelectedFieldValuesCallback(values)
+    {        
+        MT_IssueGrid_SelectedRowID = values;              
+    }
+    function MT_ReturnDetailGrid_init(s, e)
+    {
+        s.SetFocusedRowIndex(-1);
+    }
+    function MT_ReturnGridRowSelectionChanged(s, e)
+    {
+        s.GetSelectedFieldValues("ID", GetReturnGridSelectedFieldValuesCallback);
+    }
+    function GetReturnGridSelectedFieldValuesCallback(values)
+    {        
+        MT_ReturnGrid_SelectedRowID = values;
+    }
+    function MTAllocationContextMenuFunction(s, e)
+    {
+        if (e.item.name == 'New')
+        {
+            MTAllocationIssueToolClick();
+        }
+        else if (e.item.name == 'Close') {
+            $(".TabPanalMenu-tabs .active span").click();
+        }
+        else if (e.item.name == 'Edit') {
+            MTAllocationButton_Click("Edit");
+        }
+        else if (e.item.name == 'Delete') {
+            MTAllocationButton_Click("Delete");
+        }
+        else if (e.item.name == 'View') {
+            MTAllocationButton_Click("View");
+        }
+        else if (e.item.name == 'ListPreview') {
+            MToolAllocationPreviewClick();
+        }
+        else if (e.item.name == 'MarkFullReturned') {
+            MTAllocationFullReturnClick("View");
+        }
+        else if (e.item.name == 'MarkRetunred') {
+            MTAllocationPartialReturnClick();
+        }
+    }
+</script>@* Grid Functions *@
+<script>
+    function OnMTChangeMode()
+    {
+        ShowLoader();
+        if (MT_Master_ShowHorizontalBar == 0)
+        {
+            MT_Master_ShowHorizontalBar = 1;
+            $("#MT_MasterToggleScrollBar").find("span").text("Default Data");
+        }
+        else
+        {
+            MT_Master_ShowHorizontalBar = 0;
+            $("#MT_MasterToggleScrollBar").find("span").text("Full Data");
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_MT_AllocationRegister_Grid", "MTAllocationRegister")',
+            type: "GET",
+            data: { ShowHorizontalBar: MT_Master_ShowHorizontalBar },
+            success: function (res)
+            {
+                $("#MTAllocationRegisterPartialView").html(res);
+            }
+        });
+        HideLoader();
+    }//full data button click
+    function MTMasterExpandAll()
+    {
+        if (!MTIsAllDetailExpanded)
+        {
+            MTAllocationRegisterListGrid.ExpandAllDetailRows(); MTIsAllDetailExpanded = true;
+            $("#btnMTExpandAll").find("span").text("Collapse All");
+        }
+        else
+        {
+            MTAllocationRegisterListGrid.CollapseAllDetailRows(); MTIsAllDetailExpanded = false;
+            $("#btnMTExpandAll").find("span").text("Expand All");
+        }
+    }
+    function MTAllocationIssueToolClick()
+    {
+        if ("@MT_Add_Rights" == "False")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/Frm_NEVD_MTAllocation",
+            data:
+            {
+                ActionMethod:"New"               
+            },
+            cache: false,
+            success: function (data)
+            {              
+                OpenDynamicPopup("New ~ Tools Allocation", null, "auto", "85%", true, data);               
+            }
+        });       
+    }
+    function MTAllocationButton_Click(_actionMethod)
+    {
+        if (MT_ReturnGrid_SelectedRowID != null && MT_ReturnGrid_SelectedRowID.length > 0)
+        {
+            MTAllocationReturn_EVDClick(_actionMethod);
+        }
+        else if (MT_ID > 0)
+        {
+            MTAllocationIssue_EVDClick(_actionMethod);
+        }
+        else
+        {
+            DevExpress.ui.dialog.alert("Kindly Select A Row From Main grid Or Return Details Grid..", "Error");
+        }
+    }
+    function MTAllocationIssue_EVDClick(_actionMethod)
+    {     
+        if ("@MT_Update_Rights" == "False" && _actionMethod=="Edit" )
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if ("@MT_Delete_Rights" == "False" && _actionMethod == "Delete")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if ("@MT_View_Rights" == "False" && _actionMethod == "View")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if (! MT_ID)
+        {
+            DevExpress.ui.dialog.alert("Please Select A Row...!!", "Error");
+            return;
+        }        
+        var Data_Nav_Check = new Array();
+        if (_actionMethod == "Delete" || _actionMethod == "Edit")
+        {
+            if (MT_CurrUserRole == null || MT_CurrUserRole.includes("Issuing Store User") == false)
+            {
+               DevExpress.ui.dialog.alert("User Is Not From Issuing Store Of Selected Row..", "Inform..");
+                return;
+            }
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Stock/MTAllocationRegister/DataNavigation",
+                data: {
+                    IssueMainRowID: MT_ID
+                },
+                cache: false,
+                success: function (data)
+                {
+                    Data_Nav_Check[0] = !data.result;
+                    Data_Nav_Check[1] = data.message;
+                }
+            });
+        }
+        if (Data_Nav_Check[0] && (_actionMethod == "Delete" || _actionMethod == "Edit"))
+        {
+            DevExpress.ui.dialog.alert(Data_Nav_Check[1], "Inform..");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/Frm_NEVD_MTAllocation",
+            data:
+            {
+                ActionMethod: _actionMethod,
+                ID: MT_ID
+            },
+            cache: false,
+            success: function (data)
+            {                
+                OpenDynamicPopup(_actionMethod + " ~ Tools Allocation", null, "auto", "85%", true, data);               
+            }
+        });        
+    }
+
+    function MTAllocationPartialReturnClick()
+    {       
+        if ("@MT_Add_Rights" == "False")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if (MT_IssueGrid_SelectedRowID.length > 1)
+        {
+            DevExpress.ui.dialog.alert("Not More Than One Issue Item Row Should Be Selected", "Error..");
+            return;   
+        }  
+        var MT_issue_ID = MT_IssueGrid_SelectedRowID.length == 1 ? MT_IssueGrid_SelectedRowID[0]:0;
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/Frm_New_Mach_Tool_Return",
+            data: {
+                ActionMethod: "New",              
+                ISSUEROWID: MT_issue_ID
+            },
+            cache: false,
+            success: function (data)
+            {              
+                OpenDynamicPopup("New ~ Return Tools", null, "auto", "85%", true, data);               
+            }
+        });
+    }
+    function MTAllocationFullReturnClick()
+    {
+        if ("@MT_Add_Rights" == "False")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if (MT_IssueGrid_SelectedRowID.length < 1)
+        {
+            DevExpress.ui.dialog.alert("Atleast One Issue Item Row Should Be Selected", "Error..");
+            return;
+        }     
+        ShowLoader();
+        $.ajax({
+            type: 'POST',
+            url: "/Stock/MTAllocationRegister/Frm_Mach_Tool_Full_Return",
+            data:
+            {               
+                ISSUEROWID: MT_IssueGrid_SelectedRowID
+            },
+            cache: false,
+            success: function (data)
+            {              
+                OpenDynamicPopup("Tools/Machines Full Return", null, "auto", "85%", true, data);             
+            }
+        });
+    }
+    function MTAllocationReturn_EVDClick(_actionMethod)
+    {
+        if ("@MT_Update_Rights" == "False" && _actionMethod == "Edit")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if ("@MT_Delete_Rights" == "False" && _actionMethod == "Delete")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if ("@MT_View_Rights" == "False" && _actionMethod == "View")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        if (MT_ReturnGrid_SelectedRowID == null || MT_ReturnGrid_SelectedRowID.length<1)
+        {
+            DevExpress.ui.dialog.alert("Kindly Select One Row From Return Details..", "Error..");
+            return;   
+        }
+        var MT_ReturnRow_ID = MT_ReturnGrid_SelectedRowID.length > 0 ? MT_ReturnGrid_SelectedRowID[0] : 0;
+        var ToolIssuedSomewhere = false;
+        var Data_Nav_Check = new Array();
+        if (_actionMethod == "Delete" || _actionMethod == "Edit")
+        {
+            if (MT_CurrUserRole == null || MT_CurrUserRole.includes("Issuing Store User") == false)
+            {
+               DevExpress.ui.dialog.alert("User Is Not From Issuing Store Of Selected Row..", "Inform..");
+               return;
+            }
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: "/Stock/MTAllocationRegister/DataNavigation",
+                data: {
+                    ReturnRowID: MT_ReturnRow_ID
+                },
+                cache: false,
+                success: function (data)
+                {
+                    Data_Nav_Check[0] = !data.result;
+                    Data_Nav_Check[1] = data.message;
+                }
+            });
+        }
+        if (Data_Nav_Check[0] && (_actionMethod == "Delete" || _actionMethod == "Edit"))
+        {
+            DevExpress.ui.dialog.alert(Data_Nav_Check[1], "Inform..");
+            return;
+        }
+        if (_actionMethod == "Delete")
+        {
+            $.ajax({
+                type: 'GET',
+                async:false,
+                url: "/Stock/MTAllocationRegister/CheckToolIssued",
+                data: {               
+                    ReturnRowID: MT_ReturnRow_ID
+                },
+                cache: false,
+                success: function (data)
+                {
+                    ToolIssuedSomewhere = !data.result;
+                }
+            });
+        }
+        if (ToolIssuedSomewhere && _actionMethod == "Delete")
+        {
+            DevExpress.ui.dialog.alert("Return Cannot Be Deleted If The Tool Has Already Been Issued..!", "Inform..");
+            return;
+        }
+        ShowLoader();
+        $.ajax({
+            type: 'GET',
+            url: "/Stock/MTAllocationRegister/Frm_New_Mach_Tool_Return",
+            data: {
+                ActionMethod: _actionMethod,              
+                ReturnRowID: MT_ReturnRow_ID
+            },
+            cache: false,
+            success: function (data)
+            {               
+                OpenDynamicPopup(_actionMethod + " ~ Return Tools", null, "auto", "85%", true, data);            
+            }
+        });
+    }
+    function MTAllocationItemLostClick()
+    {
+        if ("@MT_Add_Rights" == "False")
+        {      
+            DevExpress.ui.dialog.alert("Not Allowed..", "No Rights");
+            return;       
+        }
+        DevExpress.ui.dialog.alert("Coming Soon", "Inform");
+    }
+    function MToolAllocationPreviewClick()
+    {
+        if ("@MT_Export_Rights" == "False")
+        {
+          DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+          return;
+        }
+        $("#MTAllocation_report_modal").dxPopup("show");
+        $("#MTAllocation_report_modal").dxPopup("instance").option("title", "Export Option");
+        $("#MTAllocation_report_modal").html('');
+        ShowLoader();
+        $("#id_MachineToolAllocation_Result").load("@Url.Action("Frm_Export_Options", "MTAllocationRegister", new { @area = "Stock" })", function () {
+            HideLoader();
+        });
+    }//preview click
+</script>@* Button Functions *@

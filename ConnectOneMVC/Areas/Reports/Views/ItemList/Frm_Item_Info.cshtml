@@ -1,0 +1,341 @@
+﻿<div class="ItemListReport_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @using DevExpress;
+    @using DevExpress.Web.Mvc;
+    @model IEnumerable<dynamic>
+    @{ 
+        ViewBag.Title = "Index";
+        Layout = null;
+        var UserType = ViewBag.UserType;
+        bool ItemList_ExportRight = (bool)ViewData["ItemList_ExportRight"];
+        bool ItemList_Auto_Vouching_Mode = (bool)ViewData["ItemList_Auto_Vouching_Mode"];
+     }
+    <div id="content" class="col-md-12 report_header_div_main">
+        <div class="col-md-4 report_header_div">
+            <label class="report_header_label">Item Information</label>
+        </div>
+        @*Buttons*@
+        <div class="report_button_div">
+            @(Html.DevExtreme().Switch().ID("ItemReportVouchingModeSwitch").SwitchedOnText("Vouching On").SwitchedOffText("Vouching Off").OnValueChanged("ItemReport_VouchingSwitch_ValueChange").Width(100).Visible(UserType.ToUpper() == "SUPERUSER" || UserType.ToUpper() == "AUDITOR"))
+            @(Html.DevExtreme().Button()
+                                                        .ID("Item_InfoToggleScrollBar")
+                                                        .Text(ViewBag.ShowHorizontalBar == 1 ? "Default Data" : "Full Data").Width(ViewBag.ShowHorizontalBar == 1 ? 110 : 90)
+                                                        .Icon("toolbox")
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            Item_InfochangeMode();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("Item_InfosModelListPreview")
+                                                        .Text("Export")
+                                                        .Icon("save")
+                                                         .Width(80)
+                                                        .OnClick(@<text>
+                                                            function () {
+                                                            OnItem_InfoListPreviewClick();
+                                                            }
+                                                        </text>)
+        )
+            @(Html.DevExtreme().Button()
+                                                        .ID("Item_InfoModelCLOSE")
+                                                        .Text("Close")
+                                                        .Icon("clear")
+                                                        .OnClick(@<text>
+                                                            function (){
+                                                            $(".TabPanalMenu-tabs .active span").click()
+                                                            }
+                                                        </text>)
+
+        )
+        </div>
+    </div>
+    <div class="col-md-12 no-padding">
+        <form>
+            <div id="Item_InforeloadPartialView" class="parent_table">
+                @Html.Partial("Frm_Item_Info_Grid", Model)
+            </div>
+        </form>
+    </div>
+    <div class="footer-MainBoxdiv full-width-footer">
+        @*<div class="col-lg-8 report_footer_small_buttons_div" id="ItemsFooterItem">*@
+        <div class="list_footer_left_margin col-md-10">
+            <div>
+                @*class="footer_new_left"*@
+                <div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-locktext">
+                            <div id="Items_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="Items_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="ItemsLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <p id="ItemsLbl_Create" style="margin:0px" class="left_footertext_top"></p>
+                        <p id="ItemsLbl_Modify" style="margin:0px" class="left_footertext_bottom"></p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="list_footer_right_margin_consistent col-md-1">
+            @*<i id="Items_LockICON" class="fa fa-lock lock_symbol"></i>*@
+        </div>
+        @*</div>
+            <div class="col-lg-4 listing_footer_filter_buttons_div">
+            </div>*@
+    </div>
+
+    <div class="col-md-12">
+        @*Add/Edit Popup*@
+        @(Html.DevExtreme().Popup().CustomPopup()
+                        .ID("Item_Info_report_modal")
+                         .OnShowing("PopupOnShowing")
+                        .Title("Item List Preview")
+                        .FullScreen(false)
+                        .MaxWidth(125)
+                       .Height("auto")
+                        .ShowCloseButton(true)
+                        .ContentTemplate(@<text>
+                            <div id='Item_Info_report_modal_result'>
+                            </div>
+                        </text>)
+    )
+
+    </div>
+
+    @*Javascript Events*@
+<script class="ItemListReport_Scripts">
+    var ItemReport_IsVouchingMode = false;
+    var ItemList_SetVouchingModeOn = "@ItemList_Auto_Vouching_Mode" == "True" ? true : false;
+    function ItemReport_VouchingSwitch_ValueChange(e)
+    {
+        ItemReport_IsVouchingMode = e.value;
+        Item_InfoListGrid_PerformCallBack();
+    }
+    function Item_InfoListGrid_PerformCallBack()
+    {
+        debugger;
+        if (typeof window !== 'undefined')
+        {
+            if (typeof window.Item_InfoListGrid !== 'undefined')
+            {
+                if (typeof window.Item_InfoListGrid.PerformCallback !== 'undefined')
+                {
+                    if (typeof Item_InfoListGrid.PerformCallback == 'function')
+                    {
+                        Item_InfoListGrid.PerformCallback();
+                    }
+                    else
+                    {
+                        alert("PerformCallback is not a function");
+                    }
+                }
+                else
+                {
+                    ShowLoader();
+                    setTimeout(function ()
+                    {
+                        Item_InfoListGrid_PerformCallBack();
+                        HideLoader();
+                    }, Timeout100);
+                }
+            }
+            else
+            {
+                alert('grid undefined')
+            }
+        }
+        else
+        {
+            alert('window undefined')
+        }
+    }
+
+    var IsItem_InfoSucessPopup = false;
+    var IsItem_InfoViewPopup = false;
+    var Item_Info_ShowHorizontalBar = parseInt("@ViewBag.ShowHorizontalBar");
+    var ItemList_ExportRight;
+    $(document).ready(function () {
+        IsItem_InfoSucessPopup = false;
+        IsItem_InfoViewPopup = false;
+       // SetItem_InfoGroupPanelFooterVisible();
+        //$("#Item_InfoListGrid").hover(function () {
+        //    Item_InfoListGrid.Focus()
+        //})
+
+        ItemList_ExportRight = ("@ItemList_ExportRight" == "True") ? true : false;
+
+        if (ItemList_ExportRight != true)
+        {
+            $("#Item_InfosModelListPreview").hide();
+        }
+        GetSessionStorage("Item_InfoListGrid");
+        $(".Item_InfoListGrid_PreviewRow").hide();
+
+        if (ItemList_SetVouchingModeOn == true) {
+            $("#ItemReportVouchingModeSwitch").dxSwitch("instance").option("value", true);
+            //$("#DonRegViewModeSwitch").dxSwitch("instance").option("value", true);
+        }
+    });
+    $(".TabPanalMenu-tabs .active span").on("click", function () {
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/ItemList/SessionClear",
+            cache: false
+        });
+        ClearAllReferences_ItemListReport();
+    });
+        function ClearAllReferences_ItemListReport()
+        {
+            ItemReport_IsVouchingMode = null;
+            ItemList_SetVouchingModeOn = null;
+            IsItem_InfoSucessPopup = null;
+            IsItem_InfoViewPopup = null;
+            Item_Info_ShowHorizontalBar = null;
+            ItemList_ExportRight = null;
+            UserType_ItemPrf = null;
+            ItemID = null;
+            Item_EditDate = null;
+            Item_AddDate = null;
+            Item_AddBy = null;
+            Item_EditBy = null;
+            Item_ActionStatus = null;
+            Item_ActionDate = null;
+            Item_ActionBy = null;
+
+            ClearAllReferences("ItemListReport_ClearReferences");
+        }
+    var UserType_ItemPrf = "@UserType".toUpperCase();
+
+    function Item_InfoOnInit(s, e) {
+        Item_InfoAdjustSize();
+        ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            Item_InfoAdjustSize();
+        });
+        $(".Item_InfoListGrid_PreviewRow").hide();
+    }
+    function OnGridItem_InfoListGrid_BeginCallback(s, e)
+    {
+        e.customArgs["VouchingMode"] = ItemReport_IsVouchingMode;
+        e.customArgs["command"] = e.command;
+        e.customArgs["ShowHorizontalBar"] = Item_Info_ShowHorizontalBar;
+    }
+    function OnGridItem_InfoListGrid_EndCallback(s, e) {
+      //  Item_InfoAdjustSize();
+       $(".Item_InfoListGrid_PreviewRow").hide();
+        GetSessionStorage("Item_InfoListGrid");
+        SendCustomArgs_FilterControl(s, e);
+    }
+
+    function Item_InfoAdjustSize() {
+        var height = (document.documentElement.clientHeight * 90) / 100;
+        try{Item_InfoListGrid.SetHeight(height);} catch (err) { }
+    }
+    function Item_InfochangeMode() {
+        ShowLoader();
+        if (Item_Info_ShowHorizontalBar == 0) {
+            Item_Info_ShowHorizontalBar = 1;
+            $("#Item_InfoToggleScrollBar").find("span").text("Default Data");
+            $("#Item_InfoToggleScrollBar").width(110);
+        }
+        else {
+            Item_Info_ShowHorizontalBar = 0;
+            $("#Item_InfoToggleScrollBar").find("span").text("Full Data");
+            $("#Item_InfoToggleScrollBar").width(110);
+        }
+        $.ajax({
+            url: '@Url.Action("Frm_Item_Info_Grid", "ItemList")',
+            type: "GET",
+            data: {
+                ShowHorizontalBar: Item_Info_ShowHorizontalBar, VouchingMode:ItemReport_IsVouchingMode },
+            success: function (res) {
+                $("#Item_InforeloadPartialView").html(res);
+                $(".Item_InfoListGrid_PreviewRow").hide();
+                GetSessionStorage("Item_InfoListGrid");
+            }
+        });
+        HideLoader();
+    }
+    function OnItem_InfoListPreviewClick()
+    {
+        if (!ItemList_ExportRight)
+        {
+            DevExpress.ui.dialog.alert("Not Allowed", 'No Rights');
+            return;
+        }
+        OpenPopup("Item_Info_report_modal", "Export Option", "@Url.Action("Frm_Export_Options", "ItemList", new { @area = "Reports" })", "auto", "auto", false, null);
+    }
+
+    function Item_InfoContextMenuFunction(s, e) {
+        if (e.item.name == 'Close') {
+            btnCloseActiveTab();
+        }
+        else if (e.item.name == 'ListPreview') {
+            OnItem_InfoListPreviewClick();
+        }
+        else if (e.item.name == 'Refresh') {
+            Item_InfoListGrid.Refresh();
+        }
+    }
+
+    var ItemID;
+    var Item_EditDate;
+    var Item_AddDate;
+    var Item_AddBy;
+    var Item_EditBy;
+    var Item_ActionStatus;
+    var Item_ActionDate;
+    var Item_ActionBy;
+
+    function OnItemGridFocusedRowChanged(s, e) {
+        s.GetRowValues(s.GetFocusedRowIndex(), 'ID;Edit_Date;Add_Date;Add_By;Edit_By;Action_Status;Action_Date;Action_By', ItemOnGetRowValues);
+    }
+
+    function ItemOnGetRowValues(values) {
+        ItemID = values[0];
+        Item_EditDate = values[1];
+        Item_AddDate = values[2];
+        Item_AddBy = values[3];
+        Item_EditBy = values[4];
+        Item_ActionStatus = values[5];
+        Item_ActionDate = values[6];
+        Item_ActionBy = values[7];
+        Item_UpdateFooterDetail(ItemID, Item_ActionStatus, Item_AddDate, Item_AddBy,
+        Item_ActionDate, Item_ActionBy, Item_EditDate, Item_EditBy);
+    }
+
+    function Item_UpdateFooterDetail(ItemID, Item_Action_Status, Item_Add_Date, Item_Add_By, Item_Action_Date, Item_Action_By, Item_Edit_Date, Item_Edit_By) {
+        Item_Action_Date = Item_Action_Date != "" && Item_Action_Date != null ? Item_Action_Date : Item_Action_Date;
+        Item_Edit_Date = Item_Edit_Date != "" && Item_Edit_Date != null ? Item_Edit_Date : Item_Edit_Date;
+        Item_Add_Date = Item_Add_Date != "" && Item_Add_Date != null ? Item_Add_Date : Item_Add_Date;
+        $.ajax({
+            type: 'GET',
+            url: "/Reports/ItemList/CreationDetail",
+            data: {
+                Xrow: ItemID, Action_Status: Item_Action_Status, Add_Date: Item_Add_Date,
+                Add_By: Item_Add_By, Action_Date: Item_Action_Date, Action_By: Item_Action_By, Edit_Date: Item_Edit_Date, Edit_By: Item_Edit_By
+            },
+            cache: false,
+            success: function (ItemLbl_result) {
+                $('#Items_Lbl_ActionOn').text(ItemLbl_result.Lbl_StatusOn);
+                $('#Items_Lbl_ActionBy').text(ItemLbl_result.Lbl_StatusBy);
+                $('#ItemsLbl_Status').text(ItemLbl_result.Lbl_Status);
+                $('#ItemsLbl_Create').text(ItemLbl_result.Lbl_Create);
+                $('#ItemsLbl_Modify').text(ItemLbl_result.Lbl_Modify);
+                if (ItemLbl_result.Lbl_Status_Color != "") {
+                    $('#ItemsLbl_Status').css('color', ItemLbl_result.Lbl_Status_Color);
+                }
+                if (ItemLbl_result.Pic_Status != "") {
+                    $('#Items_LockICON').css('class', ItemLbl_result.Pic_Status);
+                }
+
+            }
+        });
+    }
+
+</script>
+</div>

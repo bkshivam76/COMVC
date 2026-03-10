@@ -1,0 +1,113 @@
+﻿
+<div class="ListPreviewAddEmail_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+
+    @{
+        Html.EnableClientValidation();
+        Html.EnableUnobtrusiveJavaScript();
+        Html.AntiForgeryToken();
+
+        //var instanceid = (int)ViewBag.Form_Instance_Id;
+        var email = (string)ViewBag.email;
+    }
+    <script src="~/Content/fontawesome/js/fontawesome_v5_all.js"></script>
+
+    <div id="Frm_ChartListPreview_AddEmail">
+        <form>
+            <div class="pll prl">
+
+                <label class="control-label" for="user">
+                    <p class="text-red"> <b>Enter Email:</b></p><p> Form responses will be exported and shared to entered email.</p>
+                </label>
+
+                @(Html.DevExtreme().TextBox().CustomTextBox(true)
+                                            .ID("ListPreview_Email")
+                                            .Name("ListPreview_Email")
+                                            .Placeholder("Email ID ")
+                                            .Mode(TextBoxMode.Email)
+                                            .MaxLength(100)
+                            )
+
+                <div class="styleActionBtn" style="padding-bottom: 5px;">
+                    @(Html.DevExtreme().Button().CustomSaveButton().Text("Export").ID("ListPreview_Email_Add").FocusStateEnabled(true).UseSubmitBehavior(false).OnClick("addListPreviewEmail"))
+                    @(Html.DevExtreme().Button().CustomCloseButton().Text("Cancel").ID("ListPreview_Email_Cancel").FocusStateEnabled(true).OnClick(@<Text> function () { CloseAddEmail();} </Text>))
+                </div>
+
+            </div><!--[Buttons]-->
+        </form>
+    </div><!--[Form Div]-->
+
+    <script>
+
+        function CloseAddEmail(){
+        HidePopup('ListPreview_Export2GoogleSheet_popup_ChartInfo');
+        }
+
+        function addListPreviewEmail(e)
+        {
+            debugger;
+            email = $("#ListPreview_Email").dxTextBox("instance").option("value");
+            // Email validation
+            var validEmailRegex = /^\w+([\.-]?\w+)*@@\w+([\.-]?\w+)*(\.\w{2,3})+$/
+
+            if (!validEmailRegex.test(email)) {
+                DevExpress.ui.dialog.alert('Invalid email!', "Invalid input....").done(
+                    function () { $("#ListPreview_Email").dxTextBox("instance").focus() });
+                HideLoader();
+                return;
+            }
+
+            if (IsNullOrWhitespace("ListPreview_Email", "dxTextBox", email))
+            {
+                DevExpress.ui.dialog.alert('Email is mandatory!', "Invalid input....").done(
+                    function () { $("#ListPreview_Email").dxTextBox("instance").focus() });
+                HideLoader();
+                return;
+            }
+
+            ShowLoader();
+            $.ajax({
+            type: 'GET',
+                url: "/Facility/Chart/Frm_ChartResponse_ListPreview2GoogleSheet_Email_Export",
+            contentType: false,
+            data: {
+                email: email
+            },
+            success: function (data)
+            {
+                HideLoader();
+                HidePopup('ListPreview_Export2GoogleSheet_popup_ChartInfo');
+                if (data.jsonParam.result == false) {
+                    DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                }
+                else {
+                    if (data && data.jsonParam && data.jsonParam.message && data.jsonParam.title) {
+                        let message = data.jsonParam.message;
+                        let title = data.jsonParam.title;
+                        let token = message.includes("|") ? message.split("|") : [message];
+
+                        DevExpress.ui.dialog.custom({
+                            title: title,
+                            message: token[0],
+                            buttons: [{
+                                text: "OK",
+                                onClick: function () {
+                                    if (token.length > 1) {
+                                        window.open(token[token.length - 1], '_blank');
+                                    } else {
+                                        console.log("No URL to open");
+                                    }
+                                }
+                            }]
+                        }).show();
+                    }
+                    else {
+                        console.log("Data is not in the expected format");
+                    };
+                }
+            }
+        });
+    }
+    </script>
+
+</div>

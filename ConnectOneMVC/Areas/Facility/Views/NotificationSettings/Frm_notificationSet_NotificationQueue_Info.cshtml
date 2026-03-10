@@ -1,0 +1,358 @@
+﻿<div class="ChartNotificationResponsesWhatsappQueueFacility_ClearReferences" style="max-width:100vw">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataSet
+    @{
+        string SessionGUID = Request.QueryString["SessionGUID"];
+        int ShowHorizontalBar = (int)ViewBag.ShowHorizontalBar;
+        int Uid = (int)ViewBag.Uid;
+            //int ChartInstanceId = int.Parse(ViewBag.Chart_Instance_Id != null ? ViewBag.Chart_Instance_Id.ToString() : "0");
+}
+    <style>
+        /*#ChartResponsesWhatsappQueueNotificationInfoGrid td:empty {
+            display: none
+        }*/
+        #selectedCount_div_ChartResponses_WhatsappNotificationQueue, #selectedCount_div_ChartResponses_EmailNotificationQueue {
+            font-size: 12px;
+        }
+        .notification_hdr {
+            font-size: 18px;
+            margin-bottom: 8px;
+            margin-top: 5px;
+        }
+        @@media (max-width:767px) {
+            #btn_Close_NotificationQueue_ChartResponses {
+                display: none
+            }
+        }
+    </style>
+    <div class="">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="">
+                    <label class="notification_hdr">Pending Queue &nbsp;
+                        <small id="selectedCount_div_ChartResponses_WhatsappNotificationQueue"></small>
+                        <small id="selectedCount_div_ChartResponses_EmailNotificationQueue"></small>
+                    </label>
+                </div>
+            </div>
+            <div class="col-sm-6 text-right">
+                <div id="selectedCount_div_ChartResponses">
+                    @if (Uid== 7113)
+                    {
+                        @(Html.DevExtreme().Button().ID("btn_All_Pending_NotificationQueue_ChartResponses").Text("All Queue").Icon("orderedlist")
+                                        .OnClick("AllQueue_ChartResponses_Notification_Queue").Visible(true) )
+                    }
+                    @(Html.DevExtreme().Button().ID("btn_Delete_NotificationQueue_ChartResponses").Text("Delete Notification Queue").Icon("trash")
+                                        .OnClick("Delete_ChartResponses_Notification_Queue").Visible(true) )
+                    @(Html.DevExtreme().Button().ID("btn_Export_NotificationQueue_ChartResponses").OnClick("ChartResponsesQueueNotificationInfoListPreviewClick")
+                                    .Text("List Preview").Icon("save"))
+                    @Html.DevExtreme().Button().ID("btn_Close_NotificationQueue_ChartResponses").OnClick("closeChartResponseQueueNotification").Text("Close").Icon("clear")
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        @Html.Hidden("SelectedTabTitleQueue_Notify_ChartResponses")
+        @(Html.DevExtreme().TabPanel().ID("NotificationQueue_ChartResponses_tabPanel").DeferRendering(false).Items
+            (items =>
+                {
+                    items.Add().Title("Whatsapp Notification Queue").Template(@<text>@WhatsappView()</text>);
+                    items.Add().Title("Email Notification Queue").Template(@<text>@EmailView()</text>);
+                }
+            ).OnSelectionChanged("NotifyQueueTabPanelSelectionChanged")
+        )
+        @helper WhatsappView()
+        {
+            <form>
+                @Html.Partial("Frm_ChartResponses_Whatsapp_NotificationQueue_Info_Grid", Model.Tables[1])
+            </form>
+
+            @*@Html.Partial("Frm_Whatsapp_Notification_Queue_Grid_Container", Model.Tables[1]);*@
+        }
+        @helper EmailView()
+        {
+            <form>
+                @Html.Partial("Frm_ChartResponses_Email_NotificationQueue_Info_Grid", Model.Tables[0])
+            </form>
+
+            @*@Html.Partial("Frm_Email_Notification_Queue_Container", Model.Tables[0]);*@
+        }
+    </div>
+    <script>
+        var ChartResponsesWhatsappQueueNotificationInfo_ID = null;
+        var ChartResponsesWhatsappQueueNotificationInfo_GridLayout = null;
+        var ChartResponsesWhatsappQueueNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+
+        var ChartResponsesEmailQueueNotificationInfo_ID = null;
+        var ChartResponsesEmailQueueNotificationInfo_GridLayout = null;
+        var ChartResponsesEmailQueueNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+
+        $(document).ready(function () {
+            $("#SelectedTabTitleQueue_Notify_ChartResponses").val("Whatsapp");
+        });
+        function AllQueue_ChartResponses_Notification_Queue(e) {
+            let title = $("#SelectedTabTitleQueue_Notify_ChartResponses").val();
+            if (title.includes("Whatsapp")) {
+                ChartResponsesWhatsappQueueNotificationInfoGrid.Refresh();
+            }
+        }
+        function Delete_ChartResponses_Notification_Queue() {
+            debugger;
+            let title = $("#SelectedTabTitleQueue_Notify_ChartResponses").val();
+            let SelectedRowCount = 0;
+            if (title.includes("Whatsapp")) {
+                SelectedRowCount = ChartResponsesWhatsappQueueNotificationInfoGrid.GetSelectedRowCount();
+                if (SelectedRowCount < 1) {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                if (SelectedRowCount >= 1) {
+                    var Confirmation_1 = DevExpress.ui.dialog.confirm("<b> You Have Selected " + SelectedRowCount + "<b> Rows For Deletion ?", "Alert");
+                    Confirmation_1.done(function (confirmResult) {
+                        if (confirmResult) {
+                            ChartResponsesQueueNotificationInfo_GetSelectedRowData(ChartResponsesWhatsappQueueNotificationInfoGrid, "DELETE");
+                        }
+                    });
+                }
+            }
+            else if (title.includes("Email")) {
+                SelectedRowCount = ChartResponsesEmailQueueNotificationInfoGrid.GetSelectedRowCount();
+                if (SelectedRowCount < 1) {
+                    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                    return;
+                }
+                else if (SelectedRowCount >= 1) {
+                    var Confirmation_1 = DevExpress.ui.dialog.confirm("<b> You Have Selected " + SelectedRowCount + "<b> Rows For Deletion ?", "Alert");
+                    Confirmation_1.done(function (confirmResult) {
+                        if (confirmResult) {
+                            ChartResponsesQueueNotificationInfo_GetSelectedRowData(ChartResponsesEmailQueueNotificationInfoGrid, "DELETE");
+                        }
+                    });
+                }
+            }
+        }
+        function ChartResponsesQueueNotificationInfo_GetSelectedRowData(Grid, _Action, HighlightColor) {
+            let NotificationType = null;
+            if (Grid.GetSelectedRowCount() > 0 || _Action == "DELETE") {
+                ShowLoader();
+                if (Grid.name.includes("Whatsapp")) {
+                    NotificationType = "Whatsapp";
+                }
+                else if (Grid.name.includes("Email")) {
+                    NotificationType = "Email";
+                }
+                Grid.GetSelectedFieldValues("REC_ID",
+                    function (values) { GetSelectedFieldValuesCallback_NotificationQueue_ChartResponse(NotificationType, values, _Action, HighlightColor) })
+            }
+            else {
+                ChartResponsesEmailQueueNotificationInfo_ID = null;
+            }
+        }
+        function GetSelectedFieldValuesCallback_NotificationQueue_ChartResponse(NotificationType, values, _Action, HighlightColor) {
+            debugger;
+            HideLoader();
+            let id = null;
+            if (values != null) {
+                for (var Index = 0; Index < values.length; Index++) {
+                    if (Index == 0) {
+                        if (NotificationType.includes("Whatsapp")) {
+                            ChartResponsesWhatsappQueueNotificationInfo_ID = values[Index];//only RECID is coming so 1-D Array will be returned
+                        }
+                        else if(NotificationType.includes("Email")){
+                            ChartResponsesEmailQueueNotificationInfo_ID = values[Index];//only RECID is coming so 1-D Array will be returned
+                        }
+                    }
+                    else {
+                        if (NotificationType.includes("Whatsapp")) {
+                            ChartResponsesWhatsappQueueNotificationInfo_ID = ChartResponsesWhatsappQueueNotificationInfo_ID+','+values[Index];//only RECID is coming so 1-D Array will be returned
+                        }
+                        else if (NotificationType.includes("Email")) {
+                            ChartResponsesEmailQueueNotificationInfo_ID = ChartResponsesEmailQueueNotificationInfo_ID+','+values[Index];//only RECID is coming so 1-D Array will be returned
+                        }
+                    }
+                }
+                if (NotificationType.includes("Whatsapp")) {
+                    id = ChartResponsesWhatsappQueueNotificationInfo_ID;
+                }
+                else if (NotificationType.includes("Email")) {
+                    id = ChartResponsesEmailQueueNotificationInfo_ID;
+                }
+                if (_Action === "DELETE") {
+                    debugger;
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/NotificationSettings/Delete_ChartResponses_Notificaion_Queue",
+                        cache: false,
+                        data:
+                        {
+                            RecId: id,
+                            Notification_Type: NotificationType
+                        },
+                        success: function (data) {
+                            HideLoader();
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    if (NotificationType.includes("Whatsapp")) {
+                                        ChartResponsesWhatsappQueueNotificationInfoGrid.Refresh();
+                                    }
+                                    else if (NotificationType.includes("Email")) {
+                                        ChartResponsesEmailQueueNotificationInfoGrid.Refresh();
+                                    }
+                                }
+                            })
+                        }
+                    });
+                }
+            }
+        }
+        function ChartResponsesQueueNotificationInfoListPreviewClick() {
+            ShowLoader();
+            OpenPopup("Notification_Queue_report_modal", "Export Option",
+                "@Url.Action("Frm_Export_Notification_Queue", "NotificationSettings", new { @area = "Facility" })?SelectedIndex=" +
+                    $("#NotificationQueue_ChartResponses_tabPanel").dxTabPanel("instance").option("selectedIndex"), "auto", "auto", false, null);
+        }
+        function DataNavigation_ChartResponsesWhatsappQueueNotification(Action) {
+            //DELETE functionality has been implemented already separately due to multiple records deletions
+            if (Action == "DELETE") {
+                Delete_ChartResponses_Notification_Queue();
+            }
+        }
+        function DataNavigation_ChartResponsesEmailQueueNotification(Action) {
+            //DELETE functionality has been implemented already separately due to multiple records deletions
+            if (Action == "DELETE") {
+                Delete_ChartResponses_Notification_Queue();
+            }
+        }
+        function NotifyQueueTabPanelSelectionChanged(e) {
+            $("#SelectedTabTitleQueue_Notify_ChartResponses").val(e.addedItems[0].title);
+            if (e.addedItems[0].title.includes("Whatsapp")) {
+                $("#selectedCount_div_ChartResponses_WhatsappNotificationQueue").show();
+                $("#selectedCount_div_ChartResponses_EmailNotificationQueue").hide();
+
+            }
+            else if (e.addedItems[0].title.includes("Email")) {
+                $("#selectedCount_div_ChartResponses_WhatsappNotificationQueue").hide();
+                $("#selectedCount_div_ChartResponses_EmailNotificationQueue").show();
+            }
+
+        }
+        function ChartResponsesWhatsappQueueNotificationInfoListGrid_BeginCallback(s, e) {
+            ChartResponsesWhatsappQueueNotificationInfo_FocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["RowKeyToFocus"] = ChartResponsesWhatsappQueueNotificationInfo_ID;
+        }
+        function ChartResponsesEmailQueueNotificationInfoListGrid_BeginCallback(s, e) {
+            ChartResponsesEmailQueueNotificationInfo_FocusedRowIndexBeforeRefresh = s.GetFocusedRowIndex();
+            e.customArgs["command"] = e.command;
+            e.customArgs["RowKeyToFocus"] = ChartResponsesWhatsappQueueNotificationInfo_ID;
+        }
+        function ChartResponsesWhatsappQueueNotificationInfoListGrid_EndCallback(s, e) {
+            ChartResponsesWhatsappQueueNotificationInfo_GridLayout = s.cpClientLayout;
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+                if (ChartResponsesWhatsappQueueNotificationInfo_FocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(ChartResponsesWhatsappQueueNotificationInfo_FocusedRowIndexBeforeRefresh);
+                }
+            }
+        }
+        function ChartResponsesEmailQueueNotificationInfoListGrid_EndCallback(s, e) {
+            ChartResponsesWhatsappQueueNotificationInfo_GridLayout = s.cpClientLayout;
+            SendCustomArgs_FilterControl(s, e);
+            if (e.command == "REFRESH") {
+                if (ChartResponsesEmailQueueNotificationInfo_FocusedRowIndexBeforeRefresh == s.GetFocusedRowIndex()) {
+                    s.SetFocusedRowIndex(-1);
+                    s.SetFocusedRowIndex(ChartResponsesEmailQueueNotificationInfo_FocusedRowIndexBeforeRefresh);
+                }
+            }
+        }
+        function ChartResponsesWhatsappQueueNotificationInfoContextMenuFunction(s, e) {
+            if (e.item.name == 'Delete') {
+                DataNavigation_ChartResponsesWhatsappQueueNotification("DELETE");
+            }
+            else if (e.item.name == 'ListPreview') {
+                ChartResponsesQueueNotificationInfoListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeChartResponseQueueNotification();
+            }
+        }
+        function ChartResponsesEmailQueueNotificationInfoContextMenuFunction(s, e) {
+            if (e.item.name == 'Delete') {
+                DataNavigation_ChartResponsesEmailQueueNotification("DELETE", );
+            }
+            else if (e.item.name == 'ListPreview') {
+                ChartResponsesQueueNotificationInfoListPreviewClick();
+            }
+            else if (e.item.name == 'Close') {
+                closeChartResponseQueueNotification();
+            }
+        }
+
+        function ChartResponsesWhatsappQueueNotificationInfoOnInit(s, e) {
+            ChartResponsesWhatsappQueueNotificationInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ChartResponsesWhatsappQueueNotificationInfoAdjustSize();
+            });
+        }
+        function ChartResponsesEmailQueueNotificationInfoOnInit(s, e) {
+            ChartResponsesEmailQueueNotificationInfoAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                ChartResponsesEmailQueueNotificationInfoAdjustSize();
+            });
+        }
+        function OnChartResponseNotificationListPreviewClick() {
+            ShowLoader();
+            OpenPopup("ChartResponsesWhatsappQueueNotificationInfoExport_modal", "Export Option",
+                "@Url.Action("Frm_ChartResponseNotificationExport_Options", "NotificationSettings", new { @area = "Facility" })", "auto", 130);
+        }
+        function closeChartResponseQueueNotification() {
+            $("#PendingQueueInfo_notificationSet_modal").dxPopup("hide");
+        }
+
+        function ChartResponsesWhatsappQueueNotificationInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 85) / 100;
+            try {
+                ChartResponsesWhatsappQueueNotificationInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ChartResponsesEmailQueueNotificationInfoAdjustSize() {
+            var height = (document.documentElement.clientHeight * 85) / 100;
+            try {
+                ChartResponsesEmailQueueNotificationInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+        function ChartResponsesWhatsappQueueNotificationInfo_ClearAllReferences() {
+            ChartResponsesWhatsappQueueNotificationInfo_ID = null;
+            ChartResponsesWhatsappQueueNotificationInfo_GridLayout = null;
+            ChartResponsesWhatsappQueueNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+        }
+        function ChartResponsesEmailQueueNotificationInfo_ClearAllReferences() {
+            ChartResponsesEmailQueueNotificationInfo_ID = null;
+            ChartResponsesEmailQueueNotificationInfo_GridLayout = null;
+            ChartResponsesEmailQueueNotificationInfo_FocusedRowIndexBeforeRefresh = null;
+        }
+        function ChartResponsesWhatsappQueueNotificationInfo_SelectionChanged(s, e) {
+            if (s.GetSelectedRowCount() == 0) {
+                ChartResponsesWhatsappQueueNotificationInfo_ID = null;
+            }
+            var SelectedRowCount = s.GetSelectedRowCount();
+            $("#selectedCount_div_ChartResponses_WhatsappNotificationQueue").text(SelectedRowCount + " Row(s) Selected")
+        }
+        function ChartResponsesEmailQueueNotificationInfo_SelectionChanged(s, e) {
+            if (s.GetSelectedRowCount() == 0) {
+                ChartResponsesEmailQueueNotificationInfo_ID = null;
+            }
+            var SelectedRowCount = s.GetSelectedRowCount();
+            $("#selectedCount_div_ChartResponses_EmailNotificationQueue").text(SelectedRowCount + " Row(s) Selected")
+        }
+    </script>
+
+</div>

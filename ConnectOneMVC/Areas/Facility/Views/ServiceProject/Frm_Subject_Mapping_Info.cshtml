@@ -1,0 +1,261 @@
+﻿<div class="SubjectMappingFacility_ClearReferences">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @*@model ConnectOneMVC.Areas.Facility.Models.SubjectMapping_ViewModel*@
+    @{
+        string ScreenHeaderLabel = "Map Subjects To " + (string)ViewBag.Project_Name;
+        string Screen = (string)ViewBag.Screen;
+        // string [] AlreadyMapped_UserIDs = (Convert.ToString(ViewBag.AlreadyMapped_UserIDs)).Split('|');
+        string AlreadyMapped_UserIDs = Convert.ToString(ViewBag.AlreadyMapped_UserIDs);
+        var RegChartID = ViewBag.RegChartID;      
+    }
+    <div id="SubjectMapping_ParentDiv">
+        <div id="SubjectMapping_content" class="report_header_div_main">
+            <div>
+                <div class="report_header_div">
+                    <label class="report_header_label">@ScreenHeaderLabel</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="report_button_div">
+                        @(Html.DevExtreme().Button().ID("SubjectMapping_Save").Text("Save").Icon("add").Visible(true).OnClick(@<text> function () { DataNavigation_SubjectMapping("SAVE"); } </text>))
+                        @(Html.DevExtreme().Button().ID("SubjectMapping_Edit").Text("Edit Subject").Icon("add").Visible(true).OnClick("EditSubject"))    
+                        @(Html.DevExtreme().Button().ID("SubjectMapping_Delete").Text("Delete Subject").Icon("add").Visible(true).OnClick("DeleteSubject"))
+                        @(Html.DevExtreme().Button().ID("SubjectMapping_ModelListPreview").Text("List Preview").Icon("save").OnClick("OnSubjectMappingListPreviewClick") )
+                        @(Html.DevExtreme().Button().ID("SubjectMapping_ModelCLOSE").Text("Close").Icon("clear").OnClick("closeSubjectMapping") )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 no-padding" id="SubjectMapping_gridDiv">
+            <form>
+                <div id="SubjectMappingGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_Subject_Mapping_Info_Grid", Model)
+                </div>
+            </form>
+        </div>
+        <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+            <div class="setFooterItem">
+                <div class="footer-inner">
+                    <div class="list_footer_left_margin">
+                        <div class="footericon">
+                            <i id="ServiceReport_LockICON" style="color:red;font-size:35px;"></i>
+                        </div>
+                        @*<div class="footer-locktext">
+                                <div id="BankLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                            </div>*@
+                        <div class="footer-locktext">
+                            <div id="SR_Lbl_ActionOn" class="left_footertext_top"></div>
+                            <div id="SR_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                        </div>
+                    </div>
+                    <div class="list_footer_left_margin">
+                        <div class="footer-text">
+                            <p id="SR_Create" class="right_footertext_top"></p>
+                            <p id="SR_Modify" class="right_footertext_bottom"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        var selectedUserIDs_MapSubject = "";
+        var Screen_SubjectMappingInfo = "@Screen";
+    </script>    @*Global Variables*@
+    <script>
+        $(document).ready(function ()
+        {
+            $('#SubjectMapping_Delete').hide();
+            $('#SubjectMapping_Edit').hide();
+            if (Screen_SubjectMappingInfo == "Sparc_EditSubject") {
+                $('#SubjectMapping_Edit').show();
+                $('#SubjectMapping_Save').hide();
+            }
+            else if (Screen_SubjectMappingInfo == "Sparc_DeleteSubject") {
+                $('#SubjectMapping_Delete').show();
+                $('#SubjectMapping_Save').hide();
+            }
+        });
+
+    function OnSubjectMappingListPreviewClick(){
+
+        ShowLoader();
+        OpenPopup("Subject_Mapping_Export_Modal", "Export Option", "@Url.Action("Frm_Export_Options_SubjectMapping", "ServiceProject", new { @area = "Facility" })", "auto", 130);
+        }
+
+    function closeSubjectMapping() {
+        $("#Subject_Mapping_Screen_Modal").dxPopup("hide");
+    }
+
+
+    function ClearAllReferences_SubjectMapping()
+    {
+        //Baba: Below function parameter  to be added in index.
+
+        ClearAllReferences("SubjectMappingFacility_ClearReferences")
+        }
+    </script>
+
+    <script>
+        function SubjectMappingInfoOnInit(s, e) {        
+            SubjectMappingAdjustSize();
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                SubjectMappingAdjustSize();
+            });
+            SubjectMappingInfoGrid.SelectRowsByKey("@AlreadyMapped_UserIDs".split('|'));
+        }
+
+        function SubjectMappingAdjustSize() {
+            var height = (document.documentElement.clientHeight * 81.5) / 100;
+            try {
+                SubjectMappingInfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+
+        function SubjectMappingInfoGrid_BeginCallback(s, e) {
+            e.customArgs["command"] = e.command;
+            e.customArgs["Screen"] = Screen_SubjectMappingInfo;
+        }
+        function SubjectMappingInfoGrid_SelectionChanged(s, e)
+        {
+            if (s.GetSelectedRowCount() == 0)
+            {
+                selectedUserIDs_MapSubject = "";
+            }
+        }
+    </script>    @* Grid Functions *@
+
+<script>
+
+        function DataNavigation_SubjectMapping(_action)
+        {
+            var SelectedRowCount = SubjectMappingInfoGrid.GetSelectedRowCount();
+            if (SelectedRowCount < 1 && _action !="SAVE")
+            {
+                DevExpress.ui.dialog.alert("Please Select Rows", "Alert");
+                return;
+            }
+            SubjectMappingInfo_GetSelectedRowData(_action);
+        }
+
+        function SubjectMappingInfo_GetSelectedRowData(_Action)
+        {
+           // if (SubjectMappingInfoGrid.GetSelectedRowCount() > 0)
+           // {
+                ShowLoader();
+                SubjectMappingInfoGrid.GetSelectedFieldValues("USER_ID", function (values) { GetSelectedFieldValuesCallback_SubjectMapping(values, _Action) })
+           // }
+            //else
+           // {
+
+           // }
+        }
+        function GetSelectedFieldValuesCallback_SubjectMapping(values, _Action)
+        {
+            HideLoader();
+            if (values != null) {
+                for (var Index = 0; Index < values.length; Index++) {
+                    if (Index == 0) {
+                        selectedUserIDs_MapSubject = values[Index];
+
+                    }
+                    else {
+
+                        selectedUserIDs_MapSubject = selectedUserIDs_MapSubject + "|" + values[Index];
+
+                    }
+                }
+            }
+            else { selectedUserIDs_MapSubject = "";}
+            if (_Action == "SAVE")
+            {
+                if (selectedUserIDs_MapSubject == null || selectedUserIDs_MapSubject.length == 0)
+                {
+                    DevExpress.ui.dialog.confirm("Are You Sure You Want To Unmap All The Users From The Project?", "Confirm").done(function (alertResult) {
+                        if (alertResult)
+                        {
+                            Map_Unmap_ProjectServiceUsers();
+                        }
+                    })
+                }
+                else
+                {
+                    Map_Unmap_ProjectServiceUsers();
+                }
+            }
+        }
+        function Map_Unmap_ProjectServiceUsers()
+        {
+                 ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/ServiceProject/Save_MapSubjectsToProject",
+                        cache: false,
+                        data:
+                        {
+                            selectedUserIDs: selectedUserIDs_MapSubject,
+                            RegChartID:"@RegChartID",
+                            AlreadyMapped_Prev:"@AlreadyMapped_UserIDs"
+
+                        },
+                        success: function (data) {
+                            HideLoader();
+                            if (data.jsonParam.result == false) {
+                                DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            }
+                            else {
+                                var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                                alertClick.done(function (alertResult) {
+                                    if (alertResult) {
+                                        ServiceProjectListGrid.Refresh();
+                                        closeSubjectMapping();
+
+                                    }
+                                })
+                            }
+                        }
+                    });
+        }
+        function DeleteSubject() {
+            CreateCustomConfirmDialog("Delete Subject", "Sure you want to Delete this Entry...?", true).show().done(function (dialogResult) {
+                if (dialogResult) {
+                    DevExpress.ui.dialog.alert("Subject Deleted Successfully!!!", "Deletion Success...");
+                }
+                else {
+
+                }
+            });
+
+        }
+        function EditSubject()
+        {
+            debugger;
+            ShowLoader();
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/SparcProject/Form_Edit_Subject",
+                cache: false,
+                @*data:
+                {
+                    selectedUserIDs: selectedUserIDs_MapSubject,
+                    RegChartID:"@RegChartID",
+                    AlreadyMapped_Prev:"@AlreadyMapped_UserIDs"
+
+                },*@
+                success: function (data) {
+                    HideLoader();
+                    OpenPopup("Sparc_Edit_Subject_Mapping","Edit Subject", null, "auto", 500, true, data);
+                }
+            });
+        }
+</script>
+
+
+
+</div>

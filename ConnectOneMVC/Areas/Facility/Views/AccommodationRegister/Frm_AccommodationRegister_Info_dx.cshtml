@@ -1,0 +1,2042 @@
+﻿<div class="Accom_RegisterFacility_ClearReferences" onkeydown="keydown_AccommRegstr(event)">
+    @using DevExtreme.AspNet.Mvc;
+    @model System.Data.DataTable
+    @{
+        string ScreenHeaderLabel = "Accommodation Register";
+        var ChartID = ViewBag.Chartid;
+        string SessionGUID = Request.QueryString["SessionGUID"];
+        string ServicePath = ViewBag.ServicePath;
+    }
+    @*<div id="Accom_Register_ParentDiv">*@
+
+    <style>
+        /*.ar_filter .col-sm-3{padding:0 0 0 10px}*/
+        .maxheightPrintSlip > div {
+            max-height: 99vh;
+        }
+
+        #selectedCount_div {
+            font: 500;
+            padding-top: 15px;
+            padding-right: 5px;
+            text-align: right;
+        }
+
+        #filtersdiv_accomRegstr { background: rgb(243, 251, 254); }
+
+        @@media (max-width:768px) { #selectedCount_div {
+                text-align: center;
+                padding-top: 5px;
+            }
+            #selectedCount_div label:empty{display:none}
+        }
+        .dx-command-select {
+            width: 30px !important;
+            min-width: 30px !important;
+        }
+
+        #AccommodationRegister_InfoGrid_dx {
+            max-width: 100% !important;
+        }
+    </style>
+    <script>
+
+        var Chart_Response_ID_AccRgstr = "";
+        var Chart_Response_Status_AccRgstr = "";
+        var Chart_Response_Remarks_AccRgstr = "";
+        var chartInstanceID_AccRgstr = "";
+        var AccomRegstr_ShowHorizontalBar = parseInt("@ViewBag.AccomRegstr_ShowHorizontalBar");
+        var AccomRegstr_ColumnToBeShownIndex = "";
+        var AccomRegstr_ColumnToBeHidddenIndex = "";
+        var AccomRegstr_FocusedRowIndexBeforeRefresh = "";
+        @*var Chart_Instance_ID = "@chartInstanceID";*@
+        @*var ServicePath = "@ServicePath";*@
+        @*//var Chart_Approval_Required = "@chartApprovalRequired" == "False" ? false: true;*@
+        var AccomRegstr_GridLayout = null;
+        var UserID_AccRgstr = "";
+        var UserABID_AccRgstr = "ggg";
+        var ShareMessage_ChartResponse_AccRgstr = "";
+        var MobNo_AccRgstr = "";
+        var NextLinkedForm_Inst_ID_ChartResponse_AccRgstr = 0;
+        var FeedbackFormInstID_ChartResponse_AccRgstr = 0;
+        var TravelFormInstID_ChartResponse_AccRgstr = 0;
+        var CompactMode_AccRgstr = "Default"; //"Compact";
+        var ConciseMode = true;
+        function keydown_AccommRegstr(event) {
+
+            event.stopPropagation();
+            event.stopImmediatePropagation()
+            console.log(event.key);
+        }
+    </script>
+
+    <div id="Accom_Register_content" class="report_header_div_main">
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="report_header_div">
+                    <label class="report_header_label">@ScreenHeaderLabel</label>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div id="selectedCount_div"><label></label></div>
+            </div>
+        </div>
+        <div class="row row1">
+            <div class="col-md-12">
+                <div class="report_button_div">
+                    @(Html.DevExtreme().Button().ID("Btn_GroupDetails_Accom_Regstr").Text("Group Details").OnClick("GroupDetails_Accom_Regstr_Click"))
+                    @(Html.DevExtreme().Button().ID("Btn_AddResponse_Accom_Regstr").Text("Add Response")//.Icon("save")
+                        .OnClick("AccomRegstr_AddResponse"))
+                    @(Html.DevExtreme().DropDownButton().ID("Btn_ViewSummary_AccomRegstr").Text("Summaries").OnItemClick("Chart_ViewSummary_Accom_Regstr_Click")
+                                .DataSource(new[] { "Guest Summary","Accommodation Details", "Accommodation Summary","Accommodation Chart", "Food Summary", "Food Detail", "Sevadhari Summary" @*"Travel Summary"*@}))
+                    <script>
+                        
+                        function GroupDetails_Accom_Regstr_Click() {
+                            
+                            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+                            if (SelectedRowCount.length < 1) {
+                                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                                return;
+                            }
+                            if (SelectedRowCount.length > 1) {
+                                DevExpress.ui.dialog.alert("Multiple Rows Are Selected <br> Please Select One Row", "Alert");
+                                return;
+                            }
+                            Accom_RegisterInfo_GetSelectedRowData_dx("GROUPDETAILS");
+                        }
+                        function AccomRegstr_AddResponse() {
+                            
+                            eventid_AccomRgstr = $("#Event_AccmRegstr").dxDropDownBox("option", "value");
+                            if (eventid_AccomRgstr == undefined || eventid_AccomRgstr == "") { eventid_AccomRgstr = null }
+                            $.ajax({
+                                type: 'GET',
+                                url: "/Facility/AccommodationRegister/Frm_LiveFormsList_AccRegstr",
+                                cache: false,
+                                //data: { eventid: eventid_AccomRgstr, },
+                                success: function (data) {
+
+                                    HideLoader();
+                                    OpenPopup("LiveFormsPopup_AccomRegstr", "Live Forms List", null, "auto", 800, true, data, "maxheightPrintSlip");
+
+                                },
+                                error: function (jqXHR, textStatus, errorThrown) {
+                                    HideLoader();
+                                    //console.log(jqXHR);
+                                    //console.log(textStatus);
+                                    //console.log(errorThrown);
+                                    DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                                }
+                            });
+                        }
+                        function Chart_ViewSummary_Accom_Regstr_Click(e) {
+                            
+                            if (e.itemData == "Guest Summary") {
+                                showGuestSummary_AccRgstr();
+                            }
+                            else if (e.itemData == "Sevadhari Summary") {
+                                showSevadhariSummary_AccRgstr();
+                            }
+                            //else if (e.itemData == "Travel Summary") {
+                            //    showTravelSummary();
+                            //}
+                            else if (e.itemData == "Accommodation Summary") {
+                                showAccommodationSummary_AccRgstr();
+                            }
+                            else if (e.itemData == "Accommodation Details") {
+                                showAccommodationDetails_AccRgstr();
+                            }
+                            else if (e.itemData == "Accommodation Chart") {
+                                showAccommodationChart_AccRgstr();
+                            }
+                            else if (e.itemData == "Food Summary") {
+                                showFoodSummary_AccRgstr();
+                            }
+                            else if (e.itemData == "Food Detail") {
+                                showFoodDetail_AccRgstr();
+                            }
+                        }
+                    </script>
+
+                    @(Html.DevExtreme().Button().ID("Btn_AddRemarks_Accom_Regstr").Text("Add Remarks")//.Icon("save")
+                        .OnClick("AccomRegstr_AddRemarks"))
+                    @(Html.DevExtreme().Button().ID("Btn_ResponseArrived_Accom_Regstr").Text("Arrived")//.Icon("save")
+                        .OnClick(@<text> function () { AccomRegstr_Arrived("MarkArrived"); } </text>))
+                    @(Html.DevExtreme().Button().ID("Btn_ResponseNotArrived_Accom_Regstr").Text("Not Arrived")//.Icon("save")
+                        .OnClick(@<text> function () { AccomRegstr_Arrived("UnMarkArrived"); } </text>))
+                    @(Html.DevExtreme().Button().ID("Btn_EditResponse_Accom_Regstr").Text("Edit").Icon("edit")
+                        .OnClick("AccomRegstr_Edit"))
+                    @(Html.DevExtreme().Button().ID("Btn_PreviewResponse_Accom_Regstr").Text("Preview").Icon("save")
+                        .OnClick("AccomRegstr_Preview"))
+                    @(Html.DevExtreme().Button().ID("Btn_ResponseAccomodation_Accom_Regstr").Text("Accommodation").Icon("save")
+                        .Visible(true).OnClick("Accom_RegisterInfo_Accommodation"))
+                    @(Html.DevExtreme().Button().ID("AccomRegstr_MasterToggleScrollBar").Text(ViewBag.AccomRegstr_ShowHorizontalBar == 1 ? "Default Data" : "Full Data")
+                        .Width(ViewBag.AccomRegstr_ShowHorizontalBar == 1 ? 110 : 90)
+                        .Icon("toolbox").OnClick("ARchangeMode_dx"))
+                    <script>
+
+                    function OnAccomRegstrChangeMode(e)
+                    {
+                       
+                        ShowLoader();
+                        AccomRegstr_FocusedRowIndexBeforeRefresh = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            if (AccomRegstr_ShowHorizontalBar == 0)
+                            {
+                                AccomRegstr_ShowHorizontalBar = 1;
+                                $("#AccomRegstr_MasterToggleScrollBar").find("span").text("Default Data");
+                            }
+                            else
+                            {
+                                AccomRegstr_ShowHorizontalBar = 0;
+                                $("#AccomRegstr_MasterToggleScrollBar").find("span").text("Full Data");
+                            }
+                        readFilterParamValues()
+
+                            $.ajax({
+                                url: '@Url.Action("Frm_AccommodationRegister_Info_Grid", "AccommodationRegister")',
+                                type: "GET",
+
+                                data: {
+                                    fromdate: fromDate_fltr_AccomRgstr,
+                                    todate: toDate_fltr_AccomRgstr,
+                                    fromtime: fromtime_fltr_AccomRgstr,
+                                    totime: totime_fltr_AccomRgstr,
+                                    eventid: eventid_AccomRgstr,
+                                    buildingid: buildingid_AccomRgstr,
+                                    //command: "REFRESH",
+                                    reg_Number: registrationNumber_AccomRgstr,
+                                    ShowHorizontalBar: AccomRegstr_ShowHorizontalBar,
+                                    Layout: AccomRegstr_GridLayout,
+                                    ViewMode: CompactMode_AccRgstr,
+                                    ColumnToBeHidddenIndex: AccomRegstr_ColumnToBeHidddenIndex,
+                                    ColumnToBeShownIndex: AccomRegstr_ColumnToBeShownIndex,
+                                    Chart_Inst_ID: chart_inst_id_filter_AccomRgstr
+                                },
+                                success: function (res)
+                                {
+                                    $("#Accom_RegisterGridPartialView").html(res);
+                                    AccommodationRegister_InfoGrid.SetFocusedRowIndex(AccomRegstr_FocusedRowIndexBeforeRefresh);
+                                }
+                            });
+
+                            HideLoader();
+                        }//full data button click
+                        function ARchangeMode_dx() {
+                            AR_InfoGrid_dx.beginUpdate();
+                            if (AccomRegstr_ShowHorizontalBar == 0) {
+                                AccomRegstr_ShowHorizontalBar = 1;
+                                $("#AccomRegstr_MasterToggleScrollBar").find("span").text("Default Data");
+                                $("#AccomRegstr_MasterToggleScrollBar").width(110);
+                                AR_InfoGrid_dx.option("columnHidingEnabled", false);
+                                AR_InfoGrid_dx.option("allowColumnResizing", true)
+                                AR_InfoGrid_dx.option("columnResizingMode", "widget")
+                            }
+                            else {
+                                AccomRegstr_ShowHorizontalBar = 0;
+                                $("#AccomRegstr_MasterToggleScrollBar").find("span").text("Full Data");
+                                $("#AccomRegstr_MasterToggleScrollBar").width(90);
+                                AR_InfoGrid_dx.option("columnHidingEnabled", true)
+                                AR_InfoGrid_dx.option("allowColumnResizing", false)
+                                AR_InfoGrid_dx.option("columnResizingMode", "nextColumn")
+                            }
+                            AR_InfoGrid_dx.endUpdate();
+                        }
+                    </script>
+                    @(Html.DevExtreme().Switch().ID("AccomRegstrInfoViewModeSwitch").SwitchedOnText("Compact").Visible(false)
+                        .SwitchedOffText("Default").OnValueChanged("AccomRegister_ViewSwitch_ValueChange").Width(70).Value(string.IsNullOrWhiteSpace(SessionGUID)?false:true))
+                    @(Html.DevExtreme().Button().ID("AccomRegstrInfoModelListPreview").Text("List Preview").Icon("save").Visible(false)
+                            .OnClick("OnAccomRegstrInfoListPreviewClick"))
+
+                    <script>
+                            function AccomRegister_ViewSwitch_ValueChange(e)
+                            {
+                                CompactMode_AccRgstr = e.value ? "Compact" : "Default";
+                                ReloadGrid_AccomRegister();
+                            }
+                            function ReloadGrid_AccomRegister()
+                            {
+                                
+                                ShowLoader();
+                                $.ajax({
+                                    url: '@Url.Action("Frm_Chart_Responses_Info_Grid", "Chart")',
+                                    type: "POST",
+                                    data:
+                                    {
+                                        ShowHorizontalBar: 1,
+                                        Layout: AccommodationRegister_InfoGrid.cpClientLayout,
+                                        VouchingMode: false,
+                                        ViewMode: CompactMode_AccRgstr,
+                                        ColumnToBeHidddenIndex: AccommodationRegister_InfoGrid.cpColumnToBeHidddenIndex,
+                                        ColumnToBeShownIndex: AccommodationRegister_InfoGrid.cpColumnToBeShownIndex,
+                                        Chart_Instance_ID: chartInstanceID_AccRgstr,
+                                        //isApprovalRequired:Chart_Approval_Required
+                                    },
+                                    success: function (res)
+                                    {
+                                        $("#ChartResponsesGridDiv").html(res);
+                                        HideLoader();
+                                    }
+                                });
+                            }
+                        function OnAccomRegstrInfoListPreviewClick() {
+                            
+                                ShowLoader();
+                                OpenPopup("AccmRgstrInfo_modal", "Export Option", "@Url.Action("Frm_Export_Options_AccomRestr", "AccommodationRegister", new { @area = "Facility" })", "auto",130);
+
+                            }
+                    </script>
+
+                    @(Html.DevExtreme().Button().ID("Accom_Register_PrintSlip").Text("PrintSlip").Icon("add").Visible(true).OnClick("printSlipfromBtn_AccomRegstr"))
+                    <script>
+                        var printFromButton = false
+                        function printSlipfromBtn_AccomRegstr() {
+                            
+                            printFromButton = true
+                            printSlip_AccomRegstr()
+                        }
+                        function printSlip_AccomRegstr() {
+                            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+                            if (SelectedRowCount.length < 1) {
+                                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                                return;
+                            }
+                            Accom_RegisterInfo_GetSelectedRowData_dx("PRINT");
+                        }
+                        function openPrintOptionsOrSlip() {
+                            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+                            if (SelectedRowCount.length == 1) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Facility/AccommodationRegister/Frm_PrintSlip_AccomRegstr",
+                                    cache: false,
+                                    data:
+                                    {
+                                        Chart_Inst_ID: chartInstanceID_AccRgstr,
+                                        Chart_Resp_ID: Chart_Response_ID_AccRgstr,
+                                        PrintOption: "Individual"
+                                    },
+                                    success: function (data) {
+                                        HideLoader();
+                                        OpenPopup("PrintSlipPopup_AccomRegstr", "Print Slip Options", null, "auto", 360, true, data, "maxheightPrintSlip");
+
+                                    },
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        HideLoader();
+                                        console.log(jqXHR);
+                                        console.log(textStatus);
+                                        console.log(errorThrown);
+                                        DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                                    }
+                                });
+                            }
+                            else if (SelectedRowCount.length > 1) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Facility/AccommodationRegister/Frm_PrintSlipOptions",
+                                    cache: false,
+                                    data:
+                                    {
+                                        Chart_Inst_ID: chartInstanceID_AccRgstr,
+                                        Chart_Resp_ID: Chart_Response_ID_AccRgstr,
+                                        NamesList: NamesofRegistrations_AccomRegstr,
+                                    },
+                                    success: function (data) {
+                                        HideLoader();
+                                        OpenPopup("PrintSlipPopup_AccomRegstr", "PrintSlip(s)", null, "auto", 380, true, data, "maxheightPrintSlip");
+                                    },
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        HideLoader();
+                                        console.log(jqXHR);
+                                        console.log(textStatus);
+                                        console.log(errorThrown);
+                                        DevExpress.ui.dialog.alert(jqXHR.responseText, errorThrown);
+                                    }
+                                });
+                            }
+                        }
+                    </script>
+                    @(Html.DevExtreme().Button().ID("Accom_Register_ListPreview").Text("List Preview").Icon("save").OnClick("OnAccom_RegisterListPreviewClick"))
+                <script>
+                        function OnAccom_RegisterListPreviewClick() {
+                            ShowLoader();
+                           // OpenPopup("Accommodation_Register_modal", "Export Option", "@Url.Action("Frm_Export_Options", "AccommodationRegister", new { @area = "Facility" })", "auto", 130);
+                            OpenPopup("Accommodation_Register_modal", "Export Option", "@Url.Action("Frm_Export_Options_dx", "AccommodationRegister", new { @area = "Facility" })", "auto",130);
+                        }
+                </script>
+                    @(Html.DevExtreme().Button().ID("Accom_Register_ModelCLOSE").Text("Close").Icon("clear").OnClick("closeAccom_Register") )
+                </div>
+            </div>
+        </div>
+
+        <div id="Accom_Register_hideFilters" class="filhdr" onclick="hideFiltersAccom_Register()">
+            <span>Click to Hide Filters</span>
+            <i class="bx bx-up-arrow-alt"></i>
+        </div>
+
+
+        <div>
+
+            <div id="filtersdiv_accomRegstr" style="display:block;">
+                <div class="row row2" style="padding:10px;">
+                    <div class="col-sm-3">
+                        <label>Filter By</label>
+                        @(Html.DevExtreme().SelectBox().CustomSelectBox().ID("Acomm_Regstr_Filterby").Name("Acomm_Regstr_Filterby")
+                            .Items(new[] { "Event Start And End Dates", "Arrival and Departure Dates", "Accommodation From and To Dates" }).Value("Event Start And End Dates")
+                            .ShowClearButton(false).OnValueChanged("Accom_Register_filterBy_ValueChange"))
+                    </div>
+                    <script>
+                        function hideFiltersAccom_Register() {
+                            var div = document.getElementById("filtersdiv_accomRegstr");
+                            if (div.style.display !== "none") {
+                                div.style.display = "none";
+                                $("#Accom_Register_hideFilters").find('span').text("Click to Show Filters");
+                                $("#Accom_Register_hideFilters").find('i').removeClass('bx-up-arrow-alt').addClass('bx-down-arrow-alt');
+                            }
+                            else {
+                                div.style.display = "block";
+                                $("#Accom_Register_hideFilters").find('span').text("Click to Hide Filters")
+                                $("#Accom_Register_hideFilters").find('i').removeClass('bx-down-arrow-alt').addClass('bx-up-arrow-alt');
+                            }
+
+                        }
+                        function Accom_Register_filterBy_ValueChange(e) {
+                            filterBy_AcommRgstr = e.value;
+                        }
+                    </script>
+                    <div class="col-sm-2">
+                        <label>Start Date</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("StartDate_Accom_Register").ID("StartDate_Accom_Register").Min(new DateTime(1990,01,01))
+                            .OnValueChanged("StartDate_Accom_Register_ValueChange").Value(DateTime.Today))
+                    </div>
+                    <div class="col-sm-2">
+                        <label>Start Time</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("StartTime_Accom_Register").ID("StartTime_Accom_Register").Min(DateTime.MinValue).Type(DateBoxType.Time)
+                            .Type(DateBoxType.Time).DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15).OnValueChanged("StartTime_Accom_Register_ValueChange"))
+
+                    </div>
+                    <div class="col-sm-2">
+                        <label>End Date</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("EndDate_Accom_Register").ID("EndDate_Accom_Register").Min(new DateTime(1990, 01, 01))
+                            .OnValueChanged("EndDate_Accom_Register_ValueChange").Value(DateTime.Today.AddDays(1)))
+                    </div>
+
+                    <div class="col-sm-2">
+                        <label>End Time</label>
+                        @(Html.DevExtreme().DateBox().CustomDateBox().Name("EndTime_Accom_Register").ID("EndTime_Accom_Register").Type(DateBoxType.Time).Min(DateTime.MinValue)
+                            .DisplayFormat("hh:mm a").UseMaskBehavior(true).Placeholder("hh:mm AM/PM").Interval(15).OnValueChanged("EndTime_Accom_Register_ValueChange"))
+                    </div>
+                    <div class="col-sm-1">
+                        <label>Mode</label>
+                        @(Html.DevExtreme().Switch().ID("ModeSwitch_Accom_Register").Name("ModeSwitch_Accom_Register").Value(true).SwitchedOnText("Concise").SwitchedOffText("Full").Width(70).OnValueChanged("ModeSwitch_Accom_Register_ValueChange"))
+                    </div>
+                </div>
+
+                <div class="row row3" style="padding:10px;">
+                    <div class="col-sm-3">
+                        <label>Service Report/Event</label>
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Event_AccmRegstr").ID("Event_AccmRegstr").Placeholder("Choose..").DisplayExpr("Name").ValueExpr("ID")
+                        .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_EventsList").Key("ID").LoadMode(DataSourceLoadMode.Raw))
+                        .ContentTemplate(@<text>
+                            @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Event_AccmRegstr_datagrid")
+                                .Columns(columns =>
+                                {
+                                    columns.Add().DataField("Name").Caption("Name");
+                                    columns.Add().DataField("ID").Visible(false);
+                                    columns.Add().DataField("ProjID").Visible(false);
+                                    columns.Add().DataField("Type");
+                                    columns.Add().DataField("FromDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                    columns.Add().DataField("ToDate").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy");
+                                    columns.Add().DataField("Venue");
+                                })
+                                .Selection(s => s.Mode(SelectionMode.Single))
+                                .FilterRow(s=>s.Visible(false))
+                                .OnSelectionChanged("function(selectedItems)" +
+                                "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                        </text>).OnValueChanged("Event_AccmRegstr_ValueChange")
+                    )
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Form</label>
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Form_AccmRegstr").ID("Form_AccmRegstr").Placeholder("Choose..").DisplayExpr("FORM_NAME").ValueExpr("INSTANCE_ID")
+                        .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_LiveFormsList").Key("INSTANCE_ID").LoadMode(DataSourceLoadMode.Raw))
+                        .ContentTemplate(@<text>
+                            @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Form_AccmRegstr_datagrid")
+                                .Columns(columns =>
+                                {
+                                    columns.Add().DataField("FORM_NAME").Caption("Form Name").Visible(true);
+                                    columns.Add().DataField("EVENTNAME").Caption("Event Name").Visible(true);
+                                    columns.Add().DataField("CSN_CHART_ID").Caption("ChartID").Visible(false);
+                                    columns.Add().DataField("CSN_SERVICE_REPORT_ID").Caption("EventID").Visible(false);
+                                    columns.Add().DataField("CSN_SRNO").Caption("CSN_SRNO").Visible(false);
+                                    columns.Add().DataField("INSTANCE_ID").Caption("INSTANCEID").Visible(false);
+                                    columns.Add().DataField("FROMDATE").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy").Visible(true);
+                                    columns.Add().DataField("TODATE").DataType(GridColumnDataType.Date).Format("dd/MM/yyyy").Visible(true);
+                                })
+                                .Selection(s => s.Mode(SelectionMode.Single))
+                                .FilterRow(s=>s.Visible(false))
+                                .OnSelectionChanged("function(selectedItems)" +
+                                "{ var keys = selectedItems.selectedRowKeys;var DDvalue=component.option('value');if(keys!=DDvalue){component.option('value', keys[0]);}component.close();}"))
+                        </text>).OnValueChanged("Form_AccmRegstr_ValueChange")
+                    )
+                    </div>
+                    <div class="col-sm-2">
+                        <label>Building Name</label>
+                        @(Html.DevExtreme().DropDownBox().CustomDropDown().Name("Building_AccmRegstr").ID("Building_AccmRegstr").Placeholder("Choose..").DisplayExpr("BUILDING_NAME").ValueExpr("REC_ID")
+                        .DataSource(d => d.Mvc().Controller("AccommodationRegister").LoadAction("LookUp_Get_BuildingsList").Key("REC_ID").LoadMode(DataSourceLoadMode.Raw))
+                        .ContentTemplate(@<text>
+                            @(Html.DevExtreme().DataGrid().CustomDataGrid().ID("Building_AccmRegstr_datagrid")
+                                .Columns(columns =>
+                                {
+                                    columns.Add().DataField("BUILDING_NAME").Caption("Building Name");
+                                    columns.Add().DataField("REC_ID").Visible(false);
+                                })
+                                .Selection(s => s.Mode(SelectionMode.Single))
+
+                                )
+                                    </text>)
+                                .OnValueChanged("Building_AccmRegstr_ValueChange")
+                    )
+                    </div>
+                    <script>
+                        async function Building_AccmRegstr_ValueChange(e, FirstCall = false) {
+                            var value;
+                            var DG = $("#Building_AccmRegstr_datagrid").dxDataGrid("instance");
+                            if (e) {
+                                value = e.value;
+                                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                    DG.clearSelection();
+
+                                    return;
+                                }
+                            }
+                            else {
+                                //value = $("#Event_AccmRegstr").dxDropDownBox("option", "value");
+                                var bldgid = "";
+                                var buildingid_array = $("#Building_AccmRegstr").dxDropDownBox("option", "value");
+                                if (buildingid_array != null) { bldgid = buildingid_array[0]; }
+                                value = bldgid;
+                            }
+                            await DG.selectRows(value);
+                            if (DG.getSelectedRowsData().length > 0) {
+                                var item = DG.getSelectedRowsData()[0];
+                                ////  $("#ProjectID_createForm").dxSelectBox("option", "readOnly", true);
+                                //$("#ProjectID_createForm").dxSelectBox("option", "value", item.ProjID);
+                                //if (item.Type == "Service Report") {
+                                //    $("#SR_ID").val(item.ID);
+                                //}
+                                //else {
+                                //    $("#Event_ID").val(item.ID);
+                                //}
+                                //if (FirstCall == false) {
+                                //    await $("#PreReq_createForm_datagrid").dxDataGrid("instance").refresh();
+                                //}
+                            }
+                        }
+                    </script>
+                    <div class="col-sm-2">
+                        <label>Registration Number</label>
+                        @(Html.DevExtreme().TextBox().ID("RegistrationNumber_AccomRegstr"))
+                    </div>
+                    <script>
+                        var elem = document.getElementById("RegistrationNumber_AccomRegstr");
+                        elem.onkeyup = function (e) {
+                            if (e.keyCode == 13) {
+                                GoAccomRegister();
+                            }
+                        }
+                        function makeglobalNull_AccRgstr() {
+                            if (eventid_AccomRgstr == undefined || eventid_AccomRgstr == "") { eventid_AccomRgstr = null }
+                            if (buildingid_AccomRgstr == undefined || buildingid_AccomRgstr == "") { buildingid_AccomRgstr = null }
+                            if (fromDate_fltr_AccomRgstr == undefined || fromDate_fltr_AccomRgstr == "") { fromDate_fltr_AccomRgstr = null }
+                            if (toDate_fltr_AccomRgstr == undefined || toDate_fltr_AccomRgstr == "") { toDate_fltr_AccomRgstr = null }
+                            if (fromtime_fltr_AccomRgstr == undefined || fromtime_fltr_AccomRgstr == "") { fromtime_fltr_AccomRgstr = null }
+                            if (totime_fltr_AccomRgstr == undefined || totime_fltr_AccomRgstr == "") { totime_fltr_AccomRgstr = null }
+                        }
+                        function showAccommodationSummary_AccRgstr(e) {
+                            readFilterParamValues()
+                            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            //if (focusIndex < 0) {
+                            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                            //    return;
+                            //}
+                            summary_type = "ACCOM SUMMARY";
+                            //AccomRegstr_GetRowData(focusIndex);
+                            makeglobalNull_AccRgstr()
+                            showAccommodationSummary_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr, chartInstanceID_AccRgstr, summary_type)
+                        }
+                        function showAccommodationDetails_AccRgstr(e) {
+                            readFilterParamValues()
+                            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            //if (focusIndex < 0) {
+                            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                            //    return;
+                            //}
+                            summary_type = "ACCOM DETAIL";
+                            //AccomRegstr_GetRowData(focusIndex);
+                            makeglobalNull_AccRgstr()
+                            showAccommodationDetail_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr, buildingid_AccomRgstr,chartInstanceID_AccRgstr, summary_type)
+                        }
+                        function showAccommodationChart_AccRgstr(e) {
+                            readFilterParamValues()
+                            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            //if (focusIndex < 0) {
+                            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                            //    return;
+                            //}
+                            summary_type = "ACCOM CHART";
+                            //AccomRegstr_GetRowData(focusIndex);
+                            makeglobalNull_AccRgstr()
+                            showAccommodationChart_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr, buildingid_AccomRgstr, chartInstanceID_AccRgstr, summary_type)
+                        }
+
+
+                        function showGuestSummary_AccRgstr(e) {
+                            readFilterParamValues()
+                            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            //if (focusIndex < 0)
+                            //{
+                            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                            //    return;
+                            //}
+                            summary_type = "GUEST SUMMARY";
+                            //AccomRegstr_GetRowData(focusIndex);
+                            makeglobalNull_AccRgstr()
+                            showGuestSummary_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr, chartInstanceID_AccRgstr, summary_type)
+                        }
+                        function showSevadhariSummary_AccRgstr(e) {
+                            readFilterParamValues()
+                            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+                            //if (focusIndex < 0)
+                            //{
+                            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                            //    return;
+                            //}
+                            summary_type = "SEVADHARI SUMMARY";
+                            //AccomRegstr_GetRowData(focusIndex);
+                            makeglobalNull_AccRgstr()
+                            showSevadhariSummary_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr, chartInstanceID_AccRgstr, summary_type)
+                        }
+                        function showFoodSummary_AccRgstr() {
+                            readFilterParamValues()
+                            summary_type = "FOOD SUMMARY";
+                            //AccomRegstr_GetRowData();
+                            makeglobalNull_AccRgstr()
+                            showFoodSummary_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr)
+                        }
+                        function showFoodDetail_AccRgstr() {
+                            readFilterParamValues()
+                            summary_type = "FOOD DETAIL";
+                            //AccomRegstr_GetRowData();
+                            makeglobalNull_AccRgstr()
+                            ShowLoader();
+                            showFoodDetail_ChartReports(fromDate_fltr_AccomRgstr, toDate_fltr_AccomRgstr, fromtime_fltr_AccomRgstr, totime_fltr_AccomRgstr, eventid_AccomRgstr)
+                        }
+                        function AccomRegstr_GetRowData(RowIndex = null) {
+                            var focusedrow = RowIndex == null ? AccommodationRegister_InfoGrid.GetFocusedRowIndex() : RowIndex;
+                            var topindex = AccommodationRegister_InfoGrid.GetTopVisibleIndex();
+                            var Index = focusedrow - topindex;                         
+                            var AccomRegstrPageData = AccommodationRegister_InfoGrid.cpPagedata;
+                            if (AccomRegstrPageData != null && AccomRegstrPageData.length > 0 && Index < AccomRegstrPageData.length) {
+                                //chartInstanceID = AccomRegstrPageData[Index][0];
+                                //formName = AccomRegstrPageData[Index][1];
+                                //isApprovalRequired = AccomRegstrPageData[Index][2];
+                                //formDescription = AccomRegstrPageData[Index][3];
+                                //formTitle = AccomRegstrPageData[Index][4];
+                                //formID = AccomRegstrPageData[Index][5];
+                                //TravelFormID_chart = AccomRegstrPageData[Index][6];
+                                //EventID_chartInfo = AccomRegstrPageData[Index][7];
+                                //ServiceReportID_chartInfo = AccomRegstrPageData[Index][6];
+                                //if (formDescription != null && formDescription.trim().length > 0) {
+                                //    //responseTabName = formName + " - " + formDescription;
+                                //    responseTabName = formName;
+                                //}
+                                //else {
+                                //    responseTabName = formName;
+                                //}
+                                chartInstanceID_AccRgstr = AccomRegstrPageData[Index][1];
+                                Chart_Response_ID_AccRgstr = AccomRegstrPageData[Index][5];
+                                Chart_Response_Remarks_AccRgstr = AccomRegstrPageData[Index][6];
+                                UserID_AccRgstr = AccomRegstrPageData[Index][3];
+                                UserABID_AccRgstr = AccomRegstrPageData[Index][4];
+
+                            }
+                            else {
+                                chartInstanceID_AccRgstr = null;
+                            }
+                        }
+
+                        function Accom_RegisterInfo_GetSelectedRowData(_Action) {
+                            ShowLoader();
+                            AccommodationRegister_InfoGrid.GetSelectedFieldValues("CHART_ID;CHART_SR_ID;ServiceReportID;UserID;AB_ID;RESP_ID;Remarks;Arrival;Departure;Beds;RegNo;Event;Form;Name;City;Slip_By;Registrations;Accom From;Accom To;",
+                                function (values) { GetSelectedFieldValuesCallback_Accom_Register(values, _Action) })                          
+                        }
+                        function GetSelectedFieldValuesCallback_Accom_Register(values, _Action) {                          
+                            HideLoader();                
+                            if (values != null) {
+                                for (var Index = 0; Index < values.length; Index++) {                                
+                                    if (Index == 0) {
+                                        chartInstanceID_AccRgstr = values[Index][1];
+                                        Chart_Response_ID_AccRgstr = values[Index][5];
+                                        Chart_Response_Remarks_AccRgstr = values[Index][6];
+                                        UserID_AccRgstr = values[Index][3];
+                                        UserABID_AccRgstr = values[Index][4];
+                                        fromDate_AccomRgstr = values[Index][7];
+                                        toDate_AccomRgstr = values[Index][8];
+                                        bedCounts_AccomRegstr = values[Index][9];
+                                        registrations_AccomRegstr = values[Index][16];
+                                        NamesofRegistrations_AccomRegstr = values[Index][13]; //Names of the registrated person.
+                                        AcommodationFrom_AccomRegstr = values[Index][17];
+                                        AcommodationTo_AccomRegstr = values[Index][18];
+                                    }
+                                    else {
+                                        chartInstanceID_AccRgstr = chartInstanceID_AccRgstr + "|" + values[Index][1];
+                                        Chart_Response_ID_AccRgstr = Chart_Response_ID_AccRgstr + "|" + values[Index][5];
+                                        Chart_Response_Remarks_AccRgstr = Chart_Response_Remarks_AccRgstr + "|" + values[Index][6];
+                                        UserID_AccRgstr = UserID_AccRgstr + "|" + values[Index][3];
+                                        UserABID_AccRgstr = UserABID_AccRgstr + "|" + values[Index][4];
+                                        fromDate_AccomRgstr = fromDate_AccomRgstr + "|" + values[Index][7];
+                                        toDate_AccomRgstr = toDate_AccomRgstr + "|" + values[Index][8];
+                                        bedCounts_AccomRegstr = bedCounts_AccomRegstr + "|" + values[Index][9];
+                                        registrations_AccomRegstr = registrations_AccomRegstr + "|" + values[Index][16];
+                                        NamesofRegistrations_AccomRegstr = NamesofRegistrations_AccomRegstr + "|" + values[Index][13];
+                                        AcommodationFrom_AccomRegstr = AcommodationFrom_AccomRegstr + "|" + values[Index][17];
+                                        AcommodationTo_AccomRegstr = AcommodationTo_AccomRegstr + "|" + values[Index][18];
+                                    }
+                                }
+                            }
+                            else {
+                                UserID_AccRgstr = "";
+                                UserABID_AccRgstr = "";
+                            }
+
+                            if (_Action == "PRINT") {
+                                var SelectedRowCount = AccommodationRegister_InfoGrid.GetSelectedRowCount();
+                                if (SelectedRowCount == 1) {
+                                    if (parseInt(bedCounts_AccomRegstr) == 0) {
+                                        var result = DevExpress.ui.dialog.confirm("Accommodation has not been allocated for the selected Registration.Do you want to Allott Accommodation ?", "Confirmation");
+                                        result.done(function (dialogResult) {
+                                            if (dialogResult) {
+                                                Accom_RegisterInfo_Accommodation();
+                                            }
+                                        });
+                                    }
+                                    else { openPrintOptionsOrSlip(); }
+                                }
+                                else if (SelectedRowCount > 1) {
+                                    var bedsCountarray = bedCounts_AccomRegstr.split("|");
+                                    var index = bedsCountarray.indexOf("0")
+                                    if (index > -1) {
+                                        var result = DevExpress.ui.dialog.confirm("Accommodation has not been allocated for one or more of selected Registrations. Do you want to Allott Accommodation?", "Confirmation");
+                                        result.done(function (dialogResult) {
+                                            if (dialogResult) {
+                                                Accom_RegisterInfo_Accommodation();
+                                            }
+                                        });
+                                    }
+                                    else {
+                                        openPrintOptionsOrSlip();
+                                    }
+                                }
+                            }
+                            else if (_Action == "MarkArrived" || _Action == "UnMarkArrived") {
+                                MarkorUnMark_AccomRegstr(_Action)
+                            }
+
+                            else if (_Action == "ACCOMMODATION") {
+                                continueEvenDatesNotEqual_AccomRegstr = "false"
+                                openAccommodationSettingsWindow();
+                            }
+                            else if (_Action == "GROUPDETAILS") {
+                                ShowLoader();
+                                $.ajax({
+                                    type: 'GET',
+                                    url: "/Facility/Chart/Frm_ChartResponse_GroupDetails",
+                                    cache: false,
+                                    data:
+                                    {
+                                        ChartResponseID: Chart_Response_ID_AccRgstr,
+                                    },
+                                    success: function (data) {
+                                        HideLoader();
+                                        OpenPopup("ResponseGroupDetails_Popup", "Group Registration Details", null, "auto", 800, true, data);
+                                    }
+                                });
+                            }
+                            else if (_Action == "EditResponse") {
+                                ShowLoader();
+                                if (UserID_AccRgstr == null) { UserID_AccRgstr = ""; }
+                                if (UserABID_AccRgstr == null) { UserABID_AccRgstr = ""; }
+
+                                HideLoader();
+                                var URL = "@ServicePath" + "ViewChartUser/" + chartInstanceID_AccRgstr + "/" + UserID_AccRgstr + "/" + UserABID_AccRgstr + "/?ActionMethod=_Edit&ResponseID=" + Chart_Response_ID_AccRgstr;
+                                OpenFormPopup(chartInstanceID_AccRgstr, false, URL, "ViewFormUserSidePopup", "Edit ~ Response")
+                                window.onmessage = function (e) {
+                                    if (e.data == 'FormOperationCompleted') {
+                                        $("#ViewFormUserSidePopup").dxPopup("hide");
+                                        ShowLoader();
+                                        GoAccomRegister();
+                                        HideLoader();
+                                    }
+                                };
+                            }
+                        }
+
+                    </script>
+                    <script>
+
+                        async function Event_AccmRegstr_ValueChange(e, FirstCall = false) {
+                            var value;
+                            var DG = $("#Event_AccmRegstr_datagrid").dxDataGrid("instance");
+                            if (e) {
+                                value = e.value;
+                                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                    DG.clearSelection();
+                                    return;
+                                }
+                            }
+                            else {
+                                value = $("#Event_AccmRegstr").dxDropDownBox("option", "value");
+                            }
+                            await DG.selectRows(value);
+                            if (DG.getSelectedRowsData().length > 0) {
+                                var item = DG.getSelectedRowsData()[0];
+
+                            }
+                        }
+                        async function Form_AccmRegstr_ValueChange(e, FirstCall = false) {
+                            var DG = $("#Form_AccmRegstr_datagrid").dxDataGrid("instance");
+                            if (e) {
+                                chart_inst_id_filter_AccomRgstr = e.value;
+                                if ((e.value == null || e.value.length == 0) && e.previousValue != null) {
+                                    DG.clearSelection();
+                                    return;
+                                }
+                            }
+                            else {
+                                chart_inst_id_filter_AccomRgstr = $("#Form_AccmRegstr").dxDropDownBox("option", "value");
+                            }
+                            await DG.selectRows(chart_inst_id_filter_AccomRgstr);
+                            if (DG.getSelectedRowsData().length > 0) {
+                                var item = DG.getSelectedRowsData()[0];
+
+                            }
+                        }
+                    </script>
+
+                    <div class="col-sm-2" style=" padding-top: 3px; ">
+                        <div class="form-field">
+                            <label class="control-label text-white" for="user"></label><br />
+                            @(Html.DevExtreme().Button().ID("btnShowSummary__AccmRegstr").Text("Go").OnClick("GoAccomRegister").Width("100%"))
+                        </div>
+                    </div>
+                    <div class="col-sm-1" style=" padding-top: 3px; ">
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+        <script>
+            var fromDate_fltr_AccomRgstr = null; var fromtime_fltr_AccomRgstr = null;
+            var toDate_fltr_AccomRgstr = null; var totime_fltr_AccomRgstr = null;
+            var fromDate_AccomRgstr = null; var fromtime_AccomRgstr = null; var filterBy_AcommRgstr = null;
+            var toDate_AccomRgstr = null; var totime_AccomRgstr = null; var bedCounts_AccomRegstr = null; var registrations_AccomRegstr = null; var NamesofRegistrations_AccomRegstr = null;
+            var eventid_AccomRgstr = null; var buildingid_AccomRgstr = null; var registrationNumber_AccomRgstr = null; var AcommodationFrom_AccomRegstr = null; var AcommodationTo_AccomRegstr = null;
+            var roomAndCount_AccomRgstr = null; var chart_inst_id_filter_AccomRgstr = null;
+            var param = {};                     
+            function readFilterParamValues() {
+
+                if ($("#StartDate_Accom_Register").dxDateBox("instance").option("value") != null) {
+                    fromDate_fltr_AccomRgstr = JS_Json_Date_To_ddMMyyyy($("#StartDate_Accom_Register").dxDateBox("instance").option("value"));
+                } else { fromDate_fltr_AccomRgstr = null; }
+                if ($("#StartTime_Accom_Register").dxDateBox("instance").option("value") != null) {
+                    fromtime_fltr_AccomRgstr = JS_Json_Date_To_ddMMyyyy($("#StartTime_Accom_Register").dxDateBox("instance").option("value"));
+                } else { fromtime_fltr_AccomRgstr = null; }
+                if ($("#EndDate_Accom_Register").dxDateBox("instance").option("value") != null) {
+                    toDate_fltr_AccomRgstr = JS_Json_Date_To_ddMMyyyy($("#EndDate_Accom_Register").dxDateBox("instance").option("value"));
+                } else { toDate_fltr_AccomRgstr = null; }
+                if ($("#EndTime_Accom_Register").dxDateBox("instance").option("value") != null) {
+                    totime_fltr_AccomRgstr = JS_Json_Date_To_ddMMyyyy($("#EndTime_Accom_Register").dxDateBox("instance").option("value"));
+                } else { totime_fltr_AccomRgstr = null; }
+
+                if (($("#StartDate_Accom_Register").dxDateBox("instance").option("value") != null && $("#StartDate_Accom_Register").dxDateBox("instance").option("value") != undefined) &&
+                    ($("#EndDate_Accom_Register").dxDateBox("instance").option("value") == null || $("#EndDate_Accom_Register").dxDateBox("instance").option("value") == undefined)) {
+                    DevExpress.ui.notify({ message: 'To Date should not be Empty', width: 300, shading: true, position: 'center' }, "error", 1500);
+                    return;
+                }
+                if (($("#StartDate_Accom_Register").dxDateBox("instance").option("value") == null && $("#StartDate_Accom_Register").dxDateBox("instance").option("value") == undefined) &&
+                    ($("#EndDate_Accom_Register").dxDateBox("instance").option("value") != null || $("#EndDate_Accom_Register").dxDateBox("instance").option("value") != undefined)) {
+                    DevExpress.ui.notify({ message: 'From Date should not be Empty', width: 300, shading: true, position: 'center' }, "error", 1500);
+                    return;
+                }
+                if ($("#StartDate_Accom_Register").dxDateBox("instance").option("value") > $("#EndDate_Accom_Register").dxDateBox("instance").option("value")) {
+                    DevExpress.ui.notify({ message: 'From Date should not be greater than To Date', width: 300, shading: true, position: 'center' }, "error", 2000);
+                    return;
+                }
+                eventid_AccomRgstr = $("#Event_AccmRegstr").dxDropDownBox("option", "value");
+                filterBy_AcommRgstr = $("#Acomm_Regstr_Filterby").dxSelectBox("option", "value");
+                var buildingid_array = $("#Building_AccmRegstr").dxDropDownBox("option", "value");
+                if (buildingid_array != null) { buildingid_AccomRgstr = buildingid_array[0]; }
+                registrationNumber_AccomRgstr = $("#RegistrationNumber_AccomRegstr").dxTextBox("option", "value")
+                if (registrationNumber_AccomRgstr == "") { registrationNumber_AccomRgstr = null; }
+                chart_inst_id_filter_AccomRgstr = $("#Form_AccmRegstr").dxDropDownBox("option", "value");
+                
+                param["Filter_By"] = filterBy_AcommRgstr;
+                param["fromdate"] = fromDate_fltr_AccomRgstr;
+                param["todate"] = toDate_fltr_AccomRgstr;
+                param["fromtime"] = fromtime_fltr_AccomRgstr;
+                param["totime"] = totime_fltr_AccomRgstr;
+                param["eventid"] = eventid_AccomRgstr;
+                param["buildingid"] = buildingid_AccomRgstr;
+                param["reg_Number"] = registrationNumber_AccomRgstr;
+                param["Chart_Inst_ID"] = chart_inst_id_filter_AccomRgstr;
+                param["ConciseMode"] = ConciseMode;
+                param["firtstLoad"] = false;
+
+               return param;
+            }
+            function GoAccomRegister() {
+                //var par = readFilterParamValues();
+                AR_InfoGrid_dx.refresh().then(function (e) {
+                   // AR_InfoGrid_dx_Get_DefaultMode_Columns(
+                        AR_InfoGrid_dx.option("dataSource").store.load().done(function (data) {
+                        AR_InfoGrid_dx_Get_DefaultMode_Columns(data);
+                    });
+                })
+            }
+            function ModeSwitch_Accom_Register_ValueChange(e) {
+                ConciseMode = e.value == true ? true : false;
+                GoAccomRegister()
+            }
+        </script>
+
+    </div>
+    <div class="row">
+        <div class="col-md-12" id="Accom_Register_gridDiv">
+            <form>
+                <div id="Accom_RegisterGridPartialView" class="parent_table">
+                    @Html.Partial("Frm_AccommodationRegister_Info_grid_dx")
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="footer-MainBoxdiv" style="display:inline-block;width:100%">
+        <div class="setFooterItem">
+            <div class="footer-inner">
+                <div class="list_footer_left_margin">
+                    <div class="footericon">
+                        <i id="ServiceReport_LockICON" style="color:red;font-size:35px;"></i>
+                    </div>
+                    @*<div class="footer-locktext">
+                            <div id="BankLbl_Status" style="font-size:23px" class="left_footertext_top"></div>
+                        </div>*@
+                    <div class="footer-locktext">
+                        <div id="SR_Lbl_ActionOn" class="left_footertext_top"></div>
+                        <div id="SR_Lbl_ActionBy" class="left_footertext_bottom"></div>
+                    </div>
+                </div>
+                <div class="list_footer_left_margin">
+                    <div class="footer-text">
+                        <p id="SR_Create" class="right_footertext_top"></p>
+                        <p id="SR_Modify" class="right_footertext_bottom"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        var selectedUserIDs_MaptoChart = ""; var selectedUser_ABIDs_MaptoChart = ""; var selectedUser_PojectMapIds_MaptoChart = ""; var msgStr_MaptoChart = "";
+
+    </script>    @*Global Variables*@
+
+    <script>
+        $(document).ready(function () {
+
+
+        });
+
+    </script>
+
+    <script>
+
+       
+
+        function Accom_RegisterAdjustSize() {
+            var height = (document.documentElement.clientHeight * 70) / 100;
+            try {
+                AccommodationRegister_InfoGrid.SetHeight(height);
+            }
+            catch (err) {
+            }
+        }
+
+        function AccomRegisterInfoGrid_BeginCallback(s, e) {
+            e.customArgs["command"] = e.command;
+            e.customArgs["Layout"] = s.cpClientLayout;
+            e.customArgs["fromdate"] = fromDate_fltr_AccomRgstr;
+            e.customArgs["todate"] = toDate_fltr_AccomRgstr;
+            e.customArgs["fromtime"] = fromtime_fltr_AccomRgstr;
+            e.customArgs["totime"] = totime_fltr_AccomRgstr;
+            e.customArgs["eventid"] = eventid_AccomRgstr;
+            e.customArgs["buildingid"] = buildingid_AccomRgstr;
+            e.customArgs["reg_Number"] = registrationNumber_AccomRgstr;
+            e.customArgs["ShowHorizontalBar"] = AccomRegstr_ShowHorizontalBar;
+            e.customArgs["Layout"] = AccomRegstr_GridLayout;
+            e.customArgs["ViewMode"] = CompactMode_AccRgstr;
+            e.customArgs["ColumnToBeHidddenIndex"] = AccomRegstr_ColumnToBeHidddenIndex;
+            e.customArgs["ColumnToBeShownIndex"] = AccomRegstr_ColumnToBeShownIndex;
+            e.customArgs["Filter_By"] = filterBy_AcommRgstr;
+            e.customArgs["Chart_Inst_ID"] = chart_inst_id_filter_AccomRgstr;
+            e.customArgs["ConciseMode"] = $("#ModeSwitch_Accom_Register").dxSwitch("option","value")
+        }
+            var updatewithprint = false;
+        function AccomRegisterInfoGrid_EndCallback(s, e) {
+
+            //e.customArgs["command"] = e.command;
+            AccomRegstr_GridLayout = s.cpClientLayout;
+            AccomRegstr_ColumnToBeShownIndex = s.cpColumnToBeShownIndex;
+            AccomRegstr_ColumnToBeHidddenIndex = s.cpColumnToBeHidddenIndex;
+            /*if (updatewithprint) { printSlip_AccomRegstr(); }*/
+            updatewithprint = false;
+            //if (e.command == "APPLYCOLUMNFILTER" || e.command == "APPLYHEADERCOLUMNFILTER" || e.command == "APPLYFILTER" || e.command == "APPLYSEARCHPANELFILTER") {
+            //    AccommodationRegister_InfoGrid.UnselectRows();
+            //}
+        }    
+        function AccomRegisterInfoGrid_SelectionChanged(s, e)
+        {       
+            if (s.GetSelectedRowCount() == 0)
+            {
+                //selectedUserIDs_MaptoChart = "";
+               //selectedUser_ABIDs_MaptoChart = "";
+            }
+            //var TotalRowCount = s.cpTotalRowCount;
+            var SelectedRowCount = s.GetSelectedRowCount(); 
+            $("#selectedCount_div>label").text(SelectedRowCount + " Row(s) Selected")       
+        }
+        function OnAccomRegisterInfoGridFocusedRowChanged(s, e) {
+
+        }
+        function AccomRegisterInfoGrid_ContextMenuFunction(s, e) {
+
+            if (e.item.name == "Refresh") {
+                GoAccomRegister();
+            }
+            if (e.item.name == "Close") {
+                closeAccom_Register();
+            }
+            if (e.item.name == "AddRemarks") {
+                AccomRegstr_AddRemarks();
+            }
+            //else if (e.item.name == 'AddResponse') {
+            //    ChartResponses_AddResponse();
+            //}
+            //else if (e.item.name == 'AddLinkedResponse') {
+            //    ChartResponses_AddLinkedFormResponse();
+            //}
+            else if (e.item.name == 'Approve') {
+                //ChartResponses_ChangeStatus("APPROVE");
+            }
+            else if (e.item.name == 'Draft') {
+                //ChartResponses_ChangeStatus("DRAFT");
+            }
+            else if (e.item.name == 'Reject') {
+                //ChartResponses_ChangeStatus("REJECT");
+            }
+            else if (e.item.name == 'MarkArrived') {
+                AccomRegstr_Arrived("MarkArrived");
+            }
+            else if (e.item.name == 'UnMarkArrived') {
+                AccomRegstr_Arrived("UnMarkArrived");
+            }
+            else if (e.item.name == 'Accomodation') {
+                Accom_RegisterInfo_Accommodation();
+            }
+            else if (e.item.name == 'EditResponse') {
+                AccomRegstr_Edit();
+            }
+            else if (e.item.name == 'ListPreview') {
+                OnAccom_RegisterListPreviewClick();
+            }
+            else if (e.item.name == 'ViewResponse') {
+                AccomRegstr_Preview();
+            }
+        }
+        function AccomRegisterInfoGrid_ContextMenuInit(s, e) {
+
+            //if (inParam_ProjectID.length == 0 && e.menu != null) {
+            //    var Item = e.menu.GetItemByName("MapUserProject");
+            //    if (Item != null) Item.SetVisible(false);
+            //    Item = e.menu.GetItemByName("ViewMapUserProject");
+            //    if (Item != null) Item.SetVisible(false);
+            //}
+
+        }
+        function AccomRegstr_AddRemarks() {
+           
+            //var SelectedRowCount = AccommodationRegister_InfoGrid.GetSelectedRowCount();
+            //if (SelectedRowCount < 1) {
+            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+            //    return;
+            //}
+            //if (SelectedRowCount > 1) {
+            //    DevExpress.ui.dialog.alert("Multiple Rows Are Selected<br>Please Select One Row", "Alert");
+            //    return;
+            //}
+            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+            var focusIndex = AR_InfoGrid_dx.getSelectedRowsData();
+            if (focusIndex.length < 1) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+            //AccomRegstr_GetRowData(focusIndex);
+            //ChartResponsesInfo_GetSelectedRowData("AddRemarks");
+            AccomRegstr_GetRowData_dx(AR_InfoGrid_dx_SelectedData);
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/Chart/Frm_ChartResponse_AddRemarks",
+                cache: false,
+                data:
+                {
+                    ChartResponseID: Chart_Response_ID_AccRgstr,
+                    ChartResponseRemarks: Chart_Response_Remarks_AccRgstr,
+                    GridNametoRefreshAfterAdd: "AccommodationRegister_InfoGrid_dx"
+                },
+                success: function (data) {
+                    HideLoader();
+                    OpenPopup("Response_Remark_popup", "Add Remarks", null, "auto", 340, true, data);
+                }
+            });
+        }
+        function AccomRegstr_Arrived(_Action) {
+            
+            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+            if (SelectedRowCount.length < 1) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+            //if (SelectedRowCount > 1) {
+            //    DevExpress.ui.dialog.alert("Multiple Rows Are Selected<br>Please Select One Row", "Alert");
+            //    return;
+            //}
+            //var focusIndex = AccommodationRegister_InfoGrid.GetFocusedRowIndex();
+            //if (focusIndex < 0) {
+            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+            //    return;
+            //}
+            //AccomRegstr_GetRowData(focusIndex);
+            Accom_RegisterInfo_GetSelectedRowData_dx(_Action);
+
+        }
+        function MarkorUnMark_AccomRegstr(_Action) {
+            
+            var result = false;
+            if (_Action == "MarkArrived") {
+                result = DevExpress.ui.dialog.confirm('Are You Sure You want To Mark as Arrived...?', "Confirm");
+            }
+            else if (_Action == "UnMarkArrived") {
+                result = DevExpress.ui.dialog.confirm('Are You Sure You want To UnMark as Arrived...?', "Confirm");
+            }
+
+            result.done(function (dialogResult) {
+                dontaskpopupcloseconfirmation = dialogResult;
+                if (dialogResult) {
+                    ShowLoader();
+                    $.ajax({
+                        type: 'GET',
+                        url: "/Facility/Chart/ChangeResponseArrivalStatus",
+                        cache: false,
+                        data:
+                        {
+                            chartResponseID: Chart_Response_ID_AccRgstr,
+                            _Action: _Action == "MarkArrived" ? "MARK" : "UNMARK"
+                        },
+                        success: function (data) {
+                            HideLoader();
+                            var alertClick = DevExpress.ui.dialog.alert(data.jsonParam.message, data.jsonParam.title);
+                            alertClick.done(function (alertResult) {
+                                if (alertResult) {
+                                    AccommodationRegister_InfoGrid_dx_Refresh()
+                                    
+                                    Chart_Response_ID_AccRgstr = null;
+                                    AR_InfoGrid_dx.clearSelection()
+                                   
+                                }
+                            })
+                        }
+                    });
+                }
+                else {
+
+                }
+            });
+        }
+
+        function AccomRegstr_Preview() {
+            //var SelectedRowCount = AccommodationRegister_InfoGrid.GetSelectedRowCount();
+            //if (SelectedRowCount < 1) {
+            //    DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+            //    return;
+            //}
+            //if (SelectedRowCount > 1) {
+            //    DevExpress.ui.dialog.alert("Multiple Rows Are Selected<br>Please Select One Row", "Alert");
+            //    return;
+            //}
+            var focusIndex = AR_InfoGrid_dx.getSelectedRowsData();
+            if (focusIndex.length < 1) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }
+            AccomRegstr_GetRowData_dx(focusIndex);
+
+            ShowLoader();
+            if (UserID_AccRgstr == null) { UserID_AccRgstr = ""; }
+            if (UserABID_AccRgstr == null) { UserABID_AccRgstr = ""; }
+
+            HideLoader();
+            var URL = "@ServicePath" + "ViewChartUser/" + chartInstanceID_AccRgstr + "/" + UserID_AccRgstr + "/" + UserABID_AccRgstr + "/?ActionMethod=_View&ResponseID=" + Chart_Response_ID_AccRgstr;
+            OpenFormPopup(chartInstanceID_AccRgstr, false, URL, "ViewFormUserSidePopup", "View ~ Response", "_View")
+        }
+
+        function AccomRegstr_Edit() {
+            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+            if (SelectedRowCount.length <1) {
+                DevExpress.ui.dialog.alert("Please Select Any One Response", "Alert");
+                return;
+            }
+            else if (SelectedRowCount.length > 1) {
+                DevExpress.ui.dialog.alert("Please Select Only One Response", "Alert");
+                return;
+            }
+            else if (SelectedRowCount.length == 1) {
+                Accom_RegisterInfo_GetSelectedRowData_dx("EditResponse");
+            }
+        }
+
+    </script>    @* Grid Functions *@
+
+    <script>
+        function Accom_RegisterInfo_Accommodation() {
+
+            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+            if (SelectedRowCount.length < 1) {
+                DevExpress.ui.dialog.alert("Please Select One Row", "Alert");
+                return;
+            }        
+            Accom_RegisterInfo_GetSelectedRowData_dx("ACCOMMODATION");
+            ShowLoader();
+        }
+        var continueEvenDatesNotEqual_AccomRegstr = "false";
+        function openAccommodationSettingsWindow() {  
+            var arrival_date = null; var departure_date = null;
+            var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();//AccommodationRegister_InfoGrid.GetSelectedRowCount();
+            if (SelectedRowCount.length == 1) {
+                if (AcommodationFrom_AccomRegstr != "" && AcommodationFrom_AccomRegstr != " " && AcommodationFrom_AccomRegstr != "null" && AcommodationFrom_AccomRegstr != undefined) {
+                    arrival_date = AcommodationFrom_AccomRegstr
+                    departure_date = AcommodationTo_AccomRegstr
+                } else {
+                    arrival_date = fromDate_AccomRgstr
+                    departure_date = toDate_AccomRgstr
+                }
+            }
+            else if (SelectedRowCount.length > 1) {
+                var accommodationFromArray = AcommodationFrom_AccomRegstr.split("|")
+                var accommodationFromdate = accommodationFromArray.find(dt => dt != "null" && dt != "" && dt != " "); //y.find(y=>y=="null")
+                if (accommodationFromdate == undefined) {
+                    arrival_date = fromDate_AccomRgstr
+                    departure_date = toDate_AccomRgstr
+                } else if (accommodationFromdate != "null" && accommodationFromdate != undefined) {
+                    arrival_date = AcommodationFrom_AccomRegstr
+                    departure_date = AcommodationTo_AccomRegstr
+                }
+            }
+            $.ajax({
+                type: 'GET',
+                url: "/Facility/AccommodationRegister/Frm_AccomodationSettings_Multi",
+                cache: false,
+                data:
+                {
+                    _ChartResponseID: Chart_Response_ID_AccRgstr,
+                    _ChartInstanceID: chartInstanceID_AccRgstr,
+                    arrivalDate: arrival_date, //fromDate_AccomRgstr,
+                    departureDate: departure_date, //toDate_AccomRgstr,
+                    bedCounts: bedCounts_AccomRegstr,
+                    Registrations: registrations_AccomRegstr,
+                    gridToRefresh: "AccommodationRegister_InfoGrid_dx",
+                    Names: NamesofRegistrations_AccomRegstr,
+                    ContinueEvenDatesNotEqual: continueEvenDatesNotEqual_AccomRegstr
+                },
+                success: function (data) {
+                    HideLoader();
+                    if (typeof (data) == 'string') {
+                        OpenPopup("Response_Accomodation_popup", "Add Accomodation", null, "auto", 800, true, data);
+                    }
+                    else if (typeof (data) == 'object') {
+                        if (data.jsonParam.isconfirm) {
+                            var result = DevExpress.ui.dialog.confirm(data.jsonParam.message, "Confirm");
+                            result.done(function (dialogResult) {
+                                if (dialogResult) {
+                                    continueEvenDatesNotEqual_AccomRegstr = "true";
+                                    openAccommodationSettingsWindow();
+                                }
+                            });
+                        } else {
+                            DevExpress.ui.dialog.alert(data.jsonParam.message, "Alert");
+                        }
+                    }
+
+                }
+            });
+        }
+        function DataNavigation_Accom_Register(_action) {
+
+            var SelectedRowCount = AccommodationRegister_InfoGrid.GetSelectedRowCount();
+            if (SelectedRowCount < 1 && _action == "SAVE") {
+                DevExpress.ui.dialog.alert("Please Select Rows", "Alert");
+                return;
+            }
+            Accom_RegisterInfo_GetSelectedRowData(_action);
+        }
+
+
+
+    </script>
+
+    <script>
+        function StartDate_Accom_Register_ValueChange(e) {
+
+        }
+        function EndDate_Accom_Register_ValueChange(e) {
+
+        }
+        function StartTime_Accom_Register_ValueChange(e) {
+
+        }
+        function EndTime_Accom_Register_ValueChange(e) {
+
+        }
+
+    </script>
+
+    <script>
+        function closeAccom_Register() {
+
+
+            $(".TabPanalMenu-tabs .active span").click();
+
+
+        }
+
+
+        $(".TabPanalMenu-tabs .active span").on("click", function () {
+            $.ajax({
+                url: "/Facility/AccommodationRegister/SessionClearAccomRegstr",
+                type: "GET"
+            });
+            DxGrid_EventsOnScreenClose(AR_InfoGrid_dx);
+
+        });
+
+
+        //function closeAccom_Register() {
+        //    $("#ChartUser_Mapping_Screen_Modal").dxPopup("hide");
+        //}
+        function ClearAllReferences_Accom_Register() {
+            //Baba: Below function parameter  to be added in index.
+            ClearAllReferences("Accom_RegisterFacility_ClearReferences")
+        }
+    </script>
+    <script>
+        var AR_InfoGrid_dx = null;
+        var AR_InfoGrid_dx_SelectedData = [];
+    </script>
+    <script>
+        function Accom_RegisterInfo_GetSelectedRowData_dx(_Action) {
+            
+            //if (AR_InfoGrid_dx_SelectedData.length > 0) {
+               ShowLoader();
+            //    GetSelectedFieldValuesCallback_Accom_Register_dx(AR_InfoGrid_dx_SelectedData, _Action)
+            //    //    ChartResponsesInfoGrid.GetSelectedFieldValues("RESP_ID;Status;Remarks;UserID;AB_ID;SHARE_MESSAGE;Mob1;NextLinkedFormInstID;TravelFormInstID;FeedbackFormInstID;REGISTRATIONS",
+            //    //        function (values) { GetSelectedFieldValuesCallback_ChartResponse(values, _Action) })
+            //}
+            //else {
+            //    //Chart_Response_ID = null;
+            //    //Chart_Response_Status = "";
+            //    //Chart_Response_Remarks = "";
+            //    //NextLinkedForm_Inst_ID_ChartResponse = 0;
+            //}
+            //GetSelectedFieldValuesCallback_Accom_Register_dx();
+            GetSelectedFieldValuesCallback_Accom_Register_dx(AR_InfoGrid_dx_SelectedData, _Action)
+        }
+        function GetSelectedFieldValuesCallback_Accom_Register_dx(values, _Action) {
+            debugger;
+            HideLoader();
+            if (values != null) {
+                for (var Index = 0; Index < values.length; Index++) {
+                    if (Index == 0) {
+                        chartInstanceID_AccRgstr = values[Index]["CHART_ID"];
+                        Chart_Response_ID_AccRgstr = values[Index]["RESP_ID"];
+                        Chart_Response_Remarks_AccRgstr = values[Index]["Remarks"];
+                        UserID_AccRgstr = values[Index]["UserID"];
+                        UserABID_AccRgstr = values[Index]["AB_ID"];
+                        fromDate_AccomRgstr = values[Index]["Arrival"];
+                        toDate_AccomRgstr = values[Index]["Departure"];
+                        bedCounts_AccomRegstr = values[Index]["Beds"];
+                        registrations_AccomRegstr = values[Index]["Registrations"];
+                        NamesofRegistrations_AccomRegstr = values[Index]["Name"]; //Names of the registrated person.
+                        AcommodationFrom_AccomRegstr = values[Index]["Accom From"];
+                        AcommodationTo_AccomRegstr = values[Index]["Accom To"];
+                    }
+                    else {
+                        chartInstanceID_AccRgstr = chartInstanceID_AccRgstr + "|" + values[Index]["CHART_ID"];
+                        Chart_Response_ID_AccRgstr = Chart_Response_ID_AccRgstr + "|" + values[Index]["RESP_ID"];
+                        Chart_Response_Remarks_AccRgstr = Chart_Response_Remarks_AccRgstr + "|" + values[Index]["Remarks"];
+                        UserID_AccRgstr = UserID_AccRgstr + "|" + values[Index]["UserID"];
+                        UserABID_AccRgstr = UserABID_AccRgstr + "|" + values[Index]["AB_ID"];
+                        fromDate_AccomRgstr = fromDate_AccomRgstr + "|" + values[Index]["Arrival"];
+                        toDate_AccomRgstr = toDate_AccomRgstr + "|" + values[Index]["Departure"];
+                        bedCounts_AccomRegstr = bedCounts_AccomRegstr + "|" + values[Index]["Beds"];
+                        registrations_AccomRegstr = registrations_AccomRegstr + "|" + values[Index]["Registrations"];
+                        NamesofRegistrations_AccomRegstr = NamesofRegistrations_AccomRegstr + "|" + values[Index]["Name"]; //Names of the registrated person.
+                        AcommodationFrom_AccomRegstr = AcommodationFrom_AccomRegstr + "|" + values[Index]["Accom From"];
+                        AcommodationTo_AccomRegstr = AcommodationTo_AccomRegstr + "|" + values[Index]["Accom To"];
+                    }
+                }
+            }
+            else {
+                UserID_AccRgstr = "";
+                UserABID_AccRgstr = "";
+            }
+
+            if (_Action == "PRINT") {
+                var SelectedRowCount = AR_InfoGrid_dx.getSelectedRowsData();
+                if (SelectedRowCount.length == 1) {
+                    if (parseInt(bedCounts_AccomRegstr) == 0) {
+                        var result = DevExpress.ui.dialog.confirm("Accommodation has not been allocated for the selected Registration.Do you want to Allott Accommodation ?", "Confirmation");
+                        result.done(function (dialogResult) {
+                            if (dialogResult) {
+                                Accom_RegisterInfo_Accommodation();
+                            }
+                        });
+                    }
+                    else { openPrintOptionsOrSlip(); }
+                }
+                else if (SelectedRowCount.length > 1) {
+                    var bedsCountarray = bedCounts_AccomRegstr.split("|");
+                    var index = bedsCountarray.indexOf("0")
+                    if (index > -1) {
+                        var result = DevExpress.ui.dialog.confirm("Accommodation has not been allocated for one or more of selected Registrations. Do you want to Allott Accommodation?", "Confirmation");
+                        result.done(function (dialogResult) {
+                            if (dialogResult) {
+                                Accom_RegisterInfo_Accommodation();
+                            }
+                        });
+                    }
+                    else {
+                        openPrintOptionsOrSlip();
+                    }
+                }
+            }
+            else if (_Action == "MarkArrived" || _Action == "UnMarkArrived") {
+                MarkorUnMark_AccomRegstr(_Action)
+            }
+
+            else if (_Action == "ACCOMMODATION") {
+                continueEvenDatesNotEqual_AccomRegstr = "false"
+                openAccommodationSettingsWindow();
+            }
+            else if (_Action == "GROUPDETAILS") {
+                ShowLoader();
+                $.ajax({
+                    type: 'GET',
+                    url: "/Facility/Chart/Frm_ChartResponse_GroupDetails",
+                    cache: false,
+                    data:
+                    {
+                        ChartResponseID: Chart_Response_ID_AccRgstr,
+                    },
+                    success: function (data) {
+                        HideLoader();
+                        OpenPopup("ResponseGroupDetails_Popup", "Group Registration Details", null, "auto", 800, true, data);
+                    }
+                });
+            }
+            else if (_Action == "EditResponse") {
+                
+                ShowLoader();
+                if (UserID_AccRgstr == null) { UserID_AccRgstr = ""; }
+                if (UserABID_AccRgstr == null) { UserABID_AccRgstr = ""; }
+                HideLoader();
+                var URL = "@ServicePath" + "ViewChartUser/" + chartInstanceID_AccRgstr + "/" + UserID_AccRgstr + "/" + UserABID_AccRgstr + "/?ActionMethod=_Edit&ResponseID=" + Chart_Response_ID_AccRgstr;
+                OpenFormPopup(chartInstanceID_AccRgstr, false, URL, "ViewFormUserSidePopup", "Edit ~ Response")
+                window.onmessage = function (e) {
+                    if (e.data == 'FormOperationCompleted') {
+                        $("#ViewFormUserSidePopup").dxPopup("hide");
+                        ShowLoader();
+                        GoAccomRegister();
+                        HideLoader();
+                    }
+                };
+            }
+        }
+        function AccomRegstr_GetRowData_dx(RowsData = null) {
+            var Index = 0;
+            var AccomRegstrPageData = RowsData;
+            if (AccomRegstrPageData) {
+                chartInstanceID_AccRgstr = AccomRegstrPageData[Index]["CHART_ID"];
+                Chart_Response_ID_AccRgstr = AccomRegstrPageData[Index]["RESP_ID"];
+                Chart_Response_Remarks_AccRgstr = AccomRegstrPageData[Index]["Remarks"];
+                UserID_AccRgstr = AccomRegstrPageData[Index]["UserID"];
+                UserABID_AccRgstr = AccomRegstrPageData[Index]["AB_ID"];
+            }
+            else {
+                chartInstanceID_AccRgstr = null;
+            }
+        }
+
+    </script>
+    <script>
+        function AccommodationRegister_InfoGrid_dx_OnInitialized(e) {
+            //AR_InfoGrid_dx_AdjustSize(e);
+            //ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+            //    AR_InfoGrid_dx_AdjustSize(e);
+            //});
+            DxGrid_AdjustSize(e.component, $("#Accom_Register_content .report_button_div"))
+            ASPxClientUtils.AttachEventToElement(window, "resize", function (evt) {
+                DxGrid_AdjustSize(e.component, $("#Accom_Register_content .report_button_div"), "", evt)
+            });
+            AR_InfoGrid_dx = e.component;
+            e.component.option("dataSource").store.load().done(function (data) {
+                AR_InfoGrid_dx_Get_DefaultMode_Columns(data);
+            });
+
+        }
+        //function AR_InfoGrid_dx_AdjustSize(e) {
+        //    var height = (document.documentElement.clientHeight * 90) / 100;
+        //    try {
+        //        e.component.option("height", height);
+        //        e.component.updateDimensions();
+        //    }
+        //    catch (err) {
+        //    }
+        //}
+        function AccommodationRegister_InfoGrid_dx_OnRowPrepared(e) {
+            if (e.rowType == "data") {
+                var GridName = e.element[0].id;
+                $(e.rowElement).addClass(GridName + "_DataRow_" + e.key)
+                if (e.data.REC_STATUS != null && e.data.REC_STATUS == -1) {
+                    $(e.rowElement).css("background-color", "rgb(233, 210, 224)");// REJECTED RESPONSE
+                }
+                if (e.data.REC_STATUS != null && e.data.REC_STATUS == 2) {
+                    $(e.rowElement).css("background-color", "rgb(238, 251, 233)");// APPROVED RESPONSE
+                }
+                if (e.data.Beds > 0) {
+                    $(e.rowElement).css("background-color", "rgb(255, 245, 223)");
+                }
+                if (e.data.Arrived) {
+                    $(e.rowElement).css("background-color", "rgb(212, 236, 244)");
+                }
+                if (e.data.REC_STATUS != null && e.data.REC_STATUS == -2) {
+                    $(e.rowElement).css("background-color", "rgb(255, 240, 240)");
+                }
+
+                var PreviewRowContent = AR_InfoGrid_dx_PreviewRow_Template(e)
+                var PreviewRowClass = "DataGridPreviewRow"
+                var PreviewRowOptions = "";
+                var EmptyTdshtml = "";
+                var emptyTd = $(e.rowElement).find('td.dx-datagrid-group-space').length
+                for (var i = 0; i < emptyTd; i++) {
+                    EmptyTdshtml += "<td></td>"
+                }
+                ($(e.rowElement).parent()).append("<tr class='" + PreviewRowClass + "' " + PreviewRowOptions + ">" + EmptyTdshtml + "<td colspan='" + (e.columns.length) + "'>" + PreviewRowContent + "</td></tr>")
+            }
+        }
+        function AccommodationRegister_InfoGrid_dx_OnSelectionChanged(e) {
+            var selectedRowKeys = e.selectedRowKeys;
+            if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                AR_InfoGrid_dx_SelectedData = e.selectedRowsData;
+            }
+            else {
+                AR_InfoGrid_dx_SelectedData = [];
+            }
+            $("#selectedCount_div>label").text(selectedRowKeys.length + " Row(s) Selected")
+        }
+        function AccommodationRegister_InfoGrid_dx_OnContextMenuPreparing(e) {
+
+            if (!e.items) e.items = [];
+            if (e.target == "header") {
+                DxGrid_HeaderContextMenu(e)
+            }
+            else if ((e.target == "content" && e.row && e.row.rowType == "groupFooter") || e.target == "footer") {
+                
+                if (CompactMode_AccRgstr == "Compact")
+                    DxGrid_FooterContextMenu(e, true);
+                else
+                    DxGrid_FooterContextMenu(e);
+            }
+            else if (e.target == "content" && e.row && (e.row.rowType == "data" || e.row.rowType == "detailAdaptive")) {
+                e.items = [
+                    {
+                        text: "Add Remarks",
+                        icon: "fa-solid fa-comment",
+
+                        onItemClick: function () {
+                            AccomRegstr_AddRemarks();
+                        }
+                    },
+
+                    {
+                        text: "Mark Arrived",
+                        icon: "fa-solid fa-car text-info",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            AccomRegstr_Arrived("MarkArrived");
+
+                        }
+                    },
+                    {
+                        text: "UnMark Arrived",
+                        icon: "fa-solid fa-reply text-info",
+                        onItemClick: function () {
+                            AccomRegstr_Arrived("UnMarkArrived");
+                        }
+                    },
+                    {
+                        text: "Update Accomodation",
+                        icon: "fa-solid fa-house text-info",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            Accom_RegisterInfo_Accommodation();
+                        }
+                    },
+
+
+                    {
+                        text: "Edit Response",
+                        icon: "fa-solid fa-pen text-info",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            AccomRegstr_Edit();
+                        }
+                    },
+                    {
+                        text: "List Preview",
+                        icon: "fa-solid fa-xmark",
+                        onItemClick: function () {
+                            OnAccom_RegisterListPreviewClick();
+                        }
+                    },
+                    {
+                        text: "View Response",
+                        icon: "fa-regular fa-eye",
+                        onItemClick: function () {
+                            AccomRegstr_Preview();
+
+                        }
+                    },
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeAccom_Register();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            AccommodationRegister_InfoGrid_dx_Refresh();
+                        }
+                    }
+
+                ]
+            }
+            else if (e.target == "content" && e.row == void 0) {
+                e.items = [
+                    {
+                        text: "Close",
+                        icon: "fa-solid fa-rectangle-xmark text-danger",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            closeAccom_Register();
+                        }
+                    },
+                    {
+                        text: "Refresh",
+                        icon: "fa-solid fa-arrow-rotate-right text-success",
+                        beginGroup: true,
+                        onItemClick: function () {
+                            AccommodationRegister_InfoGrid_dx_Refresh();
+                        }
+                    }
+                ]
+            }
+
+        }
+        function AccommodationRegister_InfoGrid_dx_OnEditorPreparing(e) {
+            if (e.parentType === "filterRow" && (e.dataField === "DepTime" || e.dataField === "ArrTime")) {
+                e.editorOptions.pickerType = "calendar",
+                    e.editorOptions.displayFormat = "HH:mm",
+                    e.editorOptions.calendarOptions =
+                    {
+                        visible: false
+                    }
+            }}
+        function AccommodationRegister_InfoGrid_dx_OnRowClick(e) {
+            debugger;
+            if (e.rowType === "data") {
+                if (e.isSelected) 
+                    e.component.deselectRows(e.key);  
+                else
+                    e.component.selectRows(e.key);
+                //e.component.editRow(e.rowIndex);
+            }
+        }
+        function AccommodationRegister_InfoGrid_dx_OnOptionChanged(e) {
+            //var changedOptionName = e.name;
+            //if (changedOptionName == "paging") {
+            //    var GridInstance = $('#AccommodationRegister_InfoGrid_dx').data("dxDataGrid")//BK SOUMY
+            //    if (GridInstance !== void 0) {
+            //        GridInstance.clearSelection();
+            //    }
+            //}
+        }
+        function AccommodationRegister_InfoGrid_dx_OnContentReady(e) {
+            // setTimeout(function ()
+            //{
+
+            DxGrid_OnContentReady(e, AccomRegstr_ShowHorizontalBar);//Bug #137256
+            //DxGrid_SetGridUIinColHiding("AccommodationRegister_InfoGrid_dx", AccomRegstr_ShowHorizontalBar);
+            /* })*/
+            //var GridInstance = $('#AccommodationRegister_InfoGrid_dx').data("dxDataGrid")//BK SOUMY
+            //if (GridInstance !== void 0) {
+            //    var d = [];
+            //    var key = "";
+            //    d = GridInstance.getSelectedRowKeys();
+            //    if (d && d.length > 0)
+            //        key = d;
+            //    else {
+            //        d = GridInstance.getVisibleRows();
+
+            //        for (let i = 0; i < d.length; i++) {
+            //            if (d[i].rowType == "data") {
+            //                key = d[i].key;
+            //                break;
+            //            }
+            //            else
+            //                continue;
+            //        }
+            //    }
+            //    GridInstance.selectRows(key)
+            //    GridInstance.navigateToRow(key)
+            //}
+        }
+
+        function AccommodationRegister_InfoGrid_dx_OnCellPrepared(e) {
+            //if (e.rowType === "footer") {
+            //    debugger;
+            //    //&& e.summaryItems.length) {
+            //    e.cellElement.innerText = "Sum for " + e.data.key + ": $" + e.summaryItems[0].value;
+            //}
+        }
+
+        function AccommodationRegister_InfoGrid_dx_Refresh() {
+            GoAccomRegister();
+        //    AR_InfoGrid_dx.repaint();
+        //    AR_InfoGrid_dx.refresh().then(function (data) { ActionAfterDataGridRefresh_AR_InfoGrid_dx(data) })
+        }
+        async function ActionAfterDataGridRefresh_AR_InfoGrid_dx(data) {
+            if (Chart_Response_ID_AccRgstr != null && Chart_Response_ID_AccRgstr.length > 0) {
+                var key = Chart_Response_ID_AccRgstr;
+                Chart_Response_ID_AccRgstr = "";
+                AR_InfoGrid_dx.clearSelection()
+                AR_InfoGrid_dx.selectRows(key)     /*await*/
+                AR_InfoGrid_dx.navigateToRow(key)  /*await*/
+
+            }
+            else {
+                var selectedRowKeys = AR_InfoGrid_dx.getSelectedRowKeys()
+                if (selectedRowKeys != null && selectedRowKeys.length > 0) {
+                    AR_InfoGrid_dx.clearSelection()
+                    AR_InfoGrid_dx.selectRows(selectedRowKeys)
+                }
+            }
+        }
+        function Return_Date_String(_date) {
+            debugger;
+            return (JS_Json_Date_To_ddMMyyyy((_date ?? ""), "DD-MM-YYYY") ?? "");
+        }
+        function Return_Time_String(_date) {
+            debugger;
+            return (JS_Json_Date_To_ddMMyyyy((_date ?? ""), "hh:mm A") ?? "");
+        }
+        function AR_InfoGrid_dx_Get_DefaultMode_Columns(data) {
+            debugger;
+            var _dt = data[0];
+            //prevCol = AR_InfoGrid_dx.option("columns");
+            var _columns = [];
+            _columns.push({
+                dataField: "StatusIcon",
+                Name: "StatusIcon",
+                minWidth: 55,
+                width: 55,
+                cellTemplate(container, options) {
+                    AR_InfoGrid_dx_iIconTemplate(container, options);
+                }
+            });
+            if (_dt) {
+
+                for (const [key, value] of Object.entries(data[0])) {
+
+                    switch (key) {
+                        
+                           
+                        case "Age":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 40,
+                                dataType: "number",
+                                //width: 40
+                            });
+                            break;
+                        case "Gender":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 50
+                            });
+                            break;
+                        case "Event":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 50,
+                                //width: 180
+                            });
+                            break;
+                        case "Name":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 50,
+                                width: 130
+                            });
+                            break;
+                        case "ArrTime":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 60,
+                                width: 60,
+                                dataType: "datetime",
+                                format: "HH:mm:ss a",
+                                calculateCellValue: function (rowData) {
+                                    return DxGrid_TimeColCellValue(rowData, 'ArrTime');
+                                },
+                                calculateFilterExpression: "DxGrid_TimeColFilterExp",
+                                headerFilter: {
+                                    dataSource: function (e) {
+                                        return DxGrid_TimeColHeaderDS(e, 'ArrTime')
+                                    },
+                                }
+                            });
+                        case "DepTime":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 60,
+                                width: 60,
+                                dataType: "datetime",
+                                format: "HH:mm:ss a",
+                                calculateCellValue: function (rowData) {
+                                    return DxGrid_TimeColCellValue(rowData, 'DepTime'); 
+                                },
+                                calculateFilterExpression: "DxGrid_TimeColFilterExp",
+                                headerFilter: {
+                                    dataSource: function (e) {
+                                        return DxGrid_TimeColHeaderDS(e, 'DepTime')
+                                    },
+                                }
+                            });
+                            break;
+                        case "Arrived":
+                            _columns.push({
+                                dataField: 'Arrived',
+                                caption: 'Arrived',
+                                showEditorAlways: false,
+                            })
+                            break;
+                        case "Arrival":
+                        case "Departure":
+                        case "Mob1":
+                        case "Registrations":
+                        case "City":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 80,
+                                width: 80
+                            });
+                            break;
+                        case "Centre":
+                        case "Accom_Remarks":
+                        case "Specialities":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 80,
+                                width: 80,
+                                dataType:"string"
+                            });
+                            break;
+                        case "Status":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+
+                            });
+                            break;
+                        case "RegSrNo":
+                        case "Row_PK":
+                        case "Mob2":
+                        case "Mob3":
+                        case "Mob4":
+                        case "Mob5":
+                        case "Email2":
+                        case "Email3":
+                        case "Email4":
+                        case "Email5":
+                        case "REC_STATUS":
+                        case "AB_ID":
+                        case "EventID":
+                        case "ServiceReportID":
+                        case "CHART_ID":
+                        case "CHART_SR_ID":
+                        case "Accomodation_ID":
+                        case "BUILDING_ID":
+                        case "UserID":
+                        case "RESP_ID":
+                        case "Building":
+                        case "Room":
+                        case "Male_Count":
+                        case "Female_Count":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                visible: false
+                            });
+                            break;
+                        case "Accomodation":
+                        case "RoomAndCount":
+                            if (ConciseMode) {
+                                _columns.push({
+                                    dataField: key,
+                                    caption: key,
+                                    visible: false,
+                                    minWidth: 50,
+                                    width: 180
+                                });
+                            }
+                            else {
+                                _columns.push({
+                                    dataField: key,
+                                    caption: key,
+                                    visible: true,
+                                    minWidth: 50,
+                                    width: 180
+                                });
+                            }
+                            break;
+                        case "Accom From":
+                        case "Accom To":
+                        case "DOB":
+                        case "EVENT_FROM":
+                        case "EVENT_TO":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 25,
+                                width: 100,
+                                dataType: "datetime",
+                                format: "dd-MM-yyyy HH:mm:ss"
+                            });
+                            break;
+                        case "DATE_OF_COURSE":
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                visible: false,
+                                dataType: "datetimd",
+                                format: "dd-MM-yyyy HH:mm:ss"
+                            });
+                            break;
+                        default:
+
+                            _columns.push({
+                                dataField: key,
+                                caption: key,
+                                minWidth: 25,
+                                width: 100
+                            });
+
+                            break;
+                    }
+                }
+                _columns.push({
+                    dataField: 'SummaryColumn',
+                    caption: 'SummaryColumn',
+                    showInColumnChooser: false,
+                    visible: false
+                });
+                AR_InfoGrid_dx.beginUpdate();
+                AR_InfoGrid_dx.option("columns", _columns);
+                //AR_InfoGrid_dx.option({
+                //    summary: {
+                //        totalItems: [{
+                //            column: 'SummaryColumn',
+                //            displayFormat: ""
+                //        }],
+                //        groupItems: [{
+                //            column: 'SummaryColumn',
+                //            displayFormat: "",
+                //            showInGroupFooter: true
+                //        }]
+                //    }
+                //});
+                AR_InfoGrid_dx.repaint();
+                AR_InfoGrid_dx.endUpdate();
+
+            }
+        }
+        function isDateValid(dateStr) {
+            return !isNaN(new Date(dateStr));
+        }
+        function AR_InfoGrid_dx_iIconTemplate(container, templateData) {
+            var IconData = "";
+            if (templateData.data.Beds)
+                IconData = templateData.data.Beds > 0 ? "🏠" : "";
+            if (templateData.data.Arrived)
+                IconData += " 🚗";
+
+            $(container).html(IconData);
+        }
+        function AR_InfoGrid_dx_PreviewRow_Template(e) {
+            var htmlString = "";
+            var Remarks = e.data.Remarks == null ? "" : e.data.Remarks;
+            if (Remarks.length > 0) {
+                htmlString += "<div><span style='color:#0000FF'> <i>Admin Remarks: " + Remarks + "</i></span></div>";
+            }
+            return htmlString;
+        }
+    </script>
+    <script>
+        function AccommodationRegister_InfoGrid_dx_OnBeforeSend(operation, ajaxOptions) {
+            ajaxOptions.data = readFilterParamValues();
+        }
+        
+    </script>
+</div>
